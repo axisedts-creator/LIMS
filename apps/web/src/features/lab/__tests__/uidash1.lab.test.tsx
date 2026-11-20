@@ -99,7 +99,7 @@ describe('/lab/status-board (template 5 REPORT)', () => {
     await act(async () => { fireEvent.click(buttonOf(tileFor(container, 'Ready'))!); });
     expect(bff.getStatusBoardAction.mock.calls.at(-1)![0]).toMatchObject({ board_status: 'ready' });
     const byLabel = Object.fromEntries(tiles(container).map((x) => [tileLabel(x), norm(tileValue(x))]));
-    expect(byLabel.Ready.replace(/\D/g, '')).toBe('1');
+    expect(byLabel.Ready!.replace(/\D/g, '')).toBe('1');
     for (const s of ['Waiting', 'Collected', 'In lab', 'Printed']) expect(byLabel[s], `${s} is outside the filter`).toBe('—');
     for (const s of ['Waiting', 'Collected', 'In lab', 'Printed']) expect(buttonOf(tileFor(container, s))!.getAttribute('aria-label'), `${s} aria-label`).not.toMatch(/\b0\b/);
   });

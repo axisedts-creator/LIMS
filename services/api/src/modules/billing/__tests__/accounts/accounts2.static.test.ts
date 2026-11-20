@@ -101,10 +101,16 @@ describe('source rules (done_when 2, 3, 5)', () => {
       expect(src, f).not.toMatch(/\bTRUNCATE\b[^;`'"]*(expenses|cash_transfers|expense_types)/i);
     }
   });
-  it('nothing UPDATEs the append only account ledger; no sequence, no float math on money in the expense / transfer sources', () => {
+  // T0B-FINCTRL-1 ruling (TESTS_WRONG): hold / release (T0C-FINCTRL-1, LD-321) legitimately UPDATE the ledger status + hold columns; nothing else may be written.
+  const HOLD_COLUMNS = ['status', 'held_reason', 'held_by', 'held_at', 'released_by', 'released_at', 'last_modified_by', 'updated_at'];
+  it('any UPDATE of the account ledger names only the hold / release columns; no sequence, no float math on money in the expense / transfer sources', () => {
     for (const f of [...mine, ...sources(dir).filter((x) => /account_ledger_entries/i.test(readFileSync(x, 'utf8')))]) {
       const src = readFileSync(f, 'utf8');
-      expect(src, f).not.toMatch(/\bUPDATE\s+billing\.account_ledger_entries\b/i);
+      for (const m of src.matchAll(/\bUPDATE\s+billing\.account_ledger_entries\b[\s\S]*?\bSET\b([\s\S]*?)(?:\bWHERE\b|\bRETURNING\b|;|`|$)/gi)) {
+        const cols = [...m[1]!.matchAll(/(?:^|,)\s*"?([a-z_]+)"?\s*=(?!=)/gi)].map((c) => c[1]!.toLowerCase());
+        expect(cols.length, `${f}: unparsable SET list ${m[1]}`).toBeGreaterThan(0);
+        for (const c of cols) expect(HOLD_COLUMNS, `${f}: UPDATE of ledger column ${c}`).toContain(c);
+      }
       expect(src, f).not.toMatch(/nextval|CREATE\s+SEQUENCE/i);
       expect(src, f).not.toMatch(/parseFloat|\.toFixed\(|Math\.(round|floor|ceil)\([^)]*paisa/i);
     }

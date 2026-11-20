@@ -6,6 +6,8 @@ import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Banner } from '@lims/ui/components/Banner';
 import { Button } from '@lims/ui/components/Button';
+import { Checkbox } from '@lims/ui/components/Checkbox';
+import { Dialog } from '@lims/ui/components/Dialog';
 import { ConfirmDialog } from '@lims/ui/components/ConfirmDialog';
 import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
 import { DateText, type DateTextProps } from '@lims/ui/components/DateText';
@@ -17,13 +19,15 @@ import { StatusChip } from '@lims/ui/components/StatusChip';
 import { useToast } from '@lims/ui/components/Toast';
 import { DEVICE_CHANGED, PLATFORM, deviceStatus, failText, hasPerm, humanize, semverLess, toneIcon } from '../labels';
 import { DEVICE_STATUSES } from '../query';
-import { wipeDeviceAction } from '../server/actions';
+import { updateCollectorFlagsAction, wipeDeviceAction } from '../server/actions';
 import { useSubmissionKey } from '../submission';
 import type { DeviceRow, WipeCodes } from '../types';
 
 type Iso = DateTextProps['value'];
 const MANAGE = 'homecollection.device.manage';
 const WIPE = 'wipe';
+const FLAGS = 'collector_flags';
+const SETTINGS = 'homecollection.settings.manage'; // updateCollectorFlags x-permission
 const WIPEABLE = ['active', 'signed_off'];
 
 export interface DevicesViewProps {
@@ -100,10 +104,55 @@ function WipeDialog({ device, reasons, onClose }: { device: DeviceRow; reasons: 
   );
 }
 
+/** T0D-SALES-1 done_when 3 (LD-321, ElabAssist Collection Boy): Allow Collection and Allow Pickup for one collector. There is no read operation for the
+ * stored flags, so both start checked (the API default, no row = true) and Save sends ONLY the boxes that were changed (last write wins, no If-Match). */
+function CollectorDialog({ device, onClose }: { device: DeviceRow; onClose: () => void }) {
+  const router = useRouter();
+  const toast = useToast();
+  const busy = useRef(false);
+  const [pending, setPending] = useState(false);
+  const [collection, setCollection] = useState(true);
+  const [pickup, setPickup] = useState(true);
+  const [error, setError] = useState('');
+  const changes = { ...(collection ? {} : { allow_collection: false }), ...(pickup ? {} : { allow_pickup: false }) };
+  const changed = Object.keys(changes).length > 0;
+
+  const save = async () => {
+    if (busy.current || !changed || !device.membership_id) return;
+    busy.current = true;
+    setPending(true);
+    setError('');
+    try {
+      const res = await updateCollectorFlagsAction(device.membership_id, changes);
+      if (!res.ok) { setError(failText(res, 'Check the values and try again.', 'This collector could not be found. Refresh the list and try again.')); return; }
+      toast.show({ tone: 'success', title: 'Collector settings saved.' });
+      router.refresh();
+      onClose();
+    } finally {
+      busy.current = false;
+      setPending(false);
+    }
+  };
+
+  return (
+    <Dialog title="Collector settings" isOpen onClose={onClose} size="sm"
+      footer={<><Button variant="ghost" onPress={onClose}>Cancel</Button><Button variant="primary" isDisabled={!changed} isLoading={pending} onPress={() => void save()}>Save</Button></>}>
+      <div className="lims-stack">
+        <p>{device.display_name}</p>
+        <Checkbox label="Allow Collection" name="allow_collection" isSelected={collection} onChange={setCollection} description="Off: not offered for new home visits." />
+        <Checkbox label="Allow Pickup" name="allow_pickup" isSelected={pickup} onChange={setPickup} description="Off: not offered for sample pickups." />
+        {error ? <p role="alert" className="lims-error">{error}</p> : null}
+      </div>
+    </Dialog>
+  );
+}
+
 export function DevicesView({ devices, codes, minAppVersion, permissions, nextCursor, status }: DevicesViewProps) {
   const router = useRouter();
   const [wipe, setWipe] = useState<DeviceRow | null>(null);
+  const [flags, setFlags] = useState<DeviceRow | null>(null);
   const canWipe = hasPerm(permissions, MANAGE) && codes.wipe_reasons.length > 0;
+  const canFlags = hasPerm(permissions, SETTINGS);
 
   const columns: ColumnDef<DeviceRow>[] = [
     { id: 'who', header: 'Phlebotomist', isRowHeader: true, cell: (d) => d.display_name },
@@ -141,14 +190,18 @@ export function DevicesView({ devices, codes, minAppVersion, permissions, nextCu
       <DataTable<DeviceRow>
         caption="Phlebotomy phones" columns={columns} rows={devices} getRowId={(d) => d.id} density="compact" cellTitle
         emptyState={{ title: 'No phones registered yet. Phones appear after the first sign-in.' }}
-        {...(canWipe
+        {...(canWipe || canFlags
           ? {
-              rowActions: (d: DeviceRow) => (WIPEABLE.includes(d.status) ? [{ id: WIPE, label: 'Wipe on next connection', isDanger: true }] : []),
-              onRowActionMenu: (d: DeviceRow, id: string) => { if (id === WIPE) setWipe(d); },
+              rowActions: (d: DeviceRow) => [
+                ...(canFlags && d.membership_id ? [{ id: FLAGS, label: 'Collector settings' }] : []),
+                ...(canWipe && WIPEABLE.includes(d.status) ? [{ id: WIPE, label: 'Wipe on next connection', isDanger: true }] : []),
+              ],
+              onRowActionMenu: (d: DeviceRow, id: string) => { if (id === WIPE) setWipe(d); else if (id === FLAGS) setFlags(d); },
             }
           : {})}
         {...(nextCursor ? { page: { hasNext: true, hasPrevious: false, onNext: () => router.push(`/homecollection/devices?cursor=${encodeURIComponent(nextCursor)}`), onPrevious: () => router.back(), limit: 100 } } : {})}
       />
+      {flags ? <CollectorDialog key={flags.id} device={flags} onClose={() => setFlags(null)} /> : null}
       {wipe ? <WipeDialog key={`${wipe.id}:${wipe.version}`} device={wipe} reasons={codes.wipe_reasons} onClose={() => setWipe(null)} /> : null}
     </div>
   );

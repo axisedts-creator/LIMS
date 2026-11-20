@@ -39,7 +39,7 @@ let review: R;
 const reset = () => { review = () => HttpResponse.json({ ...COL_HELD, version: 3, status: 'applied' }); };
 reset();
 const api = setupServer(http.post(`${API}/collections/:id/review`, async ({ request }) => { await rec(request); return review(); }));
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { cleanup(); api.resetHandlers(); calls.length = 0; refresh.mockReset(); reset(); });
 afterAll(() => api.close());
 

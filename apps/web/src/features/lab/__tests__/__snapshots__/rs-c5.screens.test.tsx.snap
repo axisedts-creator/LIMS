@@ -495,8 +495,26 @@ exports[`RS-C5 key screens (DOM snapshots) > result entry: three-step tracks (En
 
 exports[`RS-C5 key screens (DOM snapshots) > worklist: table with the right panel open on the first sample 1`] = `
 "<section aria-label="Worklist">
-<h1>Worklist</h1>
-<div class="lims-toolbar">
+<div class="lims-page-header">
+<div class="lims-page-header-row">
+<h1 class="lims-page-title">Pathology Result</h1>
+<div class="lims-page-actions">
+<button class="lims-btn lims-btn-primary lims-btn-md" data-rac="" type="button" disabled="" data-ID="true" id="ID" data-disabled="true">
+<span class="lims-btn-label">Create worksheet</span>
+</button>
+<span data-help-key="lab.worklists">
+<button class="lims-btn lims-btn-ghost lims-btn-md" data-rac="" type="button" tabindex="0" data-ID="true" id="ID">
+<svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 3a9 9 0 100 18 9 9 0 000-18zM9.5 9.5a2.5 2.5 0 115 0c0 2-2.5 2-2.5 4M12 17h.01">
+</path>
+</svg>
+<span class="lims-btn-label">Help</span>
+</button>
+</span>
+</div>
+</div>
+</div>
+<div role="search" class="lims-filter-bar">
 <label class="lims-field">Priority<select class="lims-input">
 <option value="">All</option>
 <option value="urgent">★ Urgent</option>
@@ -508,12 +526,11 @@ exports[`RS-C5 key screens (DOM snapshots) > worklist: table with the right pane
 <option value="01a1a98a-ac40-7000-8000-000000000026">Synthetic Analyser A</option>
 </select>
 </label>
-<button class="lims-btn lims-btn-primary lims-btn-md" data-rac="" type="button" disabled="" data-ID="true" id="ID" data-disabled="true">
-<span class="lims-btn-label">Create worksheet</span>
-</button>
 </div>
 <div class="lims-grid lims-cols-2" style="gap: var(--lims-space-4);">
 <div>
+<div class="lims-data-table">
+<div class="lims-table-scroll">
 <table class="lims-table" aria-label="Worklist">
 <thead>
 <tr>
@@ -576,6 +593,8 @@ exports[`RS-C5 key screens (DOM snapshots) > worklist: table with the right pane
 </tr>
 </tbody>
 </table>
+</div>
+</div>
 </div>
 <aside aria-label="Result entry">
 <div class="lims-card">

@@ -25,8 +25,8 @@ export const sessionMock = {
   getShellSession: async () => ({ actor: { permissions: state.permissions, displayName: 'Synthetic Pathologist', membershipId: ID(900), tenantCode: 'syn', roles: [] } }),
   getRequestPathname: async () => '/anatomic',
 };
-export const router = { push: vi.fn(), replace: vi.fn(), refresh: vi.fn(), back: vi.fn() };
-export const navigationMock = {
+export const router: Record<'push' | 'replace' | 'refresh' | 'back', ReturnType<typeof vi.fn>> = { push: vi.fn(), replace: vi.fn(), refresh: vi.fn(), back: vi.fn() };
+export const navigationMock: { useRouter: () => typeof router; usePathname: () => string; useSearchParams: () => URLSearchParams; notFound: () => never; redirect: (to: string) => never } = {
   useRouter: () => router,
   usePathname: () => '/anatomic',
   useSearchParams: () => new URLSearchParams(),

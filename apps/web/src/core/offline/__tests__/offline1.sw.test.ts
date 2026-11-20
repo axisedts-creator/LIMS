@@ -60,7 +60,7 @@ describe('precache and offline serving of the app shell', () => {
     const sw = boot();
     await sw.fire('install');
     expect(sw.caches.addAll).toHaveBeenCalled();
-    const [name, urls] = sw.caches.addAll.mock.calls[0];
+    const [name, urls] = sw.caches.addAll.mock.calls[0]!;
     expect(name).toMatch(/^lims-shell-/);
     expect(urls).toEqual(['/', '/_next/static/chunks/main.js', '/_next/static/css/app.css']);
   });

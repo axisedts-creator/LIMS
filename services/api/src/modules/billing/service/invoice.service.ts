@@ -121,14 +121,20 @@ const CANCELLED_BANNER = 'CANCELLED';
 const REPRINT_PERMISSION = 'billing.invoice.reprint';
 const PRINT_REASONS: readonly string[] = ['first_print', 'reprint', 'printer_fault', 'customer_copy'];
 
-function checkPrintInput(raw: unknown, idKey: 'invoiceId' | 'creditNoteId'): { id: string; reasonCode?: string } {
+// T0B-PRINTCFG-1 (LD-316): full (default) | plain_bw, the plain black and white tax bill; stored on billing.print_log.style.
+export type PrintStyle = 'full' | 'plain_bw';
+const PRINT_STYLES: readonly string[] = ['full', 'plain_bw'];
+
+function checkPrintInput(raw: unknown, idKey: 'invoiceId' | 'creditNoteId'): { id: string; reasonCode?: string; style?: PrintStyle } {
   const errors: FieldError[] = [];
   const o = isRec(raw) ? raw : {};
   if (typeof o[idKey] !== 'string' || !UUID.test(o[idKey])) errors.push(fieldError(idKey === 'invoiceId' ? '/invoice_id' : '/credit_note_id'));
   const rc = o['reasonCode'];
   if (rc !== undefined && (typeof rc !== 'string' || !PRINT_REASONS.includes(rc))) errors.push(fieldError('/reason_code'));
+  const st = o['style'];
+  if (st !== undefined && (typeof st !== 'string' || !PRINT_STYLES.includes(st))) errors.push(fieldError('/style'));
   if (errors.length) throw invalid(...errors);
-  return { id: o[idKey], ...(rc === undefined ? {} : { reasonCode: rc as string }) };
+  return { id: o[idKey], ...(rc === undefined ? {} : { reasonCode: rc as string }), ...(st === undefined ? {} : { style: st as PrintStyle }) };
 }
 
 const adDate = (instant: string, timeZone: string): string =>
@@ -290,7 +296,7 @@ export function createInvoiceService(deps: { repo?: BillingRepo; counter: Counte
   async function printDocument(ctx: InvoiceCtx, kind: 'invoice' | 'credit_note', raw: unknown) {
     if (typeof ctx?.tenantId !== 'string' || typeof ctx.actor?.id !== 'string' || !ctx.tx) throw new LimsError('auth.unauthenticated');
     const isInvoice = kind === 'invoice';
-    const { id, reasonCode } = checkPrintInput(raw, isInvoice ? 'invoiceId' : 'creditNoteId');
+    const { id, reasonCode, style: asked } = checkPrintInput(raw, isInvoice ? 'invoiceId' : 'creditNoteId');
     const idp = ctx.ports?.IdentityPort;
     const audit = ctx.audit;
     if (!idp?.assertRole || !idp.readBrandingAsset || typeof audit?.access !== 'function') throw new LimsError('common.internal');
@@ -309,14 +315,20 @@ export function createInvoiceService(deps: { repo?: BillingRepo; counter: Counte
     const legalName = [b?.legalName, b?.displayName].find((n) => typeof n === 'string' && n.trim() !== '');
     if (typeof legalName !== 'string') throw new LimsError('common.internal'); // tenant branding not configured
     const timezone: string = typeof tenant?.timezone === 'string' ? tenant.timezone : 'Asia/Kathmandu';
+    // LD-316: a reprint keeps the style of the ORIGINAL (print_no 1) unless the caller chooses one; never printed -> full.
+    // [CONV] read before the row lock: two simultaneous FIRST prints without a style both default to full.
+    const style: PrintStyle = asked ?? ((found['print_count'] ?? 0) > 0 && typeof repo.getOriginalPrintStyle === 'function'
+      ? (await repo.getOriginalPrintStyle(tx, { tenantId, documentKind: kind, documentId: id })) ?? 'full' : 'full');
+    const plain = style === 'plain_bw';
     const images: Array<{ kind: string; mime_type: string; base64: string }> = [];
-    for (const assetId of [b?.logoAssetId, b?.letterheadHeaderAssetId, b?.letterheadFooterAssetId]) { // a failed read aborts the print: no original without its letterhead
+    // plain_bw: no logo, no letterhead: no branding asset is read at all
+    for (const assetId of plain ? [] : [b?.logoAssetId, b?.letterheadHeaderAssetId, b?.letterheadFooterAssetId]) { // a failed read aborts the print: no original without its letterhead
       if (typeof assetId !== 'string') continue;
       const a = await idp.readBrandingAsset(ctx, { assetId });
       images.push({ kind: a.kind, mime_type: a.mimeType, base64: a.base64 });
     }
     const arr = (v: unknown): string[] => (Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : []);
-    const branding = present({ legal_name: legalName, address_lines: arr(b?.addressLines), phones: arr(b?.phones), receipt_footer_note: b?.receiptFooterNote, images });
+    const branding = present({ legal_name: legalName, address_lines: arr(b?.addressLines), phones: arr(b?.phones), receipt_footer_note: plain ? undefined : b?.receiptFooterNote, images });
 
     // ---- the row lock is taken here; nothing below may fail on user input ----
     const printNo = isInvoice
@@ -379,7 +391,7 @@ export function createInvoiceService(deps: { repo?: BillingRepo; counter: Counte
 
     await repo.insertPrintLog(tx, {
       id: uuidv7(), tenant_id: tenantId, ...(centreId === undefined ? {} : { centre_id: centreId }), document_kind: kind, document_id: id, document_no: documentNo,
-      print_no: printNo, is_copy: copy, ...(reasonCode === undefined ? {} : { reason_code: reasonCode }), printed_at: now, created_by: actorId,
+      print_no: printNo, is_copy: copy, ...(reasonCode === undefined ? {} : { reason_code: reasonCode }), style, printed_at: now, created_by: actorId,
     });
     await repo.insertActivity(tx, {
       id: uuidv7(), tenant_id: tenantId, centre_id: centreId ?? null, action: `${kind}_printed`, document_kind: kind, document_id: id, document_no: documentNo,
@@ -388,7 +400,7 @@ export function createInvoiceService(deps: { repo?: BillingRepo; counter: Counte
     });
     await audit.access({ action: `${kind}.print`, entityType: kind, entityId: id, ...(centreId === undefined ? {} : { centreId }), outcome: 'allowed', detail: { print_no: printNo } });
 
-    return { print_no: printNo, ...(copy ? { copy_mark: COPY_MARK } : {}), document };
+    return { print_no: printNo, ...(copy ? { copy_mark: COPY_MARK } : {}), style, document };
   }
   const print = (ctx: InvoiceCtx, input: unknown) => printDocument(ctx, 'invoice', input);
   const printCreditNote = (ctx: InvoiceCtx, input: unknown) => printDocument(ctx, 'credit_note', input);

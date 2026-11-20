@@ -22,7 +22,7 @@ const band = (o: Record<string, unknown> = {}) => ({ sex: 'male', age_low: { val
 const set = (o: Record<string, unknown> = {}) => ({ id: ID(300), analyte_id: A_HB.id, version_no: 2, status: 'draft', version: 4, bands: [band(), band({ sex: 'female', low: '12.0', high: '15.5', default_range: false, sort_order: 1 })], ...o });
 const crit = (o: Record<string, unknown> = {}) => ({ id: ID(310), analyte_id: A_HB.id, version_no: 1, status: 'draft', version: 2, bands: [{ sex: 'male', age_low: { value: 18, unit: 'year' }, age_high: { value: 150, unit: 'year' }, low: '7.0', high: '20.0' }], ...o });
 
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterAll(() => api.close());
 beforeEach(() => { reset(); loadTests(HB); S.rangeSets[A_HB.id] = [set()]; S.criticalSets[A_HB.id] = [crit()]; });
 afterEach(() => { cleanup(); api.resetHandlers(); });

@@ -24,7 +24,7 @@ const sp = (o: Record<string, string> = {}) => ({ searchParams: { decided_at_fro
 const user = () => userEvent.setup();
 const anyDialog = () => screen.queryByRole('dialog') ?? screen.queryByRole('complementary');
 
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 beforeEach(() => { resetApi(AV_READ); seedAv(); routes[`GET ${LIST}/${DEC(1)}`] = json(decisionDetail(1)); routes[`GET ${LIST}/${DEC(2)}`] = json(decisionDetail(2)); routes[`GET ${LIST}/${DEC(3)}`] = json(decisionDetail(3)); });
 afterEach(() => { cleanup(); api.resetHandlers(); });
 afterAll(() => api.close());

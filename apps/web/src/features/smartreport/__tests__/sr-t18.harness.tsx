@@ -31,8 +31,8 @@ export const sessionMock = {
   getShellSession: async () => ({ actor: { permissions: state.permissions, displayName: 'Synthetic Pathologist', membershipId: id(50), tenantCode: 'syn', roles: [] } }),
   getRequestPathname: async () => PATH,
 };
-export const router = { push: vi.fn(), replace: vi.fn(), refresh: vi.fn(), back: vi.fn(), prefetch: vi.fn() };
-export const navigationMock = {
+export const router: Record<'push' | 'replace' | 'refresh' | 'back' | 'prefetch', ReturnType<typeof vi.fn>> = { push: vi.fn(), replace: vi.fn(), refresh: vi.fn(), back: vi.fn(), prefetch: vi.fn() };
+export const navigationMock: { useRouter: () => typeof router; usePathname: () => string; useSearchParams: () => URLSearchParams; notFound: () => never; redirect: (to: string) => never } = {
   useRouter: () => router,
   usePathname: () => PATH,
   useSearchParams: () => new URLSearchParams(state.search),
@@ -102,7 +102,7 @@ const APP = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', 'app
 export const appFile = (...p: string[]) => join(APP, ...p);
 export const importPage = async (rel: string) => (await import(/* @vite-ignore */ `../../../app/(staff)/smartreport/${rel}`)) as { default: (p: any) => Promise<any> };
 export const QUEUE_PAGE = 'summaries/page';
-export async function showQueue(searchParams: Record<string, string> = {}) {
+export async function showQueue(searchParams: Record<string, string> = {}): Promise<ReturnType<typeof render>> {
   state.search = new URLSearchParams(searchParams).toString();
   const { default: Page } = await importPage(QUEUE_PAGE);
   const el = await Page({ params: Promise.resolve({}), searchParams: Promise.resolve(searchParams) });

@@ -30,7 +30,7 @@ const card = (name: RegExp) => {
 const save = (root: HTMLElement) => within(root).getByRole('button', { name: /^save/i });
 const num = (label: RegExp, root: HTMLElement = document.body) => within(root).getByLabelText(label) as HTMLInputElement;
 
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 beforeEach(() => resetApi(PERM_CFG_WRITE));
 afterEach(() => { cleanup(); api.resetHandlers(); });
 afterAll(() => api.close());

@@ -2,7 +2,7 @@
 // later tasks (C6-T06+ report templates, RenderTemplateKey data templates); an unknown id is a bad bundle (400).
 import { PDFDocument } from '@cantoo/pdf-lib';
 import { RenderError, type Pool, type RenderHtmlOptions } from './pool.js';
-import type { AssetRef, DataTemplateModule, ReportDocument, SmartSectionRenderer, TemplateConfig, TemplateModule } from './templates/contract.js';
+import type { AssetRef, DataTemplateModule, PrintProfile, ReportDocument, SmartSectionRenderer, TemplateConfig, TemplateModule } from './templates/contract.js';
 import { previewSampleDocument } from './templates/preview-sample.js';
 import { qrDataUri } from './templates/lab/qr.js';
 
@@ -38,6 +38,23 @@ const WATERMARK_MAX = 40;
 const BLANK_PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
 const isObj = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
 
+const PAPER_MODES = ['letterhead_image', 'typed_header_footer', 'preprinted_paper', 'plain'];
+// The API refuses markup at upsert (domain/printProfile.ts); the renderer only bounds the size and escapes at render (defence in depth, never interprets).
+const PP_TEXT = /^[^\n]{0,120}(\n[^\n]{0,120}){0,7}$/;
+const intIn = (v: unknown, lo: number, hi: number) => Number.isInteger(v) && (v as number) >= lo && (v as number) <= hi;
+/** T0B-PRINTCFG-1 (LD-316): the resolved print profile of a report bundle (contract PrintProfile bounds); undefined = absent; anything malformed is a 400. */
+export function parsePrintProfile(v: unknown): PrintProfile | undefined {
+  if (v === undefined) return undefined;
+  const bad = () => { throw new RenderError(400, 'bad print_profile'); };
+  if (!isObj(v) || typeof v['paper_mode'] !== 'string' || !PAPER_MODES.includes(v['paper_mode'])) return bad();
+  const text = (k: string) => { const t = v[k] ?? ''; if (typeof t !== 'string' || !PP_TEXT.test(t)) bad(); return t as string; };
+  const int = (k: string, lo: number, hi: number, d: number) => { const n = v[k] ?? d; if (!intIn(n, lo, hi)) bad(); return n as number; };
+  const flag = (k: string, d: boolean) => { const b = v[k] ?? d; if (typeof b !== 'boolean') bad(); return b as boolean; };
+  return { paper_mode: v['paper_mode'] as PrintProfile['paper_mode'], header_text: text('header_text'), footer_text: text('footer_text'),
+    reserve_top_mm: int('reserve_top_mm', 0, 80, 0), reserve_bottom_mm: int('reserve_bottom_mm', 0, 60, 0), show_logo: flag('show_logo', false),
+    show_seller_pan: flag('show_seller_pan', true), grayscale: flag('grayscale', false), font_size_pt: int('font_size_pt', 8, 12, 10) };
+}
+
 /** Third request shape (02-TRD §5.1; C6-T16): report templates. Bundle = { template_version_config, variant, document, watermark_override? }; the registry module is
  *  `lab-report` / `narrative-report`. `template-preview` renders the lab-report template with the config over the renderer's own synthetic sample: a posted document is ignored
  *  (never rendered), so a preview can never print real data. `watermark_override` (draft print, AC-12.3) replaces the config watermark text. */
@@ -45,6 +62,7 @@ async function renderReport(m: TemplateModule, templateId: string, bundle: unkno
   if (!pool) throw new RenderError(503, 'no renderer pool');
   if (!isObj(bundle)) throw new RenderError(400, 'bad bundle');
   const { template_version_config: config, variant, document, watermark_override: wm } = bundle;
+  const printProfile = parsePrintProfile(bundle['print_profile']);
   if (variant !== 'letterhead' && variant !== 'plain') throw new RenderError(400, 'bad variant');
   if (!isObj(config)) throw new RenderError(400, 'bad bundle');
   if (wm !== undefined && (typeof wm !== 'string' || wm.length < 1 || wm.length > WATERMARK_MAX)) throw new RenderError(400, 'bad bundle');
@@ -54,7 +72,7 @@ async function renderReport(m: TemplateModule, templateId: string, bundle: unkno
   let html: string;
   try {
     html = m.render({
-      document: (preview ? previewSampleDocument() : document) as unknown as ReportDocument, config: cfg, variant, ...(smart ? { smart } : {}),
+      document: (preview ? previewSampleDocument() : document) as unknown as ReportDocument, config: cfg, variant, ...(smart ? { smart } : {}), ...(printProfile ? { printProfile } : {}),
       // An asset the worker left out (E9: missing / altered, logged asset_missing there) never blocks a report: it draws as a blank pixel.
       assets: { dataUri: (ref: AssetRef) => {
         const a = Object.hasOwn(assets, ref.sha256) ? assets[ref.sha256] : undefined;

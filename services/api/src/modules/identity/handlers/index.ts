@@ -3,6 +3,7 @@
 // replaces it with handlers/<operationId>.ts. [CONV] same one-list stub pattern as modules/lab/handlers/index.ts.
 import type { Handler } from '../../../core/module.js';
 import { LimsError } from '../../../core/errors.js';
+import { applyRolePack } from './applyRolePack.js';
 import { createRole } from './createRole.js';
 import { deactivateRole } from './deactivateRole.js';
 import { getRole } from './getRole.js';
@@ -149,7 +150,7 @@ const notImplemented = (operationId: string): Handler => async () => {
 };
 
 const implemented: Partial<Record<IdentityOperationId, Handler>> = {
-  listPermissions, listRoles, createRole, getRole, updateRole, deactivateRole,   // T14
+  listPermissions, listRoles, createRole, getRole, updateRole, deactivateRole, applyRolePack,   // T14 (applyRolePack: guarded stub, SEC-AUTHZ-4)
   listBranches, createBranch, updateBranch, deactivateBranch, reactivateBranch,                  // T15
   listCentres, createCentre, updateCentre, deactivateCentre, reactivateCentre,                    // T15
   getSettings, updateSettings, uploadBrandingAsset, getBrandingAssetContent, listFeatureFlags, setTenantFeatureFlag, listOwnIrdAnnexes,   // T16

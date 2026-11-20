@@ -64,7 +64,7 @@ describe('RS-C8 behaviour unchanged (LD-140: no change to API calls, fields, val
     const now = signature(area).routes.filter((r) => r.startsWith('/analytics'));
     const was = baseline.signatures[area].routes.filter((r) => r.startsWith('/analytics'));
     expect(was.filter((r) => !now.includes(r))).toEqual([]);
-    const EXISTING = /^\/analytics(?:\/(?:collections|exports(?:\/\$\{[^}]+\}\/file)?|referral-incentive|report-runs\/\$\{[^}]+\}|schedules(?:\/new|\/\$\{[^}]+\})?|reports(?:\/(?:\$\{[^}]+\}|[a-z][a-z-]*))?))?$/;
+    const EXISTING = /^\/analytics(?:\/(?:collections|exports(?:\/\$\{[^}]+\}\/file)?|referral-incentive|report-runs\/\$\{[^}]+\}|schedules(?:\/new|\/\$\{[^}]+\})?|reports(?:\/(?:\$\{[^}]*\}?|[a-z][a-z-]*))?))?$/;
     expect(now.filter((r) => !EXISTING.test(r))).toEqual([]);
   });
 

@@ -1,0 +1,110 @@
+# T0C-FINCTRL-1 impl (LD-321, LD-325, LD-310)
+- Files: contracts/openapi/billing.yaml (+16 ops on 13 paths, purely additive: listDiscountReasons, createDiscountReason, updateDiscountReason, listPartyDiscountSlabs, createPartyDiscountSlab, updatePartyDiscountSlab, deactivatePartyDiscountSlab, resolveDiscountSlab, listUserDiscountLimits, setUserDiscountLimit, listDiscountAuthorities, createDiscountAuthority, deactivateDiscountAuthority, getMyDiscountPolicy, holdLedgerEntry, releaseLedgerEntry; AccountLedgerEntry status held + held_*/released_*/fiscal_year_label; CashSessionDto + CloseCashSessionRequest deposit fields), frontdesk.yaml (DiscountApproval.within_limit optional), permissions.yaml + corp_admin pack, migration 20261117190000_billing__add_finance_controls.sql, db/meta/tables.yaml + db/policies/billing.sql, billing/index.ts pendingOperations (the 16 ids; T0B-FINCTRL-1 removes them). Generated: api-client-ts/dart, msw handlers, permissions.ts, g_permissions seed, isolation probes + probe rows (over the 12 file cap only by generated files: lead to rule).
+- Permissions: billing.discount_policy.read (finance, tenant_admin, front_desk) and billing.discount_policy.manage (privileged; finance, tenant_admin), both in corp_admin; hold / release reuse billing.account.manage. FOUNDER STEPS: push-cloud for 20261117190000_billing__add_finance_controls.sql, then re-apply the role pack (apply-role-pack) on live tenants. Not done here.
+- LEDGER RULE: append only stays; hold (submitted -> held, reason required) and release (held -> submitted) are the only status transitions besides reversal (DB guard trigger + 8 column UPDATE grant). Balances, statements and summaries count only posted entries (every status except held); held entries are listed apart until released (T0B-FINCTRL-1 implements this in the queries).
+- [CONV] Discount reasons are seeded per tenant by billing.seed_discount_reasons(tenant, actor) (a migration cannot seed future tenants; T0B-FINCTRL-1 calls it on tenant setup): Partner Family, Partners friend and relatives, Prescribed by Doctor, Employees and family, Employee relatives, Regular patient, Walking patient, Gold membership (the eight the evidence lists). Brief `active` = repo is_active. Slab overlap: two ACTIVE slabs of one party never overlap in amount range (half open, amount_to exclusive) AND date range (inclusive); refused in the DB (advisory-locked trigger, btree_gist not assumed) -> common.validation_failed.
+- [CONV] fiscal_year_label (e.g. 2083/84) is server-set from entry_date, not a request field; fiscal year start defaults to Shrawan 1 BS until the accountant confirms. Carried forward cash: previous_outstanding_cash_paisa is set when a cash session opens (previous day closing cash not deposited) and is immutable after; deposit_paisa stays editable (also after close).
+- [CONV] FRONTDESK contradiction: requestDiscountApproval already has a REQUIRED reason_code (coded set frontdesk.discount_reasons) on request and response, so the request is unchanged (existing tests green); the response DiscountApproval gains optional within_limit. T0B-FINCTRL-1 should keep frontdesk.discount_reasons codes equal to the tenant billing.discount_reason codes (the master is the source of the coded set).
+- OFFLINE (founder 09:19): all master changes (reasons, slabs, limits, authorities) and hold and release are online only; resolveDiscountSlab and getMyDiscountPolicy are reads the offline layer may cache (re-checked by the server at sync).
+- Open: Verified status of the evidence not modelled (needs a ruling); no new error code; service rules (posted-only sums, slab resolution, limit checks) are T0B-FINCTRL-1.
+
+## FIELD MAP (evidence C:/LIMS-state/elabassist-accounting-20261117.md)
+- Laboratory — present: account_ledger_entries.party_kind laboratory
+- Franchise — present: party_kind franchise; slabs for franchise added (party_discount_slab.party_kind)
+- Client — present: party_kind credit_party (credit parties)
+- Transaction Date — present: entry_date
+- Particulars — present: account_particular_id (account_particulars)
+- Amount — present: amount_paisa (integer paisa)
+- Comments — present: comments
+- Financial Year — added: fiscal_year_label (2083/84) + list filter
+- Payment Mode — present: payment_mode
+- Bank Details — present: bank_name, reference_no
+- Payment Details — present: payment_details
+- Submit — present: createAccountLedgerEntry
+- Search — present: listAccountLedgerEntries filters (fiscal_year_label filter added)
+- Bill — present: invoices (listInvoices)
+- Payment — present: recordPayment and credit ledger entries
+- Cheque Bounce Charges — present: an account particular row (master data, accountant confirms)
+- Other Charges — present: an account particular row
+- Additional Test — present: an account particular row / invoice lines
+- Credit Note — present: refunds and reverseAccountLedgerEntry
+- Cash — present: payment_mode / payment method code cash
+- CreditCard — present: payment method code (billing.payment_methods)
+- DebitCard — present: payment method code (billing.payment_methods)
+- Cheque — present: payment method code (billing.payment_methods)
+- Coupens — present: payment method code (billing.payment_methods)
+- Others — present: payment method code (billing.payment_methods)
+- Online — present: payment method code (billing.payment_methods)
+- Trade Discount — present: an account particular row; discount masters added (discount_reason, party_discount_slab)
+- Entry Date — present: entry_date / created_at
+- Type — present: entry_type credit | debit
+- Last Modified By — present: last_modified_by
+- Entry Status — present: status; held added
+- Account Status — present: AccountSummary is_blocked / credit account lock
+- Pending — present: status submitted (awaiting decision); cash_transfers pending
+- Initiated — present: status submitted
+- Verified — not added — no verify step in the brief; a sixth status needs a ruling (Open line above)
+- Hold — added: status held, held_reason, held_by, held_at, released_by, released_at, holdLedgerEntry / releaseLedgerEntry
+- Approved — present: status approved
+- Rejected — present: status rejected
+- Delete — not added — the ledger is append only; a correction is reverseAccountLedgerEntry (status reversed)
+- Credited — present: entry_type credit
+- Debited — present: entry_type debit
+- Reference Number — present: reference_no, receipt_no
+- Download Receipt — not added — receipt printing is screen / print work; receipt_no is present
+- Export to Excel — not added — a list export is screen work (T0D); billing.data.export exists
+- Bill Of The Day — not added — report catalogue row of T0C-MISREPORTS-1
+- Daily Payment Collection — present: getDailyCollectionSummary, getDailyCash
+- Deposit — added: deposit_paisa (cash_sessions, CashSessionDto, CloseCashSessionRequest)
+- Collection Center Name — present: centre_id
+- User Name — present: opened_by / created_by
+- Cash Amount — present: cash session rows per method_code (expected, counted)
+- Credit Card Amount — present: cash session rows per method_code
+- Debit Card Amount — present: cash session rows per method_code
+- Coupons — present: cash session rows per method_code
+- Online Amount — present: cash session rows per method_code
+- DD Amount — present: cash session rows per method_code
+- Deposit Amount — added: deposit_paisa
+- Trade Discount Amount — present: invoice discount totals
+- Previous Outstanding Cash — added: previous_outstanding_cash_paisa (carried forward from the day before)
+- Account Summary — present: getAccountSummary, listAccountSummaries
+- Is Auto Blocked — present: AccountSummary is_blocked (credit limit breach)
+- Is Blocked — present: AccountSummary is_blocked
+- PAN No — not added — masked PAN belongs to T0C-PARTYSET-1 (partners.party_id_number.read)
+- Credit Limit — present: credit account limit (updateCreditAccount)
+- Outstanding Amount — present: AccountSummary outstanding
+- Debit / Credit — present: entry_type
+- Client Ledger — present: getAccountStatement
+- Opening Balance — present: AccountStatement opening balance
+- Year Balance — present: getAccountStatement over the fiscal year dates (fiscal_year_label added on entries)
+- Current Balance — present: AccountStatement closing balance / AccountSummary
+- Allow Credit — not added — per party commercial setting of T0C-PARTYSET-1
+- Credit Period — not added — per party commercial setting of T0C-PARTYSET-1
+- Billing Period — not added — per party commercial setting of T0C-PARTYSET-1 (periodic invoices present)
+- Rate Master — not added — named default price list of T0C-PRICETOOLS-1
+- Sub Admin Commission — not added — commission report of T0C-MISREPORTS-1
+- Lab Commission — not added — commission report of T0C-MISREPORTS-1
+- Price Allocation — not added — dated price list assignments of T0C-PRICETOOLS-1
+- Invoice — present: periodic invoices, listInvoices
+- Pocket Payment — present: party_kind user_pocket
+- Pay From Pocket — present: party_kind user_pocket entries
+- Payment Status — present: invoice status
+- Overdue — present: invoice due date vs today (periodic invoices)
+- Archive — not added — rows are never deleted; is_active deactivation hides them
+- Submit Discount — present: requestDiscountApproval (within_limit added to its response)
+- Save Due — present: recordPayment partial payment leaves the balance due
+- Discount master — added: billing.party_discount_slab
+- Amount From — added: amount_from_paisa (inclusive)
+- Amount To — added: amount_to_paisa (exclusive)
+- Discount Percentage — added: discount_bp (basis points)
+- Account Group Master — present: account_groups
+- Account Particulars Master — present: account_particulars
+- Expense — present: expenses
+- Expense Type — present: expense_types
+- Cash Transfer — present: cash_transfers
+- Discount Reason — added: billing.discount_reason
+- Discount Authority — added: billing.discount_authority
+- Authorize person — added: discount_authority.user_id
+- Discount Limit — added: billing.user_discount_limit
+- Account Ledger — present: account_ledger_entries
+- Pocket Ledger — present: getAccountStatement for party_kind user_pocket

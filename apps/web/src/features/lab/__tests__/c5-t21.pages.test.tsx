@@ -27,7 +27,7 @@ const seen: URL[] = [];
 const api = setupServer(
   http.get(QUEUE, ({ request }) => { seen.push(new URL(request.url)); return HttpResponse.json({ data: [row], page: { has_more: false } }); }),
 );
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { api.resetHandlers(); seen.length = 0; });
 afterAll(() => api.close());
 

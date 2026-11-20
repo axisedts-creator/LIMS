@@ -59,7 +59,7 @@ const api = setupServer(
   http.get(`${ORIGIN}/v1/lab/qc-results`, async ({ request }) => { await rec(request); return listReply(new URL(request.url)); }),
   http.post(`${ORIGIN}/v1/lab/qc-results`, async ({ request }) => { await rec(request); return postReply(); }),
 );
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 beforeEach(() => {
   listReply = () => HttpResponse.json({ data: [row(1), row(2, { source: 'manual', instrument_id: I2, control_lot_raw: undefined, control_level: undefined, unit_code: undefined, value_numeric: '12' })], page: { limit: 50 } });
   postReply = () => HttpResponse.json(row(9, { source: 'manual', control_id_raw: 'CTRL-NEW', value_numeric: '5.40' }), { status: 201 });
@@ -70,7 +70,7 @@ afterAll(() => api.close());
 
 const load = async () => (await import(/* @vite-ignore */ '../components/qc/QcResultsPage')) as Record<string, (p: any) => ReactNode>; // variable-ish path: a missing module fails each test, not the file
 const open = async (permissions: readonly string[] = CAPTURE, over: Record<string, unknown> = {}) => {
-  const { QcResultsPage } = await load();
+  const QcResultsPage = (await load()).QcResultsPage!;
   return render(<ToastProvider><QcResultsPage permissions={permissions} centres={CENTRES} instruments={INSTRUMENTS} {...over} /></ToastProvider>);
 };
 const rowsOf = () => screen.getAllByRole('row').slice(1);

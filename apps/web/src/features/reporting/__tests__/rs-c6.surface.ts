@@ -94,6 +94,9 @@ export function surface() {
     field_names: uniq([
       ...ui.flatMap((f) => [...f.text.matchAll(/\bname\s*=\s*["']([\w.[\]-]+)["']/g)].map((m) => m[1]!)),
       ...[...all.matchAll(/\.get\(\s*['"]([\w.-]+)['"]\s*\)/g)].map((m) => m[1]!),
+      // LD-353 / T0D-UILIST-1: the PHI lookup field is now a FilterBar config `{ id: 'lookup', label: ..., kind: 'text' }`, not `name="lookup"`;
+      // only that pinned field is read, other FilterBar ids are new UILIST-1 names the old baseline never had
+      ...ui.flatMap((f) => [...f.text.matchAll(/\{\s*id:\s*['"](lookup)['"]\s*,\s*label:[^}]*?\bkind:/g)].map((m) => m[1]!)),
     ]),
     portal_package_json: sha(readFileSync(join(portalRoot, 'package.json'), 'utf8').replace(/\r\n/g, '\n')),
   };

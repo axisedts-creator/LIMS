@@ -34,7 +34,7 @@ const page = (data: unknown[]) => HttpResponse.json({ data, page: { limit: 50 } 
 const SETTINGS = { default_backlog_threshold: 500, backlog_max_oldest_pending_seconds: 900, clock_offset_warn_seconds: 5, agent_uploaded_retention_hours: 72, version: 3 };
 
 const api = setupServer();
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { cleanup(); api.resetHandlers(); });
 afterAll(() => api.close());
 /** main = the screen's own read; the secondary reads (agents, drivers for the instruments filter) answer empty unless given. */

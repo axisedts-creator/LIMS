@@ -1,6 +1,8 @@
-// T0A-CLIENTIP-1 / LD-296: apps/web/src/core/api/client-context.ts (server only helper). ASSUMED contract:
+// T0A-CLIENTIP-1 / LD-296, amended by SEC-ABUSE-1 / LD-237 (audit 2.4): apps/web/src/core/api/client-context.ts (server only helper, the ONE helper every BFF call uses).
 //   export async function readClientContext(): Promise<{ ip?: string; userAgent?: string }>
-//   ip = first entry of x-forwarded-for, else x-real-ip; only when it is a bare IP literal (no list, no port, no zone, no CIDR). Else undefined.
+//   ip = x-vercel-forwarded-for (set by the Vercel edge, cannot be supplied by the client), else x-real-ip, else NOTHING (key absent: no header is sent,
+//        and the API then sees the connection address of its peer). Only a bare IP literal (no list, no port, no zone, no CIDR) is ever accepted.
+//   The client-supplied x-forwarded-for is NEVER read: its first element is attacker-chosen (the old behaviour; each request could pick its own counter key).
 //   userAgent = user-agent trimmed, at most 512 characters (longer is truncated, not dropped). Missing/blank -> undefined (the key is absent).
 //   Reads next/headers only; if headers() throws (outside a request) -> {}. Never logs.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -13,55 +15,61 @@ vi.mock('next/headers', () => ({
     return h.current;
   },
 }));
-import { readClientContext } from '../client-context';
+import { clientContextHeaders, readClientContext } from '../client-context';
 
 const set = (o: Record<string, string>) => { h.current = new Headers(o); };
 beforeEach(() => { h.fail = false; set({}); });
 afterEach(() => { vi.restoreAllMocks(); });
 
-describe('client ip', () => {
-  it('single x-forwarded-for literal', async () => {
-    set({ 'x-forwarded-for': '203.0.113.7' });
-    expect((await readClientContext()).ip).toBe('203.0.113.7');
-  });
+const V = 'x-vercel-forwarded-for', R = 'x-real-ip', X = 'x-forwarded-for';
+
+describe('client ip: header combinations (SEC-ABUSE-1 table)', () => {
   it.each([
-    ['203.0.113.7, 10.0.0.1', '203.0.113.7'],
-    ['203.0.113.7,10.0.0.1,10.0.0.2', '203.0.113.7'],
-    ['  203.0.113.7  , 10.0.0.1', '203.0.113.7'],
-    ['2001:db8::1, 10.0.0.1', '2001:db8::1'],
-    ['2001:db8::1', '2001:db8::1'],
-    ['::ffff:203.0.113.7', '::ffff:203.0.113.7'],
-  ])('x-forwarded-for %j -> first entry %s only', async (xff, want) => {
-    set({ 'x-forwarded-for': xff });
+    // [name, incoming headers, expected ip]
+    ['vercel header only', { [V]: '203.0.113.7' }, '203.0.113.7'],
+    ['vercel header, IPv6', { [V]: '2001:db8::1' }, '2001:db8::1'],
+    ['vercel header, IPv4-mapped IPv6', { [V]: '::ffff:203.0.113.7' }, '::ffff:203.0.113.7'],
+    ['vercel header with surrounding spaces', { [V]: '  203.0.113.7  ' }, '203.0.113.7'],
+    ['vercel header wins over x-real-ip', { [V]: '203.0.113.7', [R]: '198.51.100.9' }, '203.0.113.7'],
+    ['vercel header wins over a spoofed x-forwarded-for', { [V]: '203.0.113.7', [X]: '6.6.6.6' }, '203.0.113.7'],
+    ['vercel header wins over a spoofed x-forwarded-for list', { [V]: '203.0.113.7', [X]: '6.6.6.6, 203.0.113.7' }, '203.0.113.7'],
+    ['all three: vercel header', { [V]: '203.0.113.7', [R]: '198.51.100.9', [X]: '6.6.6.6' }, '203.0.113.7'],
+    ['x-real-ip when no vercel header', { [R]: '198.51.100.9' }, '198.51.100.9'],
+    ['x-real-ip when the vercel header is empty', { [V]: '', [R]: '198.51.100.9' }, '198.51.100.9'],
+    ['x-real-ip wins over a spoofed x-forwarded-for', { [R]: '198.51.100.9', [X]: '6.6.6.6, 10.0.0.1' }, '198.51.100.9'],
+    ['x-forwarded-for ALONE is never used (single value)', { [X]: '6.6.6.6' }, undefined],
+    ['x-forwarded-for ALONE is never used (list, first element)', { [X]: '6.6.6.6, 203.0.113.7' }, undefined],
+    ['x-forwarded-for ALONE is never used (IPv6)', { [X]: '2001:db8::1' }, undefined],
+    ['x-forwarded-for with an empty x-real-ip is still nothing', { [X]: '6.6.6.6', [R]: '' }, undefined],
+    ['no headers at all -> connection address (nothing sent)', {}, undefined],
+  ] as Array<[string, Record<string, string>, string | undefined]>)('%s', async (_n, hdrs, want) => {
+    set(hdrs);
     expect((await readClientContext()).ip).toBe(want);
   });
+
   it.each(['203.0.113.7:51234', '[2001:db8::1]:443', '[2001:db8::1]', 'not-an-ip', '999.1.1.1', '1.2.3', '203.0.113.7/24', 'fe80::1%eth0',
-    "203.0.113.7'--", '<script>', 'unknown', '', ' '])('junk first entry %j -> no ip (never a port, a list or text)', async (xff) => {
-    set({ 'x-forwarded-for': xff });
+    "203.0.113.7'--", '<script>', 'unknown', '203.0.113.7, 10.0.0.1', '203.0.113.7,10.0.0.1'])('junk or list in x-vercel-forwarded-for %j -> no ip (never a port, a list or text)', async (v) => {
+    set({ [V]: v });
     expect((await readClientContext()).ip).toBeUndefined();
   });
-  it('junk first entry is not replaced by a LATER entry', async () => {
-    set({ 'x-forwarded-for': 'unknown, 203.0.113.7' });
+  it.each(['198.51.100.9:80', '198.51.100.9, 10.0.0.1', 'junk', 'fe80::1%eth0', '198.51.100.9/32'])('x-real-ip %j that is not a bare literal -> no ip', async (v) => {
+    set({ [R]: v });
     expect((await readClientContext()).ip).toBeUndefined();
   });
-  it('x-real-ip is the fallback when x-forwarded-for is absent', async () => {
-    set({ 'x-real-ip': '198.51.100.9' });
-    expect((await readClientContext()).ip).toBe('198.51.100.9');
-  });
-  it('x-real-ip is the fallback when x-forwarded-for is empty', async () => {
-    set({ 'x-forwarded-for': '', 'x-real-ip': '198.51.100.9' });
-    expect((await readClientContext()).ip).toBe('198.51.100.9');
-  });
-  it('x-forwarded-for wins over x-real-ip', async () => {
-    set({ 'x-forwarded-for': '203.0.113.7', 'x-real-ip': '198.51.100.9' });
-    expect((await readClientContext()).ip).toBe('203.0.113.7');
-  });
-  it.each(['198.51.100.9:80', '198.51.100.9, 10.0.0.1', 'junk'])('x-real-ip %j that is not a bare literal -> no ip', async (v) => {
-    set({ 'x-real-ip': v });
+  it('a junk vercel header is never replaced by the spoofable x-forwarded-for', async () => {
+    set({ [V]: 'junk', [X]: '6.6.6.6' });
     expect((await readClientContext()).ip).toBeUndefined();
   });
-  it('no headers -> no ip', async () => {
-    expect((await readClientContext()).ip).toBeUndefined();
+});
+
+describe('outgoing headers (what every BFF call sends to the API)', () => {
+  it('x-forwarded-for carries the trusted address only; a missing address sends no x-forwarded-for at all', async () => {
+    set({ [V]: '203.0.113.7', [X]: '6.6.6.6', 'user-agent': 'UA/1' });
+    expect(await clientContextHeaders()).toEqual({ 'x-forwarded-for': '203.0.113.7', 'user-agent': 'UA/1' });
+    set({ [X]: '6.6.6.6', 'user-agent': 'UA/1' });
+    expect(await clientContextHeaders()).toEqual({ 'user-agent': 'UA/1' });
+    set({});
+    expect(await clientContextHeaders()).toEqual({});
   });
 });
 
@@ -103,14 +111,14 @@ describe('user agent', () => {
 
 describe('safety', () => {
   it('returns ONLY ip and userAgent: cookie, authorization and other headers are never copied', async () => {
-    set({ 'x-forwarded-for': '203.0.113.7', 'user-agent': 'UA/1', cookie: '__Host-lims_sid=SECRET-SID', authorization: 'Bearer SECRET-JWT', 'x-lims-bff-key': 'SECRET-KEY' });
+    set({ [V]: '203.0.113.7', 'user-agent': 'UA/1', cookie: '__Host-lims_sid=SECRET-SID', authorization: 'Bearer SECRET-JWT', 'x-lims-bff-key': 'SECRET-KEY' });
     const c = await readClientContext();
     expect(Object.keys(c).sort()).toEqual(['ip', 'userAgent']);
     expect(JSON.stringify(c)).not.toMatch(/SECRET/);
   });
   it('nothing is logged', async () => {
     const spies = (['log', 'info', 'warn', 'error', 'debug'] as const).map((k) => vi.spyOn(console, k).mockImplementation(() => {}));
-    set({ 'x-forwarded-for': '203.0.113.7', 'user-agent': 'UA/1', cookie: '__Host-lims_sid=SECRET-SID' });
+    set({ [V]: '203.0.113.7', 'user-agent': 'UA/1', cookie: '__Host-lims_sid=SECRET-SID' });
     await readClientContext();
     for (const s of spies) expect(s).not.toHaveBeenCalled();
   });

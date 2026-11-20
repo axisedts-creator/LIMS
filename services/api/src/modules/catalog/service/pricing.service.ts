@@ -20,7 +20,7 @@ import { windowsOverlap } from '../domain/surcharge.js';
 import { isTaxTypeUsable } from '../domain/tax.js';
 
 const LIST_COLS = ['id', 'code', 'name', 'owner_kind', 'falls_through', 'version', 'is_active'];
-const VER_COLS = ['id', 'price_list_id', 'version_no', 'status', 'effective_from', 'effective_to', 'item_count', 'source_import_id', 'change_reason', 'version'];
+export const VER_COLS = ['id', 'price_list_id', 'version_no', 'status', 'effective_from', 'effective_to', 'item_count', 'source_import_id', 'change_reason', 'version'];
 const CODE_IN = /^[A-Za-z0-9][A-Za-z0-9_-]{0,31}$/;     // checked BEFORE upper-casing: no Unicode case-fold forgeries (ı -> I)
 const KINDS = ['default', 'credit_party', 'referrer', 'centre'];
 /** owner_kind -> [owner table, assignment column]; fixed strings only (never user input). */
@@ -62,7 +62,7 @@ function paisa(v: unknown): number | undefined {
   return typeof n === 'number' && Number.isInteger(n) && n >= 0 && n <= MAX_PRICE ? n : undefined;
 }
 
-const versionDto = (v: R) => {
+export const versionDto = (v: R) => {
   const out: R = { id: v.id, price_list_id: v.price_list_id, version_no: Number(v.version_no), status: v.status };
   if (v.effective_from != null) out['effective_from'] = ts(v.effective_from);
   if (v.effective_to != null) out['effective_to'] = ts(v.effective_to);
@@ -75,10 +75,13 @@ const versionDto = (v: R) => {
 const versionRef = (v: R) => ({ id: v.id, version_no: Number(v.version_no), effective_from: ts(v.effective_from) });
 
 /** PriceList DTO; current / scheduled are derived from the published|superseded windows at `now` (a superseded window still counts while it contains now). */
-function listDto(r: R, owners: string[], versions: R[], now: number): R {
+/** T0B-PRICETOOLS-1 (LD-321): an assignment carries its period; effective_to absent = open ended. */
+interface Owner { owner_id: string; effective_from?: unknown; effective_to?: unknown }
+function listDto(r: R, owners: Owner[], versions: R[], now: number): R {
   const out: R = {
     id: r.id, code: r.code, name: r.name, owner_kind: r.owner_kind, falls_through: r.falls_through === true,
-    assignments: [...owners].sort().map((owner_id) => ({ owner_id })),
+    assignments: [...owners].sort((a, b) => (a.owner_id < b.owner_id ? -1 : a.owner_id > b.owner_id ? 1 : ms(a.effective_from) - ms(b.effective_from)))
+      .map((o) => ({ owner_id: o.owner_id, ...(o.effective_from != null ? { effective_from: ts(o.effective_from) } : {}), ...(o.effective_to != null ? { effective_to: ts(o.effective_to) } : {}) })),
   };
   const live = versions.filter((v) => v.status === 'published' || v.status === 'superseded');
   const current = live.filter((v) => ms(v.effective_from) <= now && (v.effective_to == null || now < ms(v.effective_to))).sort((a, b) => ms(b.effective_from) - ms(a.effective_from))[0];
@@ -181,6 +184,17 @@ function windowOf(b: R, errors: FieldError[]): { from: string; to: string | unde
   return { from, to };
 }
 const sameWin = (from: string, to: string | undefined) => ({ effective_from: from, effective_to: to ?? null });
+/** T0B-PRICETOOLS-1 (LD-321): the optional period of an assignment; effective_to strictly after effective_from (or after `at` when effective_from is absent). */
+type Period = { effective_from?: string; effective_to?: string };
+function periodOf(b: R, at: string, path: string, errors: FieldError[]): Period {
+  const p: Period = {};
+  if (b['effective_from'] !== undefined) { const f = isoArg(b['effective_from']); if (f) p.effective_from = f; else errors.push(invalid(`${path}/effective_from`)); }
+  if (b['effective_to'] !== undefined) {
+    const t = isoArg(b['effective_to']);
+    if (!t || ms(t) <= ms(p.effective_from ?? at)) errors.push(invalid(`${path}/effective_to`)); else p.effective_to = t;
+  }
+  return p;
+}
 
 export interface PricingDeps extends Deps {
   /** IdentityPort subset, passed for symmetry with the other catalog services; no price-list field is role-restricted. */
@@ -199,12 +213,12 @@ export function createPricingService(deps: PricingDeps) {
   async function assemble(ctx: Ctx, rows: R[]): Promise<Array<{ dto: R; versions: R[] }>> {
     if (rows.length === 0) return [];
     const ids = rows.map((r) => r.id);
-    const asg = (await q(ctx, 'SELECT price_list_id, credit_party_id, doctor_id, centre_id FROM catalog.price_list_assignments WHERE tenant_id = $1 AND price_list_id = ANY($2)', [ctx.tenantId, ids])).rows;
+    const asg = (await q(ctx, 'SELECT price_list_id, credit_party_id, doctor_id, centre_id, effective_from, effective_to FROM catalog.price_list_assignments WHERE tenant_id = $1 AND price_list_id = ANY($2)', [ctx.tenantId, ids])).rows;
     const vers = (await q(ctx, `SELECT ${VER_COLS.join(', ')} FROM catalog.price_list_versions WHERE tenant_id = $1 AND price_list_id = ANY($2) ORDER BY version_no DESC`, [ctx.tenantId, ids])).rows;
     const now = ms(nowOf(ctx));
     return rows.map((r) => {
       const versions = vers.filter((v) => v.price_list_id === r.id);
-      const owners = asg.filter((a) => a.price_list_id === r.id).map((a) => (a.credit_party_id ?? a.doctor_id ?? a.centre_id) as string);
+      const owners = asg.filter((a) => a.price_list_id === r.id).map((a) => ({ owner_id: (a.credit_party_id ?? a.doctor_id ?? a.centre_id) as string, effective_from: a.effective_from, effective_to: a.effective_to }));
       return { dto: listDto(r, owners, versions, now), versions };
     });
   }
@@ -216,9 +230,13 @@ export function createPricingService(deps: PricingDeps) {
     const { rows } = await q(ctx, `SELECT id FROM ${table} WHERE tenant_id = $1 AND id = ANY($2)`, [ctx.tenantId, ids]);
     if (rows.length !== ids.length) throw new LimsError('common.not_found');
   }
-  const insertAssignment = (ctx: Ctx, listId: string, kind: string, ownerId: string) =>
-    q(ctx, `INSERT INTO catalog.price_list_assignments (id, tenant_id, price_list_id, owner_kind, ${OWNER[kind]![1]}, created_by) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
-      [uuidv7(), ctx.tenantId, listId, kind, ownerId, ctx.actor.id]).catch(mapPg);
+  /** T0B-PRICETOOLS-1: the period columns are written only when given (absent effective_from = the DB default now(), absent effective_to = open ended).
+   *  Two periods of one party that overlap -> the no-overlap trigger's 23505 -> 409 catalog.code_duplicate (migration 20261117200000). */
+  const insertAssignment = (ctx: Ctx, listId: string, kind: string, ownerId: string, p: Period = {}) => {
+    const extra = (['effective_from', 'effective_to'] as const).filter((k) => p[k] !== undefined);
+    return q(ctx, `INSERT INTO catalog.price_list_assignments (id, tenant_id, price_list_id, owner_kind, ${OWNER[kind]![1]}, created_by${extra.map((k) => `, ${k}`).join('')}) VALUES ($1, $2, $3, $4, $5, $6${extra.map((_, i) => `, $${7 + i}`).join('')}) RETURNING id`,
+      [uuidv7(), ctx.tenantId, listId, kind, ownerId, ctx.actor.id, ...extra.map((k) => p[k])]).catch(mapPg);
+  };
 
   /** The version row locked, tenant-scoped (a foreign or unknown id is 404), and required to be a draft (anything else is frozen: 409 catalog.version_in_use). */
   async function lockDraft(ctx: Ctx, id: string): Promise<R> {
@@ -332,17 +350,20 @@ export function createPricingService(deps: PricingDeps) {
       else if (typeof kind !== 'string' || !KINDS.includes(kind)) errors.push(invalid('/owner_kind'));
       if (b['falls_through'] !== undefined && typeof b['falls_through'] !== 'boolean') errors.push(invalid('/falls_through'));
       let owners: string[] = [];
+      const periods: Period[] = [];
+      const at = nowOf(ctx);
       if (b['assignments'] === undefined) errors.push(required('/assignments'));
       else {
         const a = b['assignments'];
-        if (!Array.isArray(a) || a.length > MAX_OWNERS || a.some((x) => !isObj(x) || Object.keys(x).length !== 1 || typeof x['owner_id'] !== 'string' || !UUID.test(x['owner_id']))) errors.push(invalid('/assignments'));
+        if (!Array.isArray(a) || a.length > MAX_OWNERS || a.some((x) => !isObj(x) || Object.keys(x).some((k) => !['owner_id', 'effective_from', 'effective_to'].includes(k))
+          || typeof x['owner_id'] !== 'string' || !UUID.test(x['owner_id']))) errors.push(invalid('/assignments'));
         else {
           owners = a.map((x) => x['owner_id'] as string);
+          a.forEach((x, i) => periods.push(periodOf(x as R, at, `/assignments/${i}`, errors)));
           if (new Set(owners).size !== owners.length || (kind === 'default' && owners.length > 0)) errors.push(invalid('/assignments'));
         }
       }
       if (errors.length) fail(errors);
-      const at = nowOf(ctx);
       await ownersExist(ctx, kind as string, owners);
       const list = await repo.insertRow(tx(ctx), 'price_lists', LIST_COLS, {
         id: uuidv7(), tenant_id: ctx.tenantId, code, name, owner_kind: kind, falls_through: b['falls_through'] ?? true, is_active: true, created_by: ctx.actor.id, updated_by: ctx.actor.id,
@@ -350,7 +371,7 @@ export function createPricingService(deps: PricingDeps) {
       await repo.insertRow(tx(ctx), 'price_list_versions', VER_COLS, {
         id: uuidv7(), tenant_id: ctx.tenantId, price_list_id: list.id, version_no: 1, status: 'draft', item_count: 0, created_by: ctx.actor.id, updated_by: ctx.actor.id,
       }).catch(mapVersionPg);
-      for (const o of owners) await insertAssignment(ctx, list.id, kind as string, o);
+      for (const [i, o] of owners.entries()) await insertAssignment(ctx, list.id, kind as string, o, periods[i]);
       await bump(ctx, list.id, 'created', at);
       return (await assemble(ctx, [list]))[0]!.dto;
     },
@@ -382,10 +403,13 @@ export function createPricingService(deps: PricingDeps) {
     /** Replaces the owner set: removed owners are deleted first, then added ones inserted, so a move inside one list never clashes. An owner of ANOTHER list -> 23505 -> 409. */
     async replacePriceListAssignments(ctx: Ctx, input: { id?: unknown; expectedVersion?: unknown; body?: unknown } = {}) {
       const { id, ev } = checkUpdate(input);
-      const b = exact(input.body, ['owner_ids']);
+      const b = exact(input.body, ['owner_ids', 'effective_from', 'effective_to']);
       if (b['owner_ids'] === undefined) fail([required('/owner_ids')]);
       const owners = uuidList(b['owner_ids'], '/owner_ids', MAX_OWNERS);
       const at = nowOf(ctx);
+      const perr: FieldError[] = [];
+      const period = periodOf(b, at, '', perr);                           // T0B-PRICETOOLS-1: one period for every owner of this call
+      if (perr.length) fail(perr);
       const list = await lockAt(ctx, 'price_lists', LIST_COLS, id, ev);
       if (list.owner_kind === 'default' && owners.length > 0) fail([invalid('/owner_ids')]);
       if (list.owner_kind !== 'default') await ownersExist(ctx, list.owner_kind, owners);
@@ -395,7 +419,14 @@ export function createPricingService(deps: PricingDeps) {
       const drop = cur.filter((a) => !owners.includes(ownerOf(a)));
       const add = owners.filter((o) => !cur.some((a) => ownerOf(a) === o));
       if (drop.length) await q(ctx, 'DELETE FROM catalog.price_list_assignments WHERE tenant_id = $1 AND id = ANY($2)', [ctx.tenantId, drop.map((a) => a.id)]);
-      for (const o of add) await insertAssignment(ctx, id, list.owner_kind, o);
+      // a given period also moves the owners this list keeps (re-setting its own period); the trigger re-checks the overlap of each row
+      const keep = cur.filter((a) => owners.includes(ownerOf(a)));
+      if (keep.length && (period.effective_from !== undefined || b['effective_to'] !== undefined)) {
+        await q(ctx, 'UPDATE catalog.price_list_assignments SET effective_from = coalesce($3::timestamptz, effective_from), effective_to = $4::timestamptz WHERE tenant_id = $1 AND id = ANY($2)',
+          [ctx.tenantId, keep.map((a) => a.id), period.effective_from ?? null, period.effective_to ?? null])
+          .catch((e) => ((e as { code?: unknown })?.code === '23514' ? fail([invalid('/effective_to')]) : mapPg(e)));   // the kept start is after the new end
+      }
+      for (const o of add) await insertAssignment(ctx, id, list.owner_kind, o, period);
       const after = await repo.updateRow(tx(ctx), 'price_lists', LIST_COLS, { tenantId: ctx.tenantId, id, expectedVersion: ev, actorId: ctx.actor.id }, {}).catch(mapPg);
       if (!after) throw new LimsError('common.version_conflict');
       await bump(ctx, id, 'updated', at);

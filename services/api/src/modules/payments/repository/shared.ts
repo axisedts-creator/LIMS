@@ -42,6 +42,15 @@ export const invalid = (path: string): never => {
 };
 export const notFound = (): never => { throw new LimsError('common.not_found'); };
 
+/** SEC-AUTHZ-6 (LD-189 AUTH-SENSITIVE, LD-261; SEC-AUTHZ-1.1): the FIRST statement of a staff service function. Asks IdentityPort.assertRole for the operation's contract
+ *  x-permission before any validation, actor check, tx, event or job; the error is whatever assertRole throws (auth.forbidden | auth.mfa_required |
+ *  identity.support_session_required), no new code. No port in the context fails closed with auth.unauthenticated. */
+export async function requirePermission(ctx: object, permission: string): Promise<void> {
+  const port = (ctx as { ports?: { IdentityPort?: { assertRole?: (c: unknown, r: { permission: string }) => Promise<unknown> } } }).ports?.IdentityPort;
+  if (typeof port?.assertRole !== 'function') throw new LimsError('auth.unauthenticated');
+  await port.assertRole(ctx, { permission });
+}
+
 /** TRD §5.3: callers are actor type user or system only. Runs before any state read. */
 export function guardActor(ctx: Ctx): void {
   if (ctx.actor?.type !== 'user' && ctx.actor?.type !== 'system') throw new LimsError('auth.forbidden');

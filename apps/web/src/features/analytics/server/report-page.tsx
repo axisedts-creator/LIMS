@@ -5,6 +5,7 @@ import { notFound } from 'next/navigation';
 import { ApiError } from '@/core/api/server-fetch';
 import { ReferralState } from '../components/ReferralState';
 import { ReportView } from '../components/ReportView';
+import { MIS_REPORTS, misHref } from '../report-codes';
 import { buildPage, tabsFor } from './report-views';
 import { REFERRAL_DEF, REPORT_DEFS, getCollectionsFilterOptions, getFilterOptions, getPendingSummary, getReport, referralQuery, reportQuery, requirePermission } from './reports.server';
 
@@ -18,11 +19,10 @@ export async function reportPage(slug: string, sp: SP, hub = false) {
   const perms = await requirePermission('analytics.dashboard.read');
   const q = reportQuery(def, sp);
   const [body, summary, options] = await Promise.all([getReport(def, q), slug === 'pending-tests' ? getPendingSummary(q) : undefined, getFilterOptions()]);
-  return (
-    <ReportView
-      vm={buildPage({ def, body, ...(summary ? { summary } : {}), q, options, perms, tabs: tabsFor(perms), hub, pdfEnabled: pdfEnabled(), basePath: hub ? '/analytics/reports' : `/analytics/reports/${slug}`, pageId: 'staff.analytics.reports' })}
-    />
-  );
+  const vm = buildPage({ def, body, ...(summary ? { summary } : {}), q, options, perms, tabs: tabsFor(perms), hub, pdfEnabled: pdfEnabled(), basePath: hub ? '/analytics/reports' : `/analytics/reports/${slug}`, pageId: 'staff.analytics.reports' });
+  // T0D-MISREPORTS-1 (LD-321): the hub also lists the catalogue reports the session may open (by definition permission)
+  if (hub) vm.more = MIS_REPORTS.filter((r) => perms.includes(r.permission)).map((r) => ({ href: misHref(r.code), label: r.title }));
+  return <ReportView vm={vm} />;
 }
 
 /** S4 (AN-T20): analytics.referral_report.read, checked before any API call. The API's 403 auth.mfa_required / common.feature_disabled are page states (04-UI-UX §5); any other failure rejects. */

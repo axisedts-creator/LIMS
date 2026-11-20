@@ -1,27 +1,39 @@
 'use client';
-// SCR-13 detail: General (code + "Applies to" read-only after create), Assignments (≤ 500, replaced as a whole), Versions, header
-// actions. "Edit prices" opens the open draft or creates one (copy of the current version) and goes to SCR-14.
+// SCR-13 detail: General (code + "Applies to" read-only after create), Assignments (≤ 500, replaced as a whole, T0D-PRICETOOLS-1: with an effective
+// period), Versions, header actions. "Edit prices" opens the open draft or creates one (copy of the current version) and goes to SCR-14.
+// T0D-PRICETOOLS-1 (LD-321): the price list tools (template, export, upload with dry run, commit to a draft, copy, compare) live on this screen; every
+// write lands in a DRAFT that is published through the existing publish path. Without catalog.price_list.manage they are shown disabled with the reason.
 import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Badge } from '@lims/ui/components/Badge';
 import { Banner } from '@lims/ui/components/Banner';
 import { Button } from '@lims/ui/components/Button';
 import { Combobox } from '@lims/ui/components/Combobox';
+import { EmptyRow, PlaceholderRows } from '@lims/ui/components/DataTable';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { Switch } from '@lims/ui/components/Switch';
 import { TextField } from '@lims/ui/components/TextField';
 import { VisuallyHidden } from '@lims/ui/components/VisuallyHidden';
+import { t } from '@/core/i18n/messages';
 import { searchDoctorsAction } from '../server/catalogActions';
 import { createVersionDraftAction, replaceAssignmentsAction, searchCentresAction, searchCreditPartiesAction, updatePriceListAction } from '../server/pricingActions';
-import type { PriceListDetail as Detail, PriceOwnerKind } from '../server/types';
+import type { PriceImportBatch } from '../server/priceTools.server';
+import type { PriceListDetail as Detail, PriceListVersion, PriceOwnerKind } from '../server/types';
 import { SaveForm } from './master-ui';
-import { FailBanner, fmtDateTime, newKey, STATUS_LABEL, STATUS_TONE, type Fail } from './shared';
-import { canManagePrices } from './pricing-ui';
+import { FailBanner, fmtDateTime, GatedButton, newKey, STATUS_LABEL, STATUS_TONE, type Fail } from './shared';
+import { canManagePrices, PERM_MANAGE } from './pricing-ui';
 import { OWNER_LABEL } from './PriceListsList';
+import { CopyToDialog, ImportHistory, UploadAndCheck, useTemplateDownload } from './PriceListTools';
 
 interface Owner { id: string; label: string }
 const ADD_LABEL: Record<Exclude<PriceOwnerKind, 'default'>, string> = { credit_party: 'Add hospital-company', referrer: 'Add doctor', centre: 'Add centre' };
 const MAX_ASSIGNMENTS = 500;
+const TENANT_TZ = 'Asia/Kathmandu'; // [CONV] tenant default timezone (CV §4.8), as fmtDateTime
+/** YYYY-MM-DD in the tenant timezone ('' when absent). */
+const fmtDay = (iso: string | undefined) => {
+  const d = iso ? new Date(iso) : undefined;
+  return d && !Number.isNaN(d.getTime()) ? new Intl.DateTimeFormat('en-CA', { timeZone: TENANT_TZ, year: 'numeric', month: '2-digit', day: '2-digit' }).format(d) : '';
+};
 
 async function searchOwners(kind: PriceOwnerKind, q: string): Promise<Owner[]> {
   if (kind === 'credit_party') return searchCreditPartiesAction(q);
@@ -30,14 +42,25 @@ async function searchOwners(kind: PriceOwnerKind, q: string): Promise<Owner[]> {
   return r.ok ? r.data.map((d) => ({ id: d.id, label: `${d.doctor_code} — ${d.display_name}` })) : [];
 }
 
-export function PriceListDetail({ priceList, ownerLabels, permissions }: { priceList: Detail; ownerLabels: Readonly<Record<string, string>>; permissions: readonly string[] }) {
+export function PriceListDetail({ priceList, ownerLabels, permissions, history }: {
+  priceList: Detail;
+  ownerLabels: Readonly<Record<string, string>>;
+  permissions: readonly string[];
+  /** T0D-PRICETOOLS-1: import batches of this list; null = not readable (403); absent = not loaded by the host (no section). */
+  history?: readonly PriceImportBatch[] | null;
+}) {
   const manage = canManagePrices(permissions);
+  const missing = manage ? [] : [PERM_MANAGE];
   const router = useRouter();
   const [name, setName] = useState(priceList.name);
   const [falls, setFalls] = useState(priceList.falls_through);
   const [active, setActive] = useState(priceList.is_active);
   const [editError, setEditError] = useState<Fail>();
+  const [copying, setCopying] = useState(false);
+  const [copied, setCopied] = useState<{ targetId: string; version: PriceListVersion }>();
   const editing = useRef(false);
+  const uploadRef = useRef<HTMLElement>(null);
+  const tpl = useTemplateDownload(priceList);
 
   const editPrices = async () => {
     if (editing.current) return;
@@ -62,6 +85,11 @@ export function PriceListDetail({ priceList, ownerLabels, permissions }: { price
   };
   const changed = name.trim() !== priceList.name || falls !== priceList.falls_through || active !== priceList.is_active;
 
+  // Compare versions: A = the current version (else the newest published), B = the draft (else the scheduled version).
+  const a = priceList.current_version?.id ?? priceList.versions.find((v) => v.status === 'published')?.id;
+  const b = priceList.draft_version_id ?? priceList.scheduled_version?.id;
+  const compareHref = `/catalog/price-lists?${new URLSearchParams({ view: 'compare', ...(a ? { a } : {}), ...(b ? { b } : {}) }).toString()}`;
+
   const fields = (
     <>
       <TextField label="Code" name="code" maxLength={32} isReadOnly value={priceList.code} />
@@ -81,13 +109,19 @@ export function PriceListDetail({ priceList, ownerLabels, permissions }: { price
         actions={
           <>
             {manage ? <Button variant="primary" onPress={editPrices}>Edit prices</Button> : null}
-            <Button isDisabled>Export to Excel</Button>
-            {manage ? <Button isDisabled>Import from Excel</Button> : null}
-            <Button isDisabled>Compare versions</Button>
+            <GatedButton missing={missing} onPress={() => void tpl.run(true)}>{t('catalog.price_tools.export')}</GatedButton>
+            {manage ? <Button onPress={() => uploadRef.current?.querySelector<HTMLInputElement>('input[type=file]')?.focus()}>{t('catalog.price_tools.import')}</Button> : null}
+            <GatedButton missing={missing} onPress={() => setCopying(true)}>{t('catalog.price_tools.copy_to')}</GatedButton>
+            <Button onPress={() => router.push(compareHref)}>{t('catalog.price_tools.compare_versions')}</Button>
           </>
         }
       />
       {editError ? <FailBanner fail={editError} /> : null}
+      {copied ? (
+        <p role="status">
+          {t('catalog.price_tools.draft_created')} <a className="lims-link" href={`/catalog/price-lists/${copied.targetId}/versions/${copied.version.id}`}>{t('catalog.price_tools.open_draft')}</a>
+        </p>
+      ) : null}
 
       <section aria-label="General">
         <h2 className="lims-section-title">General</h2>
@@ -102,6 +136,7 @@ export function PriceListDetail({ priceList, ownerLabels, permissions }: { price
 
       <section aria-label="Versions">
         <h2 className="lims-section-title">Versions</h2>
+        <p><a className="lims-link" href={compareHref}>{t('catalog.price_tools.compare_versions')}</a></p>
         <table className="lims-table lims-table-regular">
           <caption className="lims-visually-hidden">Versions</caption>
           <thead>
@@ -123,6 +158,10 @@ export function PriceListDetail({ priceList, ownerLabels, permissions }: { price
           </tbody>
         </table>
       </section>
+
+      <UploadAndCheck priceList={priceList} manage={manage} tpl={tpl} sectionRef={uploadRef} />
+      {history !== undefined ? <ImportHistory priceListId={priceList.id} history={history} /> : null}
+      {copying ? <CopyToDialog priceList={priceList} onClose={() => setCopying(false)} onDone={(targetId, version) => setCopied({ targetId, version })} /> : null}
     </section>
   );
 }
@@ -131,23 +170,29 @@ function Assignments({ priceList, ownerLabels, manage, canCentres }: { priceList
   const router = useRouter();
   const kind = priceList.owner_kind;
   const original = priceList.assignments.map((a) => a.owner_id);
+  const periods = new Map(priceList.assignments.map((a) => [a.owner_id, a]));
   const [ids, setIds] = useState(original);
   const [labels, setLabels] = useState<Readonly<Record<string, string>>>(ownerLabels);
   const [n, setN] = useState(0); // remounts the combobox after each pick so its text is cleared
+  const [from, setFrom] = useState('');
+  const [to, setTo] = useState('');
   const [fail, setFail] = useState<Fail>();
   const [busy, setBusy] = useState(false);
   const inflight = useRef(false);
   const dirty = ids.length !== original.length || ids.some((id, i) => id !== original[i]);
   const full = ids.length >= MAX_ASSIGNMENTS;
+  const badRange = !!from && !!to && to <= from;
   const k = kind as Exclude<PriceOwnerKind, 'default'>;
 
   const save = async () => {
-    if (inflight.current) return;
+    if (inflight.current || badRange) return;
     inflight.current = true;
     setBusy(true);
     setFail(undefined);
     try {
-      const r = await replaceAssignmentsAction(priceList.id, priceList.version, ids);
+      // [CONV] a picked day is sent as that day 00:00 UTC; empty dates keep the old body (the server defaults: from now, open ended).
+      const period = { ...(from ? { effective_from: `${from}T00:00:00.000Z` } : {}), ...(to ? { effective_to: `${to}T00:00:00.000Z` } : {}) };
+      const r = await replaceAssignmentsAction(priceList.id, priceList.version, ids, period);
       if (r.ok) router.refresh();
       else setFail(r);
     } finally {
@@ -156,11 +201,17 @@ function Assignments({ priceList, ownerLabels, manage, canCentres }: { priceList
     }
   };
 
+  const day = (id: string, which: 'effective_from' | 'effective_to') => {
+    const p = periods.get(id);
+    if (!p) return '—';
+    return fmtDay(p[which]) || (which === 'effective_to' ? t('catalog.price_tools.assign.open_ended') : '—');
+  };
+  const cols = manage ? 4 : 3;
   return (
     <section aria-label="Assignments">
       <h2 className="lims-section-title">Assignments</h2>
       {fail?.code === 'catalog.code_duplicate' ? (
-        <div role="alert"><Banner tone="danger" title="One of these owners already has another price list." /></div>
+        <div role="alert"><Banner tone="danger" title={fail.detail ?? t('catalog.price_tools.assign.overlap')} /></div>
       ) : fail ? <FailBanner fail={fail} /> : null}
       {manage && (kind !== 'centre' || canCentres) ? (
         <Combobox<Owner>
@@ -182,23 +233,48 @@ function Assignments({ priceList, ownerLabels, manage, canCentres }: { priceList
       ) : null}
       {manage && kind === 'centre' && !canCentres ? <p className="lims-description">Centres can be assigned with the permission identity.centre.read.</p> : null}
       {full ? <p role="note">{`${MAX_ASSIGNMENTS} of ${MAX_ASSIGNMENTS} assigned. Remove one to add another.`}</p> : null}
-      {ids.length === 0 ? (
-        <p>Nothing is assigned yet.</p>
-      ) : (
+      <div className="lims-table-scroll">
         <table className="lims-table lims-table-compact">
           <caption className="lims-visually-hidden">{`Assigned (${ids.length})`}</caption>
-          <thead><tr><th scope="col">Owner</th>{manage ? <th scope="col"><VisuallyHidden>Actions</VisuallyHidden></th> : null}</tr></thead>
+          <thead>
+            <tr>
+              <th scope="col">Owner</th>
+              <th scope="col">{t('catalog.price_tools.assign.from')}</th>
+              <th scope="col">{t('catalog.price_tools.assign.to')}</th>
+              {manage ? <th scope="col"><VisuallyHidden>Actions</VisuallyHidden></th> : null}
+            </tr>
+          </thead>
           <tbody>
+            {ids.length === 0 ? <EmptyRow colSpan={cols}>{t('catalog.price_tools.assign.empty')}</EmptyRow> : null}
             {ids.map((id) => (
               <tr key={id}>
                 <td>{labels[id] ?? id}</td>
+                <td>{day(id, 'effective_from')}</td>
+                <td>{day(id, 'effective_to')}</td>
                 {manage ? <td><Button size="sm" variant="ghost" onPress={() => setIds((x) => x.filter((y) => y !== id))}>Remove<VisuallyHidden> assignment</VisuallyHidden></Button></td> : null}
               </tr>
             ))}
           </tbody>
+          {ids.length === 0 ? <PlaceholderRows colSpan={cols} /> : null}
         </table>
-      )}
-      {manage ? <Button variant="primary" isDisabled={!dirty} isLoading={busy} onPress={save}>Save assignments</Button> : null}
+      </div>
+      {manage ? (
+        <>
+          <div className="lims-filter-bar">
+            <label className="lims-field">
+              <span className="lims-label">{t('catalog.price_tools.assign.from')}</span>
+              <input type="date" className="lims-input" name="effective_from" value={from} onChange={(e) => setFrom(e.target.value)} />
+            </label>
+            <label className="lims-field">
+              <span className="lims-label">{t('catalog.price_tools.assign.to')}</span>
+              <input type="date" className="lims-input" name="effective_to" value={to} onChange={(e) => setTo(e.target.value)} />
+            </label>
+          </div>
+          <p className="lims-description">{t('catalog.price_tools.assign.period_hint')}</p>
+          {badRange ? <p role="alert" className="lims-error">{t('catalog.price_tools.assign.to_before_from')}</p> : null}
+          <Button variant="primary" isDisabled={!(dirty || from || to) || badRange} isLoading={busy} onPress={save}>Save assignments</Button>
+        </>
+      ) : null}
     </section>
   );
 }

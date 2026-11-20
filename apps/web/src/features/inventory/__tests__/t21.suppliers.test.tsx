@@ -15,7 +15,7 @@ vi.mock('@/core/session/server', async () => (await import('./t21.harness')).ses
 
 const PERM_COST = [...PERM_MANAGE, 'inventory.cost.read'];
 const SUP = ID(601);
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 beforeEach(() => { resetHits(); Object.values(router).forEach((f) => f.mockReset()); state.permissions = PERM_MANAGE; state.path = '/inventory/suppliers'; });
 afterEach(() => { cleanup(); api.resetHandlers(); vi.restoreAllMocks(); });
 afterAll(() => api.close());

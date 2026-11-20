@@ -78,7 +78,7 @@ const api = setupServer(
   }),
 );
 const setItem = vi.spyOn(Storage.prototype, 'setItem');
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => {
   expect(setItem).not.toHaveBeenCalled(); // 04-UI-UX §1: nothing about reminders/patients in browser storage
   cleanup(); api.resetHandlers(); calls.length = 0; replace.mockReset(); refresh.mockReset(); setItem.mockClear(); cancelStatus = 200; localStorage.clear(); sessionStorage.clear();

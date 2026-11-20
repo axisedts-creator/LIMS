@@ -10,7 +10,7 @@ import { loadFrontdeskConfig } from '../config.js';
 import { checkApprove, checkConsume, effectiveStatus, APPROVAL_STATUSES, type ApprovalStatus } from '../domain/discountApproval.state.js';
 import type { Discount } from '../domain/discount.js';
 import { decodeCursor, encodeCursor, isoUtc } from '../mappers/patient.dto.js';
-import { consumeDiscountApproval, decideDiscountApproval, getDiscountApprovalById, insertDiscountApproval, lockDiscountApproval, pageDiscountApprovals } from '../repository/discountApprovals.repo.js';
+import { authorityCovers, consumeDiscountApproval, decideDiscountApproval, getDiscountApprovalById, insertDiscountApproval, lockDiscountApproval, pageDiscountApprovals, requesterDiscountLimit } from '../repository/discountApprovals.repo.js';
 import { getPatientById } from '../repository/patients.repo.js';
 import { FRONTDESK_PERMISSIONS as P } from '../permissions.js';
 import { bad, expectedVersion, isObj, patientCtx, strict, type PatientCtx, type Result } from './patient.service.js';
@@ -69,11 +69,13 @@ function parseDiscounts(raw: unknown): ApiDiscount[] {
   });
 }
 
-function parseRequest(body: unknown) {
+/** `requireReason` = tenant setting require_discount_reason (T0B-FINCTRL-1, default on). Off: an absent / empty top level reason_code takes the first discount's code. */
+function parseRequest(body: unknown, requireReason = true) {
   const b = strict(body, ['centre_id', 'base_fingerprint', 'discounts', 'reason_code', 'reason_text', 'patient_ref']);
   const centreId = uuid(b['centre_id'], '/centre_id');
   if (typeof b['base_fingerprint'] !== 'string' || !HEX64.test(b['base_fingerprint'])) throw bad('/base_fingerprint');
   const discounts = parseDiscounts(b['discounts']);
+  if (!requireReason && (b['reason_code'] === undefined || b['reason_code'] === '')) b['reason_code'] = discounts[0]!.reason_code;   // [CONV] the column is NOT NULL
   if (typeof b['reason_code'] !== 'string' || b['reason_code'].length < 1 || b['reason_code'].length > 64) throw bad('/reason_code');
   if (b['reason_text'] !== undefined && (typeof b['reason_text'] !== 'string' || b['reason_text'].length > 500 || b['reason_text'].includes('\u0000'))) throw bad('/reason_text');
   const ref = b['patient_ref'];
@@ -84,8 +86,30 @@ function parseRequest(body: unknown) {
   const draftHash = hasH ? (typeof ref['draft_hash'] === 'string' && HEX64.test(ref['draft_hash']) ? ref['draft_hash'] : (() => { throw bad('/patient_ref/draft_hash'); })()) : undefined;
   const amount = discounts.reduce((a, d) => a + (d.kind === 'amount' ? d.amount_paisa! : 0), 0);
   if (!Number.isSafeInteger(amount)) throw bad('/discounts');
-  const bp = Math.min(10000, discounts.reduce((a, d) => a + (d.kind === 'percent' ? d.percent_bp! : 0), 0));
+  const bp = Math.min(10000, sumBp(discounts));
   return { centreId, baseFingerprint: b['base_fingerprint'], discounts, reasonCode: b['reason_code'], reasonText: b['reason_text'] as string | undefined, patientId, draftHash, amount, bp };
+}
+const sumBp = (ds: readonly ApiDiscount[]): number => ds.reduce((a, d) => a + (d.kind === 'percent' ? d.percent_bp! : 0), 0);
+const sumAmount = (ds: readonly ApiDiscount[]): number => ds.reduce((a, d) => a + (d.kind === 'amount' ? d.amount_paisa! : 0), 0);
+
+// ---- T0B-FINCTRL-1 (LD-321) per user limits and authorities (billing.user_discount_limit / billing.discount_authority) ----
+/** within_limit of a request against the REQUESTER's active limit (F15 knows no gross: bp compared as given, uncapped); undefined = no limit row = legacy flow. */
+const withinOf = (limit: { bp: number; paisa: number } | null, ds: readonly ApiDiscount[]): boolean | undefined =>
+  limit ? sumAmount(ds) <= limit.paisa && sumBp(ds) <= limit.bp : undefined;
+/** within_limit as shown on a row: an approval recorded at once (approved, no decider) was within; otherwise against the requester's CURRENT limit. */
+function withinResolver(c: DCtx) {
+  const seen = new Map<string, Promise<{ bp: number; paisa: number } | null>>();
+  return async (r: Obj): Promise<boolean | undefined> => {
+    if (r['decided_by_membership_id'] == null && ['approved', 'consumed'].includes(r['status'])) return true;     // the legacy flow never approves without a decider
+    const id = String(r['requested_by_membership_id']);
+    if (!seen.has(id)) seen.set(id, requesterDiscountLimit(c.tx, c.tenantId, id));
+    return withinOf(await seen.get(id)!, r['discounts']);
+  };
+}
+/** Tenant setting require_discount_reason (absent = on). [CONV] not a TenantSettings key of the port contract yet: read untyped (CR in the notes). */
+async function reasonRequired(c: DCtx): Promise<boolean> {
+  const s = (await (c.ports.IdentityPort as unknown as { getTenantSettings(ctx: unknown): Promise<unknown> }).getTenantSettings(c)) as Obj | undefined;
+  return s?.['require_discount_reason'] !== false;
 }
 
 // ---- DTO ----
@@ -104,10 +128,11 @@ function nameResolver(c: DCtx) {
     return p;
   };
 }
-async function dto(r: Obj, now: Date, name: (id: string) => Promise<string>) {
+async function dto(r: Obj, now: Date, name: (id: string) => Promise<string>, within?: (r: Obj) => Promise<boolean | undefined>) {
   const decider = r['decided_by_membership_id'] as string | null;
+  const w = within ? await within(r) : undefined;
   return {
-    id: r['id'], status: rowStatus(r, now), centre_id: r['centre_id'],
+    id: r['id'], status: rowStatus(r, now), centre_id: r['centre_id'], ...(w === undefined ? {} : { within_limit: w }),
     requested_by: { membership_id: r['requested_by_membership_id'], display_name: await name(r['requested_by_membership_id']) },
     discounts: r['discounts'], computed_discount: money(r['computed_discount_paisa']), gross: money(r['gross_paisa']), percent_of_gross_bp: Number(r['percent_of_gross_bp']),
     reason_code: r['reason_code'], ...(r['reason_text'] != null ? { reason_text: r['reason_text'] } : {}),
@@ -121,7 +146,7 @@ async function dto(r: Obj, now: Date, name: (id: string) => Promise<string>) {
 export async function request(hctx: unknown, body: unknown): Promise<Result> {
   const c = dctx(hctx);
   await c.ports.IdentityPort.assertRole(c, { permission: P.discountApply });
-  const r = parseRequest(body);
+  const r = parseRequest(body, await reasonRequired(c));
   const w = await who(c);
   if (!covers(w, r.centreId)) throw new LimsError('common.not_found');           // 404, not 403: the centre's existence is not confirmed
   await c.core.centre(c, { centreId: r.centreId });                                // tenant-bound: another tenant's centre is not_found
@@ -130,12 +155,16 @@ export async function request(hctx: unknown, body: unknown): Promise<Result> {
     if (!p || p['anonymised_at'] != null) throw new LimsError('common.not_found');
   }
   const ttlMs = loadFrontdeskConfig().approvalTtlMinutes * 60_000;
+  // T0B-FINCTRL-1 done_when 3: within the requester's own limit (and with a reason) the discount is recorded at once, no second person (no decider);
+  // above it, it waits for a person whose authority covers it (decide). No limit row = the unchanged FD-T07 flow (within_limit absent).
+  const requester = me(c);
+  const within = withinOf(await requesterDiscountLimit(c.tx, c.tenantId, requester), r.discounts);
   const row = await insertDiscountApproval(c.tx, c.tenantId, {
-    id: uuidv7(), centre_id: r.centreId, requested_by_membership_id: me(c), patient_id: r.patientId, draft_hash: r.draftHash, base_fingerprint: r.baseFingerprint,
+    id: uuidv7(), centre_id: r.centreId, requested_by_membership_id: requester, patient_id: r.patientId, draft_hash: r.draftHash, base_fingerprint: r.baseFingerprint,
     discounts: r.discounts, gross_paisa: 0, computed_discount_paisa: r.amount, percent_of_gross_bp: r.bp, reason_code: r.reasonCode, reason_text: r.reasonText,
-    status: 'pending', expires_at: new Date(c.now().getTime() + ttlMs),
+    status: within === true ? 'approved' : 'pending', expires_at: new Date(c.now().getTime() + ttlMs),
   });
-  return { status: 201, body: await dto(row, c.now(), nameResolver(c)) };
+  return { status: 201, body: await dto(row, c.now(), nameResolver(c), async () => within) };
 }
 
 // ======================= F16 listDiscountApprovals (approver inbox) =======================
@@ -159,7 +188,8 @@ export async function list(hctx: unknown, query: unknown): Promise<Result> {
   const last = page[page.length - 1];
   const name = nameResolver(c);
   const data = [];
-  for (const r of page) data.push(await dto(r, c.now(), name));
+  const within = withinResolver(c);
+  for (const r of page) data.push(await dto(r, c.now(), name, within));
   return { status: 200, body: { data, page: { limit, ...(rows.length > limit && last ? { next_cursor: encodeCursor('created_at', last['sort_key'], last['id']) } : {}) } } };
 }
 
@@ -175,7 +205,7 @@ export async function get(hctx: unknown, params: unknown): Promise<Result> {
     const w = await who(c);
     if (!(w.permissions.includes(APPROVE) && covers(w, row['centre_id']))) throw new LimsError('common.not_found');
   }
-  return { status: 200, body: await dto(row, c.now(), nameResolver(c)) };
+  return { status: 200, body: await dto(row, c.now(), nameResolver(c), withinResolver(c)) };
 }
 
 // ======================= F18 approveDiscount / F19 rejectDiscount =======================
@@ -200,10 +230,14 @@ export async function decide(hctx: unknown, params: unknown, headers: unknown, b
     approverMembershipId: mine, approverAal: w.aal === 'aal2' ? 'aal2' : 'aal1', approverCoversCentre: covers(w, row['centre_id']), now: c.now(),
   });
   if (!verdict.ok) throw new LimsError(verdict.code);                              // self-approval (CR-C4-007) | mfa | centre not covered (404) | not pending (409 immutable_record)
+  // T0B-FINCTRL-1 done_when 3: when the requester has a limit, approving needs an ACTIVE authority of the approver covering the amount AND the bp (<=)
+  const stored = row['discounts'] as readonly ApiDiscount[];
+  if (to === 'approved' && (await requesterDiscountLimit(c.tx, c.tenantId, row['requested_by_membership_id']))
+      && !(await authorityCovers(c.tx, c.tenantId, mine, sumAmount(stored), sumBp(stored)))) throw new LimsError('auth.forbidden');
   if (Number(row['version']) !== version) throw new LimsError('common.version_conflict');
   const next = await decideDiscountApproval(c.tx, c.tenantId, id, { expectedVersion: version, status: to, membershipId: mine, decidedAt: c.now(), note });
   if (!next) throw new LimsError('common.version_conflict');                       // moved under us (cannot happen under the row lock)
-  return { status: 200, body: await dto(next, c.now(), nameResolver(c)) };
+  return { status: 200, body: await dto(next, c.now(), nameResolver(c), withinResolver(c)) };
 }
 
 // ======================= F9 consumption (called by registration.service inside the F9 tx) =======================

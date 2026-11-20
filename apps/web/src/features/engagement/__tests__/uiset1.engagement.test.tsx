@@ -47,7 +47,7 @@ const api = setupServer(
   http.get(S, () => HttpResponse.json(settings())),
   http.get(`${ORIGIN}/v1/identity/centres`, () => HttpResponse.json({ data: [{ id: CENTRE_ID, name: 'Synthetic Centre One', is_active: true }], page: { limit: 50 } })),
 );
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { cleanup(); api.resetHandlers(); });
 afterAll(() => api.close());
 

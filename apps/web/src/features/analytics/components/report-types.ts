@@ -71,5 +71,7 @@ export interface PageVM {
   canRefresh: boolean;
   export?: { reportCode: string; pdfEnabled: boolean; groupLabel?: string };
   link?: { href: string; label: string };
+  /** T0D-MISREPORTS-1: hub only, the catalogue reports the session may open, listed as links outside the tab strip. */
+  more?: { href: string; label: string }[];
   sections: Section[];
 }

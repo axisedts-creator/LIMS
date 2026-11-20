@@ -46,7 +46,7 @@ const api = setupServer(
   http.patch(`${ORIGIN}/v1/frontdesk/patients/:id`, async ({ request }) => { await rec(request); return HttpResponse.json(patient({ version: 5 })); }),
   http.post(`${ORIGIN}/v1/frontdesk/patients/:id/consents`, async ({ request }) => { await rec(request); return HttpResponse.json({ id: U(95), patient_id: PATIENT, consents: patient().consents, recorded_at: '2026-11-07T04:00:00.000Z', recorded_by: { membership_id: ME, display_name: 'Me' } }); }),
 );
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { cleanup(); api.resetHandlers(); calls.length = 0; refresh.mockReset(); vi.useRealTimers(); localStorage.clear(); sessionStorage.clear(); });
 afterAll(() => api.close());
 

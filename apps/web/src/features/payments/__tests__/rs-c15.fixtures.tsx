@@ -7,7 +7,7 @@ import { ToastProvider } from '@lims/ui/components/Toast';
 
 export const U = (n: number) => `01a1a98a-ac40-7000-8000-${String(n).padStart(12, '0')}`;
 export const npr = (paisa: number) => ({ amount_paisa: paisa, currency: 'NPR' });
-export const wrap = (ui: ReactNode) => render(<ToastProvider>{ui}</ToastProvider>);
+export const wrap = (ui: ReactNode): ReturnType<typeof render> => render(<ToastProvider>{ui}</ToastProvider>);
 
 export const axeClean = async () => {
   const r = await axe.run(document.body, { rules: { 'color-contrast': { enabled: false }, region: { enabled: false } } });

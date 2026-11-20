@@ -175,7 +175,7 @@ export function createInvoiceReadService(deps: { repo?: InvoiceReadRepo } = {}) 
     const page: { limit: number; next_cursor?: string } = { limit };
     if (rows.length > limit && last) page.next_cursor = encodeCursor('print_no', Number(last['print_no']), String(last['id']));
     return {
-      data: data.map((p) => present({ print_no: p['print_no'], is_copy: p['is_copy'], reason_code: p['reason_code'], printed_by_display: STAFF_DISPLAY, printed_at: iso(p['printed_at']) })),
+      data: data.map((p) => present({ print_no: p['print_no'], is_copy: p['is_copy'], reason_code: p['reason_code'], style: p['style'], printed_by_display: STAFF_DISPLAY, printed_at: iso(p['printed_at']) })),
       page,
     };
   }

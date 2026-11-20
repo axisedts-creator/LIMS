@@ -70,7 +70,7 @@ export const resetApi = () => {
   jar.cleared.length = 0;
   for (const k of Object.keys(reply)) delete reply[k];
   for (const k of [...headerStore.keys()]) headerStore.delete(k);
-  headerStore.set('x-forwarded-for', CLIENT_IP);
+  headerStore.set('x-vercel-forwarded-for', CLIENT_IP); // SEC-ABUSE-1 / LD-237: the trusted incoming address header
   headerStore.set('origin', 'http://staff.t12.test');
 };
 

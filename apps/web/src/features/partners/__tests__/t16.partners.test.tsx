@@ -47,7 +47,7 @@ const api = setupServer(
   http.get(`${ORIGIN}/v1/identity/branches`, async ({ request }) => { await rec(request); return HttpResponse.json({ data: [{ branch_id: BRANCH, code: 'B1', name: 'Synthetic Branch', is_active: true }] }); }),
   http.get(`${ORIGIN}/v1/identity/centres`, async ({ request }) => { await rec(request); return HttpResponse.json({ data: [{ centre_id: CENTRE, code: 'C000000001', name: 'Synthetic Receiving Centre', branch_id: BRANCH, is_active: true }] }); }),
 );
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { cleanup(); api.resetHandlers(); calls.length = 0; refresh.mockReset(); push.mockReset(); session.perms = []; users = [partnerUser(1, { partner_role: 'partner_admin' }), partnerUser(2)]; });
 afterAll(() => api.close());
 

@@ -26,8 +26,11 @@ export interface SyncAdapter {
   conflictCheck?(ctx: HandlerContext, op: SyncOp): Promise<undefined | { entityType: string; serverPayload: object }>;
   currentServerPayload?(ctx: HandlerContext, input: { entityId: string }): Promise<object>;
   applyResolution?(ctx: HandlerContext, input: { resolution: 'apply_local' | 'merge'; opId: string; entityId: string; entityType: string; payload: object; idempotencyKey: string }): Promise<unknown>;
-  /** T0B-SYNC-3: `outcome: 'duplicate'` = the entity is already in that state or further (no change, no error code). */
-  execute(ctx: HandlerContext, op: SyncOp): Promise<{ entityId?: string; outcome?: 'accepted' | 'duplicate'; numberMappings?: NumberMapping[] }>;
+  /** T0B-SYNC-3: `outcome: 'duplicate'` = the entity is already in that state or further (no change, no error code).
+   *  T0B-SYNC-4: `outcome: 'rejected'` + errorCode = a per operation rejection that KEEPS the adapter's own writes (lab manager alert, recall flags,
+   *  recorded sign off outcome): the SAVEPOINT is released, not rolled back. The adapter undoes a wrapped service by running it in a nested ctx.db.tx.
+   *  errorCode outside the closed SyncErrorCode list answers common.internal. A thrown error still rolls the whole operation back. */
+  execute(ctx: HandlerContext, op: SyncOp): Promise<{ entityId?: string; outcome?: 'accepted' | 'duplicate' | 'rejected'; errorCode?: string; numberMappings?: NumberMapping[] }>;
 }
 export interface NumberMapping { document_type: string; provisional_number: string; final_number: string }
 /** T0B-SYNC-3: deviceId always; reservedNumbers from the envelope key `reserved_numbers` (registration.create_order: patient id and lab codes,
@@ -203,6 +206,10 @@ export function createPushEngine(s: PushSettings, registry: ReadonlyMap<string, 
               return { op_id: op.opId, status: 'conflict', error_code: 'sync.base_version_stale', conflict_id: id, entity_id: op.entityId, skew_flag: skew };
             }
             const r = await adapter.execute(cx, op);
+            if (r?.outcome === 'rejected') {
+              const code = typeof r.errorCode === 'string' && syncErrorCodes().has(r.errorCode) ? r.errorCode : 'common.internal';
+              return { op_id: op.opId, status: 'rejected', error_code: code, ...(r.entityId ? { entity_id: r.entityId } : {}), skew_flag: skew };
+            }
             return { op_id: op.opId, status: r?.outcome === 'duplicate' ? 'duplicate' : 'accepted', ...(r?.entityId ? { entity_id: r.entityId } : {}),
               ...(r?.numberMappings?.length ? { number_mappings: r.numberMappings.slice(0, 3) } : {}), skew_flag: skew };
           });
@@ -221,6 +228,9 @@ export function createPushEngine(s: PushSettings, registry: ReadonlyMap<string, 
             await repo.writeOutcome(w.tx, w.tenantId, op.opId, { status: out.status, result: out, errorCode: out.error_code, skew });
             return out;
           }
+          // 02-TRD §6.4: a serialization failure or deadlock is never an op outcome; rethrow so the whole request tx is retried (T0B-SYNC-5 ruling).
+          const pg = (e as { code?: unknown } | null)?.code;
+          if (pg === '40001' || pg === '40P01') throw e;
           const code = codeOf(e);
           if (code === 'common.internal') ctx.log?.warn({ event: 'sync_operation_failed', op_type: op.opType });
           out = { op_id: op.opId, status: 'rejected', error_code: code, skew_flag: skew };

@@ -50,7 +50,7 @@ const api = setupServer(
     return HttpResponse.json({ specimen: { ...s, version: (s.version as number) + 1, status: 'rejected' } });
   }),
 );
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { cleanup(); api.resetHandlers(); calls.length = 0; db.clear(); lookupFails = false; localStorage.clear(); sessionStorage.clear(); });
 afterAll(() => api.close());
 

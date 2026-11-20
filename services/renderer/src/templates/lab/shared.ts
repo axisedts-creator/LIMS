@@ -14,6 +14,19 @@ export const esc = (v: unknown): string =>
     .replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, '')
     .replace(/[&<>"'`=:/()@\\]/g, (c) => `&#${c.charCodeAt(0)};`);
 
+/** T0B-PRINTCFG-1 (LD-316): typed header / footer text is plain text: the HTML five are entity-encoded and control characters dropped, so markup
+ *  is never interpreted and angle brackets and ampersands print literally. Element content only (never an attribute, URL or CSS). */
+const TEXT_ENT: Record<string, string> = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+export const escText = (v: unknown): string =>
+  String(v ?? '')
+    .replace(/[\u0000-\u0008\u000b-\u001f\u007f]/g, '')
+    .replace(/[&<>"']/g, (c) => TEXT_ENT[c]!);
+/** Typed lines (newline separated) as one block; '' when there is no text. */
+export const typedLines = (text: unknown, cls: string): string => {
+  const lines = String(text ?? '').split('\n').filter((l) => l.trim() !== '');
+  return lines.length ? `<div class="${cls}">${lines.map((l) => `<div>${escText(l)}</div>`).join('')}</div>` : '';
+};
+
 const DATA_IMG = /^data:image\/(?:png|jpeg);base64,[A-Za-z0-9+/]+={0,2}$/;
 /** The resolver's data: URI is the only possible image source; anything else is a resolver bug and fails the render. */
 export function dataImage(assets: AssetResolver, ref: AssetRef): string {
@@ -42,9 +55,15 @@ export function fmtInstant(iso: string | undefined, doc: ReportDocument): string
 function css(input: RenderInput): string {
   const config = input.config;
   const qr = mm(config.qr?.size_mm, 22);
+  const pp = input.printProfile;
+  // T0B-PRINTCFG-1: the profile font size; grayscale forces black and white (images drawn gray; the text is black already).
+  const basePt = pp ? pp.font_size_pt : num(config.fonts?.base_pt, 9);
+  const gray = pp?.grayscale ? 'img{filter:grayscale(1)}\n' : '';
   return `${pageRules(input)}*{box-sizing:border-box}
 html,body{margin:0;padding:0}
-body{font-family:"Noto Sans","Noto Sans Devanagari",sans-serif;font-size:${num(config.fonts?.base_pt, 9)}pt;line-height:1.2;color:#000;font-variant-numeric:tabular-nums}
+${gray}.pph,.ppf{white-space:pre-wrap;overflow-wrap:anywhere}
+.pph{margin-bottom:1mm}.ppf{margin-top:1mm}
+body{font-family:"Noto Sans","Noto Sans Devanagari",sans-serif;font-size:${basePt}pt;line-height:1.2;color:#000;font-variant-numeric:tabular-nums}
 table{border-collapse:collapse;width:100%}
 td,th{padding:0.2mm 1mm;vertical-align:top;text-align:left;font-weight:normal;overflow-wrap:anywhere}
 .frame>thead>tr>td,.frame>tfoot>tr>td{padding:0}
@@ -156,9 +175,14 @@ export function footerBlock(input: RenderInput, signatories: readonly Signatory[
 /** Full document: one outer table; header in <thead>, footer in <tfoot>, body rows in <tbody> (DECISIONS.md thead-tfoot). */
 export function shell(input: RenderInput, o: { title: string; css?: string; cols: string; theadExtra?: string; body: string; footer: string; span: number }): string {
   const cell = (inner: string) => `<tr><td colspan="${o.span}">${inner}</td></tr>`;
+  // T0B-PRINTCFG-1 (LD-316): typed_header_footer prints the profile text first in the repeated header and last in the repeated footer (every page).
+  const pp = input.printProfile;
+  const typed = pp?.paper_mode === 'typed_header_footer';
+  const head = typed ? typedLines(pp.header_text, 'pph') : '';
+  const foot = typed ? typedLines(pp.footer_text, 'ppf') : '';
   return `<!doctype html><html><head><meta charset="utf-8"><title>${esc(o.title)}</title><style>${css(input)}${o.css ?? ''}</style></head><body>` +
-    `${watermarks(input)}<table class="frame">${o.cols}<thead>${cell(headerBlock(input))}${o.theadExtra ?? ''}</thead>` +
-    `<tfoot>${cell(o.footer)}</tfoot><tbody>${o.body}</tbody></table></body></html>`;
+    `${watermarks(input)}<table class="frame">${o.cols}<thead>${cell(head + headerBlock(input))}${o.theadExtra ?? ''}</thead>` +
+    `<tfoot>${cell(o.footer + foot)}</tfoot><tbody>${o.body}</tbody></table></body></html>`;
 }
 
 /** 04-UI-UX §3.2 status boxes at the top of page 1 (Amended, Addendum, Preliminary). */

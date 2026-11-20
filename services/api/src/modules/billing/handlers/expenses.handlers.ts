@@ -5,6 +5,7 @@
 // re-validates every value. LD-325 (b): these ids were removed from billing pendingOperations.
 import { LimsError } from '../../../core/errors.js';
 import type { Handler, HandlerRequest } from '../../../core/module.js';
+import { guarded } from './_guard.js';
 import { createExpensesService, type ExpensesService } from '../service/expenses.service.js';
 import { bind, obj } from './ledger.handlers.js';
 import { ifMatch } from './settings.handlers.js';
@@ -18,7 +19,7 @@ const needKey = (req: HandlerRequest) => {
 };
 const p = (req: HandlerRequest, k: string): unknown => obj(req.params)[k];
 
-export const expensesHandlers: Readonly<Record<string, Handler>> = Object.freeze({
+const expensesHandlersRaw: Readonly<Record<string, Handler>> = Object.freeze({
   listExpenseTypes: bind(async (ctx, req) => ({ status: 200, body: await service().listTypes(ctx, req.query) })),
   createExpenseType: bind(async (ctx, req) => {
     needKey(req);
@@ -56,4 +57,21 @@ export const expensesHandlers: Readonly<Record<string, Handler>> = Object.freeze
     return { status: 200, body: await service().cancelTransfer(ctx, p(req, 'cash_transfer_id')) };
   }),
   getDailyCollectionSummary: bind(async (ctx, req) => ({ status: 200, body: await service().dailySummary(ctx, req.query) })),
+});
+
+// SEC-AUTHZ-6 (LD-189 AUTH-SENSITIVE, LD-261; SEC-AUTHZ-1.1): the contract x-permission is asked FIRST, before the wrapped handler reads or writes anything.
+export const expensesHandlers: Readonly<Record<string, Handler>> = Object.freeze({
+  ...expensesHandlersRaw,
+  listExpenseTypes: guarded('billing.account.read', expensesHandlersRaw['listExpenseTypes']!),
+  createExpenseType: guarded('billing.account.manage', expensesHandlersRaw['createExpenseType']!),
+  updateExpenseType: guarded('billing.account.manage', expensesHandlersRaw['updateExpenseType']!),
+  createExpense: guarded('billing.expense.manage', expensesHandlersRaw['createExpense']!),
+  listExpenses: guarded('billing.account.read', expensesHandlersRaw['listExpenses']!),
+  cancelExpense: guarded('billing.expense.manage', expensesHandlersRaw['cancelExpense']!),
+  createCashTransfer: guarded('billing.cash_transfer.manage', expensesHandlersRaw['createCashTransfer']!),
+  listCashTransfers: guarded('billing.account.read', expensesHandlersRaw['listCashTransfers']!),
+  acceptCashTransfer: guarded('billing.cash_transfer.decide', expensesHandlersRaw['acceptCashTransfer']!),
+  rejectCashTransfer: guarded('billing.cash_transfer.decide', expensesHandlersRaw['rejectCashTransfer']!),
+  cancelCashTransfer: guarded('billing.cash_transfer.manage', expensesHandlersRaw['cancelCashTransfer']!),
+  getDailyCollectionSummary: guarded('billing.account.read', expensesHandlersRaw['getDailyCollectionSummary']!),
 });

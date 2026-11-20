@@ -16,7 +16,7 @@
 --   catalog.icd_code                   per tenant ICD master: code (unique per tenant), title, chapter, is_active. Separate from frontdesk.icd_codes (the
 --                                      registration pick list of T0C-REGPARITY), which stays untouched.
 -- New columns (ADD COLUMN IF NOT EXISTS, nullable, no DEFAULT, so no rewrite of old rows):
---   partners.partners  tax_number (PAN), national_id_number            catalog.doctors  speciality, hospital, commission_bp, national_id_number
+--   partners.partners  tax_number (PAN), national_id_number            catalog.doctors  speciality, hospital, national_id_number (no doctor rate: LD-385)
 -- Government ID numbers (tax_number, national_id_number, credit party pan) are masked in every API read (last four characters only); the full value needs
 -- partners.party_id_number.read and every full read writes an audit event (service, T0B-PARTYSET-1). The values never reach audit.audit_log: the audit
 -- triggers partners__audit, doctors__audit and credit_parties__audit are re-created with the ID columns as excluded arguments (CR-C15-013).
@@ -28,7 +28,7 @@
 --   DROP TABLE IF EXISTS partners.non_compliance_event, partners.non_compliance_penalty, partners.party_onboarding, partners.party_commercial_setting,
 --     catalog.icd_code CASCADE;
 --   ALTER TABLE partners.partners DROP COLUMN IF EXISTS tax_number, DROP COLUMN IF EXISTS national_id_number;
---   ALTER TABLE catalog.doctors DROP COLUMN IF EXISTS speciality, DROP COLUMN IF EXISTS hospital, DROP COLUMN IF EXISTS commission_bp,
+--   ALTER TABLE catalog.doctors DROP COLUMN IF EXISTS speciality, DROP COLUMN IF EXISTS hospital,
 --     DROP COLUMN IF EXISTS national_id_number;
 --   DROP FUNCTION IF EXISTS partners.party_onboarding__transition(), partners.non_compliance_event__transition();
 --   the three re-created audit triggers may stay as they are (excluding a dropped column is harmless).
@@ -41,7 +41,6 @@ ALTER TABLE partners.partners
 ALTER TABLE catalog.doctors
   ADD COLUMN IF NOT EXISTS speciality text CONSTRAINT doctors__speciality__ck CHECK (char_length(speciality) BETWEEN 1 AND 120),
   ADD COLUMN IF NOT EXISTS hospital text CONSTRAINT doctors__hospital__ck CHECK (char_length(hospital) BETWEEN 1 AND 200),
-  ADD COLUMN IF NOT EXISTS commission_bp integer CONSTRAINT doctors__commission_bp__ck CHECK (commission_bp BETWEEN 0 AND 10000),
   ADD COLUMN IF NOT EXISTS national_id_number text CONSTRAINT doctors__national_id_number__ck CHECK (char_length(national_id_number) BETWEEN 1 AND 32);
 
 -- ID numbers never reach audit.audit_log (done_when 3); everything else on these rows is still audited

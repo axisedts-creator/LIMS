@@ -26,6 +26,7 @@ export const manifest = {
   handlers: {
     boom: async () => { throw new Error(LEAKY); },
     limsError: async (req: any) => { throw new LimsError(req.params.code); },
+    limsErrorInternalDetail: async (req: any) => { throw new LimsError(req.params.code, 'identity: token encryption key invalid'); },
     withDetail: async () => { throw new LimsError('common.not_found', 'Specimen not found'); },
     rateLimited: async () => { throw Object.assign(new LimsError('common.rate_limited'), { retryAfterSeconds: 7 }); },
     validateBody: async () => ({ status: 200, body: {} }),

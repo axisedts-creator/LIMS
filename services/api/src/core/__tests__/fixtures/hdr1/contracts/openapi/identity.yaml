@@ -1,0 +1,55 @@
+# Test-only spec for SEC-HDR-1 (not a real contract): one public JSON operation and four bearerJwt operations (JSON, JSON with a handler cache-control, 204, 404).
+openapi: 3.0.3
+info: { title: fixture identity (SEC-HDR-1 headers), version: 1.0.0 }
+components:
+  securitySchemes:
+    bearerJwt:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+paths:
+  /v1/identity/probe:
+    get:
+      operationId: getIdentityProbe
+      security: []
+      x-public: "fixture"
+      x-idempotency: none
+      x-rate-limit-tier: general
+      responses:
+        '200': { description: ok, content: { application/json: { schema: { type: object, additionalProperties: true } } } }
+  /v1/identity/whoami:
+    get:
+      operationId: getIdentityWhoami
+      security:
+        - bearerJwt: []
+      x-idempotency: none
+      x-rate-limit-tier: general
+      responses:
+        '200': { description: ok, content: { application/json: { schema: { type: object, additionalProperties: true } } } }
+  /v1/identity/cached:
+    get:
+      operationId: getIdentityCached
+      security:
+        - bearerJwt: []
+      x-idempotency: none
+      x-rate-limit-tier: general
+      responses:
+        '200': { description: ok, content: { application/json: { schema: { type: object, additionalProperties: true } } } }
+  /v1/identity/gone:
+    delete:
+      operationId: deleteIdentityGone
+      security:
+        - bearerJwt: []
+      x-idempotency: none
+      x-rate-limit-tier: general
+      responses:
+        '204': { description: deleted }
+  /v1/identity/missing:
+    get:
+      operationId: getIdentityMissing
+      security:
+        - bearerJwt: []
+      x-idempotency: none
+      x-rate-limit-tier: general
+      responses:
+        '200': { description: ok, content: { application/json: { schema: { type: object, additionalProperties: true } } } }

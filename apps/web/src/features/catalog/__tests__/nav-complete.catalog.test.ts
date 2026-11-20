@@ -45,7 +45,8 @@ describe('catalog nav manifest: Tests entry details and no regressions', () => {
       expect(e, id).toBeTruthy();
       expect([e!.permission, e!.order], id).toEqual([permission, order]);
     }
-    expect(m.entries.length).toBe(Object.keys(EXISTING).length + 1);
+    // + the Tests entry, + the ICD master entry of T0D-PARTYSET-1 (LD-321; pinned by partyset1.source.test.ts). The 14 existing entries are checked above.
+    expect(m.entries.length).toBe(Object.keys(EXISTING).length + 1 + 1);
     const orders = m.entries.map((e) => e.order);
     expect(new Set(orders).size).toBe(orders.length);
   });

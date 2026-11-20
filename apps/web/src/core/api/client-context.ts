@@ -24,8 +24,11 @@ export async function readClientContext(): Promise<ClientContext> {
   } catch {
     return {}; // outside a request scope (middleware, build): send nothing
   }
-  const xff = h.get('x-forwarded-for')?.trim();
-  const ip = literal(xff ? xff.split(',')[0] : h.get('x-real-ip')); // first entry = the client the edge saw
+  // SEC-ABUSE-1 (LD-237 (4)): x-vercel-forwarded-for (set by the edge, not client-suppliable), else x-real-ip, else nothing (the API sees the
+  // connection address). The incoming x-forwarded-for is never read: its first element is chosen by the client. A present but junk vercel
+  // header is not replaced by a weaker source.
+  const edge = h.get('x-vercel-forwarded-for')?.trim();
+  const ip = literal(edge || h.get('x-real-ip'));
   const userAgent = h.get('user-agent')?.trim().slice(0, UA_MAX);
   return { ...(ip ? { ip } : {}), ...(userAgent ? { userAgent } : {}) };
 }

@@ -49,6 +49,25 @@ export async function pageDiscountApprovals(tx: Tx, tenantId: string,
   return rows;
 }
 
+// ---- T0B-FINCTRL-1 (LD-321, founder blanket authority LD-310): the tenant discount policy of billing (migration 20261117190000), read-only.
+// [CONV] a cross schema READ (02-CONVENTIONS: repo SQL is for the module's own schema): no BillingPort method exposes the policy yet; the lead is asked for a
+// CR (BillingPort.getDiscountCeilings) in .orchestra/notes/T0B-FINCTRL-1-impl.md. Explicit tenant_id on both sides of every join, RLS is the backstop.
+/** The ACTIVE billing.user_discount_limit of the membership's user, or null (no tenant policy for that user). */
+export async function requesterDiscountLimit(tx: Tx, tenantId: string, membershipId: string): Promise<{ bp: number; paisa: number } | null> {
+  const { rows } = await tx.query(`SELECT l.max_discount_bp, l.max_discount_paisa::text AS max_discount_paisa FROM core.memberships m
+    JOIN billing.user_discount_limit l ON l.tenant_id = m.tenant_id AND l.user_id = m.user_id AND l.is_active
+    WHERE m.tenant_id = $1 AND m.id = $2 LIMIT 1`, [tenantId, membershipId]);
+  const r = rows[0];
+  return r ? { bp: Number(r.max_discount_bp), paisa: Number(r.max_discount_paisa) } : null;
+}
+/** true when an ACTIVE billing.discount_authority of the membership's user covers both the amount and the basis points (<=). */
+export async function authorityCovers(tx: Tx, tenantId: string, membershipId: string, paisa: number, bp: number): Promise<boolean> {
+  const { rows } = await tx.query(`SELECT 1 FROM core.memberships m
+    JOIN billing.discount_authority a ON a.tenant_id = m.tenant_id AND a.user_id = m.user_id AND a.is_active
+    WHERE m.tenant_id = $1 AND m.id = $2 AND a.max_discount_paisa >= $3::bigint AND a.max_discount_bp >= $4 LIMIT 1`, [tenantId, membershipId, String(paisa), bp]);
+  return rows.length > 0;
+}
+
 /** Open = pending | approved (partial index discount_approvals__tenant_id_status_centre_id__p_idx). Oldest first. */
 export async function listOpenDiscountApprovals(tx: Tx, tenantId: string, limit = 100): Promise<any[]> {
   const { rows } = await tx.query(`SELECT * FROM frontdesk.discount_approvals WHERE tenant_id = $1 AND status IN ('pending','approved')

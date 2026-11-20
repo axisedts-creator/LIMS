@@ -1,0 +1,1 @@
+cd /d "%~dp0..\.." && "C:\Program Files\Git\bin\bash.exe" tests/reporting/T0B-PRINTCFG-1.pg.sh && pnpm --dir services/renderer exec vitest run src/templates/__tests__/printcfg-report.test.ts src/templates/__tests__/printcfg-bill.test.ts

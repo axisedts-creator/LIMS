@@ -1,0 +1,5 @@
+# SEC-AUTHZ-7 debugger
+- Cause: verify fails only on "snapshot == fresh". Committed tests/security/authz-classification.json is stale (47 unguarded, 931 guarded-exact, 31 guarded-other); the fresh classifier on the writer code gives 0 unguarded, 993 guarded-exact, 16 guarded-other (the 16 are not in reporting/inventory/anatomic). Snapshot was never regenerated after the writer commit (tester note says so).
+- Fix: none in implementation; code is correct. Snapshot is tester-owned (debugger cannot keep a change). Tester must run `node tests/security/classify-authz.mjs > tests/security/authz-classification.json` and the lane commits it, then re-verify.
+- Round 2: re-checked. Snapshot last committed in ed6b86568 (SEC-AUTHZ-6), not regenerated since writer guards. Same cause, no impl change. Tester: regenerate snapshot, lane commits, re-verify.
+- Round 3: verify log still fails only "snapshot == fresh" (actual unguarded 47/guarded-exact 931 vs expected 0/993). Same cause, no impl change, no test edit. Blocked on tester snapshot regeneration.

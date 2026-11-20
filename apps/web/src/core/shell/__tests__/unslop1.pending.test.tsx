@@ -42,7 +42,7 @@ const api = setupServer(
     return HttpResponse.json({ type: `urn:lims:error:${code}`, title: code, status, code, request_id: '01950c12-0000-7000-8000-000000000001' }, { status });
   }),
 );
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { cleanup(); status = 501; });
 afterAll(() => api.close());
 

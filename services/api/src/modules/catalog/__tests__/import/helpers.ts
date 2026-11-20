@@ -55,12 +55,16 @@ export function expectError(r: { errors: any[]; batch: any }, sheet: string, row
 
 // ------------------------------------------------------------------------------------------------ database reads (owner view; RLS bypassed on purpose)
 export const likeTag = (t: string) => `%${t}`;
+/** `code` lives on catalog.orderables (tests and panels have none): select them by id through the orderable of that kind (ruling T0B-TESTIMPORT-1 #1) */
+export const orderableIds = (kind: 'test' | 'panel', param = '$2') => `id IN (SELECT id FROM catalog.orderables WHERE tenant_id = $1 AND kind = '${kind}' AND code LIKE ${param})`;
 export async function snapshot(tenant: string, t: string) {
-  const n = async (table: string, col = 'code') => (await ownerRows(`catalog.${table}`, `tenant_id = $1 AND ${col} LIKE $2`, [tenant, likeTag(t)])).length;
-  return { tests: await n('tests'), analytes: await n('analytes'), panels: await n('panels') };
+  const n = async (table: string, where: string) => (await ownerRows(`catalog.${table}`, `tenant_id = $1 AND ${where}`, [tenant, likeTag(t)])).length;
+  return { tests: await n('tests', orderableIds('test')), analytes: await n('analytes', 'code LIKE $2'), panels: await n('panels', orderableIds('panel')) };
 }
 export const batchRows = (tenant: string, shaHex: string) => ownerRows('catalog.import_batch', 'tenant_id = $1 AND file_sha256 = $2', [tenant, shaHex]);
-export const testsByTag = (tenant: string, t: string) => ownerRows('catalog.tests', 'tenant_id = $1 AND code LIKE $2 ORDER BY code', [tenant, likeTag(t)]);
+/** test rows with the orderable `code` and `name` joined in */
+export const testsByTag = (tenant: string, t: string) =>
+  ownerRows('(SELECT t.*, o.code, o.name FROM catalog.tests t JOIN catalog.orderables o ON o.tenant_id = t.tenant_id AND o.id = t.id) x', 'tenant_id = $1 AND code LIKE $2 ORDER BY code', [tenant, likeTag(t)]);
 export const analytesByTag = (tenant: string, t: string) => ownerRows('catalog.analytes', 'tenant_id = $1 AND code LIKE $2 ORDER BY code', [tenant, likeTag(t)]);
 export async function versionsOf(analyteIds: string[], table: 'analyte_versions' | 'reference_range_sets' | 'critical_limit_sets'): Promise<any[]> {
   return analyteIds.length ? ownerRows(`catalog.${table}`, 'analyte_id = ANY($1::uuid[]) ORDER BY analyte_id, version_no', [analyteIds]) : [];

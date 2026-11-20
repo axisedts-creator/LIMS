@@ -1,0 +1,11 @@
+Title: CR-C8-nnn: a read operation for the 11 MIS report definitions (rows, totals, paging) and payment mode totals for Bill of the Day
+From chunk: C0-0D (T0D-MISREPORTS-1, tester)            To owner: C0-0C (contract) then C0-0B (T0B-MISREPORTS handler)
+Type: api
+Blocking? yes for done_when (2) rows / totals row / paging and (3) "totals by payment mode" of T0D-MISREPORTS-1. Headers, filters, print, CSV and schedule can be built now.
+Problem: contracts/openapi/analytics.yaml x-report-definitions (bill_of_the_day, two_level_commission, sales_representative, consultant, collection_boy, repeated_patient, repeated_test, ipd_opd, tds, party_billing, outsource) have NO HTTP read. They run only through createAnalyticsExport (a file) and createReportSchedule. T0C impl says "no new route and no new operation". T0B built runMisReport(ctx, code, {range, scope, filters, limit, cursor}) -> {columns, rows, next_cursor} but no handler serves it. The screen cannot show a result page, a totals row or cursor paging without it. Also: bill_of_the_day has no payment mode column, so "totals by payment mode" has no source.
+Proposed change (for the owner to shape; the tester invents no name): one GET operation that returns runMisReport's page for a report code, with the definition params as query, limit <= 200, an opaque cursor, a totals object for integer_paisa / integer columns of the whole filtered set, same permission, flag, aal2 and access log (referral_report.view) gates as the export of that code; plus a payment mode totals source for bill_of_the_day (new column or a second small operation).
+Backward compatible? yes (additive).
+Tenant/security impact: reads the same data the export reads; the two money codes keep the A39 gate (flag referral_incentive_report, analytics.referral_report.read, aal2, access log action referral_report.view); no new permission.
+IRD/regulatory impact: none beyond A39 (reports only, no money moves).
+Alternatives considered: build the screens on the export file (async, no paging, no totals row): rejected, breaks done_when (2) and (3).
+Tests that will prove it: after the ruling the tester adds rows, totals row, paging, cell format (money from paisa, bp as percent, dates) and payment mode totals tests to misreports1.reports / misreports1.botd.

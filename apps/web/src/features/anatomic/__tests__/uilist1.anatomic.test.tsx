@@ -15,7 +15,7 @@ vi.mock('next/navigation', async () => (await import('./t22.harness')).navigatio
 vi.mock('server-only', () => ({}));
 vi.mock('@/core/session/server', async () => (await import('./t22.harness')).sessionMock);
 
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 beforeEach(() => { resetHits(); state.permissions = PERM_WORK; api.use(...t22Defaults); });
 afterEach(() => { cleanup(); api.resetHandlers(); });
 afterAll(() => api.close());

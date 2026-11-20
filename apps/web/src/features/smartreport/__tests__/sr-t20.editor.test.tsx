@@ -30,7 +30,7 @@ vi.mock('server-only', () => ({}));
 vi.mock('@/core/session/server', async () => (await import('./sr-t20.harness')).sessionMock);
 
 const TABS = ['Settings & score', 'Body systems', 'Analyte mapping', 'Texts', 'Rules', 'Check & submit'];
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 beforeEach(() => { resetApi(MANAGE); mountEditorApi(); });
 afterEach(() => { cleanup(); api.resetHandlers(); });
 afterAll(() => api.close());

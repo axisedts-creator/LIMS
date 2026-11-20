@@ -28,7 +28,7 @@ const problem = (status: number) => HttpResponse.json(
 export function consolePages(origin: string, setPerms: (p: string[]) => void, pages: readonly PageCase[], errors: readonly ErrorCase[]) {
   let answer = 501;
   const api = setupServer(http.all(`${origin}/*`, () => problem(answer)));
-  beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+  beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
   afterEach(() => { answer = 501; });
   afterAll(() => api.close());
 

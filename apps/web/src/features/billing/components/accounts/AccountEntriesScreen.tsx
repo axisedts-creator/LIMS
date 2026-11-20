@@ -1,8 +1,11 @@
 'use client';
 // T0D-ACCT-1 (LD-313, LD-310; founder 2026-11-17 04:49 / 04:57 NPT): billing/accounts/entries = ElabAssist View Account list + Account Entry form.
 // Append only (LD-313 b): an entry is never edited or deleted; the only correction is Reverse, which asks for a reason.
+// T0D-FINCTRL-1 (LD-321): Hold / Release inside the Entry Status cell (billing.account.manage; both ask for a reason), a Held badge, a separate held
+// total (held entries are left out of posted balances until released) and the fiscal year (B.S.) and Held status filters. No new column.
 import { useRef, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
+import { Badge } from '@lims/ui/components/Badge';
 import { Button } from '@lims/ui/components/Button';
 import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
 import { DateText } from '@lims/ui/components/DateText';
@@ -15,14 +18,16 @@ import { TextArea } from '@lims/ui/components/TextArea';
 import { TextField } from '@lims/ui/components/TextField';
 import { useToast } from '@lims/ui/components/Toast';
 import { t } from '@/core/i18n/messages';
-import { createAccountEntryAction, reverseAccountEntryAction } from '../../server/accounts.actions';
+import { createAccountEntryAction, holdAccountEntryAction, reverseAccountEntryAction } from '../../server/accounts.actions';
 import type { AccountLedgerEntry, AccountParticular, AccountParty, CreateEntryInput, EntryType, Named } from '../../server/accounts.server';
-import { errorText, formatAmount, hasPerm } from '../format';
+import { errorText, formatAmount, formatNpr, hasPerm } from '../format';
 import type { ListFailure } from '../listRead';
 import { AccountReceiptView } from './AccountReceiptView';
 import { BANK_MODES, GatedButton, ISO_DATE, LIST_FAILED, LabelOnlySelect, LONG_DIGITS, PAYMENT_MODES, PERM, fill, modeText, nameOf, newKey, statusText, toPaisa, typeText } from './accountsShared';
 
-const FILTER_KEYS = ['centre_id', 'party', 'account_particular_id', 'entry_type', 'status', 'entry_date_from', 'entry_date_to'] as const;
+const FILTER_KEYS = ['centre_id', 'party', 'account_particular_id', 'entry_type', 'status', 'entry_date_from', 'entry_date_to', 'fiscal_year_label'] as const;
+/** Contract AccountLedgerEntry.fiscal_year_label: B.S. year such as 2083/84. */
+const FY = /^[0-9]{4}\/[0-9]{2}$/;
 type FilterKey = (typeof FILTER_KEYS)[number];
 type Filters = Partial<Record<FilterKey, string>>;
 
@@ -47,8 +52,11 @@ export function AccountEntriesScreen({ entries, particulars, parties, centres, m
   const [creating, setCreating] = useState(false);
   const [reversing, setReversing] = useState<AccountLedgerEntry | null>(null);
   const [printing, setPrinting] = useState<AccountLedgerEntry | null>(null);
+  const [holding, setHolding] = useState<{ entry: AccountLedgerEntry; action: 'hold' | 'release' } | null>(null);
   const canCreate = hasPerm(permissions, PERM.create);
   const canReverse = hasPerm(permissions, PERM.reverse);
+  const canHold = hasPerm(permissions, PERM.manage);
+  const heldTotal = entries.filter((e) => e.status === 'held').reduce((sum, e) => sum + e.amount_paisa, 0);
 
   const apply = (next: Filters) => {
     setF(next);
@@ -62,8 +70,10 @@ export function AccountEntriesScreen({ entries, particulars, parties, centres, m
   const partyName = (e: AccountLedgerEntry) => nameOf(parties, e.party_id);
   const reverseBlock = (e: AccountLedgerEntry) =>
     !canReverse ? t('billing.accounts.reason.no_reverse')
+      : e.status === 'held' ? t('billing.accounts.reason.held_first')
       : e.status === 'reversed' ? t('billing.accounts.reason.already_reversed')
         : e.reverses_entry_id ? t('billing.accounts.reason.is_reversal') : undefined;
+  const holdBlock = (e: AccountLedgerEntry) => (!canHold ? t('billing.accounts.reason.no_hold') : e.status !== 'submitted' ? t('billing.accounts.reason.not_submitted') : undefined);
 
   const columns: ColumnDef<AccountLedgerEntry>[] = [
     { id: 'laboratory', header: t('billing.accounts.col.laboratory'), cell: (e) => nameOf(centres, e.centre_id) },
@@ -85,8 +95,12 @@ export function AccountEntriesScreen({ entries, particulars, parties, centres, m
       header: t('billing.accounts.col.entry_status'),
       cell: (e) => (
         <span className="lims-inline">
-          <span>{statusText(e.status)}</span>
+          {e.status === 'held' ? <Badge tone="warning">{statusText(e.status)}</Badge> : <span>{statusText(e.status)}</span>}
+          {e.status === 'held' && e.held_reason ? <span>{e.held_reason}</span> : null}
           {e.reverses_entry_id ? <span>{byId.get(e.reverses_entry_id) ? fill('billing.accounts.entries.reverses', { no: byId.get(e.reverses_entry_id)!.receipt_no }) : t('billing.accounts.entries.reversal')}</span> : null}
+          {e.status === 'held'
+            ? <GatedButton label={t('billing.accounts.entries.release')} blocked={canHold ? undefined : t('billing.accounts.reason.no_hold')} onPress={() => setHolding({ entry: e, action: 'release' })} />
+            : <GatedButton label={t('billing.accounts.entries.hold')} blocked={holdBlock(e)} onPress={() => setHolding({ entry: e, action: 'hold' })} />}
           <GatedButton label={t('billing.accounts.entries.reverse')} blocked={reverseBlock(e)} onPress={() => setReversing(e)} />
         </span>
       ),
@@ -118,12 +132,14 @@ export function AccountEntriesScreen({ entries, particulars, parties, centres, m
         <Select label={t('billing.accounts.filter.party')} name="party" options={partyOptions} {...opt('party')} onChange={setNow('party')} />
         <Select label={t('billing.accounts.filter.particular')} name="account_particular_id" options={particulars.map((p) => ({ value: p.id, label: p.name }))} {...opt('account_particular_id')} onChange={setNow('account_particular_id')} />
         <Select label={t('billing.accounts.filter.type')} name="entry_type" options={(['credit', 'debit'] as const).map((v) => ({ value: v, label: typeText(v) }))} {...opt('entry_type')} onChange={setNow('entry_type')} />
-        <Select label={t('billing.accounts.filter.status')} name="status" options={(['submitted', 'approved', 'rejected', 'reversed'] as const).map((v) => ({ value: v, label: statusText(v) }))} {...opt('status')} onChange={setNow('status')} />
+        <Select label={t('billing.accounts.filter.status')} name="status" options={(['submitted', 'approved', 'rejected', 'reversed', 'held'] as const).map((v) => ({ value: v, label: statusText(v) }))} {...opt('status')} onChange={setNow('status')} />
         <TextField label={t('billing.accounts.filter.from')} name="entry_date_from" maxLength={10} description={t('billing.accounts.field.date_hint')} value={f.entry_date_from ?? ''} onChange={(v) => setF({ ...f, entry_date_from: v })} />
         <TextField label={t('billing.accounts.filter.to')} name="entry_date_to" maxLength={10} description={t('billing.accounts.field.date_hint')} value={f.entry_date_to ?? ''} onChange={(v) => setF({ ...f, entry_date_to: v })} />
-        <Button variant="primary" onPress={() => apply(Object.fromEntries(Object.entries(f).filter(([k, v]) => !k.startsWith('entry_date') || ISO_DATE.test(v ?? ''))))}>{t('billing.accounts.filter.search')}</Button>
+        <TextField label={t('billing.accounts.filter.fiscal_year')} name="fiscal_year_label" maxLength={7} description={t('billing.accounts.filter.fiscal_year_hint')} value={f.fiscal_year_label ?? ''} onChange={(v) => setF({ ...f, fiscal_year_label: v })} />
+        <Button variant="primary" onPress={() => apply(Object.fromEntries(Object.entries(f).filter(([k, v]) => (k.startsWith('entry_date') ? ISO_DATE.test(v ?? '') : k === 'fiscal_year_label' ? FY.test(v ?? '') : true))))}>{t('billing.accounts.filter.search')}</Button>
         <Button variant="ghost" onPress={() => apply({})}>{t('billing.accounts.filter.reset')}</Button>
       </div>
+      <p className="lims-inline"><span>{t('billing.accounts.entries.held_total')}</span><strong>{formatNpr(heldTotal)}</strong></p>
       {/* T0D-UILIST-2 (LD-353 rule 5, done_when 2): 15 columns scroll inside the table box, with a column chooser and a sticky first column. */}
       <DataTable
         caption={t('billing.accounts.entries.list')}
@@ -154,6 +170,15 @@ export function AccountEntriesScreen({ entries, particulars, parties, centres, m
           onClose={() => setReversing(null)}
           onDone={() => { setReversing(null); toast.show({ tone: 'success', title: t('billing.accounts.entries.reversed_ok') }); router.refresh(); }}
           onFail={(code) => toast.show({ tone: 'danger', title: t('billing.accounts.entries.reverse_failed'), description: errorText(code) })}
+        />
+      ) : null}
+      {holding ? (
+        <HoldDialog
+          entry={holding.entry}
+          action={holding.action}
+          onClose={() => setHolding(null)}
+          onDone={() => { const a = holding.action; setHolding(null); toast.show({ tone: 'success', title: t(a === 'hold' ? 'billing.accounts.entries.held_ok' : 'billing.accounts.entries.released_ok') }); router.refresh(); }}
+          onFail={(code) => toast.show({ tone: 'danger', title: t('billing.accounts.entries.hold_failed'), description: errorText(code) })}
         />
       ) : null}
       {printing ? (
@@ -258,6 +283,38 @@ function ReverseDialog({ entry, onClose, onDone, onFail }: { entry: AccountLedge
         {/* maxLength above 500 on purpose: an over-long paste is refused with a message, never silently cut. */}
         <TextArea label={t('billing.accounts.entries.reverse_reason')} name="reason_text" maxLength={1000} value={reason} onChange={(v) => { setReason(v); setError(undefined); }} {...(error ? { error } : {})} />
         <Button type="submit" variant="danger" shortcut="Ctrl+Enter">{t('billing.accounts.entries.reverse_confirm')}</Button>
+      </Form>
+    </Dialog>
+  );
+}
+
+/** T0D-FINCTRL-1 (LD-321): Hold / Release ask for a reason (contract LedgerHoldReasonRequest.reason, 1-500 characters); one request per press. */
+function HoldDialog({ entry, action, onClose, onDone, onFail }: { entry: AccountLedgerEntry; action: 'hold' | 'release'; onClose: () => void; onDone: () => void; onFail: (code: string) => void }) {
+  const [reason, setReason] = useState('');
+  const [error, setError] = useState<string>();
+  const [pending, setPending] = useState(false);
+  const busy = useRef(false);
+  const key = useRef(newKey());
+  const submit = async () => {
+    if (busy.current) return;
+    if (!reason.trim() || reason.length > 500) return setError(t('billing.accounts.error.reason'));
+    setError(undefined);
+    busy.current = true;
+    setPending(true);
+    const r = await holdAccountEntryAction(entry.id, action, reason, key.current);
+    busy.current = false;
+    setPending(false);
+    if (r.ok) onDone();
+    else { key.current = newKey(); onFail(r.code); }
+  };
+  const k = action === 'hold' ? 'hold' : 'release';
+  return (
+    <Dialog title={fill(`billing.accounts.entries.${k}_title`, { no: entry.receipt_no })} isOpen onClose={onClose} size="sm">
+      <Form onSubmit={submit} errorSummary={false}>
+        <p className="lims-description">{t(`billing.accounts.entries.${k}_help`)}</p>
+        {/* maxLength above 500 on purpose: an over-long paste is refused with a message, never silently cut. */}
+        <TextArea label={t('billing.accounts.entries.hold_reason')} name="reason" maxLength={1000} value={reason} onChange={(v) => { setReason(v); setError(undefined); }} {...(error ? { error } : {})} />
+        <Button type="submit" variant="primary" shortcut="Ctrl+Enter" isDisabled={pending}>{t(`billing.accounts.entries.${k}_confirm`)}</Button>
       </Form>
     </Dialog>
   );

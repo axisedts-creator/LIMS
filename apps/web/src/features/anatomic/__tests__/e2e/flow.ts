@@ -37,7 +37,7 @@ export class Api {
   }
 
   /** CaseDetail; `timed` false for bookkeeping reads that must not skew getAnatomicCase p95. */
-  detail = async (id: string, timed = true) => (await this.call('GET', `/cases/${id}`, { op: timed ? 'getAnatomicCase' : undefined, expect: 200 })).json;
+  detail = async (id: string, timed = true) => (await this.call('GET', `/cases/${id}`, { ...(timed ? { op: 'getAnatomicCase' as const } : {}), expect: 200 })).json;
 }
 
 /** Compose-stack hooks (publish the `received` event; make the C5 fake verify+approve). Unset → explicit NEEDS error, never a silent skip. */
@@ -113,7 +113,7 @@ export async function runToSignOut(api: Api, opts: { planted?: boolean; bigImage
   // I1 uploadAnatomicImage (gross image on part 1): planted caption (07-SECURITY §5.6) and/or the 15 MB timing sample.
   const timedImage = !!opts.bigImage;
   const up = await api.call('POST', `/cases/${caseId}/images`, {
-    op: timedImage ? 'imageUploadAccept' : undefined,
+    ...(timedImage ? { op: 'imageUploadAccept' as const } : {}),
     expect: 201,
     multipart: {
       file: { name: 'gross.png', mimeType: 'image/png', buffer: syntheticPng(timedImage ? BIG_IMAGE_BYTES : 0) },

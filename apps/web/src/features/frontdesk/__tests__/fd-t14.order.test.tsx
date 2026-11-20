@@ -41,7 +41,7 @@ const api = setupServer(
   http.post(`${ORIGIN}/v1/frontdesk/orders/:id/items-changes`, async ({ request }) => { await rec(request); return HttpResponse.json({ ...order({ version: 6 }), credit_note_required: false }); }),
   http.post(`${ORIGIN}/v1/frontdesk/orders/:id/confirm`, async ({ request }) => { await rec(request); return HttpResponse.json(order({ status: 'registered', version: 6 })); }),
 );
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { cleanup(); api.resetHandlers(); calls.length = 0; refresh.mockReset(); localStorage.clear(); sessionStorage.clear(); });
 afterAll(() => api.close());
 

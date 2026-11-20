@@ -3,7 +3,7 @@ import 'server-only';
 // B17b closeCashSession, B31 retryCbms, B28/B29 exports, B33 updateBillingSettings. Every write sends Idempotency-Key; versioned writes If-Match.
 import { ApiError, serverFetch } from '@/core/api/server-fetch';
 import { problem } from '@/core/session/types';
-import { UUID_RE, type BillingSettings, type CashSession, type ExportFormat, type ExportJob, type ExportKind, type InvoiceDetail, type InvoicePrintDocument } from './types';
+import { PRINT_STYLES, UUID_RE, type PrintStyle, type BillingSettings, type CashSession, type ExportFormat, type ExportJob, type ExportKind, type InvoiceDetail, type InvoicePrintDocument } from './types';
 
 const KEY_RE = /^[A-Za-z0-9_-]{1,64}$/;
 const bad = () => new ApiError(400, problem('common.validation_failed', 'Validation failed', 400));
@@ -20,8 +20,11 @@ function post<T>(path: string, body: unknown, key: string, version?: number): Pr
   });
 }
 
-export const printInvoice = (invoiceId: string, reasonCode: string, key: string) =>
-  post<{ print_no: number; copy_mark?: string; document: InvoicePrintDocument }>(`/v1/billing/invoices/${uuid(invoiceId)}/print`, { reason_code: reasonCode }, key);
+/** T0D-PRINTCFG-1 (LD-316): style full | plain_bw is forwarded to printInvoice; anything else is refused. */
+export const printInvoice = (invoiceId: string, reasonCode: string, key: string, style: PrintStyle = 'full') => {
+  if (!PRINT_STYLES.includes(style)) throw bad();
+  return post<{ print_no: number; style?: PrintStyle; copy_mark?: string; document: InvoicePrintDocument }>(`/v1/billing/invoices/${uuid(invoiceId)}/print`, { reason_code: reasonCode, style }, key);
+};
 
 export const cancelInvoice = (invoiceId: string, version: number, r: { reason_code: string; reason_text?: string }, key: string) =>
   post<{ invoice: InvoiceDetail; credit_note: { id: string; credit_note_no: string } }>(`/v1/billing/invoices/${uuid(invoiceId)}/cancel`, r, key, version);

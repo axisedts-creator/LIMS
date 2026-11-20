@@ -1,4 +1,5 @@
 // PartnerContext wire DTO (02-TRD §5.1): explicit allowlist, snake_case; no membership/tenant/credit-party/e-mail columns can reach the wire.
+import { maskedOrAbsent } from '../domain/id-number.js';
 import type { PartnerContextRow } from '../service/partner-context.service.js';
 
 export interface PartnerContextDto {
@@ -18,6 +19,7 @@ export interface PartnerRow {
   contact_email?: string | null; contact_phone_e164?: string | null; address_text?: string | null; suspend_reason_code?: string | null;
   created_at: Date | string; created_key?: string | null; version: number | string; active_users: number | string; open_manifests: number | string;
   price_list_synced_at?: Date | string | null; statements_synced_at?: Date | string | null;
+  tax_number?: string | null; national_id_number?: string | null;
 }
 const iso = (v: Date | string): string => (v instanceof Date ? v.toISOString() : new Date(v).toISOString());
 
@@ -27,7 +29,13 @@ export function toPartnerAdminSummaryDto(r: PartnerRow, cp: CreditPartyRef, cent
     credit_party: { id: cp.id, party_code: cp.party_code, name: cp.name },
     receiving_centre: { id: centre.id, code: centre.code, name: centre.name },
     active_users: Number(r.active_users), open_manifests: Number(r.open_manifests),
+    ...idNumbers(r),
   };
+}
+/** T0B-PARTYSET-1 done_when (5): government ID numbers only ever leave masked (domain/id-number.ts); the full value only via revealPartyIdNumber */
+function idNumbers(r: PartnerRow) {
+  const tax = maskedOrAbsent(r.tax_number); const nid = maskedOrAbsent(r.national_id_number);
+  return { ...(tax === undefined ? {} : { tax_number: tax }), ...(nid === undefined ? {} : { national_id_number: nid }) };
 }
 
 export function toPartnerAdminDto(r: PartnerRow, cp: CreditPartyRef, centre: CentreRef) {

@@ -29,7 +29,7 @@ const api = setupServer(
   http.get(`${ORIGIN}/v1/lab/delta-check-rules`, () => HttpResponse.json({ data: [] })),
   http.get(`${ORIGIN}/v1/lab/coded-sets/:set`, () => HttpResponse.json({ data: [] })),
 );
-beforeAll(() => api.listen({ onUnhandledRequest: 'bypass' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'bypass' }));
 afterEach(() => { cleanup(); api.resetHandlers(); });
 afterAll(() => api.close());
 

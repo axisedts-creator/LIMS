@@ -38,6 +38,7 @@ routes:
   - { id: staff.catalog.doctors,             origin: staff_web, path: /catalog/doctors,                           owner: C3,  permission: catalog.referrer.read }
   - { id: staff.catalog.doctor_verify,       origin: staff_web, path: /catalog/doctors/verify,                    owner: C3,  permission: catalog.referrer.read }
   - { id: staff.catalog.doctor,              origin: staff_web, path: "/catalog/doctors/{doctor_id}",             owner: C3,  permission: catalog.referrer.read }
+  - { id: staff.catalog.icd,                 origin: staff_web, path: /catalog/icd,                               owner: C3,  permission: catalog.icd.manage }   # T0D-PARTYSET-1 (LD-321)
   - { id: staff.catalog.credit_parties,      origin: staff_web, path: /catalog/credit-parties,                    owner: C3,  permission: catalog.price_list.read }
   - { id: staff.catalog.credit_party,        origin: staff_web, path: "/catalog/credit-parties/{credit_party_id}", owner: C3,  permission: catalog.price_list.read }
   # LD-84 / CR-C3-034-a: SCR-13…17 (04-UI-UX §1)
@@ -182,6 +183,13 @@ routes:
   - { id: staff.partners.pickups, origin: staff_web, path: /partners/pickups, owner: C13, permission: partners.pickup.manage }
   - { id: staff.partners.referrers, origin: staff_web, path: /partners/referrers, owner: C13, permission: partners.referrer.map }
   - { id: staff.partners.settings, origin: staff_web, path: /partners/settings, owner: C13, permission: partners.partner.manage }
+  - { id: staff.partners.sales_designations, origin: staff_web, path: /partners/sales/designations, owner: C13, permission: partners.sales.read }   # T0D-SALES-1 (LD-321)
+  - { id: staff.partners.sales_representatives, origin: staff_web, path: /partners/sales/representatives, owner: C13, permission: partners.sales.read }
+  - { id: staff.partners.sales_clients, origin: staff_web, path: /partners/sales/clients, owner: C13, permission: partners.sales.read }
+  - { id: staff.partners.sales_areas, origin: staff_web, path: /partners/sales/areas, owner: C13, permission: partners.sales.read }
+  - { id: staff.partners.onboarding, origin: staff_web, path: /partners/onboarding, owner: C13, permission: partners.onboarding.decide }   # T0D-PARTYSET-1 (LD-321)
+  - { id: staff.partners.penalties, origin: staff_web, path: /partners/penalties, owner: C13, permission: partners.penalty.manage }
+  - { id: staff.partners.penalty_events, origin: staff_web, path: /partners/penalty-events, owner: C13, permission: partners.penalty.manage }
   # --- CR-C15-007
   - { id: staff.payments.review, origin: staff_web, path: /payments/review, owner: C15, permission: payments.reconciliation.read }
   - { id: staff.payments.intent, origin: staff_web, path: "/payments/intents/{intent_id}", owner: C15, permission: payments.reconciliation.read }
@@ -232,6 +240,12 @@ routes:
   - { id: staff.billing.expenses, origin: staff_web, path: /billing/expenses, owner: C4, permission: billing.account.read }   # T0D-ACCT-2 (LD-313)
   - { id: staff.billing.expense_types, origin: staff_web, path: /billing/expenses/types, owner: C4, permission: billing.account.read }
   - { id: staff.billing.cash_transfers, origin: staff_web, path: /billing/cash-transfers, owner: C4, permission: billing.account.read }
+  - { id: staff.billing.discount_reasons, origin: staff_web, path: /billing/discounts/reasons, owner: C4, permission: billing.discount_policy.read }   # T0D-FINCTRL-1 (LD-321)
+  - { id: staff.billing.discount_slabs, origin: staff_web, path: /billing/discounts/slabs, owner: C4, permission: billing.discount_policy.read }
+  - { id: staff.billing.discount_limits, origin: staff_web, path: /billing/discounts/limits, owner: C4, permission: billing.discount_policy.read }
+  - { id: staff.billing.discount_authorities, origin: staff_web, path: /billing/discounts/authorities, owner: C4, permission: billing.discount_policy.read }
+  - { id: staff.billing.bill_of_the_day, origin: staff_web, path: /billing/bill-of-the-day, owner: C4, permission: analytics.collections.read }   # T0D-MISREPORTS-1 (LD-321)
+  - { id: staff.offline, origin: staff_web, path: /offline, owner: C0, permission: sync.use }   # T0D-OFFLINE-2 (LD-322): Offline panel and conflict inbox
   - { id: staff.lab.collect, origin: staff_web, path: /lab/collect, owner: C5, permission: lab.specimen.collect }
   - { id: staff.lab.receive, origin: staff_web, path: /lab/receive, owner: C5, permission: lab.specimen.receive }
   - { id: staff.lab.worklists, origin: staff_web, path: /lab/worklists, owner: C5, permission: lab.worklist.read }

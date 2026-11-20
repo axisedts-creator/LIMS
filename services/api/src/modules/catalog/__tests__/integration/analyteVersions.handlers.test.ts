@@ -217,7 +217,7 @@ describe('S-4 / AC-03.6 / AB-21: publishing an analyte version needs BOTH catalo
 
   it('no IdentityPort in the context -> auth.unauthenticated (fails closed), nothing written', { timeout: T }, async () => {
     const e = world();
-    const x = await rejection(e.db.run((ctx) => H['publishAnalyteVersion']!(publishReq(), ctx)));
+    const x = await rejection(e.db.run((ctx) => H['publishAnalyteVersion']!(publishReq(), { ...ctx, ports: {} })));
     expect(isLimsError(x, 'auth.unauthenticated')).toBe(true);
     untouched(e);
   });

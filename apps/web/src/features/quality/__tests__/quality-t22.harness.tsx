@@ -28,7 +28,7 @@ export const PERM_SETUP_WRITE = ['quality.qc_run.read', 'quality.qc.manage'];
 export const PERM_SETUP_PICKERS = [...PERM_SETUP_WRITE, 'instruments.instrument.read', 'catalog.test.read'];
 
 export const BASE = '/v1/quality';
-export const lvl = (over: Record<string, unknown> = {}) => ({ id: LEVEL_1, version: 1, material_id: MAT_1, level_code: '1', display_name: 'Level 1', sort_order: 1, is_active: true, lots: [], ...over });
+export const lvl = (over: Record<string, unknown> = {}) => ({ id: LEVEL_1, version: 1, material_id: MAT_1, level_code: '1', display_name: 'Level 1', sort_order: 1, is_active: true, lots: [] as Record<string, unknown>[], ...over });
 export const lot = (over: Record<string, unknown> = {}) => ({ id: LOT_1, version: 1, level_id: LEVEL_1, material_id: MAT_1, lot_no: 'LOT-SYN-01', expires_on: '2027-03-31', is_expired: false, is_active: true, ...over });
 export const material = (over: Record<string, unknown> = {}) => ({
   id: MAT_1, version: 3, code: 'MCS-SYN', name: 'Synthetic multi-control', manufacturer: 'Synthetic Diagnostics', matrix: 'serum', is_active: true, lots_expiring_30d: 0, created_at: '2026-11-01T03:00:00.000Z',

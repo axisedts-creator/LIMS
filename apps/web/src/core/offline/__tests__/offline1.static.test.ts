@@ -19,7 +19,10 @@ describe('offline layer source', () => {
   });
 
   it('shell JavaScript grows by at most 25 KB gzipped (raw source gzip, upper bound)', () => {
-    const files = impl();
+    // T0D-OFFLINE-4 arbiter ruling: measure only what the shell loads at startup. These modules are reached only through
+    // import('../controller') (ui/OfflineProvider.tsx) and are type-only imports elsewhere, so they are lazy chunks, not shell JS.
+    const LAZY = ['controller.ts', 'flows.ts', 'labflows.ts', 'cashflows.ts'];
+    const files = impl().filter((f) => !LAZY.includes(relative(dir, f).replace(/\\/g, '/')));
     expect(files.length).toBeGreaterThan(0);
     // upper bound: raw source (types and comments included) can only over-count the minified bundle; strip types when node offers it
     const strip = (nodeModule as { stripTypeScriptTypes?: (c: string, o?: { mode: string }) => string }).stripTypeScriptTypes;
@@ -48,7 +51,7 @@ describe('offline layer source', () => {
 
   it('the PBKDF2 iteration count constant is at least 600000 and the failure limit is 10', () => {
     const src = impl().map((f) => readFileSync(f, 'utf8')).join('\n');
-    const m = [...src.matchAll(/(\d[\d_]{5,})/g)].map((x) => Number(x[1].replace(/_/g, ''))).filter((n) => n >= 600_000 && n < 10_000_000);
+    const m = [...src.matchAll(/(\d[\d_]{5,})/g)].map((x) => Number(x[1]!.replace(/_/g, ''))).filter((n) => n >= 600_000 && n < 10_000_000);
     expect(m.length, 'a PBKDF2 iteration constant >= 600000 must appear in the source').toBeGreaterThan(0);
     expect(src).toMatch(/PBKDF2/);
     expect(src).toMatch(/AES-GCM/);

@@ -1,0 +1,1 @@
+set CI=true&& pnpm --dir apps/web exec vitest run --config src/features/billing/__tests__/vitest.finctrl1.config.ts && pnpm --dir apps/web exec vitest run --config src/features/frontdesk/__tests__/vitest.fd-t13.config.ts && pnpm --dir apps/web exec vitest run --config src/features/admin/__tests__/vitest.rs-c2.config.ts

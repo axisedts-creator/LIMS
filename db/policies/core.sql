@@ -228,3 +228,19 @@ CREATE POLICY sync_conflict__insert__tenant ON core.sync_conflict FOR INSERT TO 
 CREATE POLICY sync_conflict__update__tenant ON core.sync_conflict FOR UPDATE TO lims_app
   USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()))
   WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+-- T0B-SYNC-4 (LD-322): db/migrations/20261118100000_core__add_sync_offline_signoffs.sql; no DELETE policy; sign off outcomes and alerts are append only
+CREATE POLICY sync_signoff_outcome__select__tenant ON core.sync_signoff_outcome FOR SELECT TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+CREATE POLICY sync_signoff_outcome__insert__tenant ON core.sync_signoff_outcome FOR INSERT TO lims_app
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+CREATE POLICY sync_print_marker__select__tenant ON core.sync_print_marker FOR SELECT TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+CREATE POLICY sync_print_marker__insert__tenant ON core.sync_print_marker FOR INSERT TO lims_app
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+CREATE POLICY sync_print_marker__update__tenant ON core.sync_print_marker FOR UPDATE TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()))
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+CREATE POLICY sync_alert__select__tenant ON core.sync_alert FOR SELECT TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+CREATE POLICY sync_alert__insert__tenant ON core.sync_alert FOR INSERT TO lims_app
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));

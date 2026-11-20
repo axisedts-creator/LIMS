@@ -296,6 +296,11 @@ export function ReportView({ vm }: { vm: PageVM }) {
         : vm.basePath === '/analytics/collections' ? <PageHeader title={t('analytics.nav.collections')} {...head} />
         : <PageHeader title={vm.title} {...head} />}
       {vm.period ?<p>{vm.period.labelAd} · {bsLabel(vm.period.labelBs)}</p> : null}
+      {vm.more?.length ? (
+        <nav aria-label={t('analytics.mis.more')} className="lims-inline-links">
+          {vm.more.map((l, i) => <span key={l.href}>{i ? ' · ' : ''}<a href={l.href}>{l.label}</a></span>)}
+        </nav>
+      ) : null}
       {vm.tabs.length > 1 ? (
         <Tabs items={vm.tabs} selectedId={vm.tab} onChange={openTab} aria-label="Reports">
           {body}

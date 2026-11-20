@@ -15,7 +15,7 @@ export const npr = (paisa: number) => ({ amount_paisa: paisa, currency: 'NPR' })
 export const problem = (code: string, status: number, extra: Record<string, unknown> = {}, headers: Record<string, string> = {}) =>
   HttpResponse.json({ type: `urn:lims:error:${code}`, title: code, status, code, ...extra }, { status, headers });
 
-export const wrap = (ui: ReactNode) => render(<ToastProvider>{ui}</ToastProvider>);
+export const wrap = (ui: ReactNode): ReturnType<typeof render> => render(<ToastProvider>{ui}</ToastProvider>);
 export const axeClean = async () => {
   const r = await axe.run(document.body, { rules: { 'color-contrast': { enabled: false }, region: { enabled: false } } });
   expect(r.violations.map((v) => `${v.id}: ${v.nodes[0]?.html}`)).toEqual([]);

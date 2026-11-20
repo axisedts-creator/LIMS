@@ -271,6 +271,54 @@ exports[`RS-C8 schedule and export screens: snapshots + axe > New schedule form 
 <span class="lims-check-box" aria-hidden="true">
 </span>Delivery</label>
 </div>
+<div class="lims-check-wrap">
+<label data-aria-id="true" class="lims-check" data-rac="">
+<span style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: absolute; width: 1px; white-space: nowrap;">
+<input data-aria-id="true" tabindex="0" type="checkbox" title="">
+</span>
+<span class="lims-check-box" aria-hidden="true">
+</span>Sales representative</label>
+</div>
+<div class="lims-check-wrap">
+<label data-aria-id="true" class="lims-check" data-rac="">
+<span style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: absolute; width: 1px; white-space: nowrap;">
+<input data-aria-id="true" tabindex="0" type="checkbox" title="">
+</span>
+<span class="lims-check-box" aria-hidden="true">
+</span>Consultant</label>
+</div>
+<div class="lims-check-wrap">
+<label data-aria-id="true" class="lims-check" data-rac="">
+<span style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: absolute; width: 1px; white-space: nowrap;">
+<input data-aria-id="true" tabindex="0" type="checkbox" title="">
+</span>
+<span class="lims-check-box" aria-hidden="true">
+</span>Repeated patient</label>
+</div>
+<div class="lims-check-wrap">
+<label data-aria-id="true" class="lims-check" data-rac="">
+<span style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: absolute; width: 1px; white-space: nowrap;">
+<input data-aria-id="true" tabindex="0" type="checkbox" title="">
+</span>
+<span class="lims-check-box" aria-hidden="true">
+</span>Repeated test</label>
+</div>
+<div class="lims-check-wrap">
+<label data-aria-id="true" class="lims-check" data-rac="">
+<span style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: absolute; width: 1px; white-space: nowrap;">
+<input data-aria-id="true" tabindex="0" type="checkbox" title="">
+</span>
+<span class="lims-check-box" aria-hidden="true">
+</span>IPD and OPD</label>
+</div>
+<div class="lims-check-wrap">
+<label data-aria-id="true" class="lims-check" data-rac="">
+<span style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: absolute; width: 1px; white-space: nowrap;">
+<input data-aria-id="true" tabindex="0" type="checkbox" title="">
+</span>
+<span class="lims-check-box" aria-hidden="true">
+</span>Outsource and inter lab transfer</label>
+</div>
 </fieldset>
 <div class="lims-field lims-radio-group" data-rac="" role="radiogroup" aria-orientation="horizontal" id="ID" aria-labelledby="ID" data-orientation="horizontal">
 <span class="lims-label" id="ID">Frequency</span>

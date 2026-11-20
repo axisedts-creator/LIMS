@@ -20,7 +20,7 @@ vi.mock('@/core/session/server', async () => (await import('./quality-t22.harnes
 
 const PAGE = 'setup/materials/page';
 const POST_MAT = `${BASE}/control-materials`;
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 beforeEach(() => resetApi(PERM_SETUP_WRITE));
 afterEach(() => { cleanup(); api.resetHandlers(); });
 afterAll(() => api.close());
@@ -279,7 +279,7 @@ describe('drawer: levels and lots, add lot (#8, AC-01.2), deactivate (#5, AC-01.
     return screen.getAllByRole('dialog').at(-1)!;
   }
   it('lists every level with its lots and expiry dates (DD/MM/YYYY), expired lots flagged with the word "Expired"', async () => {
-    routes[`GET ${POST_MAT}`] = json(page([material({ levels: [{ ...material().levels[0], lots: [{ ...material().levels[0]!.lots![0], is_expired: true }] }, material().levels[1]!] })]));
+    routes[`GET ${POST_MAT}`] = json(page([material({ levels: [{ ...material().levels[0]!, lots: [{ ...material().levels[0]!.lots![0]!, is_expired: true }] }, material().levels[1]!] })]));
     await openDrawer();
     const t = pageText();
     expect(t).toContain('LOT-SYN-01');

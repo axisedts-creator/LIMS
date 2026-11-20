@@ -81,7 +81,7 @@ const putOk = async ({ request }: { request: Request }) => {
 };
 const centresHandler = () => HttpResponse.json({ items: [{ id: CENTRE_ID, code: 'HC1', name: 'Synthetic Home Centre', kind: 'home_collection', is_active: true, version: 1 }], next_cursor: null });
 const api = setupServer(http.get(S, getHandler), http.put(S, putOk), http.get(CENTRES, centresHandler));
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' })); // any other operation than T1/T2/listCentres fails the test
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' })); // any other operation than T1/T2/listCentres fails the test
 afterEach(() => { cleanup(); api.resetHandlers(); calls.length = 0; refresh.mockReset(); session.perms = []; current = settings(); });
 afterAll(() => api.close());
 

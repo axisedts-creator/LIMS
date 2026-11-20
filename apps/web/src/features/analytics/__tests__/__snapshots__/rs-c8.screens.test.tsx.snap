@@ -1046,6 +1046,27 @@ exports[`RS-C8 key-screen snapshots + axe > Report hub (tabs) 1`] = `
 </div>
 </div>
 <p>01 Jan – 15 Jan 2026 · 2082-09-17 – 2082-10-01 B.S.</p>
+<nav aria-label="More reports" class="lims-inline-links">
+<span>
+<a href="/billing/bill-of-the-day">Bill of the Day</a>
+</span>
+<span> · <a href="/analytics/reports/sales-representative">Sales representative</a>
+</span>
+<span> · <a href="/analytics/reports/consultant">Consultant</a>
+</span>
+<span> · <a href="/analytics/reports/collection-boy">Collection boy</a>
+</span>
+<span> · <a href="/analytics/reports/repeated-patient">Repeated patient</a>
+</span>
+<span> · <a href="/analytics/reports/repeated-test">Repeated test</a>
+</span>
+<span> · <a href="/analytics/reports/ipd-opd">IPD and OPD</a>
+</span>
+<span> · <a href="/analytics/reports/party-billing">Party billing</a>
+</span>
+<span> · <a href="/analytics/reports/outsource">Outsource and inter lab transfer</a>
+</span>
+</nav>
 <template>
 </template>
 <div class="lims-tabs" data-rac="" data-orientation="horizontal">

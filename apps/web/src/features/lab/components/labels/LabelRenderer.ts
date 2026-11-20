@@ -52,6 +52,8 @@ function label(l: LabelData, key: string, w: number, hgt: number): ReactElement 
     ...(tests ? [h('div', { className: 'lbl-l', key: 't' }, tests)] : []),
     ...(l.collectedOn ? [h('div', { className: 'lbl-l', key: 'c' }, `Coll: ${dmy(l.collectedOn)}`)] : []),
     ...(l.urgent ? [h('div', { className: 'lbl-urg', key: 'u' }, '★ URGENT')] : []),
+    // T0D-OFFLINE-3 (LD-322; done_when 5): a provisional code issued offline after the device block ran out
+    ...(l.barcode.startsWith('OFF-') ? [h('div', { className: 'lbl-urg', key: 'p' }, 'PENDING')] : []),
   );
 }
 

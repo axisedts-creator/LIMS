@@ -1,0 +1,3 @@
+2026-11-20 debugger: only failure in verify chain = verlevel1.settings "lab.config.manage alone does NOT make the policy editable" (66/67). Cause: GeneralTab.tsx:80 swaps SettingsForm to SettingsSection when GET /v1/lab/settings fails for canManage, remounting the tabs; the click on "Verification levels" is lost. Not OFFLINE-4 code (no lab settings file touched).
+Tried: dropping `|| (readErr && !loaded)` breaks lab-t29 "failing read shows alert and no Save button"; `!loaded` breaks lab-t29 delta/reason tabs and lab-t25 holds. Reverted, no code change.
+Cannot fix without weakening a frozen test of another task (UISETTINGS-1 vs VERLEVEL-1 vs lab-t29). Dispute written; needs the owner of T0D-UISETTINGS-1/VERLEVEL-1.

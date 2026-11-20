@@ -94,41 +94,43 @@ export interface NewEntry {
   id: string; tenantId: string; centreId: string; partyKind: string; partyId: string; entryDate: string; particularId: string; entryType: string; amountPaisa: number;
   paymentMode: string; bankName: string | null; referenceNo: string | null; paymentDetails: string | null; comments: string | null; reversesEntryId: string | null;
   receiptNo: string; receiptSeq: number; actorId: string;
+  /** T0B-FINCTRL-1: server computed from entry_date and the tenant fiscal year start, never a request field. */
+  fiscalYearLabel: string;
 }
 export async function insertEntry(tx: Tx, a: NewEntry): Promise<Row> {
   return (await tx.query(`INSERT INTO billing.account_ledger_entries (id, tenant_id, centre_id, party_kind, party_id, entry_date, account_particular_id, entry_type, amount_paisa,
-      payment_mode, bank_name, reference_no, payment_details, comments, status, reverses_entry_id, receipt_no, receipt_seq, created_by, last_modified_by)
-    VALUES ($1, $2, $3, $4, $5, $6::date, $7, $8, $9::bigint, $10, $11, $12, $13, $14, 'submitted', $15, $16, $17, $18, $18)
+      payment_mode, bank_name, reference_no, payment_details, comments, status, reverses_entry_id, receipt_no, receipt_seq, created_by, last_modified_by, fiscal_year_label)
+    VALUES ($1, $2, $3, $4, $5, $6::date, $7, $8, $9::bigint, $10, $11, $12, $13, $14, 'submitted', $15, $16, $17, $18, $18, $19)
     RETURNING id, centre_id, party_kind, party_id, entry_date::text AS entry_date, account_particular_id, entry_type, amount_paisa::text AS amount_paisa,
       payment_mode, bank_name, reference_no, payment_details, comments, reverses_entry_id, receipt_no, receipt_seq::text AS receipt_seq,
-      created_by, last_modified_by, created_at, status`,
+      created_by, last_modified_by, created_at, status, held_reason, held_by, held_at, released_by, released_at, fiscal_year_label`,
   [a.id, a.tenantId, a.centreId, a.partyKind, a.partyId, a.entryDate, a.particularId, a.entryType, String(a.amountPaisa), a.paymentMode, a.bankName, a.referenceNo, a.paymentDetails,
-    a.comments, a.reversesEntryId, a.receiptNo, a.receiptSeq, a.actorId])).rows[0];
+    a.comments, a.reversesEntryId, a.receiptNo, a.receiptSeq, a.actorId, a.fiscalYearLabel])).rows[0];
 }
 export async function getEntry(tx: Tx, tenantId: string, id: string): Promise<Row | undefined> {
   return (await tx.query(`SELECT e.id, e.centre_id, e.party_kind, e.party_id, e.entry_date::text AS entry_date, e.account_particular_id, e.entry_type, e.amount_paisa::text AS amount_paisa,
       e.payment_mode, e.bank_name, e.reference_no, e.payment_details, e.comments, e.reverses_entry_id, e.receipt_no, e.receipt_seq::text AS receipt_seq,
-      e.created_by, e.last_modified_by, e.created_at,
+      e.created_by, e.last_modified_by, e.created_at, e.held_reason, e.held_by, e.held_at, e.released_by, e.released_at, e.fiscal_year_label,
       CASE WHEN EXISTS (SELECT 1 FROM billing.account_ledger_entries r WHERE r.tenant_id = e.tenant_id AND r.reverses_entry_id = e.id) THEN 'reversed' ELSE e.status END AS status
     FROM billing.account_ledger_entries e WHERE e.tenant_id = $1 AND e.id = $2`, [tenantId, id])).rows[0];
 }
 export interface EntryFilter {
   tenantId: string; centreId?: string; partyKind?: string; partyId?: string; particularId?: string; entryType?: string; status?: string;
-  dateFrom?: string; dateTo?: string; beforeSeq?: number; limit: number;
+  dateFrom?: string; dateTo?: string; beforeSeq?: number; fiscalYearLabel?: string; limit: number;
 }
 /** Newest first (receipt_seq DESC); keyset cursor on receipt_seq; status filters on the DERIVED status. */
 export async function listEntries(tx: Tx, f: EntryFilter): Promise<Row[]> {
   return (await tx.query(`SELECT * FROM (
       SELECT e.id, e.centre_id, e.party_kind, e.party_id, e.entry_date::text AS entry_date, e.account_particular_id, e.entry_type, e.amount_paisa::text AS amount_paisa,
         e.payment_mode, e.bank_name, e.reference_no, e.payment_details, e.comments, e.reverses_entry_id, e.receipt_no, e.receipt_seq,
-        e.created_by, e.last_modified_by, e.created_at,
+        e.created_by, e.last_modified_by, e.created_at, e.held_reason, e.held_by, e.held_at, e.released_by, e.released_at, e.fiscal_year_label,
         CASE WHEN EXISTS (SELECT 1 FROM billing.account_ledger_entries r WHERE r.tenant_id = e.tenant_id AND r.reverses_entry_id = e.id) THEN 'reversed' ELSE e.status END AS status
       FROM billing.account_ledger_entries e
       WHERE e.tenant_id = $1 AND ($2::uuid IS NULL OR e.centre_id = $2) AND ($3::text IS NULL OR e.party_kind = $3) AND ($4::uuid IS NULL OR e.party_id = $4)
         AND ($5::uuid IS NULL OR e.account_particular_id = $5) AND ($6::text IS NULL OR e.entry_type = $6)
-        AND ($7::date IS NULL OR e.entry_date >= $7) AND ($8::date IS NULL OR e.entry_date <= $8) AND ($9::bigint IS NULL OR e.receipt_seq < $9)
+        AND ($7::date IS NULL OR e.entry_date >= $7) AND ($8::date IS NULL OR e.entry_date <= $8) AND ($9::bigint IS NULL OR e.receipt_seq < $9) AND ($12::text IS NULL OR e.fiscal_year_label = $12)
     ) x WHERE ($10::text IS NULL OR x.status = $10) ORDER BY x.receipt_seq DESC LIMIT $11`,
-  [f.tenantId, opt(f.centreId), opt(f.partyKind), opt(f.partyId), opt(f.particularId), opt(f.entryType), opt(f.dateFrom), opt(f.dateTo), opt(f.beforeSeq), opt(f.status), f.limit])).rows;
+  [f.tenantId, opt(f.centreId), opt(f.partyKind), opt(f.partyId), opt(f.particularId), opt(f.entryType), opt(f.dateFrom), opt(f.dateTo), opt(f.beforeSeq), opt(f.status), f.limit, opt(f.fiscalYearLabel)])).rows;
 }
 
 // ---------------------------------------------------------------- statement / summary (done_when 3: computed in SQL, one query each, no per row loop)
@@ -136,7 +138,7 @@ type Party = { tenantId: string; partyKind: string; partyId: string };
 /** Signed sum (credits - debits) before `from`, as text (bigint). */
 export async function openingBalance(tx: Tx, p: Party & { from: string }): Promise<string> {
   return (await tx.query(`SELECT COALESCE(SUM(CASE e.entry_type WHEN 'credit' THEN e.amount_paisa ELSE -e.amount_paisa END), 0)::text AS s FROM billing.account_ledger_entries e
-    WHERE e.tenant_id = $1 AND e.party_kind = $2 AND e.party_id = $3 AND e.entry_date < $4::date`, [p.tenantId, p.partyKind, p.partyId, p.from])).rows[0].s;
+    WHERE e.tenant_id = $1 AND e.party_kind = $2 AND e.party_id = $3 AND e.entry_date < $4::date AND e.status <> 'held'`, [p.tenantId, p.partyKind, p.partyId, p.from])).rows[0].s;
 }
 /** Rows of the range in entry order (entry_date, receipt_seq) with the running signed sum of the range; at most `limit` rows; status is the derived one. */
 export async function statementRows(tx: Tx, p: Party & { from: string; to: string; limit: number }): Promise<Row[]> {
@@ -145,11 +147,33 @@ export async function statementRows(tx: Tx, p: Party & { from: string; to: strin
         OVER (ORDER BY e.entry_date, e.receipt_seq ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW))::text AS running,
       CASE WHEN EXISTS (SELECT 1 FROM billing.account_ledger_entries r WHERE r.tenant_id = e.tenant_id AND r.reverses_entry_id = e.id) THEN 'reversed' ELSE e.status END AS status
     FROM billing.account_ledger_entries e
-    WHERE e.tenant_id = $1 AND e.party_kind = $2 AND e.party_id = $3 AND e.entry_date BETWEEN $4::date AND $5::date
+    WHERE e.tenant_id = $1 AND e.party_kind = $2 AND e.party_id = $3 AND e.entry_date BETWEEN $4::date AND $5::date AND e.status <> 'held'
     ORDER BY e.entry_date, e.receipt_seq LIMIT $6`, [p.tenantId, p.partyKind, p.partyId, p.from, p.to, p.limit])).rows;
 }
 /** Signed sum over every entry of the party (no date), as text. */
 export async function outstanding(tx: Tx, p: Party): Promise<string> {
   return (await tx.query(`SELECT COALESCE(SUM(CASE e.entry_type WHEN 'credit' THEN e.amount_paisa ELSE -e.amount_paisa END), 0)::text AS s FROM billing.account_ledger_entries e
-    WHERE e.tenant_id = $1 AND e.party_kind = $2 AND e.party_id = $3`, [p.tenantId, p.partyKind, p.partyId])).rows[0].s;
+    WHERE e.tenant_id = $1 AND e.party_kind = $2 AND e.party_id = $3 AND e.status <> 'held'`, [p.tenantId, p.partyKind, p.partyId])).rows[0].s;
+}
+
+// ---------------------------------------------------------------- T0B-FINCTRL-1 (LD-321) hold / release
+/** The tenant ledger lock of nextReceiptSeq: a hold / release and a reversal of the same entry never interleave. */
+export async function lockLedger(tx: Tx, tenantId: string): Promise<void> {
+  await tx.query("SELECT pg_advisory_xact_lock(hashtextextended('billing.account_ledger_entries:' || $1::text, 0))", [tenantId]);
+}
+const ENTRY_RETURNING = `id, centre_id, party_kind, party_id, entry_date::text AS entry_date, account_particular_id, entry_type, amount_paisa::text AS amount_paisa,
+  payment_mode, bank_name, reference_no, payment_details, comments, reverses_entry_id, receipt_no, receipt_seq::text AS receipt_seq,
+  created_by, last_modified_by, created_at, status, held_reason, held_by, held_at, released_by, released_at, fiscal_year_label`;
+/** submitted -> held of an unreversed entry; undefined when the entry is not (or no longer) in that state. Only status, the hold columns and the stamp are named (DB guard). */
+export async function holdEntry(tx: Tx, a: { tenantId: string; id: string; reason: string; actorId: string; at: string }): Promise<Row | undefined> {
+  return (await tx.query(`UPDATE billing.account_ledger_entries e SET status = 'held', held_reason = $3, held_by = $4, held_at = $5::timestamptz, released_by = NULL, released_at = NULL,
+      last_modified_by = $4, updated_at = now()
+    WHERE e.tenant_id = $1 AND e.id = $2 AND e.status = 'submitted'
+      AND NOT EXISTS (SELECT 1 FROM billing.account_ledger_entries r WHERE r.tenant_id = e.tenant_id AND r.reverses_entry_id = e.id)
+    RETURNING ` + ENTRY_RETURNING, [a.tenantId, a.id, a.reason, a.actorId, a.at])).rows[0];
+}
+/** held -> submitted (the only earlier status a hold can come from); the held_* columns stay as history. */
+export async function releaseEntry(tx: Tx, a: { tenantId: string; id: string; actorId: string; at: string }): Promise<Row | undefined> {
+  return (await tx.query(`UPDATE billing.account_ledger_entries SET status = 'submitted', released_by = $3, released_at = $4::timestamptz, last_modified_by = $3, updated_at = now()
+    WHERE tenant_id = $1 AND id = $2 AND status = 'held' RETURNING ` + ENTRY_RETURNING, [a.tenantId, a.id, a.actorId, a.at])).rows[0];
 }

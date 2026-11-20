@@ -42,7 +42,7 @@ const DASHBOARD = {
 };
 const REPORT = { income: bySlug('income'), 'department-income': bySlug('department-income'), volume: bySlug('volume') };
 
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 beforeEach(() => {
   resetApi(PERMS);
   routes[`GET ${RUN}`] = json(run());

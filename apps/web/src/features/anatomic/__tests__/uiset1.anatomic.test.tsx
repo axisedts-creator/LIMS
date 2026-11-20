@@ -16,7 +16,7 @@ vi.mock('@/core/session/server', async () => (await import('./t23.harness')).ses
 
 const PATH = '/anatomic/config';
 const TABS = ['Settings', 'Stains', 'Test profiles', 'Assays', 'Coded lists', 'Synoptic templates', 'Text templates'];
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 beforeEach(() => { resetHits(); router.push.mockReset(); router.refresh.mockReset(); state.permissions = PERM_CONFIG; api.use(...t23Defaults); });
 afterEach(() => { cleanup(); api.resetHandlers(); });
 afterAll(() => api.close());

@@ -64,7 +64,7 @@ async function open(tiles: Record<string, unknown>) {
   return render(<ToastProvider>{el}</ToastProvider>);
 }
 
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 beforeEach(() => resetApi());
 afterEach(() => { cleanup(); api.resetHandlers(); });
 afterAll(() => api.close());

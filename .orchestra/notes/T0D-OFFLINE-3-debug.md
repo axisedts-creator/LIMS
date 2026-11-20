@@ -88,3 +88,7 @@ Fix: none in impl code. LD-431 (ruling.md) assigns the one-line test edit to the
 ## Round 22 (verify 07:03: 1 fail / 44 pass; adminpage-fd-1.static.test.ts:85 permissions.yaml byte equality vs frozen BASE)
 Cause: same as rounds 20-21. No OFFLINE-3 defect; `git diff main HEAD -- contracts/permissions.yaml` empty; main-landed SYNC-1/MSGDESK/SALES/PARTYSET/CONTENT added the permissions. Test line 85 still unedited (LD-431 tester edit not applied).
 Fix: none in impl code, tests not mine. Dispute unchanged: T0D-OFFLINE-3-dispute-202611200700.md.
+
+## Round 23 (verify 07:23: 1 fail / 73 pass; lab-t11.static.test.ts:107 dangerouslySetInnerHTML in lab/components/labels/LabelPage.tsx)
+Cause: no OFFLINE-3 defect. Main-landed T-10 LabelPage (allowed by lab-t10 test line 60-62) trips lab-t11 whole-feature scan; `git diff main HEAD -- features/lab` empty. adminpage-fd-1 now passes.
+Fix: none in impl code, tests not mine. Dispute: T0D-OFFLINE-3-dispute-202611200730.md.

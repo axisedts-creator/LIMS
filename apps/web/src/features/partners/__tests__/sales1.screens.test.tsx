@@ -19,7 +19,7 @@ import userEvent from '@testing-library/user-event';
 import axe from 'axe-core';
 import { t } from '@/core/i18n/messages';
 import { expectListScreen, expectStateInPage } from '@/features/catalog/__tests__/uilist3.helpers';
-import { API, ID, IDEM, PATH, R2, R4, READ, TM, api, headers, isDisabled, norm, openSales, optionNames, pickOption, prob, quiet, reasonOf, rowOf, type Route } from './sales1.harness';
+import { API, ID, IDEM, PATH, R2, R4, READ, TM, api, headers, isDisabled, norm, openSales, optionNames, pickOption, prob, quiet, reasonOf, rowOf, selectTrigger, type Route } from './sales1.harness';
 
 const R_NAMES = ['Synthetic Root Manager', 'Synthetic Area Lead', 'Synthetic Field Seller', 'Synthetic Peer Manager', 'Synthetic Retired Seller'];
 
@@ -257,7 +257,7 @@ describe('representatives (manager tree and manager picker)', () => {
     const user = userEvent.setup();
     await user.click(await control(user, rowOf('Synthetic Area Lead'), /^edit/i));
     const dlg = await dialog();
-    await user.click(within(dlg).getByRole('button', { name: /^manager/i }));
+    await user.click(selectTrigger(dlg, /^manager(\s*\*)?$/i));
     const names = optionNames();
     expect(names.some((n) => /no manager/i.test(n)), 'No manager is a choice').toBe(true);
     const reps = names.filter((n) => !/no manager/i.test(n)).sort();
@@ -269,7 +269,7 @@ describe('representatives (manager tree and manager picker)', () => {
     const user = userEvent.setup();
     await user.click(await control(user, rowOf('Synthetic Root Manager'), /^edit/i));
     const dlg = await dialog();
-    await user.click(within(dlg).getByRole('button', { name: /^manager/i }));
+    await user.click(selectTrigger(dlg, /^manager(\s*\*)?$/i));
     expect(optionNames().filter((n) => !/no manager/i.test(n))).toEqual([]);
   });
 
@@ -278,11 +278,11 @@ describe('representatives (manager tree and manager picker)', () => {
     const user = userEvent.setup();
     await user.click(screen.getByRole('button', { name: /^add representative/i }));
     const dlg = await dialog();
-    await user.click(within(dlg).getByRole('button', { name: /^manager/i }));
+    await user.click(selectTrigger(dlg, /^manager(\s*\*)?$/i));
     const mgr = optionNames().filter((n) => !/no manager/i.test(n)).sort();
     expect(mgr).toEqual(['Synthetic Area Lead', 'Synthetic Field Seller', 'Synthetic Peer Manager', 'Synthetic Root Manager']);
     await user.keyboard('{Escape}');
-    await user.click(within(dlg).getByRole('button', { name: /^designation/i }));
+    await user.click(selectTrigger(dlg, /^designation(\s*\*)?$/i));
     const des = optionNames();
     expect(des.some((n) => /Old Grade/.test(n)), 'inactive designation is hidden').toBe(false);
     expect(des.some((n) => /Area Head/.test(n))).toBe(true);
@@ -297,8 +297,8 @@ describe('representatives (manager tree and manager picker)', () => {
     await user.type(field(dlg, 'Phone'), '+9779800000099');
     await user.type(field(dlg, 'Email'), 'new.seller@example.test');
     fireEvent.change(field(dlg, 'Joining date'), { target: { value: '2026-11-18' } });
-    await pickOption(user, dlg, /^designation/i, /Field Executive/);
-    await pickOption(user, dlg, /^manager/i, /Synthetic Area Lead/);
+    await pickOption(user, dlg, /^designation(\s*\*)?$/i,/Field Executive/);
+    await pickOption(user, dlg, /^manager(\s*\*)?$/i,/Synthetic Area Lead/);
     await user.click(save(dlg));
     await waitFor(() => expect(API.find('POST', /\/representatives$/)).toHaveLength(1));
     const c = API.find('POST', /\/representatives$/)[0]!;
@@ -316,7 +316,7 @@ describe('representatives (manager tree and manager picker)', () => {
     await quiet(30);
     expect(API.writes(), 'nothing filled').toEqual([]);
     await user.type(field(dlg, 'Name'), 'Synthetic Top Seller');
-    await pickOption(user, dlg, /^designation/i, /Regional Head/);
+    await pickOption(user, dlg, /^designation(\s*\*)?$/i,/Regional Head/);
     await user.click(save(dlg));
     await waitFor(() => expect(API.find('POST', /\/representatives$/)).toHaveLength(1));
     expect(API.find('POST', /\/representatives$/)[0]!.json).toEqual({ name: 'Synthetic Top Seller', designation_id: ID(11) });
@@ -328,7 +328,7 @@ describe('representatives (manager tree and manager picker)', () => {
     await user.click(screen.getByRole('button', { name: /^add representative/i }));
     const dlg = await dialog();
     await user.type(field(dlg, 'Name'), 'Synthetic Top Seller');
-    await pickOption(user, dlg, /^designation/i, /Regional Head/);
+    await pickOption(user, dlg, /^designation(\s*\*)?$/i,/Regional Head/);
     for (const bad of ['9841234567', '+0123456789', '+97798 41', '+977980000000000000']) {
       await typeInto(user, field(dlg, 'Phone'), bad);
       await user.click(save(dlg));
@@ -349,7 +349,7 @@ describe('representatives (manager tree and manager picker)', () => {
     const user = userEvent.setup();
     await user.click(await control(user, rowOf('Synthetic Area Lead'), /^edit/i));
     let dlg = await dialog();
-    await pickOption(user, dlg, /^manager/i, /Synthetic Peer Manager/);
+    await pickOption(user, dlg, /^manager(\s*\*)?$/i,/Synthetic Peer Manager/);
     await user.click(save(dlg));
     await waitFor(() => expect(API.find('PATCH', /\/representatives\/[^/]+$/)).toHaveLength(1));
     const c = API.find('PATCH', /\/representatives\/[^/]+$/)[0]!;
@@ -371,7 +371,7 @@ describe('representatives (manager tree and manager picker)', () => {
     const user = userEvent.setup();
     await user.click(await control(user, rowOf('Synthetic Area Lead'), /^edit/i));
     const dlg = await dialog();
-    await pickOption(user, dlg, /^manager/i, /Synthetic Peer Manager/);
+    await pickOption(user, dlg, /^manager(\s*\*)?$/i,/Synthetic Peer Manager/);
     await user.click(save(dlg));
     await waitFor(() => expect(norm(dlg.textContent)).toContain('That manager reports to this person'));
     expect(screen.getByRole('dialog')).toBeTruthy();
@@ -444,7 +444,7 @@ describe('service areas (Name, District, Area, Centre, Active)', () => {
     await user.type(field(dlg, 'Name'), 'Synthetic ward 13');
     await user.type(field(dlg, 'District'), 'Bhaktapur');
     await user.type(field(dlg, 'Area'), 'Synthetic municipality, ward 13');
-    await pickOption(user, dlg, /^centre/i, /Synthetic Kathmandu Centre/);
+    await pickOption(user, dlg, /^centre(\s*\*)?$/i,/Synthetic Kathmandu Centre/);
     await user.click(save(dlg));
     await waitFor(() => expect(API.find('POST', /\/service-areas$/)).toHaveLength(2));
     expect(API.find('POST', /\/service-areas$/)[1]!.json).toEqual({ name: 'Synthetic ward 13', district: 'Bhaktapur', area_text: 'Synthetic municipality, ward 13', centre_id: ID(51) });
@@ -478,7 +478,7 @@ describe('service areas (Name, District, Area, Centre, Active)', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     await user.click(await control(user, rowOf('Synthetic ward 4'), /^edit/i));
     dlg = await dialog();
-    await pickOption(user, dlg, /^centre/i, /all centres/i);
+    await pickOption(user, dlg, /^centre(\s*\*)?$/i,/all centres/i);
     await typeInto(user, field(dlg, 'Area'), '');
     await user.click(save(dlg));
     await waitFor(() => expect(API.find('PATCH', /\/service-areas\/[^/]+$/)).toHaveLength(2));

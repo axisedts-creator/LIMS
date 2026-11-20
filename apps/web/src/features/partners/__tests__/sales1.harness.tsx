@@ -155,9 +155,11 @@ export const isDisabled = (el: HTMLElement) => (el as HTMLButtonElement).disable
 export const reasonOf = (el: HTMLElement) => (el.getAttribute('aria-describedby') ?? '').split(/\s+/).map((id) => document.getElementById(id)?.textContent ?? '').join(' ');
 export const quiet = (ms = 60) => new Promise((r) => setTimeout(r, ms));
 export const IDEM = /^[A-Za-z0-9_-]{1,64}$/;
-/** Open a kit Select (a button named after its label) and click an option. */
+/** A kit Select trigger: a button labelled by its Label (its accessible name is "<value text> <label>", so never match by name prefix; LD-353 ruling). Pass a regex anchored at both ends, e.g. /^manager(\s*\*)?$/i. */
+export const selectTrigger = (scope: HTMLElement, label: RegExp) => within(scope).getByLabelText(label, { selector: 'button' });
+/** Open a kit Select and click an option. */
 export const pickOption = async (user: { click: (e: Element) => Promise<void> }, scope: HTMLElement, label: RegExp, option: RegExp) => {
-  await user.click(within(scope).getByRole('button', { name: label }));
+  await user.click(selectTrigger(scope, label));
   await user.click(await screen.findByRole('option', { name: option }));
 };
 /** Names of the options of an open kit Select. */

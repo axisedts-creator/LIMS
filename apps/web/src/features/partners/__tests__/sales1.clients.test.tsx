@@ -16,7 +16,7 @@ import { cleanup, fireEvent, screen, waitFor, within } from '@testing-library/re
 import userEvent from '@testing-library/user-event';
 import { t } from '@/core/i18n/messages';
 import { expectListScreen, expectStateInPage } from '@/features/catalog/__tests__/uilist3.helpers';
-import { API, CLIENT_A, ID, IDEM, PARTY, PATH, R2, R3, R4, READ, TM, api, headers, isDisabled, norm, openSales, optionNames, pickOption, prob, quiet, reasonOf, rowOf } from './sales1.harness';
+import { API, CLIENT_A, ID, IDEM, PARTY, PATH, R2, R3, R4, READ, TM, api, headers, isDisabled, norm, openSales, optionNames, pickOption, prob, quiet, reasonOf, rowOf, selectTrigger } from './sales1.harness';
 
 beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
 beforeEach(() => { API.reset(); TM.refresh.mockReset(); TM.push.mockClear(); TM.replace.mockClear(); });
@@ -26,7 +26,7 @@ afterAll(() => api.close());
 const HEADS = ['Party', 'Type', 'Outstanding', 'Last Bill Date', 'Representative'];
 const clientCalls = () => API.find('GET', /\/representatives\/[^/]+\/clients$/);
 const dialog = () => screen.findByRole('dialog');
-const picker = (dlg: HTMLElement, label: RegExp) => within(dlg).getByRole('button', { name: label });
+const picker = selectTrigger;
 const assignBtn = () => screen.getByRole('button', { name: /^assign client/i });
 const REASON = 'partners.sales.reason.manage';
 const blocked = (el: HTMLElement) => {
@@ -117,7 +117,7 @@ describe('filters', () => {
   it('choosing a representative in the FilterBar moves to ?representative_id=<id>', async () => {
     await openSales('clients');
     const user = userEvent.setup();
-    await user.click(screen.getByRole('button', { name: /^representative/i }));
+    await user.click(selectTrigger(document.body, /^representative(\s*\*)?$/i));
     await user.click(await screen.findByRole('option', { name: /Synthetic Area Lead/ }));
     await waitFor(() => expect(TM.replace.mock.calls.map((c) => String(c[0])).join(' ')).toContain(`representative_id=${R2['id']}`));
   });
@@ -125,9 +125,9 @@ describe('filters', () => {
 
 describe('Assign client', () => {
   const fill = async (user: ReturnType<typeof userEvent.setup>, dlg: HTMLElement) => {
-    await pickOption(user, dlg, /^party type/i, /^credit party/i);
-    await pickOption(user, dlg, /^party(?! type)/i, /Synthetic General Hospital/);
-    await pickOption(user, dlg, /^representative/i, /Synthetic Peer Manager/);
+    await pickOption(user, dlg, /^party type(\s*\*)?$/i, /^credit party/i);
+    await pickOption(user, dlg, /^party(\s*\*)?$/i, /Synthetic General Hospital/);
+    await pickOption(user, dlg, /^representative(\s*\*)?$/i, /Synthetic Peer Manager/);
     fireEvent.change(within(dlg).getByLabelText(/^effective from/i), { target: { value: '2026-11-20' } });
   };
 
@@ -151,12 +151,12 @@ describe('Assign client', () => {
     const user = userEvent.setup();
     await user.click(assignBtn());
     const dlg = await dialog();
-    await pickOption(user, dlg, /^party type/i, /^doctor/i);
-    await user.click(picker(dlg, /^party(?! type)/i));
+    await pickOption(user, dlg, /^party type(\s*\*)?$/i, /^doctor/i);
+    await user.click(picker(dlg, /^party(\s*\*)?$/i));
     expect(optionNames().join('|')).toContain('Synthetic Doctor Zeta');
     expect(optionNames().join('|')).not.toContain('Synthetic General Hospital');
     await user.keyboard('{Escape}');
-    await user.click(picker(dlg, /^representative/i));
+    await user.click(picker(dlg, /^representative(\s*\*)?$/i));
     const reps = optionNames();
     expect(reps).toEqual(expect.arrayContaining(['Synthetic Root Manager', 'Synthetic Peer Manager']));
     expect(reps.join('|')).not.toContain('Synthetic Retired Seller');

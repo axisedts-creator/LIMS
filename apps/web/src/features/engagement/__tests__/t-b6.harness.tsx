@@ -120,27 +120,27 @@ export function catalogueActions(over: Record<string, unknown> = {}) {
 
 // Template-literal path on purpose: a missing component fails only its own tests (static literals fail the whole suite at transform time).
 const load = async (file: string, name: string) => ((await import(/* @vite-ignore */ `../components/${file}`)) as Record<string, (p: any) => any>)[name]!;
-export async function showBookings(actions = bookingsActions(), props: Record<string, unknown> = {}) {
+export async function showBookings(actions = bookingsActions(), props: Record<string, unknown> = {}): Promise<ReturnType<typeof render> & { actions: ReturnType<typeof bookingsActions> }> {
   const C = await load('BookingsList', 'BookingsList');
   const view = render(<ToastProvider><C centres={centres()} workingCentreId={CENTRE} today={TODAY} rows={bookings()} queues={queues()} cancelReasons={cancelReasons()} actions={actions} {...props} /></ToastProvider>);
   return { ...view, actions };
 }
-export async function showDetail(actions = bookingsActions(), props: Record<string, unknown> = {}) {
+export async function showDetail(actions = bookingsActions(), props: Record<string, unknown> = {}): Promise<ReturnType<typeof render> & { actions: ReturnType<typeof bookingsActions> }> {
   const C = await load('BookingDetail', 'BookingDetail');
   const view = render(<ToastProvider><C booking={bookings()[0]} timeline={timeline()} queues={queues()} cancelReasons={cancelReasons()} actions={actions} {...props} /></ToastProvider>);
   return { ...view, actions };
 }
-export async function showNew(actions = newBookingActions(), props: Record<string, unknown> = {}) {
+export async function showNew(actions = newBookingActions(), props: Record<string, unknown> = {}): Promise<ReturnType<typeof render> & { actions: ReturnType<typeof newBookingActions> }> {
   const C = await load('BookingNew', 'BookingNew');
   const view = render(<ToastProvider><C centres={centres()} workingCentreId={CENTRE} today={TODAY} bookableItems={bookableItems()} actions={actions} {...props} /></ToastProvider>);
   return { ...view, actions };
 }
-export async function showSlots(actions = slotsActions(), props: Record<string, unknown> = {}) {
+export async function showSlots(actions = slotsActions(), props: Record<string, unknown> = {}): Promise<ReturnType<typeof render> & { actions: ReturnType<typeof slotsActions> }> {
   const C = await load('SlotsAdmin', 'SlotsAdmin');
   const view = render(<ToastProvider><C centres={centres()} workingCentreId={CENTRE} today={TODAY} templates={templates()} blackouts={blackouts()} actions={actions} {...props} /></ToastProvider>);
   return { ...view, actions };
 }
-export async function showCatalogue(actions = catalogueActions(), props: Record<string, unknown> = {}) {
+export async function showCatalogue(actions = catalogueActions(), props: Record<string, unknown> = {}): Promise<ReturnType<typeof render> & { actions: ReturnType<typeof catalogueActions> }> {
   const C = await load('BookableCatalogue', 'BookableCatalogue');
   const view = render(<ToastProvider><C items={bookableItems()} actions={actions} {...props} /></ToastProvider>);
   return { ...view, actions };

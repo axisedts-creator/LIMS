@@ -111,9 +111,9 @@ export function fakeServer(over: Record<string, Handler> = {}) {
     const headers = Object.fromEntries(new Headers(init.headers as HeadersInit).entries());
     calls.push({ method, url, path, headers, body, bytes: new TextEncoder().encode(raw).length });
     if (method === 'POST' && path === '/v1/core/sync/batches') batches.push({ ids: (body?.operations ?? []).map((o: { op_id: string }) => o.op_id), body, bytes: new TextEncoder().encode(raw).length });
-    const key = Object.keys(routes).filter((k) => k.split(' ')[0] === method && path.startsWith(k.split(' ')[1])).sort((a, b) => b.length - a.length)[0];
+    const key = Object.keys(routes).filter((k) => k.split(' ')[0] === method && path.startsWith(k.split(' ')[1]!)).sort((a, b) => b.length - a.length)[0];
     if (!key) return new Response(JSON.stringify({ code: 'common.not_found' }), { status: 404, headers: { 'content-type': 'application/problem+json' } });
-    const r = await routes[key]({ url, init, body });
+    const r = await routes[key]!({ url, init, body });
     if (r === 'throw') throw new TypeError('Failed to fetch');
     if (r === 'hang') return new Promise<Response>(() => {});
     return new Response(r.body === undefined ? null : JSON.stringify(r.body), { status: r.status, headers: { 'content-type': 'application/json', ...(r.headers ?? {}) } });

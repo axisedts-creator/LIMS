@@ -24,7 +24,7 @@ const TARGETS = `${BASE}/qc-targets`;
 const OBSERVATIONS = `${BASE}/qc-observations`;
 // LD-183: null = no plan_id (an explicit value; undefined would trigger the PLAN_1 default)
 const props = (plan: string | null = PLAN_1) => ({ searchParams: plan === null ? {} : { plan_id: plan } });
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 beforeEach(() => {
   resetApi(PERM_SETUP_WRITE);
   routes[`GET ${BASE}/qc-plans/${PLAN_1}`] = json(planDto());

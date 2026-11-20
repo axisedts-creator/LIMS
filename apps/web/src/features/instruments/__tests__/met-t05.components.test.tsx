@@ -71,7 +71,7 @@ const api = setupServer(
   http.post(IM, async ({ request }) => { calls.push({ method: 'POST', url: new URL(request.url), body: await request.clone().json().catch(() => undefined) }); return HttpResponse.json(created(), { status: 201 }); }),
   http.all(`${ORIGIN}/v1/catalog/*`, ({ request }) => { seen.push(`${request.method} ${request.url}`); return HttpResponse.json({ data: [] }); }),
 );
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { cleanup(); api.resetHandlers(); calls.length = 0; seen.length = 0; push.mockReset(); refresh.mockReset(); localStorage.clear(); sessionStorage.clear(); });
 afterAll(() => api.close());
 

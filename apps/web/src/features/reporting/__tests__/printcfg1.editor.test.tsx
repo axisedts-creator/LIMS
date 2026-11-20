@@ -18,7 +18,7 @@ import {
   API, BRANCH_A, BRANCH_B, ID, MANAGE_BILL, MANAGE_BOTH, MANAGE_REPORT, JOB, allowedPreviewKeys, allowedProfileKeys, api, choose, openBillingSettings, openReportingSettings, previews, profile, puts,
 } from './printcfg1.harness';
 
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 beforeEach(() => { API.reset(); API.profiles = [profile()]; });
 afterEach(() => { cleanup(); api.resetHandlers(); });
 afterAll(() => api.close());

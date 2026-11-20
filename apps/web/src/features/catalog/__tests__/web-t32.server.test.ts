@@ -42,12 +42,12 @@ const rec = (fn: (s: Seen) => Response | Promise<Response>) => async ({ request 
 const problem = (code: string, status: number, extra: Record<string, unknown> = {}) =>
   HttpResponse.json({ type: `urn:lims:error:${code}`, title: code, status, code, ...extra }, { status });
 const api = setupServer();
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => api.resetHandlers());
 afterAll(() => api.close());
 beforeEach(() => { seen.length = 0; });
 
-const load = async <T = Record<string, (...a: any[]) => Promise<any>>>(file: string): Promise<T> => (await import(/* @vite-ignore */ `../server/${file}.server`)) as T;
+const load = async <T = Record<string, any>>(file: string): Promise<T> => (await import(/* @vite-ignore */ `../server/${file}.server`)) as T;
 
 describe('validateFormula (#36, AC-04.8) — read-only POST', () => {
   it('POSTs the body to /v1/catalog/formulas/validate with bearer, no Idempotency-Key, no If-Match; returns the 200 result as is', async () => {

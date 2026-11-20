@@ -1,7 +1,7 @@
 // T0D-PRINTCFG-1 shared mocks (setupFiles). State lives on globalThis.__PC so test files and mocked modules see the same object.
-import { vi } from 'vitest';
+import { vi, type Mock } from 'vitest';
 
-type PC = { nav: { search: string; path: string }; session: { permissions: string[] }; refresh: ReturnType<typeof vi.fn> };
+type PC = { nav: { search: string; path: string }; session: { permissions: string[] }; refresh: Mock<() => void> };
 const g = globalThis as unknown as { __PC?: PC };
 g.__PC = { nav: { search: '', path: '/reporting/settings' }, session: { permissions: [] }, refresh: vi.fn() };
 const pc = () => g.__PC!;

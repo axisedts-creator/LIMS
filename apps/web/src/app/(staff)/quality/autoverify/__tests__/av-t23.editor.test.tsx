@@ -30,7 +30,7 @@ const btn = (re: RegExp) => screen.queryByRole('button', { name: re });
 const anyDialog = () => screen.queryByRole('dialog') ?? screen.queryByRole('alertdialog');
 const dialog = () => { const d = anyDialog(); if (!d) throw new Error('no dialog is open'); return d; };
 
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 beforeEach(() => { resetApi(AV_MANAGE); seedAv(); });
 afterEach(() => { cleanup(); api.resetHandlers(); });
 afterAll(() => api.close());

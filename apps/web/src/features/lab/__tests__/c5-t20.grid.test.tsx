@@ -127,7 +127,7 @@ const reset = () => {
   returnReply = () => HttpResponse.json(res(1, { status: 'resulted', version: 3 }));
   amendReply = () => HttpResponse.json(res(1, { status: 'approved', version: 4, current_version_no: 2 }));
 };
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { cleanup(); api.resetHandlers(); calls.length = 0; push.mockReset(); reset(); });
 afterAll(() => api.close());
 

@@ -99,7 +99,7 @@ const api = setupServer(
   http.get(`${ORIGIN}/v1/identity/permissions`, ok({ data: [] })),
   http.get(`${ORIGIN}/v1/identity/users`, ok({ data: [], page: { limit: 200 } })),
 );
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { cleanup(); api.resetHandlers(); hits.length = 0; session.permissions = []; engagement = { templates: [], blackouts: [], items: [], bookings: [], centres: [] }; });
 afterAll(() => api.close());
 

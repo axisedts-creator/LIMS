@@ -80,7 +80,7 @@ const api = setupServer(
   http.patch(`${ORIGIN}/v1/billing/account-particulars/:id`, async ({ request }) => { await rec(request); return HttpResponse.json({}, { status: 200 }); }),
   http.all(`${ORIGIN}/v1/billing/*`, async ({ request }) => { await rec(request); return HttpResponse.json({}, { status: 200 }); }),
 );
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { cleanup(); api.resetHandlers(); calls.length = 0; push.mockReset(); refresh.mockReset(); localStorage.clear(); sessionStorage.clear(); vi.restoreAllMocks(); });
 afterAll(() => api.close());
 
@@ -478,8 +478,8 @@ describe('billing/accounts/ledger — party ledger statement', () => {
     const user = userEvent.setup();
     const w = watchIframes();
     let blob: Blob | undefined;
-    (URL as any).createObjectURL = vi.fn((b: Blob) => { blob = b; return 'blob:synthetic'; });
-    (URL as any).revokeObjectURL = vi.fn();
+    (URL as unknown as Record<string, unknown>).createObjectURL = vi.fn((b: Blob) => { blob = b; return 'blob:synthetic'; });
+    (URL as unknown as Record<string, unknown>).revokeObjectURL = vi.fn();
     vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
     const evil = [{ id: PART_FEE, account_group_id: GRP, code: 'X', name: '=HYPERLINK("http://evil.test","x")', is_active: true, version: 1 }];
     wrap(<S {...props({ particulars: evil })} />);

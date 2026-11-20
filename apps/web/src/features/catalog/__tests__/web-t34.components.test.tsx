@@ -68,7 +68,7 @@ const DETAIL = {
 };
 const OWNER_LABELS = { [ID(90)]: 'Synthetic General Hospital', [ID(91)]: 'Synthetic Affiliate Clinic', [ID(92)]: 'Dr Synthetic Alpha' };
 const DEPTS = [{ id: ID(1), code: 'HAEM', name: 'Hematology', report_order: 10, is_active: true, version: 1 }, { id: ID(2), code: 'BIOC', name: 'Biochemistry', report_order: 20, is_active: true, version: 1 }];
-const ord = (n: number, o: Record<string, unknown>) => ({ id: ID(n), kind: 'test', is_orderable: true, is_active: true, revision: 1, department_id: ID(1), ...o });
+const ord = (n: number, o: Record<string, unknown>): Record<string, unknown> => ({ id: ID(n), kind: 'test', is_orderable: true, is_active: true, revision: 1, department_id: ID(1), ...o });
 const CBC = ord(101, { code: 'CBC', name: 'Complete blood count' });
 const HB = ord(102, { code: 'HB', name: 'Hemoglobin' });
 const FBS = ord(103, { code: 'FBS', name: 'Fasting blood sugar', department_id: ID(2) });
@@ -92,7 +92,7 @@ const api = setupServer(
   http.put(`${ORIGIN}/v1/catalog/*`, async ({ request }) => { await rec(request); return HttpResponse.json({ id: ID(500), version: 7 }); }),
   http.get(`${ORIGIN}/v1/*`, async ({ request }) => { await rec(request); return HttpResponse.json({ data: [], page: { limit: 50 } }); }),
 );
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { cleanup(); api.resetHandlers(); calls.length = 0; push.mockReset(); replace.mockReset(); refresh.mockReset(); localStorage.clear(); sessionStorage.clear(); session.permissions = MANAGE; });
 afterAll(() => api.close());
 beforeEach(() => { document.body.innerHTML = ''; });

@@ -291,7 +291,7 @@ describe('profile photo (upload or capture, png or jpeg, at most 2 MiB)', () => 
 
 describe('additional fields from the lab custom field definitions', () => {
   it('one control per ACTIVE definition (inactive ones are not shown), sent as custom_fields [{code, value}]', async () => {
-    reg2.customFields = [...(reg2.customFields as any[]), { id: U(74), field_key: 'retired', label: 'Retired field', field_type: 'text', required: false, is_active: false, sort_order: 3, version: 1 }];
+    reg2.customFields = [...(reg2.customFields as unknown[]), { id: U(74), field_key: 'retired', label: 'Retired field', field_type: 'text', required: false, is_active: false, sort_order: 3, version: 1 }];
     const u = user();
     await renderForm();
     await openNew(u);
@@ -308,7 +308,7 @@ describe('additional fields from the lab custom field definitions', () => {
   });
 
   it('a required definition left empty blocks the form with a message naming it; filled, it passes', async () => {
-    reg2.customFields = [{ ...(reg2.customFields as any[])[0], required: true }];
+    reg2.customFields = [{ ...(reg2.customFields as Record<string, unknown>[])[0], required: true }];
     const u = user();
     await renderForm();
     await openNew(u);

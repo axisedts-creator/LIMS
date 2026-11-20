@@ -69,7 +69,7 @@ describe('batching: at most 50 operations and 1 MB, device_created_at order, one
     const b = await outbox.append(orderOp(2)); env.c.advance(5000);
     const c = await outbox.append(orderOp(3));
     await engine.drain();
-    expect(server.batches[0].ids).toEqual([a.op_id, b.op_id, c.op_id]);
+    expect(server.batches[0]!.ids).toEqual([a.op_id, b.op_id, c.op_id]);
   });
 
   it('one flight at a time: two overlapping syncOnce calls on one engine produce one request carrying each op once', async () => {
@@ -105,9 +105,9 @@ describe('per operation results (never fail the batch for one operation)', () =>
     const { engine, outbox } = await newEngine(env, server);
     const [a, b, c, d, e] = await fill(outbox, 5, 0, env.c);
     await engine.syncOnce();
-    expect((await outbox.pending()).map((o) => o.op_id)).toEqual([e.op_id]);
-    expect(await outbox.needsAttention()).toEqual([expect.objectContaining({ op_id: c.op_id, code: 'sync.result_locked', op_type: 'registration.create_order' })]);
-    expect(await outbox.conflicts()).toEqual([expect.objectContaining({ op_id: d.op_id, conflict_id: 'cf-1' })]);
+    expect((await outbox.pending()).map((o) => o.op_id)).toEqual([e!.op_id]);
+    expect(await outbox.needsAttention()).toEqual([expect.objectContaining({ op_id: c!.op_id, code: 'sync.result_locked', op_type: 'registration.create_order' })]);
+    expect(await outbox.conflicts()).toEqual([expect.objectContaining({ op_id: d!.op_id, conflict_id: 'cf-1' })]);
     // the rejected payload is kept for the person who has to decide
     expect(JSON.stringify(await outbox.needsAttention())).toContain('p-2');
     void a; void b;
@@ -159,7 +159,7 @@ describe('failure, backoff, retry_after', () => {
     expect(server.batches.length).toBe(early);
     env.c.advance(at! - env.c.now() + 1);
     await engine.syncOnce();
-    expect(server.batches[server.batches.length - 1].ids).toEqual(ops.map((o) => o.op_id));
+    expect(server.batches[server.batches.length - 1]!.ids).toEqual(ops.map((o) => o.op_id));
     expect(await outbox.count()).toBe(0);
   });
 
@@ -171,7 +171,7 @@ describe('failure, backoff, retry_after', () => {
     const waits: number[] = [];
     for (let i = 0; i < 12; i++) { await engine.syncOnce(); const at = engine.nextAttemptAt()!; waits.push(at - env.c.now()); env.c.advance(at - env.c.now() + 1); }
     expect(waits[0]).toBeLessThanOrEqual(1000); expect(waits[1]).toBeLessThanOrEqual(2000); expect(waits[2]).toBeLessThanOrEqual(4000);
-    expect(waits[2]).toBeGreaterThan(waits[0]);
+    expect(waits[2]!).toBeGreaterThan(waits[0]!);
     expect(Math.max(...waits)).toBeLessThanOrEqual(300_000);
     expect(waits[11]).toBeGreaterThan(100_000);
     fail = false; await engine.syncOnce();
@@ -228,8 +228,8 @@ describe('crash and reload mid batch: op_id is the idempotency key', () => {
     const second = await newEngine({ ...env, store: store2 } as never, server2);
     expect((await second.outbox.pending()).map((o) => o.op_id)).toEqual(ops.map((o) => o.op_id));
     await second.engine.drain();
-    expect(server2.batches[0].ids).toEqual(ops.map((o) => o.op_id));
-    expect(server2.batches[0].body.operations.map((o: any) => o.payload)).toEqual(lost.batches[0].body.operations.map((o: any) => o.payload));
+    expect(server2.batches[0]!.ids).toEqual(ops.map((o) => o.op_id));
+    expect(server2.batches[0]!.body.operations.map((o: any) => o.payload)).toEqual(lost.batches[0]!.body.operations.map((o: any) => o.payload));
     expect(await second.outbox.count()).toBe(0);
   });
 

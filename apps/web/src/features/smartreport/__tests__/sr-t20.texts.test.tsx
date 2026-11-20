@@ -24,7 +24,7 @@ const B = vp(VER_DRAFT, '/blocks');
 const CHIPS: Record<string, string[]> = {
   deranged: ['analyte_name', 'value', 'unit', 'ref_range', 'group_name'], advice: ['analyte_name', 'group_name'], followup: ['test_name', 'interval_days', 'group_name', 'analyte_name'], disclaimer: [], score_explanation: [],
 };
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 beforeEach(() => { resetApi(MANAGE); mountEditorApi(); routes[`POST ${B}`] = json(blockDto({ id: '01940e00-0000-7000-8000-000000000099', block_key: 'deranged.new.key' }), 201); });
 afterEach(() => { cleanup(); api.resetHandlers(); });
 afterAll(() => api.close());

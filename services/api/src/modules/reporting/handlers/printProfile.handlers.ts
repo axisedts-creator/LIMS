@@ -1,6 +1,7 @@
 // T0B-PRINTCFG-1 handlers (LD-316, LD-325(b)): the five T0C-PRINTCFG-1 operations. Request context first (fail closed, echoing nothing), staff only, then the service.
 import { LimsError } from '../../../core/errors.js';
 import type { Handler, HandlerContext, HandlerRequest } from '../../../core/module.js';
+import { guarded } from './_guard.js';
 import { createPrintProfileService, type PrintProfileCtx } from '../service/printProfile.service.js';
 
 const svc = createPrintProfileService();
@@ -12,11 +13,22 @@ function staff(hctx: HandlerContext): PrintProfileCtx {
   return c as PrintProfileCtx;
 }
 
-export const printProfileHandlers: Readonly<Record<string, Handler>> = Object.freeze({
+const printProfileRaw: Readonly<Record<string, Handler>> = Object.freeze({
   listPrintProfiles: async (req: HandlerRequest, hctx: HandlerContext) => ({ status: 200, body: await svc.listPrintProfiles(staff(hctx), obj(req.query)) }),
   upsertPrintProfile: async (req: HandlerRequest, hctx: HandlerContext) => ({ status: 200, body: await svc.upsertPrintProfile(staff(hctx), req.body) }),
   previewPrintProfile: async (req: HandlerRequest, hctx: HandlerContext) => ({ status: 202, body: await svc.previewPrintProfile(staff(hctx), req.body) }),
   listSignatoryProfiles: async (_req: HandlerRequest, hctx: HandlerContext) => ({ status: 200, body: await svc.listSignatoryProfiles(staff(hctx)) }),
   upsertSignatoryProfile: async (req: HandlerRequest, hctx: HandlerContext) =>
     ({ status: 200, body: await svc.upsertSignatoryProfile(staff(hctx), obj(req.params)['user_id'], req.body) }),
+});
+
+// SEC-AUTHZ-7 (LD-189, LD-261): all five ask their contract x-permission (reporting.settings.manage) first. The extra billing.settings.manage floor for invoice / credit_note
+// profiles stays in printProfile.service.ts (conditional, not a replacement); CR T0C-PRINTCFG-1 is not decided here.
+export const printProfileHandlers: Readonly<Record<string, Handler>> = Object.freeze({
+  ...printProfileRaw,
+  listPrintProfiles: guarded('reporting.settings.manage', printProfileRaw['listPrintProfiles']!),
+  upsertPrintProfile: guarded('reporting.settings.manage', printProfileRaw['upsertPrintProfile']!),
+  previewPrintProfile: guarded('reporting.settings.manage', printProfileRaw['previewPrintProfile']!),
+  listSignatoryProfiles: guarded('reporting.settings.manage', printProfileRaw['listSignatoryProfiles']!),
+  upsertSignatoryProfile: guarded('reporting.settings.manage', printProfileRaw['upsertSignatoryProfile']!),
 });

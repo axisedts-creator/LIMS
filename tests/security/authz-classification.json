@@ -1,7 +1,7 @@
 {
   "counts": {
-    "guarded-exact": 751,
-    "guarded-other": 70,
+    "guarded-exact": 931,
+    "guarded-other": 31,
     "identity-session-flow": 6,
     "inconclusive": 60,
     "platform": 34,
@@ -10,13 +10,13 @@
     "scheme-device": 9,
     "scheme-patient-pre-auth": 3,
     "scheme-portal": 9,
-    "stub": 40,
-    "unguarded": 176
+    "stub": 28,
+    "unguarded": 47
   },
   "operations": {
     "acceptCashTransfer": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "billing.cash_transfer.decide",
       "x_permission": "billing.cash_transfer.decide"
     },
     "accessionAnatomicCase": {
@@ -151,8 +151,8 @@
       "x_permission": "inventory.po.approve"
     },
     "approveRefund": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "billing.refund.approve",
       "x_permission": "billing.refund.approve"
     },
     "approveResult": {
@@ -271,8 +271,8 @@
       "x_permission": "engagement.broadcast.manage"
     },
     "cancelCashTransfer": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "billing.cash_transfer.manage",
       "x_permission": "billing.cash_transfer.manage"
     },
     "cancelCulture": {
@@ -281,8 +281,8 @@
       "x_permission": "micro.culture.work"
     },
     "cancelExpense": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "billing.expense.manage",
       "x_permission": "billing.expense.manage"
     },
     "cancelGoodsReceipt": {
@@ -296,9 +296,8 @@
       "x_permission": "homecollection.visit.assign"
     },
     "cancelInvoice": {
-      "class": "guarded-other",
-      "permission": "billing.invoice.reprint",
-      "reason": "asserts billing.invoice.reprint but x-permission is billing.invoice.cancel",
+      "class": "guarded-exact",
+      "permission": "billing.invoice.cancel",
       "x_permission": "billing.invoice.cancel"
     },
     "cancelMembership": {
@@ -399,8 +398,8 @@
       "x_permission": "anatomic.case.work"
     },
     "closeCashSession": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "billing.payment.record",
       "x_permission": "billing.payment.record"
     },
     "closeEnquiry": {
@@ -434,9 +433,8 @@
       "x_permission": "catalog.test.manage"
     },
     "commitImport": {
-      "class": "guarded-other",
-      "permission": "catalog.price_list.manage,catalog.price_list.read,catalog.reference_range.publish,catalog.referrer.manage,catalog.referrer.read,catalog.test.manage",
-      "reason": "asserts catalog.price_list.manage,catalog.price_list.read,catalog.reference_range.publish,catalog.referrer.manage,catalog.referrer.read,catalog.test.manage but x-permission is catalog.test.read",
+      "class": "guarded-exact",
+      "permission": "catalog.test.read",
       "x_permission": "catalog.test.read"
     },
     "commitPriceListImport": {
@@ -500,18 +498,18 @@
       "x_permission": "inventory.stock.adjust"
     },
     "createAccountGroup": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "billing.account.manage",
       "x_permission": "billing.account.manage"
     },
     "createAccountLedgerEntry": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "billing.account_entry.create",
       "x_permission": "billing.account_entry.create"
     },
     "createAccountParticular": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "billing.account.manage",
       "x_permission": "billing.account.manage"
     },
     "createAgent": {
@@ -525,13 +523,13 @@
       "x_permission": "lab.specimen.receive"
     },
     "createAnalyte": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "catalog.test.manage",
       "x_permission": "catalog.test.manage"
     },
     "createAnalyteVersionDraft": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "catalog.test.manage",
       "x_permission": "catalog.test.manage"
     },
     "createAnalyticsExport": {
@@ -640,8 +638,8 @@
       "x_permission": "reporting.report.bulk_download"
     },
     "createCashTransfer": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "billing.cash_transfer.manage",
       "x_permission": "billing.cash_transfer.manage"
     },
     "createCentre": {
@@ -655,8 +653,8 @@
       "x_permission": "reporting.settings.manage"
     },
     "createCommentCode": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "catalog.test.manage",
       "x_permission": "catalog.test.manage"
     },
     "createConsumptionRule": {
@@ -665,8 +663,8 @@
       "x_permission": "inventory.master.manage"
     },
     "createContainer": {
-      "class": "stub",
-      "reason": "no handler definition found; registered through the module stub (common.internal or 501)",
+      "class": "guarded-exact",
+      "permission": "catalog.test.manage",
       "x_permission": "catalog.test.manage"
     },
     "createControlIdMap": {
@@ -700,14 +698,13 @@
       "x_permission": "frontdesk.settings.manage"
     },
     "createCreditParty": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "catalog.price_list.manage",
       "x_permission": "catalog.price_list.manage"
     },
     "createCriticalLimitSetDraft": {
-      "class": "guarded-other",
-      "permission": "catalog.reference_range.publish",
-      "reason": "asserts catalog.reference_range.publish but x-permission is catalog.test.manage",
+      "class": "guarded-exact",
+      "permission": "catalog.test.manage",
       "x_permission": "catalog.test.manage"
     },
     "createCustomFieldDefinition": {
@@ -721,39 +718,38 @@
       "x_permission": "lab.config.manage"
     },
     "createDepartment": {
-      "class": "stub",
-      "reason": "no handler definition found; registered through the module stub (common.internal or 501)",
+      "class": "guarded-exact",
+      "permission": "catalog.test.manage",
       "x_permission": "catalog.test.manage"
     },
     "createDiscountAuthority": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "billing.discount_policy.manage",
       "x_permission": "billing.discount_policy.manage"
     },
     "createDiscountReason": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "billing.discount_policy.manage",
       "x_permission": "billing.discount_policy.manage"
     },
     "createDoctor": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "catalog.referrer.manage",
       "x_permission": "catalog.referrer.manage"
     },
     "createExpense": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "billing.expense.manage",
       "x_permission": "billing.expense.manage"
     },
     "createExpenseType": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "billing.account.manage",
       "x_permission": "billing.account.manage"
     },
     "createExport": {
-      "class": "guarded-other",
-      "permission": "catalog.price_list.manage,catalog.test.manage",
-      "reason": "asserts catalog.price_list.manage,catalog.test.manage but x-permission is catalog.test.read",
+      "class": "guarded-exact",
+      "permission": "catalog.test.read",
       "x_permission": "catalog.test.read"
     },
     "createGoodsReceipt": {
@@ -777,9 +773,8 @@
       "x_permission": "catalog.icd.manage"
     },
     "createImport": {
-      "class": "guarded-other",
-      "permission": "catalog.price_list.manage,catalog.price_list.read,catalog.reference_range.publish,catalog.referrer.manage,catalog.referrer.read,catalog.test.manage",
-      "reason": "asserts catalog.price_list.manage,catalog.price_list.read,catalog.reference_range.publish,catalog.referrer.manage,catalog.referrer.read,catalog.test.manage but x-permission is catalog.test.read",
+      "class": "guarded-exact",
+      "permission": "catalog.test.read",
       "x_permission": "catalog.test.read"
     },
     "createInstrument": {
@@ -833,8 +828,8 @@
       "x_permission": "engagement.membership_plan.manage"
     },
     "createMethod": {
-      "class": "stub",
-      "reason": "no handler definition found; registered through the module stub (common.internal or 501)",
+      "class": "guarded-exact",
+      "permission": "catalog.test.manage",
       "x_permission": "catalog.test.manage"
     },
     "createMyAddress": {
@@ -870,8 +865,8 @@
       "x_permission": "partners.penalty.manage"
     },
     "createPanel": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "catalog.test.manage",
       "x_permission": "catalog.test.manage"
     },
     "createPartner": {
@@ -890,8 +885,8 @@
       "x_permission": "partners.ticket.manage"
     },
     "createPartyDiscountSlab": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "billing.discount_policy.manage",
       "x_permission": "billing.discount_policy.manage"
     },
     "createPatient": {
@@ -986,9 +981,8 @@
       "x_permission": "engagement.queue.manage"
     },
     "createReferenceRangeSetDraft": {
-      "class": "guarded-other",
-      "permission": "catalog.reference_range.publish",
-      "reason": "asserts catalog.reference_range.publish but x-permission is catalog.test.manage",
+      "class": "guarded-exact",
+      "permission": "catalog.test.manage",
       "x_permission": "catalog.test.manage"
     },
     "createRegistration": {
@@ -1002,8 +996,8 @@
       "x_permission": "frontdesk.registration.create"
     },
     "createReleaseOverride": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "billing.release.override",
       "x_permission": "billing.release.override"
     },
     "createReminder": {
@@ -1083,13 +1077,13 @@
       "x_permission": "smartreport.template.manage"
     },
     "createSpecimenType": {
-      "class": "stub",
-      "reason": "no handler definition found; registered through the module stub (common.internal or 501)",
+      "class": "guarded-exact",
+      "permission": "catalog.test.manage",
       "x_permission": "catalog.test.manage"
     },
     "createStaticQrReconciliation": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "payments.intent.resolve",
       "x_permission": "payments.intent.resolve"
     },
     "createStockAdjustment": {
@@ -1128,13 +1122,13 @@
       "x_permission": "catalog.price_list.manage"
     },
     "createTest": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "catalog.test.manage",
       "x_permission": "catalog.test.manage"
     },
     "createTestCategory": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "catalog.test.manage",
       "x_permission": "catalog.test.manage"
     },
     "createTransfer": {
@@ -1143,13 +1137,13 @@
       "x_permission": "inventory.stock.manage"
     },
     "createUnit": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "catalog.test.manage",
       "x_permission": "catalog.test.manage"
     },
     "createValueSet": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "catalog.test.manage",
       "x_permission": "catalog.test.manage"
     },
     "createWorksheet": {
@@ -1203,8 +1197,8 @@
       "x_permission": "lab.config.manage"
     },
     "deactivateDiscountAuthority": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "billing.discount_policy.manage",
       "x_permission": "billing.discount_policy.manage"
     },
     "deactivateIcdMasterCode": {
@@ -1254,8 +1248,8 @@
       "x_permission": "partners.partner.manage"
     },
     "deactivatePartyDiscountSlab": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "billing.discount_policy.manage",
       "x_permission": "billing.discount_policy.manage"
     },
     "deactivatePlatformStaff": {
@@ -1365,8 +1359,8 @@
       "x_permission": "micro.culture.work"
     },
     "discardAnalyteVersionDraft": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "catalog.test.manage",
       "x_permission": "catalog.test.manage"
     },
     "discardAnatomicCaseChange": {
@@ -1390,9 +1384,8 @@
       "x_permission": "inventory.bench.record"
     },
     "discardCriticalLimitSetDraft": {
-      "class": "guarded-other",
-      "permission": "catalog.reference_range.publish",
-      "reason": "asserts catalog.reference_range.publish but x-permission is catalog.test.manage",
+      "class": "guarded-exact",
+      "permission": "catalog.test.manage",
       "x_permission": "catalog.test.manage"
     },
     "discardCulturePlate": {
@@ -1406,9 +1399,8 @@
       "x_permission": "platform.dead_letter.manage"
     },
     "discardImport": {
-      "class": "guarded-other",
-      "permission": "catalog.price_list.manage,catalog.price_list.read,catalog.reference_range.publish,catalog.referrer.manage,catalog.referrer.read,catalog.test.manage",
-      "reason": "asserts catalog.price_list.manage,catalog.price_list.read,catalog.reference_range.publish,catalog.referrer.manage,catalog.referrer.read,catalog.test.manage but x-permission is catalog.test.read",
+      "class": "guarded-exact",
+      "permission": "catalog.test.read",
       "x_permission": "catalog.test.read"
     },
     "discardIngestException": {
@@ -1432,9 +1424,8 @@
       "x_permission": "quality.qc.manage"
     },
     "discardReferenceRangeSetDraft": {
-      "class": "guarded-other",
-      "permission": "catalog.reference_range.publish",
-      "reason": "asserts catalog.reference_range.publish but x-permission is catalog.test.manage",
+      "class": "guarded-exact",
+      "permission": "catalog.test.manage",
       "x_permission": "catalog.test.manage"
     },
     "discardSpecimen": {
@@ -1488,21 +1479,18 @@
       "x_permission": "catalog.test.manage"
     },
     "downloadExportFile": {
-      "class": "guarded-other",
-      "permission": "catalog.price_list.manage,catalog.test.manage",
-      "reason": "asserts catalog.price_list.manage,catalog.test.manage but x-permission is catalog.test.read",
+      "class": "guarded-exact",
+      "permission": "catalog.test.read",
       "x_permission": "catalog.test.read"
     },
     "downloadImportReport": {
-      "class": "guarded-other",
-      "permission": "catalog.price_list.manage,catalog.price_list.read,catalog.reference_range.publish,catalog.referrer.manage,catalog.referrer.read,catalog.test.manage",
-      "reason": "asserts catalog.price_list.manage,catalog.price_list.read,catalog.reference_range.publish,catalog.referrer.manage,catalog.referrer.read,catalog.test.manage but x-permission is catalog.test.read",
+      "class": "guarded-exact",
+      "permission": "catalog.test.read",
       "x_permission": "catalog.test.read"
     },
     "downloadImportTemplate": {
-      "class": "guarded-other",
-      "permission": "catalog.price_list.manage,catalog.price_list.read,catalog.reference_range.publish,catalog.referrer.manage,catalog.referrer.read,catalog.test.manage",
-      "reason": "asserts catalog.price_list.manage,catalog.price_list.read,catalog.reference_range.publish,catalog.referrer.manage,catalog.referrer.read,catalog.test.manage but x-permission is catalog.test.read",
+      "class": "guarded-exact",
+      "permission": "catalog.test.read",
       "x_permission": "catalog.test.read"
     },
     "downloadInstrumentAttachment": {
@@ -1637,18 +1625,18 @@
       "x_permission": "inventory.bench.record"
     },
     "getAccountLedgerEntry": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "billing.account.read",
       "x_permission": "billing.account.read"
     },
     "getAccountStatement": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "billing.account.read",
       "x_permission": "billing.account.read"
     },
     "getAccountSummary": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "billing.account.read",
       "x_permission": "billing.account.read"
     },
     "getAgent": {
@@ -1667,8 +1655,8 @@
       "x_permission": "instruments.agent.manage"
     },
     "getAnalyte": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "catalog.test.read",
       "x_permission": "catalog.test.read"
     },
     "getAnalyteTrend": {
@@ -1747,8 +1735,8 @@
       "x_permission": "audit.log.export"
     },
     "getAuditTrail": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "billing.data.export",
       "x_permission": "billing.data.export"
     },
     "getAutoverifyDecision": {
@@ -1782,8 +1770,8 @@
       "x_permission": "billing.data.export"
     },
     "getBillingSettings": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "billing.settings.manage",
       "x_permission": "billing.settings.manage"
     },
     "getBooking": {
@@ -1802,13 +1790,13 @@
       "x_permission": "micro.culture.read"
     },
     "getCancelledInvoiceRegister": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "billing.invoice.read",
       "x_permission": "billing.invoice.read"
     },
     "getCatalogHealthReport": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "catalog.test.read",
       "x_permission": "catalog.test.read"
     },
     "getCatalogImport": {
@@ -1817,8 +1805,8 @@
       "x_permission": "catalog.test.manage"
     },
     "getCatalogRevision": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "catalog.test.read",
       "x_permission": "catalog.test.read"
     },
     "getCollectionsFilterOptions": {
@@ -1842,35 +1830,33 @@
       "x_permission": "quality.qc_run.read"
     },
     "getCreditAccount": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "billing.credit_party.read",
       "x_permission": "billing.credit_party.read"
     },
     "getCreditNote": {
-      "class": "guarded-other",
-      "permission": "billing.invoice.reprint",
-      "reason": "asserts billing.invoice.reprint but x-permission is billing.invoice.read",
+      "class": "guarded-exact",
+      "permission": "billing.invoice.read",
       "x_permission": "billing.invoice.read"
     },
     "getCreditNoteRegister": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "billing.invoice.read",
       "x_permission": "billing.invoice.read"
     },
     "getCreditParty": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "catalog.price_list.read",
       "x_permission": "catalog.price_list.read"
     },
     "getCreditPartyStatement": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "billing.credit_party.read",
       "x_permission": "billing.credit_party.read"
     },
     "getCriticalLimitSet": {
-      "class": "guarded-other",
-      "permission": "catalog.reference_range.publish",
-      "reason": "asserts catalog.reference_range.publish but x-permission is catalog.test.read",
+      "class": "guarded-exact",
+      "permission": "catalog.test.read",
       "x_permission": "catalog.test.read"
     },
     "getCriticalValue": {
@@ -1894,13 +1880,13 @@
       "x_permission": "smartreport.summary.read"
     },
     "getDailyCash": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "billing.cash_report.read",
       "x_permission": "billing.cash_report.read"
     },
     "getDailyCollectionSummary": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "billing.account.read",
       "x_permission": "billing.account.read"
     },
     "getDeadLetter": {
@@ -1929,8 +1915,8 @@
       "x_permission": "frontdesk.discount.apply"
     },
     "getDoctor": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "catalog.referrer.read",
       "x_permission": "catalog.referrer.read"
     },
     "getEngagementSettings": {
@@ -1944,9 +1930,8 @@
       "x_permission": "engagement.enquiry.read"
     },
     "getExport": {
-      "class": "guarded-other",
-      "permission": "catalog.price_list.manage,catalog.test.manage",
-      "reason": "asserts catalog.price_list.manage,catalog.test.manage but x-permission is catalog.test.read",
+      "class": "guarded-exact",
+      "permission": "catalog.test.read",
       "x_permission": "catalog.test.read"
     },
     "getFefoSuggestion": {
@@ -1980,9 +1965,8 @@
       "x_permission": "homecollection.settings.manage"
     },
     "getImport": {
-      "class": "guarded-other",
-      "permission": "catalog.price_list.manage,catalog.price_list.read,catalog.reference_range.publish,catalog.referrer.manage,catalog.referrer.read,catalog.test.manage",
-      "reason": "asserts catalog.price_list.manage,catalog.price_list.read,catalog.reference_range.publish,catalog.referrer.manage,catalog.referrer.read,catalog.test.manage but x-permission is catalog.test.read",
+      "class": "guarded-exact",
+      "permission": "catalog.test.read",
       "x_permission": "catalog.test.read"
     },
     "getInboundManifest": {
@@ -2056,9 +2040,8 @@
       "x_permission": "inventory.item.read"
     },
     "getInvoice": {
-      "class": "guarded-other",
-      "permission": "billing.invoice.reprint",
-      "reason": "asserts billing.invoice.reprint but x-permission is billing.invoice.read",
+      "class": "guarded-exact",
+      "permission": "billing.invoice.read",
       "x_permission": "billing.invoice.read"
     },
     "getLabOrder": {
@@ -2112,13 +2095,13 @@
       "x_permission": "engagement.self.read"
     },
     "getMyCashSession": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "billing.payment.record",
       "x_permission": "billing.payment.record"
     },
     "getMyDiscountPolicy": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "billing.discount_policy.read",
       "x_permission": "billing.discount_policy.read"
     },
     "getMyEnquiry": {
@@ -2159,14 +2142,13 @@
       "x_permission": "frontdesk.order.read"
     },
     "getOrderBilling": {
-      "class": "guarded-other",
-      "permission": "billing.invoice.reprint",
-      "reason": "asserts billing.invoice.reprint but x-permission is billing.invoice.read",
+      "class": "guarded-exact",
+      "permission": "billing.invoice.read",
       "x_permission": "billing.invoice.read"
     },
     "getPanelDetail": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "catalog.test.read",
       "x_permission": "catalog.test.read"
     },
     "getPartner": {
@@ -2250,8 +2232,8 @@
       "x_permission": null
     },
     "getPaymentSettings": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "payments.merchant_config.read",
       "x_permission": "payments.merchant_config.read"
     },
     "getPendingTestsSummary": {
@@ -2280,9 +2262,8 @@
       "x_permission": "reporting.portal.view"
     },
     "getPriceListDetail": {
-      "class": "guarded-other",
-      "permission": "catalog.price_list.manage",
-      "reason": "asserts catalog.price_list.manage but x-permission is catalog.price_list.read",
+      "class": "guarded-exact",
+      "permission": "catalog.price_list.read",
       "x_permission": "catalog.price_list.read"
     },
     "getPurchaseOrder": {
@@ -2331,14 +2312,13 @@
       "x_permission": null
     },
     "getReconciliationRun": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "payments.reconciliation.read",
       "x_permission": "payments.reconciliation.read"
     },
     "getReferenceRangeSet": {
-      "class": "guarded-other",
-      "permission": "catalog.reference_range.publish",
-      "reason": "asserts catalog.reference_range.publish but x-permission is catalog.test.read",
+      "class": "guarded-exact",
+      "permission": "catalog.test.read",
       "x_permission": "catalog.test.read"
     },
     "getReferralIncentiveReport": {
@@ -2352,8 +2332,8 @@
       "x_permission": "frontdesk.registration.create"
     },
     "getReleaseEligibility": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "billing.invoice.read",
       "x_permission": "billing.invoice.read"
     },
     "getReport": {
@@ -2412,8 +2392,8 @@
       "x_permission": "identity.user.read"
     },
     "getSalesRegister": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "billing.invoice.read",
       "x_permission": "billing.invoice.read"
     },
     "getSalesTree": {
@@ -2512,8 +2492,8 @@
       "x_permission": "platform.tenant.read"
     },
     "getTestDetail": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "catalog.test.read",
       "x_permission": "catalog.test.read"
     },
     "getTestsDoneReport": {
@@ -2567,8 +2547,8 @@
       "x_permission": "instruments.instrument.manage"
     },
     "holdLedgerEntry": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "billing.account.manage",
       "x_permission": "billing.account.manage"
     },
     "identifyIsolate": {
@@ -2617,9 +2597,8 @@
       "x_permission": "engagement.link.issue"
     },
     "issuePartialCreditNote": {
-      "class": "guarded-other",
-      "permission": "billing.invoice.reprint",
-      "reason": "asserts billing.invoice.reprint but x-permission is billing.invoice.cancel",
+      "class": "guarded-exact",
+      "permission": "billing.invoice.cancel",
       "x_permission": "billing.invoice.cancel"
     },
     "issuePatientAccessSlip": {
@@ -2628,8 +2607,8 @@
       "x_permission": "partners.report.read"
     },
     "issuePeriodicInvoice": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "billing.credit_party.manage",
       "x_permission": "billing.credit_party.manage"
     },
     "issueQueueToken": {
@@ -2663,18 +2642,18 @@
       "x_permission": "identity.user.read"
     },
     "listAccountGroups": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "billing.account.read",
       "x_permission": "billing.account.read"
     },
     "listAccountLedgerEntries": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "billing.account.read",
       "x_permission": "billing.account.read"
     },
     "listAccountParticulars": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "billing.account.read",
       "x_permission": "billing.account.read"
     },
     "listAccountSummaries": {
@@ -2808,8 +2787,8 @@
       "x_permission": "quality.autoverify.read"
     },
     "listBillingCodes": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "billing.invoice.read",
       "x_permission": "billing.invoice.read"
     },
     "listBookableItems": {
@@ -2858,8 +2837,8 @@
       "x_permission": "engagement.broadcast.read"
     },
     "listCashTransfers": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "billing.account.read",
       "x_permission": "billing.account.read"
     },
     "listCatalogImports": {
@@ -2868,8 +2847,8 @@
       "x_permission": "catalog.test.manage"
     },
     "listCbmsDocuments": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "billing.invoice.read",
       "x_permission": "billing.invoice.read"
     },
     "listCentreContacts": {
@@ -2888,8 +2867,8 @@
       "x_permission": "reporting.channel.manage"
     },
     "listCommentCodes": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "catalog.test.read",
       "x_permission": "catalog.test.read"
     },
     "listConsumptionFacts": {
@@ -2903,8 +2882,8 @@
       "x_permission": "inventory.item.read"
     },
     "listContainers": {
-      "class": "stub",
-      "reason": "no handler definition found; registered through the module stub (common.internal or 501)",
+      "class": "guarded-exact",
+      "permission": "catalog.test.read",
       "x_permission": "catalog.test.read"
     },
     "listControlIdMaps": {
@@ -2938,30 +2917,28 @@
       "x_permission": "frontdesk.settings.manage"
     },
     "listCreditAccounts": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "billing.credit_party.read",
       "x_permission": "billing.credit_party.read"
     },
     "listCreditCharges": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "billing.credit_party.read",
       "x_permission": "billing.credit_party.read"
     },
     "listCreditNoteTasks": {
-      "class": "guarded-other",
-      "permission": "billing.invoice.reprint",
-      "reason": "asserts billing.invoice.reprint but x-permission is billing.invoice.read",
+      "class": "guarded-exact",
+      "permission": "billing.invoice.read",
       "x_permission": "billing.invoice.read"
     },
     "listCreditNotes": {
-      "class": "guarded-other",
-      "permission": "billing.invoice.reprint",
-      "reason": "asserts billing.invoice.reprint but x-permission is billing.invoice.read",
+      "class": "guarded-exact",
+      "permission": "billing.invoice.read",
       "x_permission": "billing.invoice.read"
     },
     "listCreditParties": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "catalog.price_list.read",
       "x_permission": "catalog.price_list.read"
     },
     "listCriticalAlerts": {
@@ -2970,9 +2947,8 @@
       "x_permission": "reporting.report.read"
     },
     "listCriticalLimitSets": {
-      "class": "guarded-other",
-      "permission": "catalog.reference_range.publish",
-      "reason": "asserts catalog.reference_range.publish but x-permission is catalog.test.read",
+      "class": "guarded-exact",
+      "permission": "catalog.test.read",
       "x_permission": "catalog.test.read"
     },
     "listCriticalValues": {
@@ -3011,8 +2987,8 @@
       "x_permission": "lab.result.read"
     },
     "listDepartments": {
-      "class": "stub",
-      "reason": "no handler definition found; registered through the module stub (common.internal or 501)",
+      "class": "guarded-exact",
+      "permission": "catalog.test.read",
       "x_permission": "catalog.test.read"
     },
     "listDiscountApprovals": {
@@ -3021,18 +2997,18 @@
       "x_permission": "frontdesk.discount.approve"
     },
     "listDiscountAuthorities": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "billing.discount_policy.read",
       "x_permission": "billing.discount_policy.read"
     },
     "listDiscountReasons": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "billing.discount_policy.read",
       "x_permission": "billing.discount_policy.read"
     },
     "listDoctors": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "catalog.referrer.read",
       "x_permission": "catalog.referrer.read"
     },
     "listDrivers": {
@@ -3041,8 +3017,8 @@
       "x_permission": "instruments.instrument.read"
     },
     "listDues": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "billing.invoice.read",
       "x_permission": "billing.invoice.read"
     },
     "listEligiblePhlebotomists": {
@@ -3061,19 +3037,18 @@
       "x_permission": "engagement.enquiry.read"
     },
     "listExpenseTypes": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "billing.account.read",
       "x_permission": "billing.account.read"
     },
     "listExpenses": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "billing.account.read",
       "x_permission": "billing.account.read"
     },
     "listExports": {
-      "class": "guarded-other",
-      "permission": "catalog.price_list.manage,catalog.test.manage",
-      "reason": "asserts catalog.price_list.manage,catalog.test.manage but x-permission is catalog.test.read",
+      "class": "guarded-exact",
+      "permission": "catalog.test.read",
       "x_permission": "catalog.test.read"
     },
     "listFavouriteTests": {
@@ -3087,8 +3062,8 @@
       "x_permission": "identity.settings.manage"
     },
     "listFinanceReviewItems": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "billing.invoice.read",
       "x_permission": "billing.invoice.read"
     },
     "listFollowUpSuggestions": {
@@ -3137,15 +3112,13 @@
       "x_permission": "catalog.icd.manage"
     },
     "listImportIssues": {
-      "class": "guarded-other",
-      "permission": "catalog.price_list.manage,catalog.price_list.read,catalog.reference_range.publish,catalog.referrer.manage,catalog.referrer.read,catalog.test.manage",
-      "reason": "asserts catalog.price_list.manage,catalog.price_list.read,catalog.reference_range.publish,catalog.referrer.manage,catalog.referrer.read,catalog.test.manage but x-permission is catalog.test.read",
+      "class": "guarded-exact",
+      "permission": "catalog.test.read",
       "x_permission": "catalog.test.read"
     },
     "listImports": {
-      "class": "guarded-other",
-      "permission": "catalog.price_list.manage,catalog.price_list.read,catalog.reference_range.publish,catalog.referrer.manage,catalog.referrer.read,catalog.test.manage",
-      "reason": "asserts catalog.price_list.manage,catalog.price_list.read,catalog.reference_range.publish,catalog.referrer.manage,catalog.referrer.read,catalog.test.manage but x-permission is catalog.test.read",
+      "class": "guarded-exact",
+      "permission": "catalog.test.read",
       "x_permission": "catalog.test.read"
     },
     "listInboundManifests": {
@@ -3224,15 +3197,13 @@
       "x_permission": "inventory.item.read"
     },
     "listInvoicePrints": {
-      "class": "guarded-other",
-      "permission": "billing.invoice.reprint",
-      "reason": "asserts billing.invoice.reprint but x-permission is billing.invoice.read",
+      "class": "guarded-exact",
+      "permission": "billing.invoice.read",
       "x_permission": "billing.invoice.read"
     },
     "listInvoices": {
-      "class": "guarded-other",
-      "permission": "billing.invoice.reprint",
-      "reason": "asserts billing.invoice.reprint but x-permission is billing.invoice.read",
+      "class": "guarded-exact",
+      "permission": "billing.invoice.read",
       "x_permission": "billing.invoice.read"
     },
     "listLabCodedSet": {
@@ -3241,8 +3212,8 @@
       "x_permission": "lab.specimen.read"
     },
     "listLedgerEntries": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "billing.cash_report.read",
       "x_permission": "billing.cash_report.read"
     },
     "listManifests": {
@@ -3256,8 +3227,8 @@
       "x_permission": "engagement.membership.read"
     },
     "listMerchantAccounts": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "payments.merchant_config.read",
       "x_permission": "payments.merchant_config.read"
     },
     "listMessageRejections": {
@@ -3271,8 +3242,8 @@
       "x_permission": "reporting.message_template.manage"
     },
     "listMethods": {
-      "class": "stub",
-      "reason": "no handler definition found; registered through the module stub (common.internal or 501)",
+      "class": "guarded-exact",
+      "permission": "catalog.test.read",
       "x_permission": "catalog.test.read"
     },
     "listMicroCodedSet": {
@@ -3428,8 +3399,8 @@
       "x_permission": "identity.self.manage"
     },
     "listPanels": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "catalog.test.read",
       "x_permission": "catalog.test.read"
     },
     "listPartnerOrders": {
@@ -3478,8 +3449,8 @@
       "x_permission": "partners.partner.read"
     },
     "listPartyDiscountSlabs": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "billing.discount_policy.read",
       "x_permission": "billing.discount_policy.read"
     },
     "listPartyOnboarding": {
@@ -3599,15 +3570,13 @@
       "x_permission": "catalog.price_list.read"
     },
     "listPriceListItems": {
-      "class": "guarded-other",
-      "permission": "catalog.price_list.manage",
-      "reason": "asserts catalog.price_list.manage but x-permission is catalog.price_list.read",
+      "class": "guarded-exact",
+      "permission": "catalog.price_list.read",
       "x_permission": "catalog.price_list.read"
     },
     "listPriceLists": {
-      "class": "guarded-other",
-      "permission": "catalog.price_list.manage",
-      "reason": "asserts catalog.price_list.manage but x-permission is catalog.price_list.read",
+      "class": "guarded-exact",
+      "permission": "catalog.price_list.read",
       "x_permission": "catalog.price_list.read"
     },
     "listPrintProfiles": {
@@ -3682,19 +3651,18 @@
       "x_permission": "engagement.queue.operate"
     },
     "listReconciliationFindings": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "payments.reconciliation.read",
       "x_permission": "payments.reconciliation.read"
     },
     "listReconciliationRuns": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "payments.reconciliation.read",
       "x_permission": "payments.reconciliation.read"
     },
     "listReferenceRangeSets": {
-      "class": "guarded-other",
-      "permission": "catalog.reference_range.publish",
-      "reason": "asserts catalog.reference_range.publish but x-permission is catalog.test.read",
+      "class": "guarded-exact",
+      "permission": "catalog.test.read",
       "x_permission": "catalog.test.read"
     },
     "listReferrerMappings": {
@@ -3703,8 +3671,8 @@
       "x_permission": "partners.referrer.map"
     },
     "listRefundRequests": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "billing.refund.approve",
       "x_permission": "billing.refund.approve"
     },
     "listRegistrationDrafts": {
@@ -3834,8 +3802,8 @@
       "x_permission": "smartreport.template.manage"
     },
     "listSpecimenTypes": {
-      "class": "stub",
-      "reason": "no handler definition found; registered through the module stub (common.internal or 501)",
+      "class": "guarded-exact",
+      "permission": "catalog.test.read",
       "x_permission": "catalog.test.read"
     },
     "listSpecimens": {
@@ -3844,8 +3812,8 @@
       "x_permission": "lab.specimen.read"
     },
     "listStaticQrReconciliations": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "payments.reconciliation.read",
       "x_permission": "payments.reconciliation.read"
     },
     "listStockBalances": {
@@ -3879,9 +3847,8 @@
       "x_permission": "inventory.item.read"
     },
     "listSurchargeRules": {
-      "class": "guarded-other",
-      "permission": "catalog.price_list.manage",
-      "reason": "asserts catalog.price_list.manage but x-permission is catalog.price_list.read",
+      "class": "guarded-exact",
+      "permission": "catalog.price_list.read",
       "x_permission": "catalog.price_list.read"
     },
     "listSyncConflicts": {
@@ -3900,15 +3867,13 @@
       "x_permission": "quality.tat_alert.read"
     },
     "listTaxRules": {
-      "class": "guarded-other",
-      "permission": "catalog.price_list.manage",
-      "reason": "asserts catalog.price_list.manage but x-permission is catalog.price_list.read",
+      "class": "guarded-exact",
+      "permission": "catalog.price_list.read",
       "x_permission": "catalog.price_list.read"
     },
     "listTaxTypes": {
-      "class": "guarded-other",
-      "permission": "catalog.price_list.manage",
-      "reason": "asserts catalog.price_list.manage but x-permission is catalog.price_list.read",
+      "class": "guarded-exact",
+      "permission": "catalog.price_list.read",
       "x_permission": "catalog.price_list.read"
     },
     "listTenantSupportSessions": {
@@ -3922,13 +3887,13 @@
       "x_permission": "platform.tenant.read"
     },
     "listTestCategories": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "catalog.test.read",
       "x_permission": "catalog.test.read"
     },
     "listTests": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "catalog.test.read",
       "x_permission": "catalog.test.read"
     },
     "listTransfers": {
@@ -3937,13 +3902,13 @@
       "x_permission": "inventory.item.read"
     },
     "listUnits": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "catalog.test.read",
       "x_permission": "catalog.test.read"
     },
     "listUserDiscountLimits": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "billing.discount_policy.read",
       "x_permission": "billing.discount_policy.read"
     },
     "listUsers": {
@@ -3952,8 +3917,8 @@
       "x_permission": "identity.user.read"
     },
     "listValueSets": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "catalog.test.read",
       "x_permission": "catalog.test.read"
     },
     "listVerificationPolicies": {
@@ -4078,8 +4043,8 @@
       "x_permission": "inventory.po.manage"
     },
     "mergeDoctor": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "catalog.referrer.manage",
       "x_permission": "catalog.referrer.manage"
     },
     "openContainer": {
@@ -4139,8 +4104,8 @@
       "x_permission": "reporting.settings.manage"
     },
     "previewReferenceRange": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "catalog.test.read",
       "x_permission": "catalog.test.read"
     },
     "previewRegistrationNumbers": {
@@ -4159,8 +4124,8 @@
       "x_permission": "smartreport.template.manage"
     },
     "previewStaticQrReconciliation": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "payments.reconciliation.read",
       "x_permission": "payments.reconciliation.read"
     },
     "printCreditNote": {
@@ -4244,8 +4209,8 @@
       "x_permission": "inventory.master.manage"
     },
     "putMerchantAccount": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "payments.merchant_config.manage",
       "x_permission": "payments.merchant_config.manage"
     },
     "putSmartAnalyteGroup": {
@@ -4274,9 +4239,8 @@
       "x_permission": "frontdesk.order.edit"
     },
     "quotePrices": {
-      "class": "guarded-other",
-      "permission": "catalog.price_list.manage",
-      "reason": "asserts catalog.price_list.manage but x-permission is catalog.price_list.read",
+      "class": "guarded-exact",
+      "permission": "catalog.price_list.read",
       "x_permission": "catalog.price_list.read"
     },
     "quoteRegistration": {
@@ -4390,8 +4354,8 @@
       "x_permission": "quality.qc_run.review"
     },
     "recordCreditPartyPayment": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "billing.payment.record",
       "x_permission": "billing.payment.record"
     },
     "recordCultureObservation": {
@@ -4405,9 +4369,8 @@
       "x_permission": "frontdesk.registration.create"
     },
     "recordPayment": {
-      "class": "guarded-other",
-      "permission": "billing.invoice.reprint",
-      "reason": "asserts billing.invoice.reprint but x-permission is billing.payment.record",
+      "class": "guarded-exact",
+      "permission": "billing.payment.record",
       "x_permission": "billing.payment.record"
     },
     "recordStockCountLines": {
@@ -4451,8 +4414,8 @@
       "x_permission": "sync.use"
     },
     "rejectCashTransfer": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "billing.cash_transfer.decide",
       "x_permission": "billing.cash_transfer.decide"
     },
     "rejectDiscount": {
@@ -4476,8 +4439,8 @@
       "x_permission": "partners.pickup.manage"
     },
     "rejectRefund": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "billing.refund.approve",
       "x_permission": "billing.refund.approve"
     },
     "rejectSmartSummary": {
@@ -4491,8 +4454,8 @@
       "x_permission": "lab.specimen.reject"
     },
     "releaseLedgerEntry": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "billing.account.manage",
       "x_permission": "billing.account.manage"
     },
     "releaseQcHold": {
@@ -4557,9 +4520,8 @@
       "x_permission": "quality.autoverify.manage"
     },
     "replaceCriticalLimitSetBands": {
-      "class": "guarded-other",
-      "permission": "catalog.reference_range.publish",
-      "reason": "asserts catalog.reference_range.publish but x-permission is catalog.test.manage",
+      "class": "guarded-exact",
+      "permission": "catalog.test.manage",
       "x_permission": "catalog.test.manage"
     },
     "replaceGoodsReceiptDraft": {
@@ -4573,8 +4535,8 @@
       "x_permission": "partners.manifest.submit"
     },
     "replacePanelMembers": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "catalog.test.manage",
       "x_permission": "catalog.test.manage"
     },
     "replacePriceListAssignments": {
@@ -4588,9 +4550,8 @@
       "x_permission": "inventory.po.manage"
     },
     "replaceReferenceRangeSetBands": {
-      "class": "guarded-other",
-      "permission": "catalog.reference_range.publish",
-      "reason": "asserts catalog.reference_range.publish but x-permission is catalog.test.manage",
+      "class": "guarded-exact",
+      "permission": "catalog.test.manage",
       "x_permission": "catalog.test.manage"
     },
     "replaceSmartRule": {
@@ -4609,8 +4570,8 @@
       "x_permission": "reporting.settings.manage"
     },
     "replaceTestSpecimenRequirements": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "catalog.test.manage",
       "x_permission": "catalog.test.manage"
     },
     "replaceTransferDraft": {
@@ -4699,8 +4660,8 @@
       "x_permission": "lab.specimen.reject"
     },
     "requestRefund": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "billing.refund.request",
       "x_permission": "billing.refund.request"
     },
     "requestSmartLlmRephrase": {
@@ -4749,13 +4710,13 @@
       "x_permission": "inventory.master.manage"
     },
     "resolveDiscountSlab": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "billing.discount_policy.read",
       "x_permission": "billing.discount_policy.read"
     },
     "resolveFinanceReviewItem": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "billing.refund.approve",
       "x_permission": "billing.refund.approve"
     },
     "resolveHomeVisitFlag": {
@@ -4769,8 +4730,8 @@
       "x_permission": "frontdesk.order.edit"
     },
     "resolveOrderablesPreview": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "catalog.test.read",
       "x_permission": "catalog.test.read"
     },
     "resolvePatientSession": {
@@ -4784,8 +4745,8 @@
       "x_permission": "payments.intent.resolve"
     },
     "resolveReconciliationFinding": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "payments.intent.resolve",
       "x_permission": "payments.intent.resolve"
     },
     "resolveSession": {
@@ -4849,8 +4810,8 @@
       "x_permission": "catalog.reference_range.publish"
     },
     "retryCbmsDocument": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "billing.settings.manage",
       "x_permission": "billing.settings.manage"
     },
     "retryDelivery": {
@@ -4889,8 +4850,8 @@
       "x_permission": "partners.party_id_number.read"
     },
     "reverseAccountLedgerEntry": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "billing.account_entry.reverse",
       "x_permission": "billing.account_entry.reverse"
     },
     "reverseConsumptionFact": {
@@ -4899,8 +4860,8 @@
       "x_permission": "inventory.stock.adjust"
     },
     "reverseLedgerEntry": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "billing.payment.reverse",
       "x_permission": "billing.payment.reverse"
     },
     "reviewHeldCollection": {
@@ -5017,8 +4978,8 @@
       "x_permission": "analytics.dashboard.read"
     },
     "searchDoctors": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "catalog.referrer.read",
       "x_permission": "catalog.referrer.read"
     },
     "searchIcdMasterCodes": {
@@ -5032,8 +4993,8 @@
       "x_permission": "instruments.message.read"
     },
     "searchOrderables": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "catalog.test.read",
       "x_permission": "catalog.test.read"
     },
     "searchPartnerOrderables": {
@@ -5104,8 +5065,8 @@
       "x_permission": "identity.settings.manage"
     },
     "setTestTatTargets": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "catalog.test.manage",
       "x_permission": "catalog.test.manage"
     },
     "setUserCentreScope": {
@@ -5114,8 +5075,8 @@
       "x_permission": "identity.user.manage"
     },
     "setUserDiscountLimit": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "billing.discount_policy.manage",
       "x_permission": "billing.discount_policy.manage"
     },
     "setUserRoles": {
@@ -5189,8 +5150,8 @@
       "x_permission": "reporting.narrative.sign"
     },
     "startReconciliationRun": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "payments.intent.resolve",
       "x_permission": "payments.intent.resolve"
     },
     "startServingQueueToken": {
@@ -5279,8 +5240,8 @@
       "x_permission": "platform.tenant.manage"
     },
     "testMerchantAccount": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "payments.merchant_config.manage",
       "x_permission": "payments.merchant_config.manage"
     },
     "transferQueueToken": {
@@ -5314,13 +5275,13 @@
       "x_permission": "partners.referrer.map"
     },
     "updateAccountGroup": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "billing.account.manage",
       "x_permission": "billing.account.manage"
     },
     "updateAccountParticular": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "billing.account.manage",
       "x_permission": "billing.account.manage"
     },
     "updateAgent": {
@@ -5329,13 +5290,13 @@
       "x_permission": "instruments.agent.manage"
     },
     "updateAnalyte": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "catalog.test.manage",
       "x_permission": "catalog.test.manage"
     },
     "updateAnalyteVersionDraft": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "catalog.test.manage",
       "x_permission": "catalog.test.manage"
     },
     "updateAnatomicAddendum": {
@@ -5384,8 +5345,8 @@
       "x_permission": "anatomic.config.manage"
     },
     "updateBillingSettings": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "billing.settings.manage",
       "x_permission": "billing.settings.manage"
     },
     "updateBranch": {
@@ -5414,13 +5375,13 @@
       "x_permission": "homecollection.settings.manage"
     },
     "updateCommentCode": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "catalog.test.manage",
       "x_permission": "catalog.test.manage"
     },
     "updateContainer": {
-      "class": "stub",
-      "reason": "no handler definition found; registered through the module stub (common.internal or 501)",
+      "class": "guarded-exact",
+      "permission": "catalog.test.manage",
       "x_permission": "catalog.test.manage"
     },
     "updateControlLevel": {
@@ -5449,13 +5410,13 @@
       "x_permission": "frontdesk.settings.manage"
     },
     "updateCreditAccount": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "billing.credit_party.manage",
       "x_permission": "billing.credit_party.manage"
     },
     "updateCreditParty": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "catalog.price_list.manage",
       "x_permission": "catalog.price_list.manage"
     },
     "updateCustomFieldDefinition": {
@@ -5464,18 +5425,18 @@
       "x_permission": "frontdesk.settings.manage"
     },
     "updateDepartment": {
-      "class": "stub",
-      "reason": "no handler definition found; registered through the module stub (common.internal or 501)",
+      "class": "guarded-exact",
+      "permission": "catalog.test.manage",
       "x_permission": "catalog.test.manage"
     },
     "updateDiscountReason": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "billing.discount_policy.manage",
       "x_permission": "billing.discount_policy.manage"
     },
     "updateDoctor": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "catalog.referrer.manage",
       "x_permission": "catalog.referrer.manage"
     },
     "updateEngagementSettings": {
@@ -5484,8 +5445,8 @@
       "x_permission": "engagement.settings.manage"
     },
     "updateExpenseType": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "billing.account.manage",
       "x_permission": "billing.account.manage"
     },
     "updateFrontdeskSettings": {
@@ -5574,8 +5535,8 @@
       "x_permission": "engagement.membership_plan.manage"
     },
     "updateMethod": {
-      "class": "stub",
-      "reason": "no handler definition found; registered through the module stub (common.internal or 501)",
+      "class": "guarded-exact",
+      "permission": "catalog.test.manage",
       "x_permission": "catalog.test.manage"
     },
     "updateMicroSettings": {
@@ -5611,8 +5572,8 @@
       "x_permission": "partners.penalty.manage"
     },
     "updatePanel": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "catalog.test.manage",
       "x_permission": "catalog.test.manage"
     },
     "updatePartner": {
@@ -5631,8 +5592,8 @@
       "x_permission": "partners.partner.manage"
     },
     "updatePartyDiscountSlab": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "billing.discount_policy.manage",
       "x_permission": "billing.discount_policy.manage"
     },
     "updatePatient": {
@@ -5641,8 +5602,8 @@
       "x_permission": "frontdesk.registration.create"
     },
     "updatePaymentSettings": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "payments.merchant_config.manage",
       "x_permission": "payments.merchant_config.manage"
     },
     "updatePlatformStaff": {
@@ -5722,8 +5683,8 @@
       "x_permission": "smartreport.template.manage"
     },
     "updateSpecimenType": {
-      "class": "stub",
-      "reason": "no handler definition found; registered through the module stub (common.internal or 501)",
+      "class": "guarded-exact",
+      "permission": "catalog.test.manage",
       "x_permission": "catalog.test.manage"
     },
     "updateTaxType": {
@@ -5742,18 +5703,18 @@
       "x_permission": "platform.tenant.manage"
     },
     "updateTest": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "catalog.test.manage",
       "x_permission": "catalog.test.manage"
     },
     "updateTestCategory": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "catalog.test.manage",
       "x_permission": "catalog.test.manage"
     },
     "updateUnit": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "catalog.test.manage",
       "x_permission": "catalog.test.manage"
     },
     "updateUser": {
@@ -5762,8 +5723,8 @@
       "x_permission": "identity.user.manage"
     },
     "updateValueSet": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "catalog.test.manage",
       "x_permission": "catalog.test.manage"
     },
     "uploadAnatomicImage": {
@@ -5880,8 +5841,8 @@
       "x_permission": "catalog.test.manage"
     },
     "validateFormula": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "catalog.test.read",
       "x_permission": "catalog.test.read"
     },
     "validateSmartLibraryVersion": {
@@ -5890,8 +5851,8 @@
       "x_permission": "smartreport.template.manage"
     },
     "verifyDoctor": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "catalog.referrer.manage",
       "x_permission": "catalog.referrer.manage"
     },
     "verifyMfaChallenge": {

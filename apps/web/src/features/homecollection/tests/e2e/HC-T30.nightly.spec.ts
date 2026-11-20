@@ -25,7 +25,7 @@ const H = (token: string, extra: Record<string, string> = {}) => ({ authorizatio
 const uuid7 = () => { // time-ordered uuid v7 (synthetic ids)
   const b = crypto.getRandomValues(new Uint8Array(16)); const ts = BigInt(Date.now());
   for (let i = 0; i < 6; i++) b[i] = Number((ts >> BigInt(8 * (5 - i))) & 0xffn);
-  b[6] = (b[6] & 0x0f) | 0x70; b[8] = (b[8] & 0x3f) | 0x80;
+  b[6] = (b[6]! & 0x0f) | 0x70; b[8] = (b[8]! & 0x3f) | 0x80;
   const x = [...b].map((v) => v.toString(16).padStart(2, '0')).join('');
   return `${x.slice(0, 8)}-${x.slice(8, 12)}-${x.slice(12, 16)}-${x.slice(16, 20)}-${x.slice(20)}`;
 };

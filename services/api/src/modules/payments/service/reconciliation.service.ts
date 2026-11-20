@@ -7,7 +7,7 @@ import { LimsError, isLimsError } from '../../../core/errors.js';
 // [CONV] relative import until @lims/shared-ts is a services/api dependency (same as outcome.service.ts).
 import { isUuidv7, uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';
 import { findById } from '../repository/intents.repo.js';
-import { guardActor, invalid, iso, money, strict, uuid, type Ctx, type PaymentsDeps, type Row } from '../repository/shared.js';
+import { guardActor, invalid, iso, money, requirePermission, strict, uuid, type Ctx, type PaymentsDeps, type Row } from '../repository/shared.js';
 import { createOutcomeService, type CheckDecision } from './outcome.service.js';
 
 export const RECONCILE_BATCH_TASK = 'payments.reconcile_batch';
@@ -143,6 +143,7 @@ export function createReconciliationService(deps: PaymentsDeps) {
 
   // ------------------------------------------------------------------ P14
   async function startReconciliationRun(ctx: ReconCtx, input?: unknown) {
+    await requirePermission(ctx, 'payments.intent.resolve'); // SEC-AUTHZ-6: contract x-permission of startReconciliationRun
     guardActor(ctx);
     strict(input === undefined ? {} : input, []);                       // the caller cannot choose trigger, date, tenant or counts
     const run = await insertRun(ctx, 'manual');
@@ -152,6 +153,7 @@ export function createReconciliationService(deps: PaymentsDeps) {
 
   // ------------------------------------------------------------------ P12 / P13
   async function listReconciliationRuns(ctx: ReconCtx, query?: unknown) {
+    await requirePermission(ctx, 'payments.reconciliation.read'); // SEC-AUTHZ-6
     const q = strict(query === undefined ? {} : query, ['business_date_from', 'business_date_to', 'status', 'sort', 'cursor', 'limit']);
     const where = ['tenant_id = $1']; const vals: unknown[] = [ctx.tenantId];
     const add = (cond: string, v: unknown): void => { vals.push(v); where.push(cond.replace('?', `$${vals.length}`)); };
@@ -167,6 +169,7 @@ export function createReconciliationService(deps: PaymentsDeps) {
   }
 
   async function getReconciliationRun(ctx: ReconCtx, input: unknown) {
+    await requirePermission(ctx, 'payments.reconciliation.read'); // SEC-AUTHZ-6
     const id = uuid(strict(input, ['runId'])['runId'], 'runId');
     const r = (await ctx.tx.query('SELECT * FROM payments.reconciliation_runs WHERE tenant_id = $1 AND id = $2', [ctx.tenantId, id])).rows[0];
     if (!r) throw new LimsError('common.not_found');
@@ -175,6 +178,7 @@ export function createReconciliationService(deps: PaymentsDeps) {
 
   // ------------------------------------------------------------------ P15
   async function listReconciliationFindings(ctx: ReconCtx, query?: unknown) {
+    await requirePermission(ctx, 'payments.reconciliation.read'); // SEC-AUTHZ-6
     const q = strict(query === undefined ? {} : query, ['status', 'kind', 'severity', 'run_id', 'sort', 'cursor', 'limit']);
     const where = ['tenant_id = $1']; const vals: unknown[] = [ctx.tenantId];
     const add = (col: string, v: unknown): void => { vals.push(v); where.push(`${col} = $${vals.length}`); };
@@ -202,6 +206,7 @@ export function createReconciliationService(deps: PaymentsDeps) {
 
   // ------------------------------------------------------------------ P16
   async function resolveReconciliationFinding(ctx: ReconCtx, input: unknown) {
+    await requirePermission(ctx, 'payments.intent.resolve'); // SEC-AUTHZ-6
     guardActor(ctx);
     const i = strict(input, ['findingId', 'expectedVersion', 'body']);
     const id = uuid(i['findingId'], 'findingId');

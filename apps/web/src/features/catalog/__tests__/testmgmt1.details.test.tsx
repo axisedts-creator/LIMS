@@ -24,7 +24,7 @@ const CBC = testDetail(2, 'CBC', 'Complete blood count', { short_name: 'cbcx', d
 const GLU = testDetail(3, 'GLU', 'Glucose fasting', { department_id: ID(2), tags: ['diabetes', 'sugar'], analytes: [] });
 const DIRECT = `/catalog/tests/${HB['id']}`;
 
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterAll(() => api.close());
 beforeEach(() => { reset(); loadTests(HB, CBC, GLU); });
 afterEach(() => { cleanup(); api.resetHandlers(); });

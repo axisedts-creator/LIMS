@@ -6,6 +6,7 @@
 // pipeline from contracts/openapi/billing.yaml; these map request -> service, fail closed without an authenticated context (bind), and the service re-validates.
 import { LimsError } from '../../../core/errors.js';
 import type { Handler, HandlerRequest } from '../../../core/module.js';
+import { guarded } from './_guard.js';
 import { createDiscountPolicyService, type DiscountPolicyService } from '../service/discountPolicy.service.js';
 import { bind, obj } from './ledger.handlers.js';
 import { ifMatch } from './settings.handlers.js';
@@ -20,7 +21,7 @@ const needKey = (req: HandlerRequest) => {
 };
 const p = (req: HandlerRequest, k: string): unknown => obj(req.params)[k];
 
-export const discountPolicyHandlers: Readonly<Record<string, Handler>> = Object.freeze({
+const discountPolicyHandlersRaw: Readonly<Record<string, Handler>> = Object.freeze({
   listDiscountReasons: bind(async (ctx, req) => ({ status: 200, body: await service().listReasons(ctx, req.query) })),
   createDiscountReason: bind(async (ctx, req) => {
     needKey(req);
@@ -62,4 +63,23 @@ export const discountPolicyHandlers: Readonly<Record<string, Handler>> = Object.
     return { status: 200, body: b, headers: etag(b) };
   }),
   getMyDiscountPolicy: bind(async (ctx) => ({ status: 200, body: await service().myPolicy(ctx) })),
+});
+
+// SEC-AUTHZ-6 (LD-189 AUTH-SENSITIVE, LD-261; SEC-AUTHZ-1.1): the contract x-permission is asked FIRST, before the wrapped handler reads or writes anything.
+export const discountPolicyHandlers: Readonly<Record<string, Handler>> = Object.freeze({
+  ...discountPolicyHandlersRaw,
+  listDiscountReasons: guarded('billing.discount_policy.read', discountPolicyHandlersRaw['listDiscountReasons']!),
+  createDiscountReason: guarded('billing.discount_policy.manage', discountPolicyHandlersRaw['createDiscountReason']!),
+  updateDiscountReason: guarded('billing.discount_policy.manage', discountPolicyHandlersRaw['updateDiscountReason']!),
+  listPartyDiscountSlabs: guarded('billing.discount_policy.read', discountPolicyHandlersRaw['listPartyDiscountSlabs']!),
+  createPartyDiscountSlab: guarded('billing.discount_policy.manage', discountPolicyHandlersRaw['createPartyDiscountSlab']!),
+  updatePartyDiscountSlab: guarded('billing.discount_policy.manage', discountPolicyHandlersRaw['updatePartyDiscountSlab']!),
+  deactivatePartyDiscountSlab: guarded('billing.discount_policy.manage', discountPolicyHandlersRaw['deactivatePartyDiscountSlab']!),
+  resolveDiscountSlab: guarded('billing.discount_policy.read', discountPolicyHandlersRaw['resolveDiscountSlab']!),
+  listUserDiscountLimits: guarded('billing.discount_policy.read', discountPolicyHandlersRaw['listUserDiscountLimits']!),
+  setUserDiscountLimit: guarded('billing.discount_policy.manage', discountPolicyHandlersRaw['setUserDiscountLimit']!),
+  listDiscountAuthorities: guarded('billing.discount_policy.read', discountPolicyHandlersRaw['listDiscountAuthorities']!),
+  createDiscountAuthority: guarded('billing.discount_policy.manage', discountPolicyHandlersRaw['createDiscountAuthority']!),
+  deactivateDiscountAuthority: guarded('billing.discount_policy.manage', discountPolicyHandlersRaw['deactivateDiscountAuthority']!),
+  getMyDiscountPolicy: guarded('billing.discount_policy.read', discountPolicyHandlersRaw['getMyDiscountPolicy']!),
 });

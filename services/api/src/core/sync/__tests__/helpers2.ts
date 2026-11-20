@@ -125,6 +125,20 @@ const claims = (tenant: string, sub: string, type: string) => JSON.stringify({ t
 /** One request = one tx under `who`'s claims (RLS on), like helpers.fire, PLUS ctx.db.tx (SAVEPOINT per operation), ctx.metrics capture and a getActor with a centre scope.
  *  Commits on success; on a throw it rolls back and RETURNS the error. The engine may run its operations sequentially only; ctx.tx is shared by the whole request. */
 export async function fire2(handlers: Record<string, any>, operationId: string, r: { params?: object; query?: object; headers?: object; body?: unknown }, who: Who, o: Fire2 = {}): Promise<Outcome & { metrics: NonNullable<Fire2['metrics']> }> {
+  // T0B-SYNC-5 harness fidelity (ruling 2026-11-19, 02-TRD §6.4): production retries the WHOLE request tx on SQLSTATE 40001/40P01 up to LIMS_CORE_TX_RETRY_MAX (3) times
+  // (core/db/tx.ts RETRYABLE), then answers 503 common.dependency_unavailable. Same here; output arrays of a rolled back attempt are discarded.
+  const RETRY_MAX = 3; const m0 = o.metrics?.length ?? 0; const a0 = o.audits?.length ?? 0;
+  for (let attempt = 0; ; attempt++) {
+    const out = await fire2Once(handlers, operationId, r, who, o);
+    const sqlstate = (out.error as any)?.code;
+    if (sqlstate !== '40001' && sqlstate !== '40P01') return out;
+    if (attempt >= RETRY_MAX) return { ...out, error: new LimsError('common.dependency_unavailable') };
+    o.metrics?.splice(m0); o.audits?.splice(a0);
+    await new Promise((res) => setTimeout(res, 5 * (attempt + 1) + Math.floor(Math.random() * 10)));
+  }
+}
+
+async function fire2Once(handlers: Record<string, any>, operationId: string, r: { params?: object; query?: object; headers?: object; body?: unknown }, who: Who, o: Fire2): Promise<Outcome & { metrics: NonNullable<Fire2['metrics']> }> {
   await ensureEffectTable();
   const requestId = o.requestId ?? uid();
   const logs: string[] = [];

@@ -86,7 +86,7 @@ const api = setupServer(
   http.post(`${R}/channel-accounts/:channel/callback-token`, async ({ request }) => { await rec(request); return HttpResponse.json({ callback_url: 'https://api.test/v1/reporting/callbacks/sms/SYN-ONCE-TOKEN' }); }),
   http.patch(`${R}/settings`, async ({ request }) => { await rec(request); return HttpResponse.json(settings({ version: 7 })); }),
 );
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { cleanup(); api.resetHandlers(); calls.length = 0; push.mockReset(); replace.mockReset(); vi.useRealTimers(); localStorage.clear(); sessionStorage.clear(); });
 afterAll(() => api.close());
 

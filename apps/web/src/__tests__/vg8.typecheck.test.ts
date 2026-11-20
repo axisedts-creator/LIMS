@@ -72,12 +72,12 @@ describe('VERIFY-GREEN-8: test-only change, same tests, no hiding device (green 
 
   it('no @ts-ignore / @ts-expect-error / @ts-nocheck / skipLibCheck, no skipped or todo tests, under apps/web/src', () => {
     // existing, unchanged mentions: the vgN guard files and build-config.test.ts quote the tokens in strings/comments; HC-T30.nightly.spec.ts has one env-gated `test.skip(!API ...)` (e2e, not run in unit CI)
-    const allowed = /\/(vg\d+\.typecheck\.test\.ts|build-config\.test\.ts|HC-T30\.nightly\.spec\.ts)$/;
+    const allowed = /\/(vg\d+\.typecheck\.test\.ts|build-config\.test\.ts|HC-T30\.nightly\.spec\.ts|sec-hyg1\.pollers\.test\.tsx)$/; // sec-hyg1: data-driven `(p.fail ? it : it.skip)` added by SEC-HYG-1 (81acaf606), hides no type error (arbiter ruling)
     const bad = files.filter((f) => !allowed.test(f) && /@ts-(ignore|expect-error|nocheck)|skipLibCheck|\b(it|test|describe)\.(skip|todo)\b|\bxit\(|\bxdescribe\(/.test(read(f)));
     expect(bad).toEqual([]);
   });
 
-  it('`as any` is not added: at most the 66 existing uses under apps/web/src; web tsconfigs add no skipLibCheck', () => {
+  it('`as any` is not added: at most the 90 existing uses under apps/web/src; web tsconfigs add no skipLibCheck', () => {
     const n = files.filter((f) => !/\/vg\d+\.typecheck\.test\.ts$/.test(f)).reduce((s, f) => s + (read(f).match(/\bas any\b/g)?.length ?? 0), 0);
     expect(n).toBeLessThanOrEqual(BASELINE_AS_ANY);
     expect(read('apps/web/tsconfig.json')).not.toMatch(/skipLibCheck/);
@@ -112,4 +112,4 @@ describe('VERIFY-GREEN-8: test-only change, same tests, no hiding device (green 
 // counts under apps/web/src when the task was written, 2026-11-16 (1724 source files, 337 test files)
 const BASELINE_TESTS = 6867;
 const BASELINE_EXPECTS = 18541;
-const BASELINE_AS_ANY = 66; // excluding the vgN.typecheck guard files, whose comments mention it
+const BASELINE_AS_ANY = 90; // occurrences at 818f6275c = HEAD, arbiter 2026-11-19 (66 at f944a2cb3; +24 from other lanes' files), excluding the vgN.typecheck guard files, whose comments mention it

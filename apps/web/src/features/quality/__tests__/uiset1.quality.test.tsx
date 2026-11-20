@@ -13,7 +13,7 @@ vi.mock('@/core/session/server', async () => (await import('./quality-t24.harnes
 
 const PATH = '/quality/settings';
 const PAGE = 'settings/page';
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 beforeEach(() => resetApi(PERM_CFG_WRITE));
 afterEach(() => { cleanup(); api.resetHandlers(); });
 afterAll(() => api.close());

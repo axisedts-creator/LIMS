@@ -5,6 +5,7 @@
 import { createEvents } from '../../../core/events/publish.js';
 import { LimsError } from '../../../core/errors.js';
 import type { Handler, HandlerContext, HandlerRequest, HandlerResult } from '../../../core/module.js';
+import { guarded } from './_guard.js';
 import { moneyOf } from '../domain/money/paisa.js';
 import { createBillingEvents } from '../events/publish.js';
 import type { BalanceCtx } from '../service/balance.service.js';
@@ -31,7 +32,7 @@ const ledgerService = () => (ledger ??= createLedgerService({ counter: createCou
 let refunds: ReturnType<typeof createRefundService> | undefined;
 const refundService = () => (refunds ??= createRefundService({ events: createBillingEvents(createEvents({ producer: 'billing' }) as never) }));
 
-export const ledgerHandlers:Readonly<Record<string, Handler>> = Object.freeze({
+const ledgerHandlersRaw: Readonly<Record<string, Handler>> = Object.freeze({
   recordPayment: bind(async (ctx, req) => {
     const key = obj(req.headers)['idempotency-key'];
     if (typeof key !== 'string' || key === '') throw new LimsError('common.idempotency_key_required');
@@ -112,4 +113,22 @@ export const ledgerHandlers:Readonly<Record<string, Handler>> = Object.freeze({
   listLedgerEntries: bind(async (ctx, req) => ({ status: 200, body: await createLedgerReadService().listLedgerEntries(ctx, req.query) })),
   listDues: bind(async (ctx, req) => ({ status: 200, body: await createLedgerReadService().listDues(ctx, req.query) })),
   getDailyCash: bind(async (ctx, req) => ({ status: 200, body: await createLedgerReadService().getDailyCash(ctx, req.query) })),
+});
+
+// SEC-AUTHZ-6 (LD-189 AUTH-SENSITIVE, LD-261; SEC-AUTHZ-1.1): the contract x-permission is asked FIRST, before the wrapped handler reads or writes anything.
+export const ledgerHandlers: Readonly<Record<string, Handler>> = Object.freeze({
+  ...ledgerHandlersRaw,
+  recordPayment: guarded('billing.payment.record', ledgerHandlersRaw['recordPayment']!),
+  getMyCashSession: guarded('billing.payment.record', ledgerHandlersRaw['getMyCashSession']!),
+  closeCashSession: guarded('billing.payment.record', ledgerHandlersRaw['closeCashSession']!),
+  listLedgerEntries: guarded('billing.cash_report.read', ledgerHandlersRaw['listLedgerEntries']!),
+  listDues: guarded('billing.invoice.read', ledgerHandlersRaw['listDues']!),
+  getDailyCash: guarded('billing.cash_report.read', ledgerHandlersRaw['getDailyCash']!),
+  reverseLedgerEntry: guarded('billing.payment.reverse', ledgerHandlersRaw['reverseLedgerEntry']!),
+  requestRefund: guarded('billing.refund.request', ledgerHandlersRaw['requestRefund']!),
+  approveRefund: guarded('billing.refund.approve', ledgerHandlersRaw['approveRefund']!),
+  rejectRefund: guarded('billing.refund.approve', ledgerHandlersRaw['rejectRefund']!),
+  listRefundRequests: guarded('billing.refund.approve', ledgerHandlersRaw['listRefundRequests']!),
+  listFinanceReviewItems: guarded('billing.invoice.read', ledgerHandlersRaw['listFinanceReviewItems']!),
+  resolveFinanceReviewItem: guarded('billing.refund.approve', ledgerHandlersRaw['resolveFinanceReviewItem']!),
 });

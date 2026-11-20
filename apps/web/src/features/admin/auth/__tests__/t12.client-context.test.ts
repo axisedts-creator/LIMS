@@ -13,7 +13,7 @@ type A = typeof import('../actions');
 let A: A;
 beforeAll(async () => {
   setEnv();
-  api.listen({ onUnhandledRequest: 'error' });
+  api.listen({ onUnhandledFrame: 'error' });
   A = (await import('../actions')) as A;
 });
 beforeEach(() => resetApi());

@@ -2,6 +2,7 @@
 // contracts/openapi/reporting.yaml; these map request -> service and fail closed without an authenticated request context.
 import { LimsError } from '../../../core/errors.js';
 import type { Handler, HandlerContext, HandlerRequest } from '../../../core/module.js';
+import { guarded } from './_guard.js';
 import { contentDisposition } from '../../../core/storage/download.js';
 import { createOutsourcedService, type OutsourcedCtx } from '../service/outsourced.service.js';
 
@@ -25,7 +26,7 @@ export function ifMatch(req: HandlerRequest): number | undefined {
   return m ? Number(m[1]) : 0;
 }
 
-export const outsourcedHandlers: Readonly<Record<string, Handler>> = Object.freeze({
+const outsourcedRaw: Readonly<Record<string, Handler>> = Object.freeze({
   uploadOutsourcedReport: bind(async (s, ctx, req) => {
     const b = obj(req.body);
     const out = await s.upload(ctx, { orderItemId: obj(req.params)['order_item_id'], file: b['file'], externalLabName: b['external_lab_name'] });
@@ -55,4 +56,15 @@ export const outsourcedHandlers: Readonly<Record<string, Handler>> = Object.free
     const q = obj(req.query);
     return { status: 200, body: await s.listItems(ctx, { centreId: q['centre_id'], state: q['state'], cursor: q['cursor'], limit: q['limit'] }) };
   }),
+});
+
+// SEC-AUTHZ-7 (LD-189, LD-261): each row below asks its contract x-permission through IdentityPort.assertRole before the wrapped handler runs (see _guard.ts).
+export const outsourcedHandlers: Readonly<Record<string, Handler>> = Object.freeze({
+  ...outsourcedRaw,
+  uploadOutsourcedReport: guarded('reporting.outsourced.attach', outsourcedRaw['uploadOutsourcedReport']!),
+  listOutsourcedReports: guarded('reporting.outsourced.attach', outsourcedRaw['listOutsourcedReports']!),
+  confirmOutsourcedReport: guarded('reporting.outsourced.attach', outsourcedRaw['confirmOutsourcedReport']!),
+  withdrawOutsourcedReport: guarded('reporting.outsourced.attach', outsourcedRaw['withdrawOutsourcedReport']!),
+  downloadOutsourcedReport: guarded('reporting.outsourced.attach', outsourcedRaw['downloadOutsourcedReport']!),
+  listOutsourcedItems: guarded('reporting.outsourced.attach', outsourcedRaw['listOutsourcedItems']!),
 });

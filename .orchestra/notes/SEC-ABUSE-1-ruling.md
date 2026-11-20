@@ -36,3 +36,27 @@ login tier, (3) the 'i:' IP-bucket on general, (4) the web client-IP helper. Onl
 (loginStaff.ts's own exact failure/lockout semantics) waits on the migration landing.
 
 Reset: C1 SEC-ABUSE-1 to changes.
+
+----
+LEAD ITEM, LD-414 (2026-11-19):
+
+Debug rounds 1-3 (all post LD-410) confirm the same root cause: LD-410 approved migration (the
+last_hit column plus app.ratelimit_peek and app.ratelimit_clear, full spec in LD-410) has not
+landed in db/, and C1 is correctly refusing to add a migration itself under the general
+no-migration-from-the-wrong-lane discipline. C0-0B, the lane this was nominally routed to for the
+actual migration file, has zero open or runnable tasks right now; every T0B task in that chunk
+shows done. There is no existing task there to attach this LEAD ITEM to through the normal
+per-task reset mechanism.
+
+Cross chunk authorization (one time supersession, same precedent as LD-405/LD-358): C1 is
+authorized to write and land the migration file specified in LD-410 directly (the ALTER TABLE, the
+two SECURITY DEFINER functions, the GRANT EXECUTE to lims_api only). This is scoped to exactly the
+migration LD-410 already specified in full; it is not a general license for C1 to add other
+migrations.
+
+Once the migration is in db/ and applied on the throwaway PG17, the TS RateLimitBackend and
+RateLimiter peek/clear methods and the loginStaff.ts wiring from LD-410 item (1) can proceed as
+already planned; items 2/3/4 of the split were already unblocked by LD-410 and continue
+regardless.
+
+Reset applied: changes.

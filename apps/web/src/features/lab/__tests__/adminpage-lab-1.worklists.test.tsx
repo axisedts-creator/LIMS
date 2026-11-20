@@ -52,7 +52,7 @@ const api = setupServer(
   http.get(DEPTS_URL, deptsHandler),
   http.get(ITEMS_URL, ({ request }) => { rec(request); return HttpResponse.json({ data: [], page: { limit: 200 } }); }), // optional: counts
 );
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' })); // any operation outside the two above fails the test (no invented operation)
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' })); // any operation outside the two above fails the test (no invented operation)
 afterEach(() => { cleanup(); api.resetHandlers(); calls.length = 0; session.perms = []; departments = DEPARTMENTS; });
 afterAll(() => api.close());
 

@@ -19,19 +19,20 @@ const hmacHex = (email: string) => {
   if (!key) throw new LimsError('common.internal', 'identity: email HMAC key missing');
   return createHmac('sha256', key).update(email).digest('hex');
 };
-const limits = createAuthLimits(undefined);
-const svc = createUserService({
+const events = createAuthEventsRepo();
+// SEC-ABUSE-1 (LD-410): the login failure counters live in the limiter store, so unlock clears them through this request's ctx.rateLimit.
+const svcFor = (rateLimit: Parameters<typeof createAuthLimits>[0]) => createUserService({
   gotrue: { adminCreateUser: (i) => (gw ??= gotrueGatewayFromEnv()).adminCreateUser(i) },
   emailHmac: (e) => Buffer.from(hmacHex(e), 'hex'),
-  clearAccountFailures: (e) => limits.clearAccountFailures(hmacHex(e)),
-  events: createAuthEventsRepo(),
+  clearAccountFailures: (e) => createAuthLimits(rateLimit).clearAccountFailures(hmacHex(e)),
+  events,
 });
 
 export function bindUser(fn: (s: Svc, ctx: UserCtx, req: HandlerRequest) => Promise<Result>, o: { etag?: boolean } = {}): Handler {
   return async (req: HandlerRequest, hctx: HandlerContext) => {
     const c = hctx as unknown as Partial<UserCtx>;
     if (typeof c?.tenantId !== 'string' || typeof c.actor?.id !== 'string' || !c.tx) throw new LimsError('auth.unauthenticated');
-    const out = await fn(svc, c as UserCtx, req);
+    const out = await fn(svcFor((hctx as { rateLimit?: Parameters<typeof createAuthLimits>[0] }).rateLimit), c as UserCtx, req);
     return { status: out.status, body: out.body, ...(o.etag && out.version !== undefined ? { headers: { etag: `"${out.version}"` } } : {}) };
   };
 }

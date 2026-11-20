@@ -31,7 +31,7 @@ const collecting = () => runDto({ status: 'collecting', outcome: undefined, need
 const warning = () => runDto({ status: 'evaluated', outcome: 'accepted_warning', rules_violated: [], warning_rules: ['1-2s'], needs_action: false, needs_action_reason: undefined, hold: undefined });
 const closed = () => runDto({ status: 'closed', closed_at: '2026-11-14T05:00:00.000Z', needs_action: false, needs_action_reason: undefined });
 
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 beforeEach(() => { resetApi(PERM_REVIEW); routes[`GET ${RUN}`] = json(rejected()); });
 afterEach(() => { cleanup(); api.resetHandlers(); });
 afterAll(() => api.close());

@@ -68,3 +68,36 @@ same `@/` path), stop and write a dispute rather than forcing it -- do not fall 
 without a new ruling.
 
 Reset: C1 VERIFY-GREEN-5 to changes.
+
+----
+LEAD ITEM, LD-413 (2026-11-19):
+
+Both dispute rounds dated 202611190851 and 202611190857 are downstream of T0D-UILIST-1 legitimate
+tab-bar to FilterBar change (LD-353), not a defect in LD-405 tsconfig fix. The tab-count failure is
+already fixed per the writer own round 5 note (commit 077c743de). The remaining item is the
+rs-c6.screens.test.tsx worklist snapshot in __snapshots__, which still reflects the old
+pre-FilterBar markup; CI=true blocks vitest normal auto-write, so the writer cannot self-serve it.
+
+This is a mechanical re-record, not a design or implementation question.
+
+Authorize the tester to run vitest run -u (with CI unset for this one invocation) against
+rs-c6.screens.test.tsx only, re-recording the worklist snapshot only, then commit the updated snap
+file. Do not touch any other snapshot in that file. Do not re-run -u against the whole suite.
+
+Reset applied: changes.
+
+
+----
+LEAD ITEM, LD-419 (2026-11-19):
+rs-c6.static data_files pin for portal/src/middleware.ts is stale after SEC-HDR-1 landed its
+headers on that file (x-frame-options, permissions-policy). Confirmed directly: the hash the
+test computes (sha256, utf8, CRLF normalized to LF) is
+eee6ef484dcce3e66c449f97896646f472c8765d93d6db4cf7db7ab7cce303b4; the committed baseline at
+rs-c6.baseline.json line 11 still has f355c051ab8e45ef901fa38bbecb55637f1a53096f345cec814e06214a740d3e.
+
+RULING: TESTS_WRONG, baseline pin only. Edit only line 11 of
+apps/web/src/features/reporting/__tests__/rs-c6.baseline.json to the new hash above. Nothing
+else in the baseline file changes. Do not touch portal/src/middleware.ts itself. Tester owned;
+writer and debugger may not touch this file.
+
+Reset applied: changes.

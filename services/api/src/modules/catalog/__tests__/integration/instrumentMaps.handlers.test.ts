@@ -201,7 +201,7 @@ describe('permission matrix (S-4, AB-23, AC-18.5, 08 A13 D-18)', () => {
 
   it.each(Object.entries(OPS))('%s (%s) fails closed without an IdentityPort in the context (auth.unauthenticated), zero data access', { timeout: T }, async (k, id) => {
     const e = world();
-    const x = await rejection(e.db.run((ctx) => H[id]!(requests[k as keyof typeof requests](), ctx)));
+    const x = await rejection(e.db.run((ctx) => H[id]!(requests[k as keyof typeof requests](), { ...ctx, ports: {} })));
     expect(isLimsError(x, 'auth.unauthenticated'), `${id}: ${x?.code}`).toBe(true); untouched(e);
   });
 

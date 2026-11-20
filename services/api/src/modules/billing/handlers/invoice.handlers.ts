@@ -3,6 +3,7 @@
 import { LimsError } from '../../../core/errors.js';
 import { createEvents } from '../../../core/events/publish.js';
 import type { Handler, HandlerContext, HandlerRequest, HandlerResult } from '../../../core/module.js';
+import { guarded } from './_guard.js';
 import { createBillingEvents } from '../events/publish.js';
 import type { BalanceCtx } from '../service/balance.service.js';
 import { createCounterService } from '../service/counter.service.js';
@@ -57,7 +58,7 @@ const issuePartialCreditNote = bindWrite(201, async (ctx, req) => {
   return createInvoiceReadService().getCreditNote(ctx, { creditNoteId: ref.creditNoteId });
 });
 
-export const invoiceHandlers: Readonly<Record<string, Handler>> = Object.freeze({
+const invoiceHandlersRaw: Readonly<Record<string, Handler>> = Object.freeze({
   listInvoices: bind((s, ctx, req) => s.listInvoices(ctx, req.query)),
   getInvoice: bind((s, ctx, req) => s.getInvoice(ctx, { invoiceId: obj(req.params)['invoice_id'] })),
   getOrderBilling: bind((s, ctx, req) => s.getOrderBilling(ctx, { orderId: obj(req.params)['order_id'] })),
@@ -69,4 +70,21 @@ export const invoiceHandlers: Readonly<Record<string, Handler>> = Object.freeze(
   getCreditNote: bind((s, ctx, req) => s.getCreditNote(ctx, { creditNoteId: obj(req.params)['credit_note_id'] })),
   cancelInvoice,
   issuePartialCreditNote,
+});
+
+// SEC-AUTHZ-6 (LD-189 AUTH-SENSITIVE, LD-261; SEC-AUTHZ-1.1): the contract x-permission is asked FIRST, before the wrapped handler reads or writes anything.
+export const invoiceHandlers: Readonly<Record<string, Handler>> = Object.freeze({
+  ...invoiceHandlersRaw,
+  // already guarded-exact in the service (after the row load, with the row's centre); this floor asks the same permission FIRST, before any read.
+  printInvoice: guarded('billing.invoice.reprint', invoiceHandlersRaw['printInvoice']!),
+  printCreditNote: guarded('billing.invoice.reprint', invoiceHandlersRaw['printCreditNote']!),
+  listInvoices: guarded('billing.invoice.read', invoiceHandlersRaw['listInvoices']!),
+  getInvoice: guarded('billing.invoice.read', invoiceHandlersRaw['getInvoice']!),
+  getOrderBilling: guarded('billing.invoice.read', invoiceHandlersRaw['getOrderBilling']!),
+  listInvoicePrints: guarded('billing.invoice.read', invoiceHandlersRaw['listInvoicePrints']!),
+  listCreditNoteTasks: guarded('billing.invoice.read', invoiceHandlersRaw['listCreditNoteTasks']!),
+  listCreditNotes: guarded('billing.invoice.read', invoiceHandlersRaw['listCreditNotes']!),
+  getCreditNote: guarded('billing.invoice.read', invoiceHandlersRaw['getCreditNote']!),
+  cancelInvoice: guarded('billing.invoice.cancel', invoiceHandlersRaw['cancelInvoice']!),
+  issuePartialCreditNote: guarded('billing.invoice.cancel', invoiceHandlersRaw['issuePartialCreditNote']!),
 });

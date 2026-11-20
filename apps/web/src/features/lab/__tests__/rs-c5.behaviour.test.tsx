@@ -62,7 +62,7 @@ const api = setupServer(
   http.get(`${ORIGIN}/v1/instruments/instruments`, async ({ request }) => { await rec(request); return HttpResponse.json({ data: [{ id: id(0x1a), display_name: 'Synthetic Analyser A' }], page: { limit: 50 } }); }),
   http.post(`${LAB}/results/bulk-verify`, async ({ request }) => { await rec(request); const b = (await request.clone().json()) as { items: { id: string }[] }; return HttpResponse.json({ results: b.items.map((i) => ({ id: i.id, outcome: 'ok' })) }); }),
 );
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { cleanup(); api.resetHandlers(); calls.length = 0; db.clear(); push.mockReset(); localStorage.clear(); sessionStorage.clear(); });
 afterAll(() => api.close());
 

@@ -55,7 +55,7 @@ const api = setupServer(
   http.get(`${R}/coded-sets/:set`, json({ data: [] })),
   http.get(`${ORIGIN}/*`, json(pageOf([]))), // any other read (centre names, billing codes…) is benign
 );
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { cleanup(); api.resetHandlers(); gets.length = 0; session.permissions = ADMIN; });
 afterAll(() => api.close());
 

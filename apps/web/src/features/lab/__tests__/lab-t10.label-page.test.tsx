@@ -61,7 +61,7 @@ const api = setupServer(
 const printSpy = vi.fn();
 let labelsAtPrint: number[] = [];
 
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 beforeEach(() => {
   readyN = 0;
   readyReplies = [() => HttpResponse.json(readyBody())];

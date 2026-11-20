@@ -33,7 +33,7 @@ import { ApiError } from '@/core/api/server-fetch';
 import { expectEmptyTable, headersOf, tableOf, tablesOf } from './emptytbl2.helpers';
 import { API, BAD, CLEAN, ID, MANAGE, MB, READ, TEMPLATE_FILE, TM, XLSX, api, batch, captureDownloads, downloads, err, openPage, openTests, prob, xlsxFile } from './testimport1.harness';
 
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterAll(() => api.close());
 beforeEach(() => { API.reset(); TM.session.permissions = MANAGE; TM.nav.search = ''; captureDownloads(); });
 afterEach(() => { cleanup(); api.resetHandlers(); TM.push.mockClear(); TM.replace.mockClear(); TM.refresh.mockReset(); });

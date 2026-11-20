@@ -6,20 +6,20 @@ import { pageExists, specSuite, type SpecRow } from '../../../core/nav/__tests__
 
 // T0D-ACCT-1 (LD-313): five additive accounting entries after Billing settings (order 51-59; billing 60-64 stay with C15 payments).
 // Rows join the exact check only once their page exists, so this file never demands a CR for a page the task has not built yet.
-const ACCOUNTING: SpecRow[] = [
+const ACCOUNTING: SpecRow[] = ([
   { name: 'Account entries', path: '/billing/accounts/entries', permission: 'billing.account.read', group: 'billing', orderRange: [50, 60] },
   { name: 'Account ledger', path: '/billing/accounts/ledger', permission: 'billing.account.read', group: 'billing', orderRange: [50, 60] },
   { name: 'Pocket ledger', path: '/billing/accounts/pocket', permission: 'billing.account.read', group: 'billing', orderRange: [50, 60] },
   { name: 'Account summary', path: '/billing/accounts/summary', permission: 'billing.account.read', group: 'billing', orderRange: [50, 60] },
   { name: 'Account masters', path: '/billing/accounts/masters', permission: 'billing.account.read', group: 'billing', orderRange: [50, 60] },
-].filter((r) => pageExists(r.path));
+] satisfies SpecRow[]).filter((r) => pageExists(r.path));
 
 // T0D-ACCT-2 (LD-313): three more additive entries in the free slots 52, 54, 56 (same rule: they join once the page exists).
-const ACCOUNTING_2: SpecRow[] = [
+const ACCOUNTING_2: SpecRow[] = ([
   { name: 'Expenses', path: '/billing/expenses', permission: 'billing.account.read', group: 'billing', orderRange: [50, 60] },
   { name: 'Expense types', path: '/billing/expenses/types', permission: 'billing.account.read', group: 'billing', orderRange: [50, 60] },
   { name: 'Cash transfers', path: '/billing/cash-transfers', permission: 'billing.account.read', group: 'billing', orderRange: [50, 60] },
-].filter((r) => pageExists(r.path));
+] satisfies SpecRow[]).filter((r) => pageExists(r.path));
 
 specSuite({
   module: 'billing',

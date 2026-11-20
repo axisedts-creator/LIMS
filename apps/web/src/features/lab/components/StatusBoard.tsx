@@ -83,7 +83,8 @@ function Board({ centres, initialRows, initialNextCursor, initialRange }: Status
   useEffect(() => { setUpdated(clock(new Date())); }, []);
   useEffect(() => {
     if (paused) return undefined;
-    const timer = setInterval(() => { void refresh(); }, POLL_MS);
+    // LD-240: no request while the tab is hidden.
+    const timer = setInterval(() => { if (document.visibilityState !== 'hidden') void refresh(); }, POLL_MS);
     return () => clearInterval(timer);
   }, [paused, refresh]);
 

@@ -37,8 +37,8 @@ export const sessionMock = {
   getShellSession: async () => ({ actor: { permissions: session.permissions, displayName: 'Synthetic Owner', tenantCode: 'syn', roles: [] } }),
   getRequestPathname: async () => '/analytics/reports',
 };
-export const router = { push: vi.fn(), replace: vi.fn(), refresh: vi.fn(), back: vi.fn() };
-export const navigationMock = {
+export const router: Record<'push' | 'replace' | 'refresh' | 'back', ReturnType<typeof vi.fn>> = { push: vi.fn(), replace: vi.fn(), refresh: vi.fn(), back: vi.fn() };
+export const navigationMock: { useRouter: () => typeof router; usePathname: () => string; useSearchParams: () => URLSearchParams; notFound: () => never; redirect: (to: string) => never } = {
   useRouter: () => router,
   usePathname: () => '/analytics/reports',
   useSearchParams: () => new URLSearchParams(),
@@ -342,7 +342,7 @@ export async function load(kind: string) {
   const mod = (await import(/* @vite-ignore */ `../../../app/(staff)/analytics/${rel}`)) as { default: (p: any) => Promise<any> };
   return { Page: mod.default, paramKey };
 }
-export async function show(kind: string, sp: SP = {}) {
+export async function show(kind: string, sp: SP = {}): Promise<ReturnType<typeof render>> {
   const { Page, paramKey } = await load(kind);
   const props: Record<string, unknown> = { searchParams: Promise.resolve(sp) };
   if (paramKey) props['params'] = Promise.resolve({ [paramKey]: kind });

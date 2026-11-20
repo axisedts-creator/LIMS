@@ -2,6 +2,7 @@
 // and Idempotency-Key are enforced by the core pipeline; this handler re-checks what it needs (fail closed) and never echoes input. The transaction is release.service.ts.
 import { LimsError, type FieldError } from '../../../core/errors.js';
 import type { Handler, HandlerContext, HandlerRequest } from '../../../core/module.js';
+import { guarded } from './_guard.js';
 import { assertBulkLimit, bulkRelease, releaseVersion, type ReleaseCtx } from '../service/release.service.js';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -29,7 +30,7 @@ function parseBulkBody(raw: unknown): string[] {
   return ids as string[];
 }
 
-export const releaseHandlers: Readonly<Record<string, Handler>> = Object.freeze({
+const releaseRaw: Readonly<Record<string, Handler>> = Object.freeze({
   // R7: privileged (REQ-SEC-100). The pipeline enforces aal2 + x-permission; assertRole is the defence in depth (as N4/N5) and carries auth.mfa_required.
   bulkReleaseReportVersions: async (req: HandlerRequest, hctx: HandlerContext) => {
     const c = hctx as unknown as Partial<ReleaseCtx> & { ports?: Record<string, any> };
@@ -68,4 +69,10 @@ export const releaseHandlers: Readonly<Record<string, Handler>> = Object.freeze(
       },
     };
   },
+});
+
+// SEC-AUTHZ-7 (LD-189, LD-261): releaseReportVersion asks its contract x-permission (reporting.report.release) first; the second-step authority rule stays in the service. bulkReleaseReportVersions keeps its own check.
+export const releaseHandlers: Readonly<Record<string, Handler>> = Object.freeze({
+  ...releaseRaw,
+  releaseReportVersion: guarded('reporting.report.release', releaseRaw['releaseReportVersion']!),
 });

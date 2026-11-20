@@ -71,7 +71,7 @@ const api = setupServer(
   http.get(`${ORIGIN}/v1/instruments/instruments`, async ({ request }) => { await rec('instruments', request); return instrumentsReply(); }),
 );
 const page = (data: unknown[]) => HttpResponse.json({ data, page: { limit: 50 } });
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 beforeEach(() => {
   worklistReply = () => page([item(1, { priority: 'urgent' }), item(2), item(3, { status: 'resulted' })]);
   pendingReply = () => page([pend(1), pend(2, { item_status: 'awaiting_receipt', age_anchor: 'registered', age_seconds: 5400, over_target: true, tat_target_seconds: 3600 })]);
@@ -86,12 +86,12 @@ afterAll(() => api.close());
 
 const load = async (dir: string, name: string) => (await import(/* @vite-ignore */ `../components/${dir}/${name}`)) as Record<string, (p: any) => ReactNode>; // variable path: a missing module fails each test, not the file
 const openWorklist = async (permissions: readonly string[] = ['lab.worklist.read', 'lab.worksheet.manage']) => {
-  const { WorklistPage } = await load('worklists', 'WorklistPage');
+  const WorklistPage = (await load('worklists', 'WorklistPage')).WorklistPage!;
   return render(<ToastProvider><WorklistPage departmentId={DEPT} permissions={permissions} /></ToastProvider>);
 };
-const openPending = async () => { const { PendingPage } = await load('pending', 'PendingPage'); return render(<ToastProvider><PendingPage permissions={['lab.worklist.read']} /></ToastProvider>); };
-const openSheet = async () => { const { WorksheetPrintPage } = await load('worksheets', 'WorksheetPrintPage'); return render(<ToastProvider><WorksheetPrintPage worksheetId={WS} /></ToastProvider>); };
-const openSheets = async () => { const { WorksheetListPage } = await load('worksheets', 'WorksheetListPage'); return render(<ToastProvider><WorksheetListPage permissions={['lab.worklist.read']} /></ToastProvider>); };
+const openPending = async () => { const PendingPage = (await load('pending', 'PendingPage')).PendingPage!; return render(<ToastProvider><PendingPage permissions={['lab.worklist.read']} /></ToastProvider>); };
+const openSheet = async () => { const WorksheetPrintPage = (await load('worksheets', 'WorksheetPrintPage')).WorksheetPrintPage!; return render(<ToastProvider><WorksheetPrintPage worksheetId={WS} /></ToastProvider>); };
+const openSheets = async () => { const WorksheetListPage = (await load('worksheets', 'WorksheetListPage')).WorksheetListPage!; return render(<ToastProvider><WorksheetListPage permissions={['lab.worklist.read']} /></ToastProvider>); };
 const rowsOf = () => screen.getAllByRole('row').slice(1);
 
 describe('AC-07.1 — worklist of one department, urgent first with "★ Urgent" text', () => {

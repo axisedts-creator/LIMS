@@ -33,7 +33,7 @@ let put: R;
 const reset = () => { put = () => HttpResponse.json({ ...SETTINGS, version: 8 }); };
 reset();
 const api = setupServer(http.put(`${API}/settings`, async ({ request }) => { await rec(request); return put(); }));
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { cleanup(); api.resetHandlers(); calls.length = 0; refresh.mockReset(); reset(); });
 afterAll(() => api.close());
 

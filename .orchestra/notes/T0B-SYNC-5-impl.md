@@ -1,9 +1,8 @@
-# T0B-SYNC-5 impl (writer) — BLOCKED on dispute + CR, see below
-- Files: services/api/src/core/sync/retention.ts (purgeSyncLedger, own tx per batch, FOR UPDATE SKIP LOCKED, LIMIT, strict <), core/sync/metrics.ts (refreshSyncGauges), core/observability/metrics.ts (3 gauges), services/worker/src/core/sync.ts + cron.ts + tasklist.ts (core.sync_retention daily 21:45 UTC, core.sync_metrics */5, both per_tenant core tasks), consumer.ts (export tenantOf), docs/ops/OFFLINE-SYNC.md.
-- [CONV] batches counted only when they delete rows; capped = budget spent with more possibly left. Marker that turns recall_required mid batch: FK fails, batch rolls back alone, next run skips it.
-- [CONV] retention days = DEFAULT 180 for all tenants (no tenant setting source yet, open point in runbook).
-- BLOCKER 1 (.orchestra/cr/T0B-SYNC-5.md): DELETE policy TO lims_worker needed; existing pgTAP T0C-SYNC-2 lines 87/91 forbid it. Migration verified on throwaway PG17 then removed from db/migrations; needs lead/arbiter ruling.
-- BLOCKER 2 (T0B-SYNC-5-dispute.md): static runbook test regex can never pass (sync.device.manage -> sync.device).
-- Run 1 on throwaway PG17 (migration present): 70/72 pass; retention, metrics, chaos all green. Fails: static runbook regex (dispute 1) and load.live.test.ts:50 (351 of 20 000 ops rejected; guard of the SYNC-2..4 engine, codes not yet diagnosed, a probe run was not permitted in this session). Not run: whole suite, boot test, pgTAP, three runs.
-- Worker src/core: 18 failures in async-manifests / registry-sync (missing @lims/shared-ts/spreadsheet, pre-existing env, not this change); worker tsc same 2 errors only.
-- Open: worker gauge of a revoked device keeps its last value until restart (CoreMetrics has no remove).
+# T0B-SYNC-5 impl (writer) — LD-407 applied (retention dropped)
+- Files: core/sync/metrics.ts, core/observability/metrics.ts (3 gauges), worker core/sync.ts + cron.ts + tasklist.ts (core.sync_metrics */5 per tenant), consumer.ts (export tenantOf), core/sync/engine.ts (rethrow 40001/40P01 before codeOf, 02-TRD §6.4), docs/ops/OFFLINE-SYNC.md.
+- LD-407 (2026-11-19): deleted core/sync/retention.ts; removed core.sync_retention task, cron entry and wiring; runbook retention section replaced by "retained indefinitely, no automatic deletion (LD-407)"; dropped the retention alert row. No DELETE, policy or grant touched; registry static pins and pgTAP pins untouched.
+- Kept lims_core_retention_purged_total / _capped_total in the metrics registry: they belong to the existing core.retention_purge job (worker core/retention.ts), not to sync.
+- Checks: api tsc --noEmit clean. Worker tsc and worker src/core vitest: only failures are the pre-existing unbuilt @lims/shared-ts/spreadsheet dist (catalog xlsx import), unrelated to this task.
+- PG17 suite (hardening + metrics): 53/54 pass; load.live:40 fails with common.dependency_unavailable (deadlock survives 3 whole-request retries) -> dispute-202611190835. Not run by writer: boot test and three runs in a row (reviewer verify).
+- 2026-11-19 after LD-418 kit fix (tester 6553e7247): tests/core/T0B-SYNC-5.pg.sh 54/54 pass, 3 runs in a row. No impl change needed. Boot test not run by writer.
+- Open: worker gauge of a revoked device keeps its last value until restart.

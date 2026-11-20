@@ -65,9 +65,10 @@ export function QueueConsole({ labName, queues, counters, tokens: initial, actio
   const [slip, setSlip] = useState<{ queue: string; token: QueueToken } | null>(null);
   const inflight = useRef(new Set<string>());
 
-  // Polling (W6): Q4 every 5 s; a failed poll keeps the last list. Elapsed time re-renders every second.
+  // Polling (W6): Q4 every 5 s; a failed poll keeps the last list. Elapsed time re-renders every second. LD-240: no request while the tab is hidden.
   useEffect(() => {
     const poll = setInterval(() => {
+      if (document.visibilityState === 'hidden') return;
       actions.listTokens().then((t) => setTokens([...t]), () => undefined);
     }, pollMs);
     const tick = setInterval(() => setNow(Date.now()), 1000);

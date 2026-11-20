@@ -35,7 +35,7 @@ const NAME_ERR = 'Names cannot contain email addresses, phone numbers or web add
 const detail = (over: Record<string, unknown> = {}) => ({ ...scheduleDto(), runs: [], ...over });
 const runs = (n: number) => Array.from({ length: n }, (_, i) => ({ id: `01a1a98a-ac40-7000-8000-0000000003${String(i).padStart(2, '0')}`, created_at: `2026-11-${String(10 - (i % 9)).padStart(2, '0')}T01:15:00.000Z`, period: { ...PERIOD, label_ad: `Period ${i + 1} AD`, label_bs: `Period ${i + 1} BS` } }));
 
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 beforeEach(() => {
   resetApi(MANAGE);
   routes[`GET ${S}`] = json({ data: [scheduleDto()], page: { limit: 20 } });

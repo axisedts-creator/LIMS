@@ -84,7 +84,7 @@ const api = setupServer(
   http.get(`${ORIGIN}/v1/payments/coded-sets/cancel_reasons`, () => HttpResponse.json({ data: codes.cancel_reasons })),
   http.get(`${ORIGIN}/v1/payments/cancel-reasons`, () => HttpResponse.json({ data: codes.cancel_reasons })),
 );
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => {
   cleanup(); api.resetHandlers(); calls.length = 0; refresh.mockReset(); perms.current = RESOLVE;
   recheck = () => HttpResponse.json(settled()); resolve = () => HttpResponse.json(settled()); cancel = () => HttpResponse.json({ intent_id: ID, status: 'failed' }); getIntent = () => HttpResponse.json(detail());

@@ -2,6 +2,7 @@
 // contracts/openapi/reporting.yaml; these map request -> service and fail closed without an authenticated request context.
 import { LimsError } from '../../../core/errors.js';
 import type { Handler, HandlerContext, HandlerRequest } from '../../../core/module.js';
+import { guarded } from './_guard.js';
 import { createNarrativeService, type NarrativeCtx, type NarrativeService } from '../service/narrative.service.js';
 import { ifMatch } from './outsourced.handlers.js';
 
@@ -18,7 +19,7 @@ function bind(fn: (s: NarrativeService, ctx: NarrativeCtx, req: HandlerRequest) 
 const obj = (v: unknown): Record<string, any> => (typeof v === 'object' && v !== null ? (v as Record<string, any>) : {});
 const ver = (b: unknown) => obj(b)['version'] as number;
 
-export const narrativeHandlers: Readonly<Record<string, Handler>> = Object.freeze({
+const narrativeRaw: Readonly<Record<string, Handler>> = Object.freeze({
   listNarrativeTemplates: bind(async (s, ctx, req) => {
     const q = obj(req.query);
     return { status: 200, body: await s.listTemplates(ctx, { kind: q['kind'], testId: q['test_id'], isActive: q['is_active'] }) };
@@ -51,4 +52,16 @@ export const narrativeHandlers: Readonly<Record<string, Handler>> = Object.freez
     const out = await s.amend(ctx, { narrativeId: obj(req.params)['narrative_id'], expectedVersion: ifMatch(req), body: req.body });
     return { status: 201, body: out, version: ver(out) };
   }),
+});
+
+// SEC-AUTHZ-7 (LD-189, LD-261): narrative write and narrative sign are different permissions and stay different. Draft save / read / list ask reporting.narrative.write (never sign),
+// template admin asks reporting.template.manage; sign and amend keep their own reporting.narrative.sign check in the service (not touched here).
+export const narrativeHandlers: Readonly<Record<string, Handler>> = Object.freeze({
+  ...narrativeRaw,
+  listNarrativeTemplates: guarded('reporting.narrative.write', narrativeRaw['listNarrativeTemplates']!),
+  createNarrativeTemplate: guarded('reporting.template.manage', narrativeRaw['createNarrativeTemplate']!),
+  updateNarrativeTemplate: guarded('reporting.template.manage', narrativeRaw['updateNarrativeTemplate']!),
+  listNarrativeReports: guarded('reporting.narrative.write', narrativeRaw['listNarrativeReports']!),
+  getNarrativeReport: guarded('reporting.narrative.write', narrativeRaw['getNarrativeReport']!),
+  saveNarrativeDraft: guarded('reporting.narrative.write', narrativeRaw['saveNarrativeDraft']!),
 });

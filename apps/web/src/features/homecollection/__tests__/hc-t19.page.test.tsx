@@ -40,7 +40,7 @@ const api = setupServer(
   http.post(`${API}/visits/:id/phone-reveal`, async ({ request }) => { await rec(request); return HttpResponse.json({ phone_e164: PHONE }); }),
   http.get(`${API}/reasons`, async ({ request }) => { await rec(request); return reasonsFor(new URL(request.url).searchParams.get('set')); }),
 );
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { cleanup(); api.resetHandlers(); calls.length = 0; captured.props = undefined; perms.current = []; reset(); });
 afterAll(() => api.close());
 void ORIGIN;

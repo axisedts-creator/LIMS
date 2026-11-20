@@ -28,11 +28,13 @@ describe('stage 5 rate limit', () => {
     expect(rig.rl.calls).toEqual([]);
   });
 
-  it('a public operation (no claims) has no actor/tenant key: nothing consumed, handler still runs', async () => {
+  it('a public operation (no claims) has no actor/tenant key: one IP-keyed general bucket i:<hmac(ip)> (SEC-ABUSE-1, LD-237 (3)), handler still runs', async () => {
     const rig = makeRig({ handler: async () => ({ status: 200, body: {} }) });
     const r = await rig.run({ op: op({ public: true, context: undefined }), claims: undefined });
     expect(r.status).toBe(200);
-    expect(rig.rl.calls).toEqual([]);
+    expect(rig.rl.calls).toHaveLength(1);
+    expect(rig.rl.calls[0]![0]).toBe('general');
+    expect(rig.rl.calls[0]![1]).toMatch(/^i:[0-9a-f]{64}$/);
   });
 
   it('runs before idempotency begin, before the transaction and before the handler', async () => {

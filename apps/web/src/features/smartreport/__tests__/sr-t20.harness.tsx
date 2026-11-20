@@ -40,8 +40,8 @@ export const sessionMock = {
   getShellSession: async () => ({ actor: { permissions: state.permissions, displayName: 'Synthetic Pathologist', membershipId: MEMBER_PATH, tenantCode: 'syn', roles: [] } }),
   getRequestPathname: async () => '/smartreport/library',
 };
-export const router = { push: vi.fn(), replace: vi.fn(), refresh: vi.fn(), back: vi.fn() };
-export const navigationMock = {
+export const router: Record<'push' | 'replace' | 'refresh' | 'back', ReturnType<typeof vi.fn>> = { push: vi.fn(), replace: vi.fn(), refresh: vi.fn(), back: vi.fn() };
+export const navigationMock: { useRouter: () => typeof router; usePathname: () => string; useSearchParams: () => URLSearchParams; notFound: () => never; redirect: (to: string) => never } = {
   useRouter: () => router,
   usePathname: () => '/smartreport/library',
   useSearchParams: () => new URLSearchParams(),
@@ -140,12 +140,12 @@ export const appFile = (...p: string[]) => join(APP, ...p);
 export const importPage = async (rel: string) => (await import(/* @vite-ignore */ `../../../app/(staff)/smartreport/${rel}`)) as { default: (p: any) => Promise<any> };
 export const LIST_PAGE = 'library/page';
 export const EDITOR_PAGE = 'library/[library_version_id]/page';
-export async function show(rel: string, params: Record<string, string> = {}, searchParams: Record<string, string> = {}) {
+export async function show(rel: string, params: Record<string, string> = {}, searchParams: Record<string, string> = {}): Promise<ReturnType<typeof render>> {
   const { default: Page } = await importPage(rel);
   const el = await Page({ params: Promise.resolve(params), searchParams: Promise.resolve(searchParams) });
   return render(<ToastProvider>{el}</ToastProvider>);
 }
-export const showEditor = (v = VER_DRAFT) => show(EDITOR_PAGE, { library_version_id: v });
+export const showEditor = (v = VER_DRAFT): Promise<ReturnType<typeof render>> => show(EDITOR_PAGE, { library_version_id: v });
 /** Renders, or returns the thrown message when the page refuses. A MISSING module is never a "refusal": it rethrows. */
 export async function showOrThrown(rel: string, params: Record<string, string> = {}): Promise<string | undefined> {
   try { await show(rel, params); return undefined; } catch (e) {

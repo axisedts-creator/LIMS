@@ -1,5 +1,5 @@
-// T0B-SYNC-5 static probes (no database, imports no helper that needs LIMS_TEST_APP_URL): done_when (3) source rules of the retention job, (4) the three new gauges in observability/metrics.ts and
-// the worker wiring, (5) the runbook docs/ops/OFFLINE-SYNC.md. PINNED SURFACE: ./kit.ts header. Fails today: retention.ts, metrics.ts (sync), the gauges, the worker tasks and the runbook do not exist.
+// T0B-SYNC-5 static probes (no database, imports no helper that needs LIMS_TEST_APP_URL): done_when (4) the three new gauges in observability/metrics.ts and
+// the worker wiring, (5) the runbook docs/ops/OFFLINE-SYNC.md. PINNED SURFACE: ./kit.ts header. RETENTION was dropped by LD-407 (founder: no deletion of the sync ledger).
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -20,45 +20,18 @@ describe('metrics registry (done_when 4)', () => {
   });
   it('the existing counters that carry accepted / duplicate / rejected / conflict are unchanged', () => {
     expect(m()).toMatch(/lims_core_sync_operations_total:\s*\['counter',\s*\['status'\]/);
-    expect(m()).toMatch(/lims_core_retention_purged_total:\s*\['counter',\s*\['table'\]/);
-    expect(m()).toMatch(/lims_core_retention_purge_capped_total:\s*\['counter',\s*\['table'\]/);
   });
 });
 
-describe('retention job source (done_when 3)', () => {
-  const src = (): string => read('services/api/src/core/sync/retention.ts');
-  it('exports the pinned names, default 180 days, and never locks a table, truncates or touches audit.*', () => {
-    const s = src();
-    expect(s).toMatch(/export const DEFAULT_SYNC_RETENTION_DAYS\s*=\s*180\b/);
-    expect(s).toMatch(/export (async )?function purgeSyncLedger\b/);
-    expect(s).not.toMatch(/\bLOCK\s+TABLE\b/i);
-    expect(s).not.toMatch(/\bTRUNCATE\b/i);
-    expect(s).not.toMatch(/\baudit\./i);
-    expect(s).not.toMatch(/\bDROP\b|\bALTER\b/i);
-  });
-  it('every statement that deletes names tenant_id (RLS is a second wall, not the only one) and never deletes a whole table', () => {
-    const s = src();
-    const deletes = [...s.matchAll(/DELETE\s+FROM[\s\S]*?(?=`|'|")/gi)].map((x) => x[0]);
-    expect(deletes.length).toBeGreaterThan(0);
-    for (const d of deletes) { expect(d, d).toMatch(/tenant_id/); expect(d, d).toMatch(/\bWHERE\b/i); }
-  });
-  it('removes in small batches (a LIMIT in the candidate query) and skips rows another transaction holds (SKIP LOCKED) so it never waits on a push', () => {
-    expect(src()).toMatch(/\bLIMIT\b/i);
-    expect(src()).toMatch(/SKIP\s+LOCKED/i);
-  });
-});
-
-describe('worker wiring (done_when 3, 4)', () => {
+describe('worker wiring (done_when 4)', () => {
   const files = (): string[] => walk('services/worker/src').filter((f) => f.endsWith('.ts'));
-  it('a task core.sync_retention calls purgeSyncLedger and a task core.sync_metrics calls refreshSyncGauges; both are per tenant crontab entries', () => {
+  it('a task core.sync_metrics calls refreshSyncGauges and is a per tenant crontab entry; no core.sync_retention task exists (LD-407)', () => {
     const all = files().map((f) => ({ f, s: read(f) }));
-    const ret = all.filter((x) => x.s.includes('core.sync_retention')); const met = all.filter((x) => x.s.includes('core.sync_metrics'));
-    expect(ret.length, 'no worker file names core.sync_retention').toBeGreaterThan(0);
+    const met = all.filter((x) => x.s.includes('core.sync_metrics'));
+    expect(all.some((x) => x.s.includes('core.sync_retention') || x.s.includes('purgeSyncLedger')), 'LD-407: no sync retention job').toBe(false);
     expect(met.length, 'no worker file names core.sync_metrics').toBeGreaterThan(0);
-    expect(all.some((x) => x.s.includes('purgeSyncLedger'))).toBe(true);
     expect(all.some((x) => x.s.includes('refreshSyncGauges'))).toBe(true);
     const cron = all.map((x) => x.s).join('\n');
-    expect(cron).toMatch(/identifier:\s*'core\.sync_retention'[^}]*tenantScope:\s*'per_tenant'/);
     expect(cron).toMatch(/identifier:\s*'core\.sync_metrics'[^}]*tenantScope:\s*'per_tenant'/);
   });
 });
@@ -75,7 +48,6 @@ describe('runbook docs/ops/OFFLINE-SYNC.md (done_when 5)', () => {
     heading(/outage drill/i);
     heading(/after a long outage/i);
     heading(/alert/i);
-    heading(/retention/i);
   });
   it('conflict inbox: names the operations and the permission, the three resolutions and that a reason is required', () => {
     const d = doc();
@@ -102,20 +74,21 @@ describe('runbook docs/ops/OFFLINE-SYNC.md (done_when 5)', () => {
   });
   it('alert thresholds: every exposed metric is named together with a number and a unit or count (the alert thresholds the brief asks for)', () => {
     const lines = doc().split('\n');
-    for (const name of [...GAUGES, 'lims_core_sync_operations_total', 'lims_core_sync_batches_total', 'lims_core_retention_purged_total']) {
+    for (const name of [...GAUGES, 'lims_core_sync_operations_total', 'lims_core_sync_batches_total']) {
       const hit = lines.find((l) => l.includes(name) && /\d/.test(l.replace(name, '')));
       expect(hit, `${name} needs a line with its alert threshold`).toBeTruthy();
     }
     expect(doc()).toMatch(/oldest_unsynced|backlog/i);
   });
-  it('retention: states the default of 180 days, that open conflicts, pending print markers and audit events are never removed, and the job names', () => {
+  it('LD-407: the ledger is retained indefinitely, no automatic deletion; no retention job or purge is documented; the metrics job is named', () => {
     const d = doc();
-    expect(d).toMatch(/180/); expect(d).toMatch(/open conflict/i); expect(d).toMatch(/pending/i); expect(d).toMatch(/audit/i);
-    expect(d).toContain('core.sync_retention'); expect(d).toContain('core.sync_metrics');
+    expect(d).toMatch(/retained indefinitely/i); expect(d).toMatch(/no automatic deletion/i); expect(d).toContain('LD-407');
+    expect(d).not.toContain('core.sync_retention'); expect(d).not.toMatch(/purgeSyncLedger|lims_core_retention_/);
+    expect(d).toContain('core.sync_metrics');
   });
   it('every sync.* error code the runbook mentions is a registered code of the closed list (no invented names); no personal data (no names, phone numbers, emails)', () => {
     const d = doc(); const known = closed();
-    const codes = [...d.matchAll(/\bsync\.[a-z_]+\b/g)].map((m) => m[0]).filter((c) => !['sync.use', 'sync.device.manage', 'sync.conflict.resolve'].includes(c));
+    const codes = [...d.matchAll(/\bsync\.[a-z_]+(?:\.[a-z_]+)*\b/g)].map((m) => m[0]).filter((c) => !['sync.use', 'sync.device.manage', 'sync.conflict.resolve'].includes(c));
     expect(codes.length).toBeGreaterThan(0);
     // request level codes of the device operations are registered on the HTTP response, not in SyncErrorCode
     const requestLevel = new Set(['sync.device_revoked', 'sync.wipe_required', 'sync.device_unknown']);

@@ -31,7 +31,7 @@ process.env['LIMS_ORIGIN_API'] = ORIGIN;
 const R = `${ORIGIN}/v1/reporting`;
 const CENTRES = { data: [{ id: '01a1a98a-ac40-7000-8000-000000000003', name: 'Synthetic Centre A1' }] };
 const api = setupServer();
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { cleanup(); api.resetHandlers(); });
 afterAll(() => api.close());
 

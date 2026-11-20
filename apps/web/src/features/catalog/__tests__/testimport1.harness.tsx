@@ -106,7 +106,7 @@ export const api = setupServer(
 );
 
 /** Render /catalog/imports?<search> like Next: the server page runs first (a throw = error.tsx), then the client parts render. */
-export async function openPage(search = '', perms: string[] = MANAGE) {
+export async function openPage(search = '', perms: string[] = MANAGE): Promise<ReturnType<typeof render>> {
   TM.session.permissions = perms;
   TM.nav.search = search;
   TM.nav.path = '/catalog/imports';
@@ -114,15 +114,15 @@ export async function openPage(search = '', perms: string[] = MANAGE) {
   const ui = await mod.default({ params: Promise.resolve({}), searchParams: Promise.resolve(Object.fromEntries(new URLSearchParams(search))) });
   return render(<ToastProvider>{ui}</ToastProvider>);
 }
-export const openTests = (perms: string[] = MANAGE) => openPage('view=tests', perms);
+export const openTests = (perms: string[] = MANAGE): Promise<ReturnType<typeof render>> => openPage('view=tests', perms);
 
 /** Anchor downloads: jsdom cannot navigate, so every programmatic `a.click()` with a download name is recorded. */
 export const downloads: { name: string; href: string }[] = [];
 export function captureDownloads() {
   downloads.length = 0;
   vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (this: HTMLAnchorElement) { downloads.push({ name: this.download, href: this.href }); });
-  (URL as any).createObjectURL = vi.fn(() => 'blob:synthetic');
-  (URL as any).revokeObjectURL = vi.fn();
+  (URL as unknown as Record<string, unknown>).createObjectURL = vi.fn(() => 'blob:synthetic');
+  (URL as unknown as Record<string, unknown>).revokeObjectURL = vi.fn();
 }
 
 export const xlsxFile = (name = 'tests.xlsx', size = 64, type = XLSX) => new File([new Uint8Array(size).fill(0x50)], name, { type });

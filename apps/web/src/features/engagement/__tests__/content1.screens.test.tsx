@@ -90,7 +90,7 @@ const defaults = () => [
   http.get('*/v1/engagement/*', async ({ request }) => { await rec(request); return HttpResponse.json({ data: [], page: { has_more: false } }); }),
 ];
 const api = setupServer(...defaults());
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { cleanup(); api.resetHandlers(); calls.length = 0; searchCalls.length = 0; push.mockReset(); refresh.mockReset(); localStorage.clear(); sessionStorage.clear(); vi.restoreAllMocks(); });
 afterAll(() => api.close());
 

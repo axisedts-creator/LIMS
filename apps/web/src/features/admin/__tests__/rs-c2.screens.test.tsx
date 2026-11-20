@@ -47,6 +47,10 @@ import { RoleEditor } from '../components/RoleEditor';
 import { OrgUnits } from '../components/OrgUnits';
 import { SettingsScreen } from '../components/SettingsScreen';
 import type { Branch, Centre, Permission, Role, UserSummary } from '../lib';
+import type { ComponentProps } from 'react';
+
+// VERIFY-GREEN-8 (LD-425): type-only; OrgUnits' Unit is not exported, same objects at runtime.
+const asUnits = (...x: Array<Branch | Centre>) => x as unknown as ComponentProps<typeof OrgUnits>['units'];
 
 const here = dirname(fileURLToPath(import.meta.url));
 const u = (n: number) => `01a1a98a-ac40-7000-8000-${String(n).padStart(12, '0')}`;
@@ -90,8 +94,8 @@ const SCREENS: Screen[] = [
   { name: 'users', ui: () => <UsersTable rows={[user]} /> },
   { name: 'roles-new', ui: () => withToast(<RoleEditor catalog={catalog} canEdit />) },
   { name: 'roles-edit-privileged', ui: () => withToast(<RoleEditor role={roleLab} catalog={catalog} canEdit />) },
-  { name: 'centres', ui: () => withToast(<OrgUnits kind="centres" units={[centre]} branches={[branch]} canEdit />) },
-  { name: 'branches', ui: () => withToast(<OrgUnits kind="branches" units={[branch]} branches={[branch]} canEdit />) },
+  { name: 'centres', ui: () => withToast(<OrgUnits kind="centres" units={asUnits(centre)} branches={[branch]} canEdit />) },
+  { name: 'branches', ui: () => withToast(<OrgUnits kind="branches" units={asUnits(branch)} branches={[branch]} canEdit />) },
   { name: 'settings', ui: () => withToast(<SettingsScreen settings={settings} flags={[]} annexes={[]} />) },
 ];
 
@@ -166,7 +170,7 @@ describe('s3 required fields say "Required"; optional ones do not', () => {
 
   it('centre drawer (new): Code and Name say it, Address and Phone do not', async () => {
     const user = userEvent.setup();
-    render(withToast(<OrgUnits kind="centres" units={[centre]} branches={[branch]} canEdit />));
+    render(withToast(<OrgUnits kind="centres" units={asUnits(centre)} branches={[branch]} canEdit />));
     await user.click(screen.getByRole('button', { name: 'New centre' }));
     const dialog = await screen.findByRole('dialog');
     expect(says(byLabel(dialog, 'Code'))).toBe(true);
@@ -334,7 +338,7 @@ describe('keyboard-only path through the main task', () => {
 
   it('centres: the unit name is a button, Enter opens the drawer, focus moves into it, Escape closes it', async () => {
     const user = userEvent.setup();
-    render(withToast(<OrgUnits kind="centres" units={[centre]} branches={[branch]} canEdit />));
+    render(withToast(<OrgUnits kind="centres" units={asUnits(centre)} branches={[branch]} canEdit />));
     const trigger = screen.getByRole('button', { name: centre.name });
     trigger.focus();
     await user.keyboard('{Enter}');
@@ -380,7 +384,7 @@ describe('visual snapshots of the key screens are recorded', () => {
   });
   it('snapshot: centres drawer', async () => {
     const user = userEvent.setup();
-    render(withToast(<OrgUnits kind="centres" units={[centre]} branches={[branch]} canEdit />));
+    render(withToast(<OrgUnits kind="centres" units={asUnits(centre)} branches={[branch]} canEdit />));
     await user.click(screen.getByRole('button', { name: centre.name }));
     await screen.findByRole('dialog');
     expect(snapHtml()).toMatchSnapshot();

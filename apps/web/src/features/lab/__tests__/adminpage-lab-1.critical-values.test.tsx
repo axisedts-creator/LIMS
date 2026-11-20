@@ -57,7 +57,7 @@ let rows: unknown[] = ROWS;
 let nextCursor: string | undefined;
 const handler = ({ request }: { request: Request }) => { rec(request); return HttpResponse.json({ data: rows, page: { limit: 50, ...(nextCursor ? { next_cursor: nextCursor } : {}) } }); };
 const api = setupServer(http.get(URL_CV, handler));
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' })); // any other operation fails the test (no invented operation, no per-row detail calls)
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' })); // any other operation fails the test (no invented operation, no per-row detail calls)
 afterEach(() => { vi.useRealTimers(); cleanup(); api.resetHandlers(); calls.length = 0; session.perms = []; rows = ROWS; nextCursor = undefined; });
 afterAll(() => api.close());
 

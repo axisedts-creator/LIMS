@@ -12,7 +12,7 @@ vi.mock('next/navigation', async () => (await import('./t12.harness')).navigatio
 
 type A = typeof import('../actions');
 let A: A;
-beforeAll(async () => { setEnv(); api.listen({ onUnhandledRequest: 'error' }); A = (await import('../actions')) as A; });
+beforeAll(async () => { setEnv(); api.listen({ onUnhandledFrame: 'error' }); A = (await import('../actions')) as A; });
 beforeEach(() => resetApi());
 afterEach(() => api.resetHandlers());
 afterAll(() => api.close());

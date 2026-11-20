@@ -73,9 +73,16 @@ export async function collectionsPage(sp: SP) {
   return loadOr(t('analytics.nav.collections'), undefined, async () => {
     const q = reportQuery(def, sp);
     const [body, options] = await Promise.all([getReport(def, q), getCollectionsFilterOptions()]);
+    // T0D-UIREPORT-2 ruling (LD-353): one more read grouped by day for the hero line, after the main read; failing = No data yet
+    let other: Json | undefined = body;
+    if (q.get('group_by') !== 'day') {
+      const dq = new URLSearchParams(q);
+      dq.set('group_by', 'day');
+      other = await getReport(def, dq).catch(() => undefined);
+    }
     return (
       <ReportView
-        vm={buildPage({ def, body, q, options, perms, tabs: tabsFor(perms), hub: false, pdfEnabled: pdfEnabled(), basePath: '/analytics/collections', pageId: 'staff.analytics.collections' })}
+        vm={buildPage({ def, body, ...(other ? { other } : {}), q, options, perms, tabs: tabsFor(perms), hub: false, pdfEnabled: pdfEnabled(), basePath: '/analytics/collections', pageId: 'staff.analytics.collections' })}
       />
     );
   });

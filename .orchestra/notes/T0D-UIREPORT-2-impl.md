@@ -5,4 +5,5 @@ Files: analytics/components/{ReportView.tsx, MisReportView.tsx, report-types.ts}
 - Income <-> department income: one second read of the other op after the main read (group_by dropped), failure = empty chart [CONV].
 - Bill of the Day: one `.lims-period`, one FilterBar (wrapper is `lims-period-custom`), tiles "—", two empty chart cards (no read op, CR open).
 - Kept: income ">31 groups" note (now on the hero card), interfaces "Agents by state" card (an-t19 pins it).
-Open: dispute (collections day line fixture; rs-c8.baseline re-pin by tester). CRs: TAT by department, interfaces per day, MIS read. Pending tests and quality untouched.
+- Collections (ruling 14:01): main read first, then one getCollectionsReport read with group_by=day (same params) for the hero line; group_by=day reuses the main body; failure = No data yet [CONV].
+Open: rs-c8.static red only — tester must re-pin report-page.tsx and report-views.ts hashes in rs-c8.baseline.json to these final bytes (ruling item 2). All other verify.cmd suites green; tsc clean for analytics/server. CRs: TAT by department, interfaces per day, MIS read. Pending tests and quality untouched.

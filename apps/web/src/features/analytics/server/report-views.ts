@@ -54,7 +54,7 @@ function table(a: { id: string; caption: string; heading?: string; first: string
 const labelCell = (r: Json): Cell => t(name(r) + (str(r.label_bs) ? ` · ${str(r.label_bs)}` : ''));
 
 interface Built { title: string; controls: Control[]; sections: Section[]; groupLabel?: string }
-/** `other` = the second read of income / department income (each draws one chart from the other's operation); undefined when it failed. */
+/** `other` = the second read: income / department income (each draws one chart from the other's operation), collections grouped by day; undefined when it failed. */
 interface Ctx { q: URLSearchParams; o: FilterOptions | undefined; perms: Perms; summary?: Json; other?: Json }
 const T = (x: TableVM): Section => ({ t: 'table', vm: x });
 
@@ -136,7 +136,7 @@ function departmentIncome(b: Json, { q, other }: Ctx): Built {
   };
 }
 
-function collections(b: Json, { q, o }: Ctx): Built {
+function collections(b: Json, { q, o, other }: Ctx): Built {
   const g = radio(q, 'group_by', 'Group by', opts(['method', 'Method'], ['staff', 'Staff'], ['staff_method', 'Staff × method'], ['centre', 'Centre'], ...MONTH_TAIL), 'method');
   const methods = (o?.payment_methods ?? []).map((m) => ({ value: str(m.code), label: str(m.display) || str(m.code) })).filter((m) => m.value);
   const specs: Spec[] = [['Payments', 'entries', 'int'], ['Reversals', 'reversals', 'int'], ['Collected', 'gross_collected_paisa', 'money'], ['Reversed/refunded', 'reversed_paisa', 'money'], ['Net collected', 'net_collected_paisa', 'money']];
@@ -144,8 +144,8 @@ function collections(b: Json, { q, o }: Ctx): Built {
     title: 'Collections history', controls: [g, ...multi(q, 'payment_method_code', 'Method', methods)], groupLabel: labelOf(g.options, g.value),
     sections: [R({
       tiles: tiles(['Net collected', obj(b.totals).net_collected_paisa, 'money'], ['Collected', obj(b.totals).gross_collected_paisa, 'money'], ['Reversed/refunded', obj(b.totals).reversed_paisa, 'money'], ['Payments', obj(b.totals).entries]),
-      // one read, grouped as the user chose: the day line fills when grouped by day, the method bar when grouped by method
-      hero: line('Net collected per day', g.value === 'day' ? arr(b.rows) : [], 'net_collected_paisa', 'Net collected', 'money'),
+      // T0D-UIREPORT-2 ruling (LD-353 template 5): the day line comes from the second read grouped by day (the main body when the user chose day); the method bar from the main read grouped by method
+      hero: line('Net collected per day', g.value === 'day' ? arr(b.rows) : arr(obj(other).rows), 'net_collected_paisa', 'Net collected', 'money'),
       side: bar('Net collected by method', g.value === 'method' ? arr(b.rows) : [], name, [['net_collected_paisa', 'Net collected']], 'money'),
     }), T(table({ id: 'collections', caption: 'Collections', first: labelOf(g.options, g.value), specs, rows: arr(b.rows), totals: obj(b.totals), head: labelCell })),
       { t: 'note', text: 'Cash basis — includes payments of earlier invoices; differs from income.' }],

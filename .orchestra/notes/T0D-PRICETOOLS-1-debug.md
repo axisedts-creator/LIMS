@@ -1,0 +1,4 @@
+## debugger 2026-11-20
+- Cause: verify failures (5 tests, 3 files) are outside price tools: emptytbl2 expects a dev note that T0D-UIDASH-1 removed and uidash1/quality-t21 forbid. Test conflict, not impl bug.
+- Fix: none in code (tests may not be edited; no smallest impl change satisfies both). Dispute written: T0D-PRICETOOLS-1-dispute.md.
+- pricetools1 193/193 and rs-c2 74/74 per impl note; I did not re-run them.

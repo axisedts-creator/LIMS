@@ -19,6 +19,7 @@ const ENTRIES: readonly Entry[] = [
   { id: 'orders', href: '/orders', label: 'Samples' },
   { id: 'reports', href: '/reports', label: 'Reports', perm: 'partners.report.read' },
   { id: 'pickups', href: '/pickups', label: 'Pickups' },
+  { id: 'tickets', href: '/tickets', label: 'Tickets', perm: 'partners.ticket.read' },
   { id: 'prices', href: '/price-list', label: 'Prices', perm: 'partners.price_list.read' },
   { id: 'statements', href: '/statements', label: 'Statements', perm: 'partners.statement.read' },
   { id: 'doctors', href: '/referrers', label: 'Doctors', perm: 'partners.referrer.read' },

@@ -646,6 +646,18 @@ export const ROUTES = {
     "path": "/engagement/memberships",
     "permission": "engagement.membership.read"
   },
+  "staff.engagement.msg_broadcasts": {
+    "origin": "staff_web",
+    "owner": "C16",
+    "path": "/engagement/messages/broadcasts",
+    "permission": "engagement.broadcast.read"
+  },
+  "staff.engagement.msg_templates": {
+    "origin": "staff_web",
+    "owner": "C16",
+    "path": "/engagement/messages/templates",
+    "permission": "engagement.broadcast.read"
+  },
   "staff.engagement.queue": {
     "origin": "staff_web",
     "owner": "C16",
@@ -1150,6 +1162,18 @@ export const ROUTES = {
     "owner": "C13",
     "path": "/partners/settings",
     "permission": "partners.partner.manage"
+  },
+  "staff.partners.ticket": {
+    "origin": "staff_web",
+    "owner": "C13",
+    "path": "/partners/tickets/{ticket_id}",
+    "permission": "partners.ticket.read"
+  },
+  "staff.partners.tickets": {
+    "origin": "staff_web",
+    "owner": "C13",
+    "path": "/partners/tickets",
+    "permission": "partners.ticket.read"
   },
   "staff.payments.intent": {
     "origin": "staff_web",

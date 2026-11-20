@@ -19,5 +19,7 @@ export const navManifest: NavManifest = {
     { id: 'partners.onboarding', label: 'partners.nav.onboarding', routeId: 'staff.partners.onboarding', permission: 'partners.onboarding.decide', group: 'partners', order: 100, icon: 'check' },
     { id: 'partners.penalties', label: 'partners.nav.penalties', routeId: 'staff.partners.penalties', permission: 'partners.penalty.manage', group: 'partners', order: 110, icon: 'warning' },
     { id: 'partners.penalty_events', label: 'partners.nav.penalty_events', routeId: 'staff.partners.penalty_events', permission: 'partners.penalty.manage', group: 'partners', order: 120, icon: 'list' },
+    // T0D-MSGDESK-1 (LD-321): ElabAssist Message To Laboratory, the lab side ticket inbox.
+    { id: 'partners.tickets', label: 'partners.nav.tickets', routeId: 'staff.partners.tickets', permission: 'partners.ticket.read', group: 'partners', order: 130, icon: 'inbox' },
   ],
 };

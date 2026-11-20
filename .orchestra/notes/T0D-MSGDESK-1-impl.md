@@ -3,5 +3,5 @@
 - Partner portal (9): (app)/tickets/{page,new/page,[ticket_id]/page,loading,error}.tsx, features/tickets/{actions.ts,TicketList.tsx,TicketForms.tsx}, PartnerShell.tsx. 27 files + walk note.
 - [CONV] Requested By / Approved By = "You" / "Another user" / em dash (cr-needed 1); signed-in id = JWT sub (cr-needed 2); history newest 200, no paging; addresses masked again on server; live count per change, stale answers ignored; create key regenerated on audience change.
 - Checks (2026-11-20): msgdesk1 web 134/134, partner msgdesk1 37/37, t19 128, adminpage-eng-1 81, content1 98/98, t-b6 104, t-l1 35, t-q4 82, t16 120, sales1 102, partyset1 165, uilist3 173, uiset1 69, partners nav.manifest node test pass, rs-c2 74 (unchanged).
-- Round 4 (LD-435): no code change; same suite counts all green; nav-complete 99/101, 2 admin-pack lab.result.approve pins still stale (:36, :93), see dispute.md.
+- Round 5 (after ruling, tests ac7d7fbb9): no code change; every verify.cmd suite green, same counts as above; nav-complete 101/101.
 - Open: help files for new helpKeys (file cap); offline reply queueing (T0D-OFFLINE); audience city/priority filters.

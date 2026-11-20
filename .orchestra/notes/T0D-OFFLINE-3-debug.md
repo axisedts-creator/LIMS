@@ -84,3 +84,7 @@ Fix: none possible in impl code (test pins stale BASE). Dispute: T0D-OFFLINE-3-d
 ## Round 21 (verify 06:57: 1 fail / 44 pass; adminpage-fd-1.static.test.ts:85 permissions.yaml vs frozen BASE 93bfe99f5)
 Cause: same as round 20. No OFFLINE-3 defect: `git diff main HEAD -- contracts/permissions.yaml` is empty; main-landed tasks (MSGDESK/SALES/PARTYSET/CONTENT/SYNC-1) added the permissions.
 Fix: none in impl code. LD-431 (ruling.md) assigns the one-line test edit to the TESTER (every BASE line still present, instead of byte equality). I may not edit tests. Dispute unchanged: T0D-OFFLINE-3-dispute-202611200700.md.
+
+## Round 22 (verify 07:03: 1 fail / 44 pass; adminpage-fd-1.static.test.ts:85 permissions.yaml byte equality vs frozen BASE)
+Cause: same as rounds 20-21. No OFFLINE-3 defect; `git diff main HEAD -- contracts/permissions.yaml` empty; main-landed SYNC-1/MSGDESK/SALES/PARTYSET/CONTENT added the permissions. Test line 85 still unedited (LD-431 tester edit not applied).
+Fix: none in impl code, tests not mine. Dispute unchanged: T0D-OFFLINE-3-dispute-202611200700.md.

@@ -1,7 +1,7 @@
 // AN-T19: API report bodies -> plain-JSON PageVM for the client ReportView (04-UI-UX §2, §4.1-§4.12; copy per §13).
 // Bodies are read defensively cell by cell: a missing/odd field becomes "—", never NaN/undefined/[object Object]. Only listed fields are read
 // (no spread of API rows), so a stray field such as a money amount on the referrer report can never reach the page (D-44).
-import type { Cell, Col, Control, FreshnessVM, Opt, PageVM, Section, TableVM } from '../components/report-types';
+import type { Cell, ChartVM, Col, Control, FreshnessVM, Opt, PageVM, Section, TableVM } from '../components/report-types';
 import type { FilterOptions, Json, ReportDef } from './reports.server';
 
 type Perms = readonly string[];
@@ -54,8 +54,31 @@ function table(a: { id: string; caption: string; heading?: string; first: string
 const labelCell = (r: Json): Cell => t(name(r) + (str(r.label_bs) ? ` · ${str(r.label_bs)}` : ''));
 
 interface Built { title: string; controls: Control[]; sections: Section[]; groupLabel?: string }
-interface Ctx { q: URLSearchParams; o: FilterOptions | undefined; perms: Perms; summary?: Json }
+/** `other` = the second read of income / department income (each draws one chart from the other's operation); undefined when it failed. */
+interface Ctx { q: URLSearchParams; o: FilterOptions | undefined; perms: Perms; summary?: Json; other?: Json }
 const T = (x: TableVM): Section => ({ t: 'table', vm: x });
+
+// ------------------------------------------------------------------ T0D-UIREPORT-2 (LD-353 template 5, rules 3 and 10): tiles and the two chart cards.
+// Only fields of the existing report operations are read; a chart whose rows do not fit (e.g. a per-day line while grouped by month) draws "No data yet".
+const RS = new Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const INT = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 });
+const DATE = /^\d{4}-\d{2}-\d{2}$/;
+type TileSpec = [label: string, value: unknown, kind?: 'money'];
+const tiles = (...s: TileSpec[]) => s.map(([label, v, k]) => { const n = num(v); return { label, value: n === undefined ? '—' : k === 'money' ? `Rs. ${RS.format(n / 100)}` : INT.format(n) }; });
+const fmtOf = (money?: 'money') => (money ? 'money' : 'integer') as ChartVM['format'];
+/** Per-day line: rows whose key is an A.D. date. */
+const line = (title: string, rows: Json[], key: string, label: string, money?: 'money'): ChartVM => {
+  const r = rows.filter((x) => DATE.test(str(x.key)) && num(x[key]) !== undefined);
+  return { title, kind: 'line', categories: r.map((x) => str(x.key)), series: [{ id: key, label, values: r.map((x) => num(x[key])!) }], format: fmtOf(money) };
+};
+/** Bars: one category per row, one series per [key, label]. Missing values are NaN (the chart draws no bar, its table says "—"). */
+const bar = (title: string, rows: Json[], cat: (r: Json) => string, series: [key: string, label: string][], money?: 'money'): ChartVM => ({
+  title, kind: 'bar', categories: rows.map(cat), series: series.map(([key, label]) => ({ id: key, label, values: rows.map((r) => num(r[key]) ?? NaN) })), format: fmtOf(money),
+});
+const R = (t5: Omit<Extract<Section, { t: 'report' }>, 't'>): Section => ({ t: 'report', ...t5 });
+const sum = (rows: Json[], key: string) => rows.reduce((a, r) => a + (num(r[key]) ?? 0), 0);
+const deptName = (r: Json) => (r.is_multiple === true ? 'Multiple departments' : name(r));
+const refName = (r: Json) => (r.is_self === true ? 'SELF (no referrer)' : name(r));
 
 const DAY_OPTS = opts(['day', 'Day'], ['ad_month', 'A.D. month'], ['bs_month', 'B.S. month'], ['branch', 'Branch'], ['centre', 'Centre']);
 const MONTH_TAIL: [string, string][] = [['day', 'Day'], ['ad_month', 'A.D. month'], ['bs_month', 'B.S. month']];
@@ -73,12 +96,17 @@ const when = (iso: string) => { const ms = Date.parse(iso); return Number.isFini
 const cap = (s: string) => (s ? s[0]!.toUpperCase() + s.slice(1) : '');
 
 // ------------------------------------------------------------------ per report
-function income(b: Json, { q }: Ctx): Built {
+function income(b: Json, { q, other }: Ctx): Built {
   const g = radio(q, 'group_by', 'Group by', DAY_OPTS, 'day');
   const rows = arr(b.rows);
-  const chart: Section[] = rows.length === 0 ? [] : rows.length > 31
-    ? [{ t: 'note', text: 'Chart shows up to 31 groups' }]
-    : [{ t: 'chart', title: 'Net sales per group', categories: rows.map((r) => str(r.label)), series: [{ id: 'net', label: 'Net sales', values: rows.map((r) => num(r.net_sales_paisa) ?? 0) }], format: 'money' }];
+  const tot = obj(b.totals);
+  // T0D-UIREPORT-2: the tiles and charts replace the old "Net sales per group" bar chart; above 31 groups the line stays empty and says so (§4.1)
+  const many = rows.length > 31;
+  const chart: Section[] = [R({
+    tiles: tiles(['Net sales', tot.net_sales_paisa, 'money'], ['Invoiced', tot.invoiced_paisa, 'money'], ['Credit notes', tot.credit_notes_paisa, 'money'], ['Invoices', tot.invoices_issued]),
+    hero: { ...line('Net sales per day', many ? [] : rows, 'net_sales_paisa', 'Net sales', 'money'), ...(many ? { note: 'Chart shows up to 31 groups' } : {}) },
+    side: bar('Net sales by department', arr(obj(other).rows), deptName, [['net_paisa', 'Net sales']], 'money'),
+  })];
   const specs: Spec[] = [['Invoices', 'invoices_issued', 'int'], ['Cancelled', 'invoices_cancelled', 'int'], ['Gross', 'gross_paisa', 'money'], ['Discount', 'discount_paisa', 'money'], ['Exempt', 'exempt_paisa', 'money'], ['Taxable', 'taxable_paisa', 'money'], ['VAT', 'vat_paisa', 'money'], ['Other tax', 'other_tax_paisa', 'money'], ['Invoiced', 'invoiced_paisa', 'money'], ['Credit notes', 'credit_notes_paisa', 'money'], ['Net sales', 'net_sales_paisa', 'money']];
   return {
     title: 'Income', controls: [g], groupLabel: labelOf(g.options, g.value),
@@ -88,13 +116,20 @@ function income(b: Json, { q }: Ctx): Built {
   };
 }
 
-function departmentIncome(b: Json, { q }: Ctx): Built {
+function departmentIncome(b: Json, { q, other }: Ctx): Built {
   const g = radio(q, 'group_by', 'Group by', opts(['department', 'Department'], ['department_ad_month', 'Department × A.D. month'], ['department_bs_month', 'Department × B.S. month']), 'department');
   const specs: Spec[] = [['Billed lines', 'line_count', 'int'], ['Gross', 'gross_paisa', 'money'], ['Discount', 'discount_paisa', 'money'], ['Net sales', 'net_paisa', 'money'], ['Share', 'share_bp', 'bp']];
   const head = (r: Json) => t(r.is_multiple === true ? 'Multiple departments' : name(r) + (str(r.period_key) ? ` · ${str(r.period_key)}` : ''));
+  const tot = obj(b.totals);
   return {
     title: 'Department income', controls: [g], groupLabel: labelOf(g.options, g.value),
     sections: [
+      R({
+        tiles: tiles(['Net sales', tot.net_paisa, 'money'], ['Gross', tot.gross_paisa, 'money'], ['Discount', tot.discount_paisa, 'money'], ['Billed lines', tot.line_count]),
+        // per month the rows repeat a department: the bar shows the plain department grouping only
+        hero: bar('Net sales by department', g.value === 'department' ? arr(b.rows) : [], deptName, [['net_paisa', 'Net sales']], 'money'),
+        side: line('Net sales per day', arr(obj(other).rows), 'net_sales_paisa', 'Net sales', 'money'),
+      }),
       ...(b.reconciles_with_income === false ? [{ t: 'banner', tone: 'warning', title: 'Department totals do not match income for this period. The team has been alerted.' } as Section] : []),
       T(table({ id: 'department-income', caption: 'Department income', first: 'Department', specs, rows: arr(b.rows), totals: obj(b.totals), head })),
     ],
@@ -107,7 +142,12 @@ function collections(b: Json, { q, o }: Ctx): Built {
   const specs: Spec[] = [['Payments', 'entries', 'int'], ['Reversals', 'reversals', 'int'], ['Collected', 'gross_collected_paisa', 'money'], ['Reversed/refunded', 'reversed_paisa', 'money'], ['Net collected', 'net_collected_paisa', 'money']];
   return {
     title: 'Collections history', controls: [g, ...multi(q, 'payment_method_code', 'Method', methods)], groupLabel: labelOf(g.options, g.value),
-    sections: [T(table({ id: 'collections', caption: 'Collections', first: labelOf(g.options, g.value), specs, rows: arr(b.rows), totals: obj(b.totals), head: labelCell })),
+    sections: [R({
+      tiles: tiles(['Net collected', obj(b.totals).net_collected_paisa, 'money'], ['Collected', obj(b.totals).gross_collected_paisa, 'money'], ['Reversed/refunded', obj(b.totals).reversed_paisa, 'money'], ['Payments', obj(b.totals).entries]),
+      // one read, grouped as the user chose: the day line fills when grouped by day, the method bar when grouped by method
+      hero: line('Net collected per day', g.value === 'day' ? arr(b.rows) : [], 'net_collected_paisa', 'Net collected', 'money'),
+      side: bar('Net collected by method', g.value === 'method' ? arr(b.rows) : [], name, [['net_collected_paisa', 'Net collected']], 'money'),
+    }), T(table({ id: 'collections', caption: 'Collections', first: labelOf(g.options, g.value), specs, rows: arr(b.rows), totals: obj(b.totals), head: labelCell })),
       { t: 'note', text: 'Cash basis — includes payments of earlier invoices; differs from income.' }],
   };
 }
@@ -115,7 +155,13 @@ function collections(b: Json, { q, o }: Ctx): Built {
 function volume(b: Json, { q }: Ctx): Built {
   const g = radio(q, 'group_by', 'Group by', DAY_OPTS, 'day');
   const specs: Spec[] = [['Orders', 'orders_registered', 'int'], ['Cancelled', 'orders_cancelled', 'int'], ['Net orders', 'net_orders', 'int'], ['Patient visits', 'patient_visits', 'int'], ['New patients', 'new_patients', 'int'], ['Urgent', 'urgent_orders', 'int'], ['OPD', 'opd_orders', 'int'], ['IPD', 'ipd_orders', 'int'], ['Tests ordered', 'tests_ordered', 'int']];
-  return { title: 'Volume', controls: [g], groupLabel: labelOf(g.options, g.value), sections: [T(table({ id: 'volume', caption: 'Volume', first: labelOf(g.options, g.value), specs, rows: arr(b.rows), totals: obj(b.totals), head: labelCell }))] };
+  const tot = obj(b.totals);
+  const types = [['OPD', tot.opd_orders], ['IPD', tot.ipd_orders], ['Urgent', tot.urgent_orders]].map(([label, n]) => ({ label, n }));
+  return { title: 'Volume', controls: [g], groupLabel: labelOf(g.options, g.value), sections: [R({
+    tiles: tiles(['Orders', tot.orders_registered], ['Patient visits', tot.patient_visits], ['New patients', tot.new_patients], ['Tests ordered', tot.tests_ordered]),
+    hero: line('Patient visits per day', arr(b.rows), 'patient_visits', 'Patient visits'),
+    side: bar('Orders by type', types, (r) => str(r.label), [['n', 'Orders']]),
+  }), T(table({ id: 'volume', caption: 'Volume', first: labelOf(g.options, g.value), specs, rows: arr(b.rows), totals: obj(b.totals), head: labelCell }))] };
 }
 
 const rankTable = (a: { id: string; caption: string; who: string; specs: Spec[]; rows: Json[]; totals: Json; head: (r: Json) => Cell }): TableVM => ({
@@ -128,14 +174,19 @@ const rankTable = (a: { id: string; caption: string; who: string; specs: Spec[];
 function topReferrers(b: Json, { q }: Ctx): Built {
   // volume only: no money column exists (D-44)
   const specs: Spec[] = [['Orders', 'orders', 'int'], ['Patient visits', 'patient_visits', 'int'], ['Tests ordered', 'tests_ordered', 'int']];
-  const head = (r: Json) => t(r.is_self === true ? 'SELF (no referrer)' : name(r));
+  const head = (r: Json) => t(refName(r));
+  const tot = obj(b.totals);
   return {
     title: 'Top referrers',
     controls: [select(q, 'sort', 'Sort', opts(['-orders', 'Orders'], ['-patient_visits', 'Patient visits'], ['-tests_ordered', 'Tests ordered']), '-orders'),
       select(q, 'limit', 'Limit', opts(['10', '10'], ['20', '20'], ['50', '50'], ['100', '100']), '20'),
       { type: 'referrers', id: 'referrer_id', label: 'Referrer', value: list(q, 'referrer_id') },
       { type: 'switch', id: 'rollup', label: 'Combine merged doctors', on: q.get('rollup') !== 'none', offValue: 'none' }],
-    sections: [T(rankTable({ id: 'top-referrers', caption: 'Top referrers', who: 'Referrer', specs, rows: arr(b.rows), totals: obj(b.totals), head }))],
+    sections: [R({
+      tiles: tiles(['Orders', tot.orders], ['Patient visits', tot.patient_visits], ['Tests ordered', tot.tests_ordered]),
+      hero: bar('Orders by referrer', arr(b.rows), refName, [['orders', 'Orders']]),
+      side: bar('Tests ordered by referrer', arr(b.rows), refName, [['tests_ordered', 'Tests ordered']]),
+    }), T(rankTable({ id: 'top-referrers', caption: 'Top referrers', who: 'Referrer', specs, rows: arr(b.rows), totals: obj(b.totals), head }))],
   };
 }
 
@@ -161,6 +212,12 @@ function referral(b: Json, { q }: Ctx): Built {
     title: 'Referral business report', groupLabel: labelOf(g.options, g.value),
     controls: [g, { type: 'switch', id: 'rollup', label: 'Combine merged doctors', on: q.get('rollup') !== 'none', offValue: 'none' }],
     sections: [
+      R({
+        tiles: tiles(['Orders', totals.orders], ['Patient visits', totals.patient_visits], ['Tests ordered', totals.tests_ordered], ['Net billed', totals.net_billed_paisa, 'money']),
+        // per month a referrer repeats: the bars show the plain referrer grouping only (this page of rows)
+        hero: bar('Net billed by referrer', monthly ? [] : rows, refName, [['net_billed_paisa', 'Net billed']], 'money'),
+        side: bar('Orders by referrer', monthly ? [] : rows, refName, [['orders', 'Orders']]),
+      }),
       { t: 'note', text: 'Orders and billing by referring doctor. For internal review only.' },
       T(vm),
       { t: 'note', text: 'Net billed counts credit-party work on the day it was charged.' },
@@ -185,7 +242,11 @@ function topCentres(b: Json, { q }: Ctx): Built {
     title: 'Top centres',
     controls: [select(q, 'sort', 'Sort', opts(['-orders', 'Orders'], ['-net_sales_paisa', 'Net sales'], ['-patient_visits', 'Patient visits'], ['-tests_ordered', 'Tests ordered']), '-orders'),
       select(q, 'limit', 'Limit', opts(['10', '10'], ['20', '20'], ['50', '50']), '20')],
-    sections: [T(vm)],
+    sections: [R({
+      tiles: tiles(['Orders', totals.orders], ['Patient visits', totals.patient_visits], ['Tests ordered', totals.tests_ordered], ['Net sales', totals.net_sales_paisa, 'money']),
+      hero: bar('Orders by centre', rows, name, [['orders', 'Orders']]),
+      side: bar('Net sales by centre', rows, name, [['net_sales_paisa', 'Net sales']], 'money'),
+    }), T(vm)],
   };
 }
 
@@ -197,7 +258,11 @@ function testsDone(b: Json, { q, o }: Ctx): Built {
   return {
     title: 'Tests done', groupLabel: labelOf(g.options, g.value),
     controls: [g, ...multi(q, 'department_id', 'Department', dept), ...multi(q, 'processing_branch_id', 'Processing branch', br)],
-    sections: [{ t: 'text', text: 'Results (analyte level)' }, T(table({ id: 'tests-done', caption: 'Tests done', first: labelOf(g.options, g.value), specs, rows: arr(b.rows), totals: obj(b.totals), head: labelCell }))],
+    sections: [R({
+      tiles: tiles(['Resulted', obj(b.totals).results_resulted], ['Approved', obj(b.totals).results_approved], ['Critical', obj(b.totals).critical_count], ['Abnormal', obj(b.totals).abnormal_count]),
+      hero: bar('Tests completed by department', g.value === 'department' ? arr(b.rows) : [], name, [['tests_approved', 'Tests completed']]),
+      side: bar('Critical and abnormal by department', g.value === 'department' ? arr(b.rows) : [], name, [['critical_count', 'Critical'], ['abnormal_count', 'Abnormal']]),
+    }), { t: 'text', text: 'Results (analyte level)' }, T(table({ id: 'tests-done', caption: 'Tests done', first: labelOf(g.options, g.value), specs, rows: arr(b.rows), totals: obj(b.totals), head: labelCell }))],
   };
 }
 
@@ -214,6 +279,11 @@ function tat(b: Json, { q, o }: Ctx): Built {
       return { id: `${i}:${str(r.segment)}:${str(r.key)}`, cells: [t(label(str(r.segment))), t(str(r.label)), c('int', r.n), c('dur', empty ? undefined : r.median_seconds), c('dur', empty ? undefined : r.p90_seconds), c('dur', empty ? undefined : r.max_seconds), c('int', r.anomalies)] };
     }),
   };
+  const segRows = arr(b.rows).map((r) => {
+    const n = num(r.n) ?? 0;
+    const med = num(r.median_seconds);
+    return { cat: label(str(r.segment)) + (str(r.label) ? ` · ${str(r.label)}` : ''), n, anomalies: num(r.anomalies) ?? 0, median_min: n > 0 && med !== undefined ? Math.round(med / 60) : undefined };
+  });
   const sp = (o?.specimen_types ?? []).map((s) => ({ value: str(s.code), label: str(s.display) || str(s.code) })).filter((s) => s.value);
   const br = (o?.branches ?? []).map((d) => ({ value: d.id, label: d.label }));
   return {
@@ -222,6 +292,12 @@ function tat(b: Json, { q, o }: Ctx): Built {
       select(q, 'priority', 'Priority', opts(['all', 'All'], ['routine', 'Routine'], ['urgent', 'Urgent']), 'all'),
       ...multi(q, 'specimen_type_code', 'Specimen type', sp), ...multi(q, 'processing_branch_id', 'Processing branch', br), g],
     sections: [
+      R({
+        tiles: tiles(['Samples', sum(segRows, 'n')], ['Excluded (anomalies)', sum(segRows, 'anomalies')]),
+        // the contract groups TAT by segment (no department dimension): the bars are per segment row, the median in whole minutes
+        hero: bar('Median turnaround by segment', segRows, (r) => str(r.cat), [['median_min', 'Median (minutes)']]),
+        side: bar('Samples by segment', segRows, (r) => str(r.cat), [['n', 'Samples (n)']]),
+      }),
       { t: 'dl', items: SEG.map(([, l, from, to]) => ({ term: l, value: `${from} → ${to}` })) },
       T(vm),
       { t: 'note', text: 'Server times are used, not analyser clocks.' },
@@ -304,6 +380,11 @@ function delivery(b: Json, { q }: Ctx): Built {
   return {
     title: 'Delivery', groupLabel: labelOf(g.options, g.value), controls: [g],
     sections: [
+      R({
+        tiles: tiles(['Sent', obj(d.totals).sent], ['Delivered', obj(d.totals).delivered], ['Failed', obj(d.totals).failed], ['Released', obj(r.totals).released]),
+        hero: line('Released per day', arr(r.rows), 'released', 'Released'),
+        side: bar('Sent and failed by channel', g.value === 'channel' ? arr(d.rows) : [], name, [['sent', 'Sent'], ['failed', 'Failed']]),
+      }),
       T(table({ id: 'deliveries', caption: 'Deliveries', first: labelOf(g.options, g.value), specs: dSpecs, rows: arr(d.rows), totals: obj(d.totals), head: labelCell })),
       { t: 'note', text: 'Counted on the day each message was created; later status changes update that day.' },
       T(table({ id: 'releases', caption: 'Releases', first: g.value === 'channel' ? 'Day' : labelOf(g.options, g.value), specs: rSpecs, rows: arr(r.rows), totals: obj(r.totals), head: labelCell })),
@@ -334,9 +415,17 @@ function interfaces(b: Json, { o, perms }: Ctx): Built {
       return { id: `${i}:${id}`, cells: [nm ? t(nm) : { k: 'id', v: id }, centre(r.centre_id), ...specs.map(([, k, kind]) => c(kind, r[k]))] };
     }),
   };
+  const state = (s: string) => arr(ag.by_state).find((x) => x.state === s)?.count ?? 0;
+  const insts = arr(b.instruments);
+  const instName = (r: Json) => (str(r.label) ? str(r.label) + (str(r.instrument_code) ? ` · ${str(r.instrument_code)}` : '') : short(str(r.instrument_id)));
   return {
     title: 'Instrument interfaces', controls: [],
-    sections: [{ t: 'card', title: 'Agents by state', items: arr(ag.by_state).map((s) => ({ term: cap(str(s.state)), value: String(num(s.count) ?? '—') })) }, T(agentVM), T(msgVM)],
+    // T0D-UIREPORT-2: the contract has no per-day message counts (hero = Not available, CR in the screens note); the Agents by state card stays (§4.12 text labels)
+    sections: [R({
+      tiles: tiles(['Agents online', state('online')], ['Agents offline', state('offline')], ['Messages', sum(insts, 'messages')], ['Unmatched', sum(insts, 'unmatched')]),
+      hero: { title: 'Messages per day', kind: 'na', categories: [], series: [], format: 'integer', note: 'Not available yet: this report has no per-day message counts.' },
+      side: bar('Messages by instrument', insts, instName, [['messages', 'Messages']]),
+    }), { t: 'card', title: 'Agents by state', items: arr(ag.by_state).map((s) => ({ term: cap(str(s.state)), value: String(num(s.count) ?? '—') })) }, T(agentVM), T(msgVM)],
   };
 }
 
@@ -347,11 +436,11 @@ const BUILDERS: Record<string, (b: Json, x: Ctx) => Built> = {
 
 // ------------------------------------------------------------------ page
 export interface PageArgs {
-  def: ReportDef; body: Json; summary?: Json; q: URLSearchParams; options: FilterOptions | undefined; perms: Perms;
+  def: ReportDef; body: Json; summary?: Json; other?: Json; q: URLSearchParams; options: FilterOptions | undefined; perms: Perms;
   tabs: PageVM['tabs']; hub: boolean; pdfEnabled: boolean; basePath: string; pageId: PageVM['pageId'];
 }
 export function buildPage(a: PageArgs): PageVM {
-  const built = BUILDERS[a.def.slug]!(a.body, { q: a.q, o: a.options, perms: a.perms, ...(a.summary ? { summary: a.summary } : {}) });
+  const built = BUILDERS[a.def.slug]!(a.body, { q: a.q, o: a.options, perms: a.perms, ...(a.summary ? { summary: a.summary } : {}), ...(a.other ? { other: a.other } : {}) });
   const env = a.def.slug === 'pending-tests' ? obj(a.summary) : a.body; // pending has no period; its freshness is the summary's
   const p = obj(env.period);
   const scope = obj(env.scope);

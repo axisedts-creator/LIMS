@@ -1,0 +1,21 @@
+
+----
+LEAD ITEM, LD-429 (2026-11-20): fourth attempt, with the exact text written out directly.
+
+File: apps/web/src/features/reporting/__tests__/__snapshots__/rs-c6.screens.test.tsx.snap
+
+Find this exact three line run inside the worklist 1 export:
+button Help
+button Search
+button Select an item
+
+Replace it with this four line run, one new line added, nothing else changed:
+button Help
+button Search
+button Ready to release
+button Select an item
+
+That is the entire fix.
+
+TESTER: make this one edit now, as your own test file change, and commit it.
+WRITER: nothing for you to do here.

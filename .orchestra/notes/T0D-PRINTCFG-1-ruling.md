@@ -153,3 +153,48 @@ ever the open item.
 
 If this does not land after this one attempt, that is new information worth a fresh debug round,
 not a reason to repeat a third prose attempt.
+
+----
+LEAD ITEM, LD-429 (2026-11-20): fourth attempt, with the exact text written out directly.
+
+File: apps/web/src/features/reporting/__tests__/__snapshots__/rs-c6.screens.test.tsx.snap
+
+Find this exact three line run inside the worklist 1 export:
+button Help
+button Search
+button Select an item
+
+Replace it with this four line run, one new line added, nothing else changed:
+button Help
+button Search
+button Ready to release
+button Select an item
+
+That is the entire fix.
+
+TESTER: make this one edit now, as your own test file change, and commit it.
+WRITER: nothing for you to do here.
+
+----
+LEAD ITEM, LD-430 (2026-11-20): correction, writer owns this, not tester.
+
+The worklist 1 snapshot in rs-c6.screens.test.tsx.snap is listed in TestExempt (run.ps1 line 61,
+founder own Nov 14 harness fix): rs-cN snapshot files are product deliverables, writer and
+debugger own them, not the tester. Enforce will correctly revert a tester edit to this file every
+time, that is not a bug.
+
+File: apps/web/src/features/reporting/__tests__/__snapshots__/rs-c6.screens.test.tsx.snap
+
+Find this exact three line run inside the worklist 1 export:
+button Help
+button Search
+button Select an item
+
+Replace it with this four line run, one new line added, nothing else changed:
+button Help
+button Search
+button Ready to release
+button Select an item
+
+WRITER: make this one edit yourself and commit it as an ordinary product file edit.
+TESTER: do not attempt this snapshot again.

@@ -1,6 +1,23 @@
-TESTS_WRONG — round 2: the tester re-record of round-1 point 3 is incomplete; the 3 rs-c8 failures are test-side, the implementation stays.
-Verified in this tree (vitest -c vitest.rs-c8.config.ts): 3 failed / 33 passed — "Report hub (tabs)", "New schedule form" (snapshot mismatch), rs-c8.static.test.ts:63 analytics_feature route case.
-1. Snapshots: round-1 point 3 ordered "re-record rs-c8.baseline.json and the two snapshots"; b011b6423 changed only baseline.json. Tester: run rs-c8.screens.test.tsx and rs-c8.screens.admin.test.tsx with -u from this reviewed tree and commit both .snap files. The catalogue rows they now show are required by the brief (inbox line 20, items 2-3) and by spec/program/08-CR-REGISTER.md:3151 (A39-7, the catalogue entries and their screens).
-2. Route case: rs-c8.baseline.json:90 pins "/analytics/reports/${misSlug" (the extractor in rs-c8.signature.ts cuts at "("), and rs-c8.static.test.ts:67 EXISTING only accepts a closed `${...}`, so the re-recorded baseline fails its own test. The link target /analytics/reports/[reportCode] exists (static.test.ts:76), so the link is valid. Tester, one of: (a) make the route extractor keep the full template `${misSlug(code)}` and re-record baseline.json; or (b) in EXISTING widen only the reports branch to `\$\{[^}]*\}?`. Keep the case name; do not delete or skip it.
-3. Do not ask the writer to change report-codes.ts:59 to fit the extractor: that file's sha is pinned in the same baseline (static.test.ts:45-51) and the code is what the brief requires.
-rs-c2 must stay unchanged and green (brief, inbox line 20). No implementation change required.
+TESTS_WRONG — round 3: the 2 rs-c8 snapshot failures are stale .snap files, the implementation stays; per LD-433 the WRITER (not the tester) re-records them.
+Verified in this tree (vitest -c src/features/analytics/__tests__/vitest.rs-c8.config.ts): 2 failed / 34 passed — rs-c8.screens.test.tsx "Report hub (tabs)" and rs-c8.screens.admin.test.tsx "New schedule form", both `toMatchSnapshot` mismatches. The round-2 route case (rs-c8.static.test.ts) is now green.
+1. The snapshot diff is only the new MIS catalogue rows (Sales representative, Consultant, Repeated patient, Repeated test, ...). They are required by the brief (inbox line 20, items 2-3) and spec/program/08-CR-REGISTER.md:3151 (A39-7: T0D-MISREPORTS-1 owns the catalogue entries and their screens). The .snap files were last recorded in 6c1b8b4c1 (T0D-UIDASH-1), before this task.
+2. WRITER (LD-433, rs-cN.*.snap exemption, same as LD-430): from this tree run rs-c8.screens.test.tsx and rs-c8.screens.admin.test.tsx with `-u` and commit both files under apps/web/src/features/analytics/__tests__/__snapshots__. Change no test source and no implementation; do not remove the new rows.
+3. TESTER: nothing to do on this point; do not touch the two .snap files.
+4. Keep every other rs-c8 case and the rs-c8.baseline.json as they are; rs-c2 must stay unchanged and green (brief, inbox line 20).
+
+=== LEAD ITEM, LD-433 (2026-11-20) ===
+Correcting round 2: the ruling told TESTER to re-record the two rs-c8
+snapshot files; that is the wrong role, same mistake as the earlier
+rs-c4/rs-c6 case (see LD-430). Both snap files match the rs-cN dot star
+dot snap exemption, so only WRITER or DEBUGGER may touch them.
+
+WRITER: run rs-c8.screens.test.tsx and rs-c8.screens.admin.test.tsx with
+the update-snapshots flag from this tree, and commit both resulting snap
+files under apps/web/src/features/analytics/__tests__/__snapshots__. The
+new catalogue rows (sales representative, consultant, repeated patient,
+repeated test, and so on) are expected content from this task own work;
+do not undo them, only let the snapshot catch up to them.
+
+TESTER: nothing further here; the route case point from round 2 is
+already fixed and green. Do not touch the two snap files again, they are
+not yours on this task.

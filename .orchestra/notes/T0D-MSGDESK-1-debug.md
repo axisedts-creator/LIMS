@@ -1,0 +1,4 @@
+# T0D-MSGDESK-1 debugger (2026-11-20)
+- Verify log: only 4 fail, all in core/nav: nav-complete.admin-pack (3: corp_admin sees lab.approval / lab.result.approve; hidden list stale) and nav-complete.build (billing count 22 vs pinned 9).
+- Cause: not this task. MSGDESK adds only engagement.msg_templates, engagement.msg_broadcasts, partners.tickets (permission engagement.broadcast.read / partners.ticket.read); none touches lab, billing or the corp_admin hidden list. Billing grew to 22 on main via T0D-FINCTRL-1 / T0D-MISREPORTS-1; admin-pack pins are stale on main (ruling line 9 already says so).
+- Fix: none in implementation; changing code to satisfy these would hide lab.approval or drop billing entries (wrong). Tests may not be edited by me. Needs its own task (re-pin admin-pack hidden list and billing count).

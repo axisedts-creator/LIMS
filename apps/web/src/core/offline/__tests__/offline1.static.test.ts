@@ -19,7 +19,10 @@ describe('offline layer source', () => {
   });
 
   it('shell JavaScript grows by at most 25 KB gzipped (raw source gzip, upper bound)', () => {
-    const files = impl();
+    // T0D-OFFLINE-4 arbiter ruling: measure only what the shell loads at startup. These modules are reached only through
+    // import('../controller') (ui/OfflineProvider.tsx) and are type-only imports elsewhere, so they are lazy chunks, not shell JS.
+    const LAZY = ['controller.ts', 'flows.ts', 'labflows.ts', 'cashflows.ts'];
+    const files = impl().filter((f) => !LAZY.includes(relative(dir, f).replace(/\\/g, '/')));
     expect(files.length).toBeGreaterThan(0);
     // upper bound: raw source (types and comments included) can only over-count the minified bundle; strip types when node offers it
     const strip = (nodeModule as { stripTypeScriptTypes?: (c: string, o?: { mode: string }) => string }).stripTypeScriptTypes;

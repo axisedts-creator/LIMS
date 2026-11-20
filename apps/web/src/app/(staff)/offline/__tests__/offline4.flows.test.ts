@@ -120,7 +120,7 @@ describe('daily cash close offline (done_when 5)', () => {
   it('a session the cache already holds as closed is refused with common.immutable_record; the tenant step up for closing is online only (sync.offline_not_allowed)', async () => {
     const closed = cashSession(3, { status: 'closed' }); const open = cashSession(4); const env = await createEnv({ sessions: [closed, open] });
     expect(await env.cash().closeDay({ session_id: closed.id, counted })).toMatchObject({ ok: false, code: 'common.immutable_record' });
-    const stepUp = await env.cash({ requiresStepUp: () => true }).closeDay({ session_id: open.id, counted });
+    const stepUp = await env.cash(P_ENTER, { requiresStepUp: () => true }).closeDay({ session_id: open.id, counted });
     expect(stepUp).toMatchObject({ ok: false, code: 'sync.offline_not_allowed' });
     expect(stepUp.message).toMatch(/online|internet|connection/i);
     expect(await env.pendingOps()).toHaveLength(0);
@@ -146,7 +146,7 @@ describe('daily cash close offline (done_when 5)', () => {
     await env.cash().closeDay({ session_id: s.id, counted });
     await drainAll(env);
     expect(await env.outbox.count()).toBe(0);
-    expect((await env.outbox.conflicts()).map((c: { conflict_id: string; code?: string }) => [c.conflict_id, c.code])).toEqual([[U(7001), 'common.immutable_record']]);
+    expect((await env.outbox.conflicts()).map((c) => [c.conflict_id, c.code])).toEqual([[U(7001), 'common.immutable_record']]);
     expect(await env.flows.statusOf(s.id)).toEqual({ state: 'conflict', code: 'common.immutable_record', conflict_id: U(7001) });
     expect(ops(env, 'daily_cash.close')).toHaveLength(1);
   });

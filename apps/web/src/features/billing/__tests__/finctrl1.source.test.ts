@@ -53,8 +53,10 @@ describe('T0D-FINCTRL-1 routes, pages and navigation', () => {
 
   it('no route is added, renamed or removed under admin or platform; only the four /billing/discounts rows are new', () => {
     const NEW = new Set(Object.keys(PAGES).map((p) => `/billing/${p}`));
-    const discountRoutes = routes.filter((x) => x.origin === 'staff_web' && /discount/i.test(x.path));
+    // ruling: scope to the billing area; /frontdesk/discount-approvals (C4) pre-exists on main
+    const discountRoutes = routes.filter((x) => x.origin === 'staff_web' && x.path.startsWith('/billing/') && /discount/i.test(x.path));
     expect(discountRoutes.map((x) => x.path).sort()).toEqual([...NEW].sort());
+    expect(routes.some((x) => x.origin === 'staff_web' && x.path === '/frontdesk/discount-approvals')).toBe(true);
   });
 
   it('the existing billing routes (including the accounting ones) are all still there', () => {

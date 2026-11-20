@@ -54,7 +54,8 @@ describe('T0D-PRICETOOLS-1 no new library, no new route', () => {
     const dirs: string[] = [];
     const go = (d: string) => { for (const e of readdirSync(d)) { const p = join(d, e); if (statSync(p).isDirectory()) { dirs.push(e); go(p); } } };
     go(join(SRC, 'app', '(staff)', 'catalog'));
-    expect(dirs.filter((x) => /compare|copy|bulk|template|upload/i.test(x))).toEqual([]);
+    const PRE_EXISTING = new Set(['import-templates']); // T-35 screen, 7b0106219 (arbiter ruling)
+    expect(dirs.filter((x) => /compare|copy|bulk|template|upload/i.test(x) && !PRE_EXISTING.has(x))).toEqual([]);
   });
 });
 

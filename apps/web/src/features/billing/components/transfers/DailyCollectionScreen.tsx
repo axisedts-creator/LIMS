@@ -33,8 +33,8 @@ export interface DailyCollectionScreenProps {
   day: string;
   particulars: readonly AccountParticular[];
   permissions: readonly string[];
-  /** Cash sessions of the day (optional: existing callers pass none, the figures then show 0.00). */
-  sessions?: readonly CollectionSession[] | undefined;
+  /** Cash sessions of the day (optional: existing callers pass none, the figures then show 0.00; null = the read was refused, figures show "—"). */
+  sessions?: readonly CollectionSession[] | null | undefined;
 }
 
 export function DailyCollectionScreen({ summary, centres, centreId, day, particulars, permissions, sessions = [] }: DailyCollectionScreenProps) {
@@ -48,7 +48,7 @@ export function DailyCollectionScreen({ summary, centres, centreId, day, particu
   const [pending, setPending] = useState(false);
   const inFlight = useRef(false);
   const key = useRef(newKey());
-  const mine = sessions.filter((x) => x.centre_id === centreId);
+  const mine = (sessions ?? []).filter((x) => x.centre_id === centreId);
   const previous = mine.reduce((sum, x) => sum + (x.previous_outstanding_cash_paisa ?? 0), 0);
   const deposited = mine.reduce((sum, x) => sum + (x.deposit_paisa ?? 0), 0);
   const cash = summary?.rows.find((r) => r.payment_mode === 'cash')?.total_paisa ?? 0;
@@ -100,10 +100,11 @@ export function DailyCollectionScreen({ summary, centres, centreId, day, particu
       <DataTable caption={D('title')} density="compact" columns={columns} rows={summary?.rows ?? []} getRowId={(r) => r.payment_mode} emptyState={{ title: D('empty') }} />
       {summary ? <p className="lims-inline"><span>{D('total')}</span><strong>{formatNpr(summary.total_paisa)}</strong></p> : null}
       <div className="lims-inline">
-        <p className="lims-inline"><span>{D('previous_outstanding')}</span><strong>{formatNpr(previous)}</strong></p>
-        <p className="lims-inline"><span>{D('deposited')}</span><strong>{formatNpr(deposited)}</strong></p>
-        <p className="lims-inline"><span>{D('carried_forward')}</span><strong>{formatNpr(carried)}</strong></p>
+        <p className="lims-inline"><span>{D('previous_outstanding')}</span><strong>{sessions === null ? '—' : formatNpr(previous)}</strong></p>
+        <p className="lims-inline"><span>{D('deposited')}</span><strong>{sessions === null ? '—' : formatNpr(deposited)}</strong></p>
+        <p className="lims-inline"><span>{D('carried_forward')}</span><strong>{sessions === null ? '—' : formatNpr(carried)}</strong></p>
       </div>
+      {sessions === null ? <p className="lims-description">{D('sessions_unavailable')}</p> : null}
       <div className="lims-inline">
         <TextField label={D('deposit')} name="deposit" inputMode="decimal" maxLength={17} value={deposit} isDisabled={!!blocked} onChange={(v) => { setDeposit(v); setError(undefined); }} {...(error ? { error } : {})} />
         {blocked ? <GatedButton variant="primary" label={D('save')} blocked={blocked} onPress={() => undefined} /> : <Button variant="primary" isLoading={pending} onPress={() => void save()}>{D('save')}</Button>}

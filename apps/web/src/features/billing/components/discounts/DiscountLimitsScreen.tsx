@@ -18,14 +18,17 @@ import { CeilingDialog, ConfirmDeactivate, DPERM, DT, activeText, failText, pctC
 
 const REASON_ID = 'discount-limits-reason';
 
-export interface DiscountLimitsScreenProps { limits: readonly UserDiscountLimit[]; members: readonly Named[]; permissions: readonly string[]; failure?: ListFailure | undefined }
+export interface DiscountLimitsScreenProps { limits: readonly UserDiscountLimit[]; members: readonly Named[]; permissions: readonly string[]; failure?: ListFailure | undefined;
+  /** Review fix (CR .orchestra/cr/T0D-FINCTRL-1.md): reason Add New and Edit stay disabled while the member ids differ from the API user_id. */
+  idPending?: string | undefined }
 
-export function DiscountLimitsScreen({ limits, members, permissions, failure }: DiscountLimitsScreenProps) {
+export function DiscountLimitsScreen({ limits, members, permissions, failure, idPending }: DiscountLimitsScreenProps) {
   const router = useRouter();
   const toast = useToast();
   const [editing, setEditing] = useState<{ row?: UserDiscountLimit } | null>(null);
   const [deactivating, setDeactivating] = useState<UserDiscountLimit | null>(null);
   const blocked = hasPerm(permissions, DPERM.manage) ? undefined : DT('reason.no_manage');
+  const writeBlocked = blocked ?? idPending;
   const done = () => { setEditing(null); setDeactivating(null); toast.show({ tone: 'success', title: DT('saved') }); router.refresh(); };
   const fail = (r: DiscountActionResult) => { if (!r.ok) toast.show({ tone: 'danger', title: DT('failed'), description: failText(r.code) }); };
   const withRow = new Set(limits.map((l) => l.user_id));
@@ -40,7 +43,7 @@ export function DiscountLimitsScreen({ limits, members, permissions, failure }: 
       header: DT('col.action'),
       cell: (l) => (
         <span className="lims-inline">
-          <GatedButton label={DT('edit')} blocked={blocked} reasonId={REASON_ID} onPress={() => setEditing({ row: l })} />
+          <GatedButton label={DT('edit')} blocked={writeBlocked} reasonId={REASON_ID} onPress={() => setEditing({ row: l })} />
           {l.is_active ? <GatedButton label={DT('deactivate')} blocked={blocked} reasonId={REASON_ID} onPress={() => setDeactivating(l)} /> : null}
         </span>
       ),
@@ -52,9 +55,9 @@ export function DiscountLimitsScreen({ limits, members, permissions, failure }: 
       <PageHeader
         title={DT('limits.title')}
         helpKey="billing.accounts"
-        actions={<GatedButton variant="primary" label={DT('limits.new')} blocked={blocked} reasonId={REASON_ID} onPress={() => setEditing({})} />}
+        actions={<GatedButton variant="primary" label={DT('limits.new')} blocked={writeBlocked} reasonId={REASON_ID} onPress={() => setEditing({})} />}
       />
-      {blocked ? <p id={REASON_ID} className="lims-description">{blocked}</p> : null}
+      {writeBlocked ? <p id={REASON_ID} className="lims-description">{writeBlocked}</p> : null}
       <DataTable
         caption={DT('limits.title')}
         density="compact"

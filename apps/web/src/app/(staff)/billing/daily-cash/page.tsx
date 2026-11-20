@@ -16,9 +16,9 @@ async function collection(sp: Record<string, string | string[] | undefined>, per
   const centreId = asked ?? centres[0]?.id ?? '';
   const day = typeof sp['day'] === 'string' && ISO_DATE_RE.test(sp['day']) ? sp['day'] : new Date(Date.now() + 345 * 60_000).toISOString().slice(0, 10);
   // T0D-FINCTRL-1 (LD-321): the cash sessions of that centre and day carry Previous Outstanding Cash and Deposit (getDailyCash needs
-  // billing.cash_report.read; a refused read shows the figures as 0.00).
+  // billing.cash_report.read; a refused read passes null and the figures show "—", never invented 0.00 — review fix).
   const [summary, sessions] = centreId
-    ? await Promise.all([getDailyCollectionSummary(centreId, day).catch(() => null), getDailyCash({ date: day, centreId }).then((r) => r.sessions ?? [], () => [])])
+    ? await Promise.all([getDailyCollectionSummary(centreId, day).catch(() => null), getDailyCash({ date: day, centreId }).then((r) => r.sessions ?? [], () => null)])
     : [null, []];
   return { summary, centres, centreId, day, particulars, sessions };
 }

@@ -17,15 +17,18 @@ import { CeilingDialog, ConfirmDeactivate, DPERM, DT, activeText, failText, newK
 
 const REASON_ID = 'discount-authorities-reason';
 
-export interface DiscountAuthoritiesScreenProps { authorities: readonly DiscountAuthority[]; members: readonly Named[]; permissions: readonly string[]; failure?: ListFailure | undefined }
+export interface DiscountAuthoritiesScreenProps { authorities: readonly DiscountAuthority[]; members: readonly Named[]; permissions: readonly string[]; failure?: ListFailure | undefined;
+  /** Review fix (CR .orchestra/cr/T0D-FINCTRL-1.md): reason Add New and Edit stay disabled while the member ids differ from the API user_id. */
+  idPending?: string | undefined }
 
-export function DiscountAuthoritiesScreen({ authorities, members, permissions, failure }: DiscountAuthoritiesScreenProps) {
+export function DiscountAuthoritiesScreen({ authorities, members, permissions, failure, idPending }: DiscountAuthoritiesScreenProps) {
   const router = useRouter();
   const toast = useToast();
   const [adding, setAdding] = useState(false);
   const [deactivating, setDeactivating] = useState<DiscountAuthority | null>(null);
   const key = useRef(newKey());
   const blocked = hasPerm(permissions, DPERM.manage) ? undefined : DT('reason.no_manage');
+  const writeBlocked = blocked ?? idPending;
   const done = () => { setAdding(false); setDeactivating(null); key.current = newKey(); toast.show({ tone: 'success', title: DT('saved') }); router.refresh(); };
   const fail = (r: DiscountActionResult) => { key.current = newKey(); if (!r.ok) toast.show({ tone: 'danger', title: DT('failed'), description: failText(r.code) }); };
   const active = new Set(authorities.filter((a) => a.is_active).map((a) => a.user_id));
@@ -42,9 +45,9 @@ export function DiscountAuthoritiesScreen({ authorities, members, permissions, f
       <PageHeader
         title={DT('authorities.title')}
         helpKey="billing.accounts"
-        actions={<GatedButton variant="primary" label={DT('authorities.new')} blocked={blocked} reasonId={REASON_ID} onPress={() => setAdding(true)} />}
+        actions={<GatedButton variant="primary" label={DT('authorities.new')} blocked={writeBlocked} reasonId={REASON_ID} onPress={() => setAdding(true)} />}
       />
-      {blocked ? <p id={REASON_ID} className="lims-description">{blocked}</p> : null}
+      {writeBlocked ? <p id={REASON_ID} className="lims-description">{writeBlocked}</p> : null}
       <DataTable
         caption={DT('authorities.title')}
         density="compact"

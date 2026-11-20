@@ -243,10 +243,13 @@ describe('Collections history page (S2b, US-08, D-46)', () => {
     await show('collections');
     expect(pageText()).toContain('No data for this period and filter');
     cleanup();
-    respond['/v1/analytics/reports/collections'] = () => problem('common.internal', 500);
-    const p = show('collections');
-    await expect(p).rejects.toBeTruthy();
-    await expect(p).rejects.not.toThrow(/no page for report|Cannot find module/);
+    // T0D-UIREPORT-2 (LD-353 rule 6): a 5xx shows ErrorState in the page (title kept) instead of throwing to error.tsx
+    respond['/v1/analytics/reports/collections'] = () => problem('common.internal', 500, { request_id: '01933b6f-0a11-7e2b-8c55-1d2e3f405162' });
+    const failed = await show('collections');
+    expect(failed.container.querySelectorAll('h1')).toHaveLength(1);
+    expect(failed.container.querySelectorAll('.lims-state.lims-tone-danger')).toHaveLength(1);
+    expect(screen.queryAllByRole('grid')).toHaveLength(0);
+    cleanup();
     respond['/v1/analytics/reports/collections'] = () => problem('auth.forbidden', 403);
     const rendered = await showOrRefuse('collections');
     if (rendered) expect(pageText()).not.toContain('45,000');

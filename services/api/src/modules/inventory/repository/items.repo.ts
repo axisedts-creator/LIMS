@@ -1,5 +1,5 @@
 // inventory.items / item_packs / item_barcodes (05 §2.6-2.8). Explicit tenant filter on every statement (REQ-SEC-024); lists = is_active only unless includeInactive.
-import { type ListOpts, type Row, type RepoCtx, Q, activeOnly, first, getRow, insertRow, limitOf, prefixOf, query, table, updateRow } from './_base.js';
+import { type ListOpts, type Row, type RepoCtx, Q, activeOnly, first, getRow, insertRow, isUuid, limitOf, prefixOf, query, table, updateRow } from './_base.js';
 
 const ITEMS = table('items', 'M', ['item_code', 'name', 'category', 'base_uom_code', 'manufacturer', 'catalogue_no', 'storage_condition', 'is_lot_tracked', 'requires_expiry',
   'open_stability_days', 'container_qty_base', 'hs_code', 'default_tax_code', 'notes']);
@@ -8,7 +8,13 @@ const BARCODES = table('item_barcodes', 'M', ['item_id', 'pack_id', 'barcode_val
 
 export const insertItem = (rc: RepoCtx, row: Row) => insertRow(rc, ITEMS, row);
 export const getItem = (rc: RepoCtx, id: string) => getRow(rc, ITEMS, id);
-export const getItemByCode = (rc: RepoCtx, code: string) => first(rc, 'SELECT * FROM inventory.items WHERE tenant_id = $1 AND item_code = $2', [code]);
+/** Rows for the given ids in ONE query (unknown / other-tenant / non-uuid ids are simply absent: 404 parity with getItem). */
+export async function getItemsByIds(rc: RepoCtx, ids: readonly string[]): Promise<Map<string, Row>> {
+  const valid = [...new Set(ids)].filter(isUuid);
+  const rows = valid.length === 0 ? [] : await query(rc, 'SELECT * FROM inventory.items WHERE tenant_id = $1 AND id = ANY($2::uuid[])', [valid]);
+  return new Map(rows.map((r) => [r['id'] as string, r]));
+}
+export const getItemByCode =(rc: RepoCtx, code: string) => first(rc, 'SELECT * FROM inventory.items WHERE tenant_id = $1 AND item_code = $2', [code]);
 export const updateItem = (rc: RepoCtx, id: string, expectedVersion: number, patch: Row) => updateRow(rc, ITEMS, id, expectedVersion, patch);
 
 /** namePrefix: case-insensitive prefix on lower(name); codePrefix: prefix on item_code (LIKE metacharacters are literal). Order: item_code. */

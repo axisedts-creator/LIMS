@@ -136,11 +136,18 @@ describe.skipIf(!live)('T-08 #12/#13 create + read a store (AC-03.1)', () => {
     expect(await defaults(s, BR2)).toEqual([st.id]);
     expect(await defaults(s, BR1)).toEqual([MAIN]);
   });
-  run('unknown branch, inactive branch and a branch of tenant B are each a 400 at /branch_id (P-1), nothing written', async (s) => {
-    for (const branch_id of [uid(999999), BR_INACTIVE, BR_B]) {
-      const e = await expectLims(s.call(A, 'createInventoryStore', { body: newStore({ store_code: 'BADBR', branch_id }) }), 'common.validation_failed', 400);
-      expect(JSON.stringify(e.errors)).toContain('branch_id');
-    }
+  // T-26 ruling: 02-CV §11.3.1 + 07 P-T1 — a tenant-B or unknown branch id is 404 common.not_found (02-TRD:229 step 1), identical for both (no existence oracle, no B data).
+  run('a branch of tenant B and a non-existent branch are both 404 common.not_found, identical, no B data, nothing written in A or B', async (s) => {
+    const eB = await nf(s.call(A, 'createInventoryStore', { body: newStore({ store_code: 'BADBR', branch_id: BR_B }) }));
+    const eNone = await nf(s.call(A, 'createInventoryStore', { body: newStore({ store_code: 'BADBR', branch_id: uid(999999) }) }));
+    expect([eNone.code, eNone.status, eNone.detail, eNone.errors]).toEqual([eB.code, eB.status, eB.detail, eB.errors]);
+    expect(JSON.stringify(eB)).not.toContain(BR_B);
+    expect(await s.sql(A, "SELECT 1 FROM inventory.stores WHERE store_code = 'BADBR'")).toEqual([]);
+    expect(await s.sql(B, "SELECT 1 FROM inventory.stores WHERE store_code = 'BADBR'")).toEqual([]);
+  });
+  run('an inactive branch of tenant A stays 400 common.validation_failed at /branch_id (P-1), nothing written', async (s) => {
+    const e = await expectLims(s.call(A, 'createInventoryStore', { body: newStore({ store_code: 'BADBR', branch_id: BR_INACTIVE }) }), 'common.validation_failed', 400);
+    expect(JSON.stringify(e.errors)).toContain('branch_id');
     expect(await s.sql(A, "SELECT 1 FROM inventory.stores WHERE store_code = 'BADBR'")).toEqual([]);
   });
   run('duplicate store_code: 409 inventory.code_duplicate (any branch, also an inactive store owns its code); tenant B\'s code is simply creatable (no oracle); lower case is a 400', async (s) => {

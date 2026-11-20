@@ -1,0 +1,20 @@
+# T0D-UIREPORT-2 screens (LD-353 template 5 REPORT)
+
+| route | template | what changed | what was left and why |
+|---|---|---|---|
+| /analytics/reports | 5 | hub = Income body: tile row (Net sales, Invoiced, Credit notes, Invoices), hero line Net sales per day, side bar Net sales by department (second read getDepartmentIncomeReport); 501 NotAvailable / 5xx ErrorState keep the menu title | tab strip, group-by radio and MIS links stay outside the FilterBar (one-row FilterBar merge is a later kit task) |
+| /analytics/reports/income | 5 | as the hub; old "Net sales per group" bar chart removed (the hero line replaces it) | per-day line is empty ("No data yet") while grouped by month/branch/centre (rows are not days) and above 31 groups (note "Chart shows up to 31 groups", §4.1) |
+| /analytics/reports/department-income | 5 | tiles Net sales, Gross, Discount, Billed lines; hero bar Net sales by department; side line Net sales per day (second read getIncomeReport) | hero bar only for the plain department grouping (month groups repeat a department) |
+| /analytics/collections | 5 | tiles Net collected, Collected, Reversed/refunded, Payments; hero line Net collected per day; side bar Net collected by method; 5xx in page | one read only: the day line fills when grouped by day, the method bar when grouped by method (dispute: T0D-UIREPORT-2-dispute.md) |
+| /analytics/reports/volume | 5 | tiles Orders, Patient visits, New patients, Tests ordered; hero line Patient visits per day; side bar Orders by type (OPD, IPD, Urgent from totals) | — |
+| /analytics/reports/top-referrers | 5 | tiles Orders, Patient visits, Tests ordered (no money, D-44); hero bar Orders by referrer; side bar Tests ordered by referrer | referrer combobox, sort, limit, rollup stay as separate controls |
+| /analytics/reports/top-centres | 5 | tiles Orders, Patient visits, Tests ordered, Net sales; hero bar Orders by centre; side bar Net sales by centre | — |
+| /analytics/referral-incentive | 5 | behind its switch (A39): tiles Orders, Patient visits, Tests ordered, Net billed; hero bar Net billed by referrer; side bar Orders by referrer; 501/5xx in page; 403 feature_disabled / mfa_required keep ReferralState (no figures) | bars only for the plain referrer grouping and the current page of 50 rows |
+| /analytics/reports/tests-done | 5 | tiles Resulted, Approved, Critical, Abnormal; hero bar Tests completed by department; side bar Critical and abnormal by department | bars only when grouped by department |
+| /analytics/reports/tat | 5 | tiles Samples, Excluded (anomalies); hero bar Median turnaround by segment (minutes); side bar Samples by segment | CR: TAT has no department dimension in getTatReport (group_by none, centre, processing_branch, priority, specimen_type, day, month): the plan's "TAT by department" bar is drawn by segment |
+| /analytics/reports/delivery | 5 | tiles Sent, Delivered, Failed, Released; hero line Released per day; side bar Sent and failed by channel | channel bar only when grouped by channel |
+| /analytics/reports/interfaces | 5 | tiles Agents online, Agents offline, Messages, Unmatched; side bar Messages by instrument | CR: interfaces has no per-day message counts in getInterfacesReport: the hero "Messages per day" shows Not available yet inside its card; the "Agents by state" card stays (an-t19 §4.12 pins its Online/Offline text) |
+| /billing/bill-of-the-day | 5 | one .lims-period (day) and ONE FilterBar (the extra .lims-filter-bar wrapper is gone); tile row Gross, Net, Paid, Due showing "—"; two chart cards (Net by bill, Amount by payment mode) saying No data yet | CR (T0D-MISREPORTS-1-cr-needed.md): the MIS definitions have no read operation, so no number is drawn until it lands |
+
+Not touched: pending-tests and quality-indicators (not in the done_when list), the ten other MIS catalogue screens (list layout of T0D-MISREPORTS-1; only the shared period wrapper changed), features/admin, features/platform, app/(auth), app/(platform).
+Contract requests (CR) for a later task: TAT by department, interfaces messages per day, the MIS definition read (bill of the day figures).

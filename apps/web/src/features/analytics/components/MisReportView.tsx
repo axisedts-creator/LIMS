@@ -6,13 +6,16 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Banner } from '@lims/ui/components/Banner';
+import { BarChart } from '@lims/ui/components/BarChart';
 import { Button } from '@lims/ui/components/Button';
+import { ChartCard } from '@lims/ui/components/ChartCard';
 import { Combobox } from '@lims/ui/components/Combobox';
 import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
 import { EmptyState } from '@lims/ui/components/EmptyState';
 import { FilterBar, type FilterDef } from '@lims/ui/components/FilterBar';
 import { Menu } from '@lims/ui/components/Menu';
 import { PageHeader } from '@lims/ui/components/PageHeader';
+import { StatTile, StatTileRow } from '@lims/ui/components/StatTile';
 import { t } from '@/core/i18n/messages';
 import { searchReferrersAction } from '../server/actions';
 import type { MisColumn } from '../report-codes';
@@ -103,24 +106,27 @@ function OpenView({ vm }: { vm: Extract<MisVM, { state: 'open' }> }) {
         }
       />
       <p>{vm.oneDay ? q.business_date_from : `${q.business_date_from} – ${q.business_date_to}`}</p>
-      <div className="mis-noprint lims-filter-bar">
-        {vm.oneDay ? (
-          <label className="lims-field">
-            <span className="lims-label">{t('billing.botd.day')}</span>
-            <input className="lims-input" type="date" value={q.business_date_from} onChange={(e) => e.target.value && go({ business_date_from: e.target.value, business_date_to: e.target.value })} />
-          </label>
-        ) : (
-          <>
+      {/* T0D-UIREPORT-2 (LD-353 template 5): one period control (.lims-period) and ONE FilterBar; the row wrapper is no second .lims-filter-bar */}
+      <div className="mis-noprint lims-period-custom">
+        <div className="lims-period lims-period-custom">
+          {vm.oneDay ? (
             <label className="lims-field">
-              <span className="lims-label">{t('analytics.mis.from')}</span>
-              <input className="lims-input" type="date" value={q.business_date_from} max={q.business_date_to} onChange={(e) => e.target.value && go({ business_date_from: e.target.value })} />
+              <span className="lims-label">{t('billing.botd.day')}</span>
+              <input className="lims-input" type="date" value={q.business_date_from} onChange={(e) => e.target.value && go({ business_date_from: e.target.value, business_date_to: e.target.value })} />
             </label>
-            <label className="lims-field">
-              <span className="lims-label">{t('analytics.mis.to')}</span>
-              <input className="lims-input" type="date" value={q.business_date_to} min={q.business_date_from} onChange={(e) => e.target.value && go({ business_date_to: e.target.value })} />
-            </label>
-          </>
-        )}
+          ) : (
+            <>
+              <label className="lims-field">
+                <span className="lims-label">{t('analytics.mis.from')}</span>
+                <input className="lims-input" type="date" value={q.business_date_from} max={q.business_date_to} onChange={(e) => e.target.value && go({ business_date_from: e.target.value })} />
+              </label>
+              <label className="lims-field">
+                <span className="lims-label">{t('analytics.mis.to')}</span>
+                <input className="lims-input" type="date" value={q.business_date_to} min={q.business_date_from} onChange={(e) => e.target.value && go({ business_date_to: e.target.value })} />
+              </label>
+            </>
+          )}
+        </div>
         <FilterBar
           filters={filters} value={fv} onReset={() => router.push(vm.basePath)}
           onChange={(v) => {
@@ -163,6 +169,16 @@ function OpenView({ vm }: { vm: Extract<MisVM, { state: 'open' }> }) {
           </label>
         ) : null}
       </div>
+      {vm.oneDay ? (
+        // T0D-UIREPORT-2 (LD-353 template 5, rule 10): no read operation exists yet (open CR), so the tiles show "—" and both frames say "No data yet"
+        <>
+          <StatTileRow>{['Gross', 'Net', 'Paid', 'Due'].map((l) => <StatTile key={l} label={l} value="—" />)}</StatTileRow>
+          <div className="lims-dash-charts">
+            <ChartCard title="Net by bill" isEmpty><BarChart title="Net by bill" categories={[]} series={[{ id: 'net', label: 'Net', values: [] }]} valueFormat="money" /></ChartCard>
+            <ChartCard title="Amount by payment mode" isEmpty><BarChart title="Amount by payment mode" categories={[]} series={[{ id: 'amount', label: t('billing.botd.amount'), values: [] }]} valueFormat="money" /></ChartCard>
+          </div>
+        </>
+      ) : null}
       <DataTable<Row> columns={columns} rows={[]} getRowId={(r) => r.id} density="compact" stickyHeader caption={title} emptyState={empty} />
       {vm.oneDay ? (
         <DataTable<Row>

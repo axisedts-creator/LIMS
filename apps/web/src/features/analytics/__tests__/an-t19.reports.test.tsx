@@ -187,11 +187,15 @@ describe.each(GENERIC)('report page $slug', (r) => {
       expect(screen.queryAllByRole('grid').length).toBeGreaterThan(0);
     });
 
-    it.each([500, 503])('API %i rejects so analytics/error.tsx can show the reference (no half-rendered figures)', async (status) => {
-      respond[main(r)] = () => problem(status === 500 ? 'common.internal' : 'common.dependency_unavailable', status);
-      const p = show(r.slug);
-      await expect(p).rejects.toBeTruthy();
-      await expect(p).rejects.not.toThrow(/no page for report|Cannot find module/);
+    // T0D-UIREPORT-2 (LD-353 rule 6): a 5xx no longer throws to analytics/error.tsx; the page keeps its title and shows ErrorState (reference + Retry) in the page.
+    // Still no half-rendered figures: no grid and no row of the fixture. The title / reference / Retry / no-tile checks per report are in uireport2.reports.
+    it.each([500, 503])('API %i shows ErrorState in the page (no half-rendered figures)', async (status) => {
+      respond[main(r)] = () => problem(status === 500 ? 'common.internal' : 'common.dependency_unavailable', status, { request_id: '01933b6f-0a11-7e2b-8c55-1d2e3f405162' });
+      const { container } = await show(r.slug);
+      expect(container.querySelectorAll('h1')).toHaveLength(1);
+      expect(container.querySelectorAll('.lims-state.lims-tone-danger')).toHaveLength(1);
+      expect(screen.queryAllByRole('grid')).toHaveLength(0);
+      expect(pageText()).not.toContain(r.tables[0]!.rowText[0]!);
     });
 
     it('API 403 shows no figures', async () => {

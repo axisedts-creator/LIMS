@@ -36,8 +36,13 @@ export type Control =
   /** Referrer multi filter: Combobox over searchAnalyticsReferrers; `value` = chosen ids (labels are not in the URL). */
   | { type: 'referrers'; id: string; label: string; value: string[] };
 
+/** T0D-UIREPORT-2 (LD-353 rule 10, template 5): one chart card. `line` = categories are A.D. dates (YYYY-MM-DD); `na` = the contract has no data for it. */
+export interface ChartVM { title: string; kind: 'line' | 'bar' | 'na'; categories: string[]; series: { id: string; label: string; values: number[] }[]; format: 'money' | 'integer'; note?: string }
+
 export type Section =
   | { t: 'table'; vm: TableVM }
+  /** T0D-UIREPORT-2 (LD-353 template 5): the equal tile row, then the hero (two thirds) and side (one third) chart cards. */
+  | { t: 'report'; tiles: { label: string; value: string }[]; hero: ChartVM; side: ChartVM }
   | { t: 'chart'; title: string; categories: string[]; series: { id: string; label: string; values: number[] }[]; format: 'money' | 'integer' }
   | { t: 'tiles'; items: { label: string; value: string }[] }
   | { t: 'card'; title: string; items: { term: string; value: string }[] }

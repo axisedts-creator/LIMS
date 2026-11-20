@@ -1,3 +1,13 @@
+TESTS_WRONG — rs-c6.screens "worklist 1" snapshot still lacks `button Ready to release`; implementation is correct, no code change.
+1. Dispute (.orchestra/notes/T0D-PRINTCFG-1-dispute.md:2-4) confirmed on disk 2026-11-20: rs-c6.screens.test.tsx.snap:72-73 still read `button Search` then `button Select an item`.
+2. The live render emits the line: ReportsWorklist.tsx:19 TAB_LABEL ready_to_release = 'Ready to release' (FilterBar Status select trigger, T0D-UILIST-1 / LD-353 template 1 "FilterBar in one row", inbox :33). Not in this task's files (inbox :15).
+3. Brief gate (inbox :20-21) is PRINTCFG tests + reporting/billing suites + rs-c2; no spec line requires the pre-LD-353 markup the snap pins.
+4. Static half of the prior ruling has landed: rs-c6.static.test.ts:121-122 now lists `/v1/identity/users/${uuid` and drops branding-assets. Nothing left there.
+5. TESTER, only change: in apps/web/src/features/reporting/__tests__/__snapshots__/rs-c6.screens.test.tsx.snap, insert exactly one line `button Ready to release` after line 72 (`button Search`), before line 73. Or `vitest -u` on rs-c6.screens.test.tsx only, then confirm that is the only diff. COMMIT the .snap (LD-401 note: uncommitted edits were discarded by the lane flow); check `git show --stat HEAD` lists the .snap.
+6. WRITER and DEBUGGER: no code change.
+7. ESCALATION (per LD-399 / LD-401): this is the 5th+ round on this one line; lead/founder must ensure the tester commit includes the .snap, not just notes.
+
+--- previous rulings (history) ---
 TESTS_WRONG — rs-c6.static PRINTCFG.web_api_paths allow-list lacks the contract signature route that review item 1 requires, and the rs-c6 worklist snapshot still lacks the LD-399 line.
 1. Review item 1 (.orchestra/notes/T0D-PRINTCFG-1-review.md:5) requires the upload via uploadUserSignature `POST /v1/identity/users/{membership_id}/signature` (contracts/openapi/identity.yaml:1540); the implementation does this (apps/web/src/features/reporting/server/write.server.ts:139). Extractor entry: `/v1/identity/users/${uuid`.
 2. TESTER, apps/web/src/features/reporting/__tests__/rs-c6.static.test.ts:120-121, PRINTCFG.web_api_paths: add `'/v1/identity/users/${uuid'`; remove `'/v1/identity/settings/branding-assets'` (grep: no non-test reporting file calls it now; review item 1 forbids it).
@@ -126,3 +136,20 @@ specific snapshot to the founder as a tooling/process question. WRITER and DEBUG
 snapshot alone until you hear otherwise; do not attempt the vitest update-snapshot flag again on it
 this round, and do not mark the task done with it still stale. The web_api_paths edit above is
 normal, ruled work -- apply and commit it as usual.
+
+----
+LEAD ITEM, LD-428 (2026-11-20): the block above is lifted.
+
+The founder applied a run.ps1 fix this round (commit 237927bb4) that stops this lane from
+re-merging main while T0D-OFFLINE-3 or T0D-PRINTCFG-1 is in progress - this was the actual cause
+of the snapshot being wiped before commit on every prior attempt.
+
+TESTER: apply the one line worklist snapshot insert exactly as already described above in this
+file under LD-399 (button Ready to release, between the existing button Search and button Select
+an item lines). Commit it as your own test-file edit.
+
+WRITER: nothing for you to do here. The content fix landed already; only the test snapshot was
+ever the open item.
+
+If this does not land after this one attempt, that is new information worth a fresh debug round,
+not a reason to repeat a third prose attempt.

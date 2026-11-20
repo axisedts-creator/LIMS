@@ -422,3 +422,23 @@ being raised with the founder directly in chat; no further ruling on the snapsho
 
 Reset applied: changes (for the writer to confirm nothing else has regressed; the snapshot item
 itself is not part of this reset).
+
+----
+LEAD ITEM, LD-428 (2026-11-20): the block above is lifted.
+
+The founder applied a run.ps1 fix this round (commit 237927bb4) that stops this lane from
+re-merging main while T0D-OFFLINE-3 or T0D-PRINTCFG-1 is in progress - this was the actual cause
+of the snapshot being wiped before commit on every prior attempt (confirmed: a direct lead edit
+was wiped too, so it was never an attention or channel problem).
+
+TESTER: regenerate the Daily cash (open shift) snapshot in rs-c4.screens.test.tsx exactly as
+already described above in this file under the LD-409 ruling (stat row, chart, page-status date
+badge). Do not touch the other 4 snapshots in that file. Commit it as your own test-file edit,
+same as any other test fix.
+
+WRITER: nothing for you to do here. The content fix has been correct and unchanged since round 1;
+only the test snapshot was ever the open item.
+
+If this does not land after this one attempt, that is new information worth a fresh debug round
+(check whether the merge-isolation actually took effect for this task), not a reason to repeat a
+third prose attempt.

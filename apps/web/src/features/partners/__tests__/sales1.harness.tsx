@@ -133,7 +133,7 @@ export const api = setupServer(
 
 type PageMod = { default: (p: unknown) => Promise<React.ReactNode> };
 /** The four page files (empty until the writer creates them); a glob so a missing page fails the test with a clear message instead of breaking the whole harness. */
-const PAGES = import.meta.glob('../../../app/(staff)/partners/sales/*/page.tsx') as Record<string, () => Promise<unknown>>;
+const PAGES = import.meta.glob('../../../app/[(]staff[)]/partners/sales/*/page.tsx') as Record<string, () => Promise<unknown>>;
 export type Route = 'designations' | 'representatives' | 'clients' | 'areas';
 export const PATH = (r: Route) => `/partners/sales/${r}`;
 

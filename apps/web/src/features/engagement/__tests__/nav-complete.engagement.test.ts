@@ -13,6 +13,12 @@ const CONTENT = [
   { name: 'Portal content', path: '/engagement/content', permission: 'engagement.content.read', group: 'engagement', orderRange: [90, 200] as [number, number], id: 'engagement.content', routeId: 'staff.engagement.content' },
 ].filter((r) => pageExists(r.path));
 
+// T0D-MSGDESK-1 (LD-321): two additive entries (message templates, messages) after CONTENT; same page-exists rule.
+const MSGDESK = [
+  { name: 'Message templates', path: '/engagement/messages/templates', permission: 'engagement.broadcast.read', group: 'engagement', orderRange: [100, 200] as [number, number], id: 'engagement.msg_templates', routeId: 'staff.engagement.msg_templates' },
+  { name: 'Messages', path: '/engagement/messages/broadcasts', permission: 'engagement.broadcast.read', group: 'engagement', orderRange: [100, 200] as [number, number], id: 'engagement.msg_broadcasts', routeId: 'staff.engagement.msg_broadcasts' },
+].filter((r) => pageExists(r.path));
+
 specSuite({
   module: 'engagement',
   owner: 'C16',
@@ -28,6 +34,7 @@ specSuite({
     row('queue_setup', 'Queue setup', '/engagement/queue/setup', 'engagement.queue.manage', 80, '2'),
     row('settings', 'Engagement settings', '/engagement/settings', 'engagement.settings.manage', 90, '2'),
     ...CONTENT,
+    ...MSGDESK,
   ],
 });
 
@@ -36,7 +43,7 @@ describe('ADMINPAGE-ENG-1 (LD-255): Engagement settings entry is present', () =>
     expect(pageExists('/engagement/settings'), 'page /engagement/settings exists').toBe(true);
     const m = await loadManifest('engagement');
     expect(m.entries.filter((e) => e.routeId === 'staff.engagement.settings')).toHaveLength(1);
-    expect(m.entries).toHaveLength(9 + CONTENT.length);
+    expect(m.entries).toHaveLength(9 + CONTENT.length + MSGDESK.length);
   });
 });
 

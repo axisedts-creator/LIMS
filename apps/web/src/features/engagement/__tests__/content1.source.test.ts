@@ -64,7 +64,7 @@ describe('T0D-CONTENT-1 route, page and navigation', () => {
     expect(e!.order).toBeGreaterThan(90);
     expect(e!.label).toBe('engagement.nav.content');
     expect(messagesSrc).toContain("'engagement.nav.content'");
-    expect(m.entries.length, 'the nine existing entries stay').toBe(10);
+    expect(m.entries.length, 'the nine existing entries and CONTENT stay').toBeGreaterThanOrEqual(10);
   });
   it('nothing under features/admin, features/platform, app/(auth), app/(platform) is imported by the new files', () => {
     for (const f of contentFiles()) expect(read(f), f).not.toMatch(/features\/(admin|platform)\b|\(auth\)|\(platform\)/);

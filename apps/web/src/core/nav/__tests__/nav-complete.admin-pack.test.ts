@@ -1,7 +1,7 @@
 // T0D-NAV-COMPLETE-1 (LD-246, LD-250, 11-ROLE-MATRIX R5, 13-M-SERIES s4): the tenant navigation for the administrator pack
 // corp_admin (spec/program/11-ROLE-MATRIX.data.yaml) holds Discount approvals, Front desk settings, Tests, Panels, Price lists,
-// Users and Roles, has all 13 tenant groups and no `platform`, and shows NO clinical sign-off (Approve stays hidden: the matrix
-// does not give corp_admin lab.result.approve). The entries the pack does NOT see are written to the notes (a report, not a failure).
+// Users and Roles, has all 13 tenant groups and no `platform`, and shows the Approve entry (LD-310 widening: the pack holds
+// lab.result.approve; T0B-ADMINPERM-1 ruling item 3). The entries the pack does NOT see are written to the notes (a report, not a failure).
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -30,10 +30,10 @@ const nav = async () => {
 };
 
 describe('administrator pack corp_admin: tenant navigation', () => {
-  it('the pack exists and holds the founder-named permissions (LD-250 fact), but NOT lab.result.approve (R5: no clinical sign-off)', () => {
+  it('the pack exists and holds the founder-named permissions (LD-250 fact), but also lab.result.approve (LD-310 widening, T0B-ADMINPERM-1 ruling item 3)', () => {
     expect(corpAdmin, 'corp_admin in 11-ROLE-MATRIX.data.yaml').toBeTruthy();
     for (const p of ['frontdesk.discount.approve', 'frontdesk.settings.manage', 'catalog.test.read', 'catalog.test.manage']) expect(held.has(p), p).toBe(true);
-    expect(held.has('lab.result.approve')).toBe(false);
+    expect(held.has('lab.result.approve')).toBe(true);
   });
 
   it('contains Discount approvals, Tests, Panels, Price lists, Users and Roles', async () => {
@@ -88,9 +88,11 @@ describe('administrator pack corp_admin: tenant navigation', () => {
     expect(t(e!.label)).toBe('Engagement settings');
   });
 
-  it('the Approve entry (lab.result.approve) is not visible: no clinical sign-off for the administrator', async () => {
+  it('the Approve entry (lab.result.approve, /lab/approval) is visible to corp_admin (LD-310 widening, T0B-ADMINPERM-1 ruling item 3)', async () => {
     const { visible } = await nav();
-    expect(visible.filter((e) => e.permission === 'lab.result.approve' || e.path === '/lab/approval')).toEqual([]);
+    const e = visible.find((x) => x.path === '/lab/approval');
+    expect(e, 'Approve (/lab/approval) visible to corp_admin').toBeTruthy();
+    expect(e!.permission).toBe('lab.result.approve');
   });
 
   it('corp_admin sees at least one entry in every one of the 13 tenant groups (quality and inventory included) and never `platform` (R5a)', async () => {

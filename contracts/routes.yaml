@@ -38,6 +38,7 @@ routes:
   - { id: staff.catalog.doctors,             origin: staff_web, path: /catalog/doctors,                           owner: C3,  permission: catalog.referrer.read }
   - { id: staff.catalog.doctor_verify,       origin: staff_web, path: /catalog/doctors/verify,                    owner: C3,  permission: catalog.referrer.read }
   - { id: staff.catalog.doctor,              origin: staff_web, path: "/catalog/doctors/{doctor_id}",             owner: C3,  permission: catalog.referrer.read }
+  - { id: staff.catalog.icd,                 origin: staff_web, path: /catalog/icd,                               owner: C3,  permission: catalog.icd.manage }   # T0D-PARTYSET-1 (LD-321)
   - { id: staff.catalog.credit_parties,      origin: staff_web, path: /catalog/credit-parties,                    owner: C3,  permission: catalog.price_list.read }
   - { id: staff.catalog.credit_party,        origin: staff_web, path: "/catalog/credit-parties/{credit_party_id}", owner: C3,  permission: catalog.price_list.read }
   # LD-84 / CR-C3-034-a: SCR-13…17 (04-UI-UX §1)
@@ -186,6 +187,9 @@ routes:
   - { id: staff.partners.sales_representatives, origin: staff_web, path: /partners/sales/representatives, owner: C13, permission: partners.sales.read }
   - { id: staff.partners.sales_clients, origin: staff_web, path: /partners/sales/clients, owner: C13, permission: partners.sales.read }
   - { id: staff.partners.sales_areas, origin: staff_web, path: /partners/sales/areas, owner: C13, permission: partners.sales.read }
+  - { id: staff.partners.onboarding, origin: staff_web, path: /partners/onboarding, owner: C13, permission: partners.onboarding.decide }   # T0D-PARTYSET-1 (LD-321)
+  - { id: staff.partners.penalties, origin: staff_web, path: /partners/penalties, owner: C13, permission: partners.penalty.manage }
+  - { id: staff.partners.penalty_events, origin: staff_web, path: /partners/penalty-events, owner: C13, permission: partners.penalty.manage }
   # --- CR-C15-007
   - { id: staff.payments.review, origin: staff_web, path: /payments/review, owner: C15, permission: payments.reconciliation.read }
   - { id: staff.payments.intent, origin: staff_web, path: "/payments/intents/{intent_id}", owner: C15, permission: payments.reconciliation.read }

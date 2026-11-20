@@ -15,5 +15,9 @@ export const navManifest: NavManifest = {
     { id: 'partners.sales_representatives', label: 'partners.nav.sales_representatives', routeId: 'staff.partners.sales_representatives', permission: 'partners.sales.read', group: 'partners', order: 70, icon: 'users' },
     { id: 'partners.sales_clients', label: 'partners.nav.sales_clients', routeId: 'staff.partners.sales_clients', permission: 'partners.sales.read', group: 'partners', order: 80, icon: 'building' },
     { id: 'partners.sales_areas', label: 'partners.nav.sales_areas', routeId: 'staff.partners.sales_areas', permission: 'partners.sales.read', group: 'partners', order: 90, icon: 'map' },
+    // T0D-PARTYSET-1 (LD-321): ElabAssist franchise approval queue and non compliance penalties, additive.
+    { id: 'partners.onboarding', label: 'partners.nav.onboarding', routeId: 'staff.partners.onboarding', permission: 'partners.onboarding.decide', group: 'partners', order: 100, icon: 'check' },
+    { id: 'partners.penalties', label: 'partners.nav.penalties', routeId: 'staff.partners.penalties', permission: 'partners.penalty.manage', group: 'partners', order: 110, icon: 'warning' },
+    { id: 'partners.penalty_events', label: 'partners.nav.penalty_events', routeId: 'staff.partners.penalty_events', permission: 'partners.penalty.manage', group: 'partners', order: 120, icon: 'list' },
   ],
 };

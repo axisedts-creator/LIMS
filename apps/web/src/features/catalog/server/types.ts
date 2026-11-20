@@ -89,6 +89,8 @@ export interface DoctorSummary { id: string; doctor_code: string; display_name: 
 export interface Doctor extends Base {
   doctor_code: string; display_name: string; qualification?: string; registration_council?: string; registration_no?: string;
   phone_e164?: string; email?: string; notes?: string; is_verified: boolean; source: 'back_office' | 'quick_add' | 'import'; merged_into_id?: string; price_list_id?: string;
+  /** T0C-PARTYSET-1: speciality, hospital and the National ID number (masked by the API; the full value only through revealPartyIdNumber). */
+  speciality?: string; hospital?: string; national_id_number?: string;
 }
 export type DoctorCreated = Doctor & { possible_duplicate_of: DoctorSummary[] };
 export type PartyKind = 'hospital' | 'company' | 'clinic' | 'partner_lab' | 'insurer' | 'other';

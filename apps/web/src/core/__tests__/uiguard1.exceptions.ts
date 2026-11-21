@@ -78,10 +78,6 @@ export const EXCEPTIONS: GuardException[] = [
     ['/partners/sales/representatives', 'SalesRepresentatives.tsx'],
     ['/partners/tickets/[ticket_id]', 'TicketThread.tsx'],
   ]),
-  ...legacy7('PAYMENTS', [
-    ['/payments/refunds', 'RefundsList.tsx, consoleParts.tsx'],
-    ['/payments/review', 'ReviewQueue.tsx, consoleParts.tsx'],
-  ]),
   ...legacy7('QUALITY', [
     ['/quality', 'LjView.tsx, RunDetailView.tsx'],
     ['/quality/autoverify/[version_id]', 'ReportView.tsx, RuleDrawer.tsx'],

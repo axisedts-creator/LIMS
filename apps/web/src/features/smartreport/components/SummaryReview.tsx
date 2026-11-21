@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation';
 import { Banner } from '@lims/ui/components/Banner';
 import { Button } from '@lims/ui/components/Button';
 import { Card } from '@lims/ui/components/Card';
+import { ChartCard } from '@lims/ui/components/ChartCard';
 import { ConfirmDialog } from '@lims/ui/components/ConfirmDialog';
 import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
 import { DateText, type DateTextProps } from '@lims/ui/components/DateText';
@@ -23,6 +24,7 @@ import { Timeline } from '@lims/ui/components/Timeline';
 import { LoadingSkeleton } from '@lims/ui/components/LoadingSkeleton';
 import { approveSummaryAction, rejectSummaryAction } from '../server/summary-actions';
 import { STATUS, type InputRow, type SummaryVM } from '../summary-review';
+import { TextList } from './common';
 
 // T0D-BUNDLE-1 (LD-310 / LD-312): the trend chart is drawn only when a summary has trends, so its code loads on demand.
 const TimeSeriesChart = dynamic(() => import('@lims/ui/components/TimeSeriesChart').then((m) => m.TimeSeriesChart), { loading: () => <LoadingSkeleton variant="detail" rows={3} /> });
@@ -156,44 +158,51 @@ export function SummaryReview({ vm }: { vm: SummaryVM }) {
         ) : null}
 
         <Grid columns={vm.inputs ? 2 : 1} gap={4}>
-          <section aria-labelledby="sr-preview">
-            <h2 id="sr-preview">What the patient will see</h2>
-            <Stack gap={3}>
-              {vm.score ? (
-                <Card title="Health score">
-                  <p>{vm.score.value}{vm.score.band ? ` — ${vm.score.band}` : ''}</p>
-                  {vm.score.explanation ? <p>{vm.score.explanation}</p> : null}
-                </Card>
-              ) : null}
-              {vm.panels.length ? <ul aria-label="Body systems">{vm.panels.map((p, i) => <li key={i}>{p.name}: {p.status}</li>)}</ul> : null}
-              {vm.deranged.length ? <ul aria-label="Results outside the reference range">{vm.deranged.map((t, i) => <li key={i}>{t}</li>)}</ul> : null}
-              {vm.trends.map((t) => (
-                <TimeSeriesChart key={t.id} title={t.title} series={[{ id: t.id, label: t.title, points: t.points }]} {...(t.unit ? { unit: t.unit } : {})} {...(t.band ? { referenceBand: t.band } : {})} />
-              ))}
-              {vm.advice.length ? <ul aria-label="Advice">{vm.advice.map((t, i) => <li key={i}>{t}</li>)}</ul> : null}
-              {vm.followUps.length ? <ul aria-label="Follow-up">{vm.followUps.map((t, i) => <li key={i}>{t}</li>)}</ul> : null}
-              {vm.disclaimer ? <p>{vm.disclaimer}</p> : null}
-            </Stack>
+          {/* LD-436 rules 6 and 7: Card title rows instead of raw h2 / ul; every trend chart in a ChartCard */}
+          <section aria-label="What the patient will see">
+            <Card title="What the patient will see">
+              <Stack gap={3}>
+                {vm.score ? (
+                  <Card title="Health score">
+                    <p>{vm.score.value}{vm.score.band ? ` — ${vm.score.band}` : ''}</p>
+                    {vm.score.explanation ? <p>{vm.score.explanation}</p> : null}
+                  </Card>
+                ) : null}
+                {vm.panels.length ? (
+                  <section aria-label="Body systems">
+                    <Card title="Body systems"><DescriptionList items={vm.panels.map((p) => ({ term: p.name, value: p.status }))} /></Card>
+                  </section>
+                ) : null}
+                <TextList title="Results outside the reference range" items={vm.deranged} />
+                {vm.trends.map((t) => (
+                  <ChartCard key={t.id} title={t.title}>
+                    <TimeSeriesChart title={t.title} series={[{ id: t.id, label: t.title, points: t.points }]} {...(t.unit ? { unit: t.unit } : {})} {...(t.band ? { referenceBand: t.band } : {})} />
+                  </ChartCard>
+                ))}
+                <TextList title="Advice" items={vm.advice} />
+                <TextList title="Follow-up" items={vm.followUps} />
+                {vm.disclaimer ? <p>{vm.disclaimer}</p> : null}
+              </Stack>
+            </Card>
           </section>
           {vm.inputs ? (
-            <section aria-labelledby="sr-inputs">
-              <h2 id="sr-inputs">Results used</h2>
-              <p>Approved results this summary was built from</p>
-              <DataTable<InputRow>
-                columns={columns} rows={vm.inputs} getRowId={(r) => r.id} density="compact" caption="Results used"
-                emptyState={{ title: 'No results.' }}
-              />
-              <DescriptionList items={[
-                { term: 'Not mapped', value: `${vm.unmapped ?? 0} approved results are not mapped to a body system and are not in this summary` },
-                { term: 'Ignored duplicates', value: String(vm.duplicates ?? 0) },
-              ]} />
+            <section aria-label="Results used">
+              <Card title="Results used" caption="Approved results this summary was built from">
+                <DataTable<InputRow>
+                  columns={columns} rows={vm.inputs} getRowId={(r) => r.id} density="compact" caption="Results used"
+                  emptyState={{ title: 'No results.' }}
+                />
+                <DescriptionList items={[
+                  { term: 'Not mapped', value: `${vm.unmapped ?? 0} approved results are not mapped to a body system and are not in this summary` },
+                  { term: 'Ignored duplicates', value: String(vm.duplicates ?? 0) },
+                ]} />
+              </Card>
             </section>
           ) : null}
         </Grid>
 
-        <section aria-labelledby="sr-history">
-          <h2 id="sr-history">History</h2>
-          <Timeline items={vm.history} />
+        <section aria-label="History">
+          <Card title="History"><Timeline items={vm.history} /></Card>
         </section>
       </Stack>
 

@@ -14,14 +14,6 @@ Other groups = LD-434 legacy baseline (CR-C0-0D-UIGUARD-1 option A); the heading
 - /anatomic/cases/[case_id]/labels rule 3: label sheet: print layout of a physical label (label-sheet.css) needs a bold first line
 - /[...slug] rule 1: catch-all placeholder for module routes without a page; not a screen (CR T0D-14)
 
-## T0D-UIGUARD-1-ANALYTICS (5 entries, 5 routes)
-
-- /analytics/collections rule 6: legacy baseline LD-434, fix in T0D-UIGUARD-1-ANALYTICS: rule 6 broken in ReportView.tsx
-- /analytics/referral-incentive rule 6: legacy baseline LD-434, fix in T0D-UIGUARD-1-ANALYTICS: rule 6 broken in ReportView.tsx
-- /analytics/report-runs/[report_run_id] rule 6: legacy baseline LD-434, fix in T0D-UIGUARD-1-ANALYTICS: rule 6 broken in ReportView.tsx
-- /analytics/reports rule 6: legacy baseline LD-434, fix in T0D-UIGUARD-1-ANALYTICS: rule 6 broken in ReportView.tsx
-- /analytics/reports/[reportCode] rule 6: legacy baseline LD-434, fix in T0D-UIGUARD-1-ANALYTICS: rule 6 broken in ReportView.tsx
-
 ## T0D-UIGUARD-1-CATALOG (44 entries, 22 routes)
 
 - /catalog/credit-parties/[credit_party_id] rule 1: legacy baseline LD-434, fix in T0D-UIGUARD-1-CATALOG: rule 1 broken in the page itself
@@ -91,10 +83,6 @@ Other groups = LD-434 legacy baseline (CR-C0-0D-UIGUARD-1 option A); the heading
 - /homecollection/dispatch rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-HOMECOLLECTION: rule 2 broken in DispatchBoard.tsx
 - /homecollection/dispatch rule 5: legacy baseline LD-434, fix in T0D-UIGUARD-1-HOMECOLLECTION: rule 5 broken in DispatchBoard.tsx
 
-## T0D-UIGUARD-1-INSTRUMENTS (1 entries, 1 routes)
-
-- /instruments/messages/[instrument_message_id] rule 5: legacy baseline LD-434, fix in T0D-UIGUARD-1-INSTRUMENTS: rule 5 broken in ReprocessDialog.tsx
-
 ## T0D-UIGUARD-1-INVENTORY (4 entries, 3 routes)
 
 - /inventory/reports rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-INVENTORY: rule 2 broken in RulesView.tsx
@@ -151,14 +139,6 @@ Other groups = LD-434 legacy baseline (CR-C0-0D-UIGUARD-1 option A); the heading
 - /quality/runs rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-QUALITY: rule 2 broken in DecisionsView.tsx, LjView.tsx
 - /quality/autoverify/[version_id] rule 6: legacy baseline LD-434, fix in T0D-UIGUARD-1-QUALITY: rule 6 broken in ReportView.tsx
 
-## T0D-UIGUARD-1-SMARTREPORT (5 entries, 5 routes)
-
-- /smartreport/library rule 5: legacy baseline LD-434, fix in T0D-UIGUARD-1-SMARTREPORT: rule 5 broken in WordingTerms.tsx, CheckTab.tsx, GroupsTab.tsx
-- /smartreport/library/[library_version_id] rule 5: legacy baseline LD-434, fix in T0D-UIGUARD-1-SMARTREPORT: rule 5 broken in WordingTerms.tsx, CheckTab.tsx, GroupsTab.tsx
-- /smartreport/library/[library_version_id]/review rule 5: legacy baseline LD-434, fix in T0D-UIGUARD-1-SMARTREPORT: rule 5 broken in WordingTerms.tsx, CheckTab.tsx, GroupsTab.tsx
-- /smartreport/wording rule 5: legacy baseline LD-434, fix in T0D-UIGUARD-1-SMARTREPORT: rule 5 broken in WordingTerms.tsx, CheckTab.tsx, GroupsTab.tsx
-- /smartreport/summaries/[summary_id] rule 6: legacy baseline LD-434, fix in T0D-UIGUARD-1-SMARTREPORT: rule 6 broken in SummaryReview.tsx
-
 # Rule 7 (T0D-UIGUARD-2, LD-436 R7, LD-439 c): no raw h1 to h4, no raw ul or ol for page structure. One entry per route; heading = follow-up area task.
 
 ## STANDING (catch-all)
@@ -185,12 +165,6 @@ Other groups = LD-434 legacy baseline (CR-C0-0D-UIGUARD-1 option A); the heading
 - /admin/users rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ADMIN: rule 7 broken in page-kit.tsx, ui.tsx
 - /admin/users/[membership_id] rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ADMIN: rule 7 broken in page-kit.tsx, UserDetailView.tsx, ui.tsx
 - /admin/users/new rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ADMIN: rule 7 broken in page-kit.tsx, ui.tsx
-
-## T0D-UIGUARD-1-ANALYTICS (rule 7: 3 entries)
-
-- /analytics/schedules rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ANALYTICS: rule 7 broken in ScheduleEditor.tsx
-- /analytics/schedules/[schedule_id] rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ANALYTICS: rule 7 broken in ScheduleEditor.tsx
-- /analytics/schedules/new rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ANALYTICS: rule 7 broken in ScheduleEditor.tsx
 
 ## T0D-UIGUARD-1-ANATOMIC (rule 7: 8 entries)
 
@@ -247,13 +221,6 @@ Other groups = LD-434 legacy baseline (CR-C0-0D-UIGUARD-1 option A); the heading
 - /frontdesk/patients/[patient_id] rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-FRONTDESK: rule 7 broken in PatientView.tsx
 - /frontdesk/registrations/new rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-FRONTDESK: rule 7 broken in RegistrationForm.tsx, ReceiptPrintView.tsx, accountsShared.tsx, InvoiceDocument.tsx
 - /frontdesk/settings rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-FRONTDESK: rule 7 broken in SettingsView.tsx
-
-## T0D-UIGUARD-1-INSTRUMENTS (rule 7: 4 entries)
-
-- /instruments/instruments rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-INSTRUMENTS: rule 7 broken in InstrumentForm.tsx
-- /instruments/instruments/[instrument_id] rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-INSTRUMENTS: rule 7 broken in InstrumentForm.tsx
-- /instruments/instruments/[instrument_id]/mappings rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-INSTRUMENTS: rule 7 broken in InstrumentMappings.tsx
-- /instruments/messages/[instrument_message_id] rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-INSTRUMENTS: rule 7 broken in MessageDetail.tsx
 
 ## T0D-UIGUARD-1-INVENTORY (rule 7: 5 entries)
 
@@ -322,11 +289,3 @@ Other groups = LD-434 legacy baseline (CR-C0-0D-UIGUARD-1 option A); the heading
 - /reporting/reports/[report_id] rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-REPORTING: rule 7 broken in ReportDetailView.tsx
 - /reporting/settings rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-REPORTING: rule 7 broken in PrintStationery.tsx, ReportingSettingsForm.tsx, SignatoryProfiles.tsx
 - /reporting/templates/[template_id] rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-REPORTING: rule 7 broken in TemplateEditor.tsx
-
-## T0D-UIGUARD-1-SMARTREPORT (rule 7: 5 entries)
-
-- /smartreport/library rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-SMARTREPORT: rule 7 broken in ReviewPanel.tsx, TextsTab.tsx, PreviewDialog.tsx
-- /smartreport/library/[library_version_id] rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-SMARTREPORT: rule 7 broken in ReviewPanel.tsx, TextsTab.tsx, PreviewDialog.tsx
-- /smartreport/library/[library_version_id]/review rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-SMARTREPORT: rule 7 broken in ReviewPanel.tsx, TextsTab.tsx, PreviewDialog.tsx
-- /smartreport/summaries/[summary_id] rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-SMARTREPORT: rule 7 broken in SummaryReview.tsx
-- /smartreport/wording rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-SMARTREPORT: rule 7 broken in ReviewPanel.tsx, TextsTab.tsx, PreviewDialog.tsx

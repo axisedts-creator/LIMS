@@ -145,25 +145,9 @@ export const EXCEPTIONS: GuardException[] = [
   ...legacy('HOMECOLLECTION', 5, 'DispatchBoard.tsx', [
     '/homecollection/dispatch',
   ]),
-  ...legacy('INSTRUMENTS', 5, 'ReprocessDialog.tsx', [
-    '/instruments/messages/[instrument_message_id]',
-  ]),
   ...legacy('LAB', 5, 'ResultPanels.tsx, DeltaRulesTab.tsx, QcHoldsTab.tsx', [
     '/lab/orders/[order_id]/results',
     '/lab/settings',
-  ]),
-  ...legacy('SMARTREPORT', 5, 'WordingTerms.tsx, CheckTab.tsx, GroupsTab.tsx', [
-    '/smartreport/library',
-    '/smartreport/library/[library_version_id]',
-    '/smartreport/library/[library_version_id]/review',
-    '/smartreport/wording',
-  ]),
-  ...legacy('ANALYTICS', 6, 'ReportView.tsx', [
-    '/analytics/collections',
-    '/analytics/referral-incentive',
-    '/analytics/report-runs/[report_run_id]',
-    '/analytics/reports',
-    '/analytics/reports/[reportCode]',
   ]),
   ...legacy('INVENTORY', 6, 'ReportBody.tsx', [
     '/inventory/reports',
@@ -173,9 +157,6 @@ export const EXCEPTIONS: GuardException[] = [
   ]),
   ...legacy('QUALITY', 6, 'ReportView.tsx', [
     '/quality/autoverify/[version_id]',
-  ]),
-  ...legacy('SMARTREPORT', 6, 'SummaryReview.tsx', [
-    '/smartreport/summaries/[summary_id]',
   ]),
 
   // T0D-UIGUARD-2 (LD-436 R7, LD-438, LD-439 c): rule 7 legacy baseline, one entry per route, reason 'legacy baseline LD-436, fix in T0D-UIGUARD-1-<AREA>'.
@@ -201,11 +182,6 @@ export const EXCEPTIONS: GuardException[] = [
     ['/admin/users', 'page-kit.tsx, ui.tsx'],
     ['/admin/users/[membership_id]', 'page-kit.tsx, UserDetailView.tsx, ui.tsx'],
     ['/admin/users/new', 'page-kit.tsx, ui.tsx'],
-  ]),
-  ...legacy7('ANALYTICS', [
-    ['/analytics/schedules', 'ScheduleEditor.tsx'],
-    ['/analytics/schedules/[schedule_id]', 'ScheduleEditor.tsx'],
-    ['/analytics/schedules/new', 'ScheduleEditor.tsx'],
   ]),
   ...legacy7('ANATOMIC', [
     ['/anatomic', 'AnatomicForbidden.tsx'],
@@ -258,12 +234,6 @@ export const EXCEPTIONS: GuardException[] = [
     ['/frontdesk/patients/[patient_id]', 'PatientView.tsx'],
     ['/frontdesk/registrations/new', 'RegistrationForm.tsx, ReceiptPrintView.tsx, accountsShared.tsx, InvoiceDocument.tsx'],
     ['/frontdesk/settings', 'SettingsView.tsx'],
-  ]),
-  ...legacy7('INSTRUMENTS', [
-    ['/instruments/instruments', 'InstrumentForm.tsx'],
-    ['/instruments/instruments/[instrument_id]', 'InstrumentForm.tsx'],
-    ['/instruments/instruments/[instrument_id]/mappings', 'InstrumentMappings.tsx'],
-    ['/instruments/messages/[instrument_message_id]', 'MessageDetail.tsx'],
   ]),
   ...legacy7('INVENTORY', [
     ['/inventory/bench', 'BenchView.tsx'],
@@ -324,12 +294,5 @@ export const EXCEPTIONS: GuardException[] = [
     ['/reporting/reports/[report_id]', 'ReportDetailView.tsx'],
     ['/reporting/settings', 'PrintStationery.tsx, ReportingSettingsForm.tsx, SignatoryProfiles.tsx'],
     ['/reporting/templates/[template_id]', 'TemplateEditor.tsx'],
-  ]),
-  ...legacy7('SMARTREPORT', [
-    ['/smartreport/library', 'ReviewPanel.tsx, TextsTab.tsx, PreviewDialog.tsx'],
-    ['/smartreport/library/[library_version_id]', 'ReviewPanel.tsx, TextsTab.tsx, PreviewDialog.tsx'],
-    ['/smartreport/library/[library_version_id]/review', 'ReviewPanel.tsx, TextsTab.tsx, PreviewDialog.tsx'],
-    ['/smartreport/summaries/[summary_id]', 'SummaryReview.tsx'],
-    ['/smartreport/wording', 'ReviewPanel.tsx, TextsTab.tsx, PreviewDialog.tsx'],
   ]),
 ];

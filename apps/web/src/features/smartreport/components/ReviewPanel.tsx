@@ -5,7 +5,9 @@ import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Banner } from '@lims/ui/components/Banner';
 import { Button } from '@lims/ui/components/Button';
+import { Card } from '@lims/ui/components/Card';
 import { ConfirmDialog } from '@lims/ui/components/ConfirmDialog';
+import { DescriptionList } from '@lims/ui/components/DescriptionList';
 import { Dialog } from '@lims/ui/components/Dialog';
 import { TextArea } from '@lims/ui/components/TextArea';
 import { approveAction, returnAction } from '../server/actions';
@@ -27,9 +29,7 @@ function failure(r: { status: number; code: string }): Notice {
   return { tone: 'danger', live: 'alert', title: 'Could not complete this action. Try again.' };
 }
 
-const row = (name: string, c: Counts) => (
-  <li key={name}>{name}: {c.added} added, {c.changed} changed, {c.removed} removed</li>
-);
+const row = (term: string, c: Counts) => ({ term, value: `${c.added} added, ${c.changed} changed, ${c.removed} removed` });
 
 interface Props { id: string; status: string; version: number; changeSummary?: string | undefined; diff: Diff; hasActive: boolean; canApprove: boolean }
 
@@ -70,10 +70,12 @@ export function ReviewPanel({ id, status, version, changeSummary, diff, hasActiv
     <div>
       <p>Status: <strong>{statusText(status)}</strong></p>
       {changeSummary ? <p>Change summary: {changeSummary}</p> : null}
-      <section aria-labelledby="sr-changes">
-        <h2 id="sr-changes">Changes since active version</h2>
-        {hasActive ? null : <p>There is no active version yet; every item counts as added.</p>}
-        <ul>{row('Texts', diff.texts)}{row('Rules', diff.rules)}{row('Analyte mapping', diff.mapping)}</ul>
+      {/* LD-436 rule 7: Card title row + DescriptionList instead of raw h2 / ul */}
+      <section aria-label="Changes since active version">
+        <Card title="Changes since active version">
+          {hasActive ? null : <p>There is no active version yet; every item counts as added.</p>}
+          <DescriptionList items={[row('Texts', diff.texts), row('Rules', diff.rules), row('Analyte mapping', diff.mapping)]} />
+        </Card>
       </section>
       {notice ? (
         <div role={notice.live}>

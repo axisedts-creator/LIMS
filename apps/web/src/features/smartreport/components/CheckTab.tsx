@@ -58,9 +58,9 @@ export function CheckTab({ version, onJump, issues, setIssues, canPreviewOrder }
         <Button onPress={() => setPreviewing(true)}>Preview</Button>
         <Button variant="primary" onPress={() => void submit()} isDisabled={busy || !issues || hasErrors}>Submit for approval</Button>
       </span>
-      {issues && issues.length === 0 ? <p role="status">No issues found. You can submit this version for approval.</p> : null}
-      {issues && issues.length > 0 ? (
-        <DataTable columns={columns} rows={issues} getRowId={(i) => String(i.n)} caption="Issues" density="compact" emptyState={{ title: 'No issues found' }} />
+      {/* LD-436 rule 5: after a check run the issues table keeps its header when empty */}
+      {issues ? (
+        <DataTable columns={columns} rows={issues} getRowId={(i) => String(i.n)} caption="Issues" density="compact" emptyState={{ title: 'No issues found. You can submit this version for approval.' }} />
       ) : null}
       <PreviewDialog versionId={ed.versionId} canPreviewOrder={canPreviewOrder} isOpen={previewing} onClose={() => setPreviewing(false)} />
     </div>

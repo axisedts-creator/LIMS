@@ -19,7 +19,7 @@ export function messageProblemText(code: string, what: string): string {
 
 /** Record barcode + C5 port outcome text per record (the same table for reprocess and re-match). */
 export function OutcomeTable({ records }: { records: readonly Pick<MessageRecord, 'id' | 'sample_barcode' | 'instrument_analyte_code' | 'port_outcome' | 'port_reason_code'>[] }) {
-  if (!records.length) return <p>No records were produced.</p>;
+  // T0D-UIGUARD-1-INSTRUMENTS (LD-353 rule 5): the header row stays when the list is empty; the empty text is the one body row.
   return (
     <table className="lims-table">
       <caption className="lims-visually-hidden">Outcome per record</caption>
@@ -27,6 +27,7 @@ export function OutcomeTable({ records }: { records: readonly Pick<MessageRecord
         <tr><th scope="col">Barcode</th><th scope="col">Code</th><th scope="col">Outcome</th></tr>
       </thead>
       <tbody>
+        {records.length === 0 ? <tr><td colSpan={3}>No records were produced.</td></tr> : null}
         {records.map((r) => (
           <tr key={r.id}>
             <td className="lims-mono">{r.sample_barcode ?? '—'}</td>

@@ -7,7 +7,6 @@
 import type { ReactNode } from 'react';
 import { ActionList, type ActionListItem } from '@lims/ui/components/ActionList';
 import { Banner } from '@lims/ui/components/Banner';
-import { BarChart } from '@lims/ui/components/BarChart';
 import { Card } from '@lims/ui/components/Card';
 import { ChartCard } from '@lims/ui/components/ChartCard';
 import { EmptyState } from '@lims/ui/components/EmptyState';
@@ -28,7 +27,6 @@ export const bsLabel = (s: string) => (/\bB\.S\.\s*$/.test(s) ? s.trim() : s.tri
 const NUM = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 });
 const RS = new Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const WHEN = new Intl.DateTimeFormat('en-GB', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Kathmandu' });
-const DAY = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' });
 const money = (paisa: number) => `Rs. ${RS.format(paisa / 100)}`;
 const fmt = (t: Tile) => (t.unit === 'paisa' ? money(t.value) : NUM.format(t.value));
 const npr = (paisa: number) => <MoneyText value={{ amountPaisa: paisa, currency: 'NPR' }} />;
@@ -171,17 +169,12 @@ export function DashboardView({ dto, query, readOnly = false }: { dto: Dashboard
             </Card>
           ) : null}
         </div>
-        {/* LD-353 rule 10: both frames ALWAYS draw, with "No data yet" when the period is empty or the role may not read money
-            (the API sent no money tile). The charts then get no money data at all, so no amount or department name leaks. */}
+        {/* LD-353 rule 10: both frames ALWAYS draw; neither carries money data, so no amount or department name leaks. */}
         <div className="lims-dash-charts">
-          <ChartCard title="Billed per day" period={`${days.length === 1 ? '1 day' : `Last ${days.length} days`}${canMoney ? ', NPR' : ''}`} isEmpty={!canMoney || days.length === 0}>
-            <BarChart
-              title="Billed per day"
-              {...(canMoney ? { valueFormat: 'money' as const } : {})}
-              categories={canMoney ? days.map((x) => DAY.format(Date.parse(`${x.business_date}T00:00:00Z`))) : []}
-              series={[{ id: 'net', label: 'Net sales', values: canMoney ? days.map((x) => x.net_sales_paisa) : [] }]}
-              {...(canMoney && days.length > 0 ? { currentIndex: days.length - 1 } : {})}
-            />
+          {/* RULING T0D-UIDASH-2 (items 1-3, 6): the contract has no invoiced per day (series carries net_sales_paisa, which is not "Billed"),
+              so the mock title stays and the frame says "Not available yet"; no money is drawn here. */}
+          <ChartCard title="Billed per day" period={days.length === 1 ? '1 day' : `Last ${days.length} days`}>
+            {NA}
           </ChartCard>
           {/* the contract has no test count per department (department_top is net sales money): not invented */}
           <ChartCard title="Tests by department" period={period.label_ad}>

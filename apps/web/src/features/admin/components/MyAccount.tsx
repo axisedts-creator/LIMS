@@ -3,11 +3,13 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@lims/ui/components/Button';
+import { Card } from '@lims/ui/components/Card';
 import { ConfirmDialog } from '@lims/ui/components/ConfirmDialog';
+import { PageHeader } from '@lims/ui/components/PageHeader';
 import { useToast } from '@lims/ui/components/Toast';
 import { PasswordField } from '../auth/PasswordField';
 import { changeOwnPassword, removeOwnMfaFactor, revokeOwnSession } from '../actions';
-import { Badge } from '../Grid';
+import { Badge, Grid } from '../Grid';
 import { Alert, Tabs } from '../ui';
 import { copyFor, fmt, type RoleRef, type SessionSummary } from '../lib';
 import { SessionsGrid } from './SessionsGrid';
@@ -30,7 +32,7 @@ export function MyAccount({ me, sessions, factors, mfaRequired }: { me: Me; sess
   const [tab, setTab] = useState('Profile');
   return (
     <main className="lims-page">
-      <header className="lims-page-header"><h1>My account</h1></header>
+      <PageHeader title="My account" helpKey="admin.me" />
       <Tabs items={['Profile', 'Security', 'Sessions']} selected={tab} onChange={setTab} label="Account sections">
         {tab === 'Profile' ? (
           <dl className="lims-dl">
@@ -84,32 +86,38 @@ function Security({ me, factors: initial, mfaRequired }: { me: Me; factors: Fact
 
   return (
     <>
+      {/* T0D-UIGUARD-1-ADMIN (LD-436 Card title row, LD-439): each block is a kit Card; the factors are a table, not a raw list */}
+      <Card title="Change password">
       <form onSubmit={change} noValidate className="lims-form" aria-label="Change password">
-        <h2>Change password</h2>
         {fail ? <Alert text={fail.text} requestId={fail.requestId} /> : null}
         <PasswordField label="Current password" name="current_password" autoComplete="current-password" maxLength={128} value={cur} onChange={setCur} error={errors['cur']} />
         <PasswordField label="New password" name="new_password" autoComplete="new-password" maxLength={128} value={next} onChange={setNext} error={errors['next']} />
         <PasswordField label="Confirm password" name="confirm_password" autoComplete="new-password" maxLength={128} value={confirm} onChange={setConfirm} error={errors['confirm']} />
         <Button type="submit" variant="primary" isLoading={busy}>Change password</Button>
       </form>
-      <section className="lims-card" aria-labelledby="mfa-h">
-        <h2 id="mfa-h">Two-step verification</h2>
+      </Card>
+      <Card title="Two-step verification">
         <p>Status: <Badge text={me.mfa.enrolled ? 'On' : 'Off'} />.</p>
         {loadFail ? <ReadFailed fail={loadFail} what="your two-step factors" /> : null}
         {!loadFail && !factors.length ? <Link href="/auth/mfa/enrol" className="lims-btn">Set up</Link> : null}
         {removeErr && !removing ? <Alert text={removeErr} /> : null}
-        <ul>
-          {factors.map((f) => (
-            <li key={f.factor_id}>
-              {f.friendly_name ?? 'Authenticator'} — added {fmt(f.verified_at)}{' '}
-              <span {...(lastProtected ? { title: 'Your role requires two-step verification' } : {})}>
-                <Button size="sm" isDisabled={lastProtected} onPress={() => { setRemoveErr(null); setRemoving(f); }}>Remove</Button>
-              </span>
-              {lastProtected ? <span className="lims-description"> Your role requires two-step verification</span> : null}
-            </li>
-          ))}
-        </ul>
-      </section>
+        {factors.length ? (
+          <Grid label="Authenticators" columns={['Authenticator', 'Added', 'Action']}
+            rows={factors.map((f) => ({
+              key: f.factor_id,
+              cells: [
+                f.friendly_name ?? 'Authenticator',
+                `added ${fmt(f.verified_at)}`,
+                <span key="r">
+                  <span {...(lastProtected ? { title: 'Your role requires two-step verification' } : {})}>
+                    <Button size="sm" isDisabled={lastProtected} onPress={() => { setRemoveErr(null); setRemoving(f); }}>Remove</Button>
+                  </span>
+                  {lastProtected ? <span className="lims-description"> Your role requires two-step verification</span> : null}
+                </span>,
+              ],
+            }))} />
+        ) : null}
+      </Card>
       <ConfirmDialog
         title="Remove this authenticator?"
         body={<>{removeErr && removing ? <Alert text={removeErr} /> : null}<p>You will need to set up two-step verification again to use privileged actions.</p></>}

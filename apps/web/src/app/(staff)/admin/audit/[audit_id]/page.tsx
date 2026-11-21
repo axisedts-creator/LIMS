@@ -1,5 +1,6 @@
 // AD-11 Audit entry (C2 04-UI-UX §6, US-D2): key/values + DiffTable; values are text nodes only (REQ-SEC-088). Viewing is recorded by the API.
 import { notFound } from 'next/navigation';
+import { Card } from '@lims/ui/components/Card';
 import { DiffTable, type DiffRow } from '@lims/ui/components/DiffTable';
 import { call } from '@/features/admin/server/api';
 import { Denied, Frame, LoadError, gate } from '@/features/admin/server/page-kit';
@@ -28,7 +29,8 @@ export default async function AuditEntryPage({ params }: { params: Promise<{ aud
   if (!SEG_RE.test(id)) notFound();
   const r = await call<Entry>('GET', `/v1/identity/audit-entries/${encodeURIComponent(id)}`);
   if (!r.ok && r.status === 404) notFound();
-  if (!r.ok) return <LoadError fail={r} what="this audit entry" />;
+  // T0D-UIGUARD-1-ADMIN (LD-436 R16): a failed read keeps the page title row
+  if (!r.ok) return <Frame title="Audit entry" helpKey="admin.audit-entry"><LoadError fail={r} what="this audit entry" /></Frame>;
   const e = r.data;
   const kv: Array<[string, string]> = [
     ['Time', `${fmt(e.occurred_at)} (${e.occurred_at} UTC)`], ['User', e.actor?.display_name ?? e.actor?.type ?? '—'], ['Action', e.action], ['Table', e.table],
@@ -36,11 +38,15 @@ export default async function AuditEntryPage({ params }: { params: Promise<{ aud
     ['Centre', e.centre_id ?? '—'], ['Support session', e.support_session_id ?? '—'],
   ];
   return (
-    <Frame title="Audit entry">
-      <p className="lims-description">Your viewing of this entry is recorded.</p>
-      <dl className="lims-dl">{kv.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>
-      <p className="lims-label">Changes</p>
-      <DiffTable rows={diffRows(e.old_values, e.new_values)} />
+    // T0D-UIGUARD-1-ADMIN (LD-436, LD-439): PageHeader with the caption line, then two kit Cards (no card titles: the page keeps one heading)
+    <Frame title="Audit entry" helpKey="admin.audit-entry" caption="Your viewing of this entry is recorded.">
+      <Card>
+        <dl className="lims-dl">{kv.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>
+      </Card>
+      <Card>
+        <p className="lims-label">Changes</p>
+        <DiffTable rows={diffRows(e.old_values, e.new_values)} />
+      </Card>
     </Frame>
   );
 }

@@ -3,5 +3,5 @@
 - Kit prop (LD-441, additive): Timeline item `extra?: ReactNode`, drawn after the label in the same row (chip, Download link). Default markup unchanged.
 - [CONV] GAP: no read gives a count per status, so the tabs have no count pill (no invented numbers). The caption leaves out "barcode" when the user lacks lab.specimen.read. Version time = released_at, else rendered_at, else "—".
 - rs-c6.screens snapshots re-recorded (LD-440): worklist and delivery detail. Display-only diff.
-- Green: uiguard1 reporting config 95/96 (guard rule 7 green), printcfg1 72/72, c6-t31 197/200, rs-c6 55/60, packages/ui 1671/1678 (the 7 fails were there before: fonts, density, no-raw-style in rs-c6.static), web tsc: no errors in reporting.
-- OPEN: 7 red, all in the dispute: tester-owned pins of old markup or a kit field type (dispute items 1 to 4). No tests edited. Pixel match to the mocks not checked in a browser. Pages with no own mock were rebuilt to the guard rules only.
+- Green after ruling (tester revised tests): uiguard1 reporting 96/96, c6-t31 200/200, rs-c6 60/60 (snapshots match, no re-record), printcfg1 72/72; web tsc 0 errors in reporting (19 elsewhere, not this task). packages/ui not rerun (unchanged since 1671/1678, 7 pre-existing fails).
+- OPEN: pixel match to the mocks not checked in a browser; pages with no own mock rebuilt to the guard rules only; tab count pills omitted (no count read).

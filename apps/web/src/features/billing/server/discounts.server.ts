@@ -7,8 +7,9 @@ import { ApiError, serverFetch } from '@/core/api/server-fetch';
 import { problem } from '@/core/session/types';
 import { ISO_DATE_RE, UUID_RE } from './types';
 
-export type SlabPartyKind = 'credit_party' | 'partner' | 'doctor' | 'franchise';
-export const SLAB_PARTY_KINDS: readonly SlabPartyKind[] = ['credit_party', 'partner', 'doctor', 'franchise'];
+import { SLAB_PARTY_KINDS, type SlabPartyKind } from './discountKinds';
+export { SLAB_PARTY_KINDS };
+export type { SlabPartyKind };
 
 type Stamp = { version: number; created_at: string; updated_at: string };
 export interface DiscountReason extends Stamp { id: string; code: string; name: string; is_active: boolean; display_order: number }

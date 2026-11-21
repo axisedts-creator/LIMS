@@ -12,16 +12,6 @@ Other groups = LD-434 legacy baseline (CR-C0-0D-UIGUARD-1 option A); the heading
 - /anatomic/cases/[case_id]/labels rule 3: label sheet: print layout of a physical label (label-sheet.css) needs a bold first line
 - /[...slug] rule 1: catch-all placeholder for module routes without a page; not a screen (CR T0D-14)
 
-## T0D-UIGUARD-1-QUALITY (7 entries, 7 routes)
-
-- /quality rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-QUALITY: rule 2 broken in DecisionsView.tsx, LjView.tsx
-- /quality/autoverify/decisions rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-QUALITY: rule 2 broken in DecisionsView.tsx, LjView.tsx
-- /quality/lj rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-QUALITY: rule 2 broken in DecisionsView.tsx, LjView.tsx
-- /quality/observations rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-QUALITY: rule 2 broken in DecisionsView.tsx, LjView.tsx
-- /quality/qc-runs/[qc_run_id] rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-QUALITY: rule 2 broken in DecisionsView.tsx, LjView.tsx
-- /quality/runs rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-QUALITY: rule 2 broken in DecisionsView.tsx, LjView.tsx
-- /quality/autoverify/[version_id] rule 6: legacy baseline LD-434, fix in T0D-UIGUARD-1-QUALITY: rule 6 broken in ReportView.tsx
-
 # Rule 7 (T0D-UIGUARD-2, LD-436 R7, LD-439 c): no raw h1 to h4, no raw ul or ol for page structure. One entry per route; heading = follow-up area task.
 
 ## STANDING (catch-all)
@@ -32,19 +22,4 @@ Other groups = LD-434 legacy baseline (CR-C0-0D-UIGUARD-1 option A); the heading
 
 - /payments/refunds rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-PAYMENTS: rule 7 broken in RefundsList.tsx, consoleParts.tsx
 - /payments/review rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-PAYMENTS: rule 7 broken in ReviewQueue.tsx, consoleParts.tsx
-
-## T0D-UIGUARD-1-QUALITY (rule 7: 12 entries)
-
-- /quality rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-QUALITY: rule 7 broken in LjView.tsx, RunDetailView.tsx
-- /quality/autoverify/[version_id] rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-QUALITY: rule 7 broken in ReportView.tsx, RuleDrawer.tsx
-- /quality/autoverify/decisions rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-QUALITY: rule 7 broken in DecisionsView.tsx
-- /quality/lj rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-QUALITY: rule 7 broken in LjView.tsx, RunDetailView.tsx
-- /quality/observations rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-QUALITY: rule 7 broken in LjView.tsx, RunDetailView.tsx
-- /quality/qc-runs/[qc_run_id] rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-QUALITY: rule 7 broken in LjView.tsx, RunDetailView.tsx
-- /quality/runs rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-QUALITY: rule 7 broken in LjView.tsx, RunDetailView.tsx
-- /quality/settings rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-QUALITY: rule 7 broken in SettingsView.tsx
-- /quality/setup/maps rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-QUALITY: rule 7 broken in MaterialsView.tsx, TargetsView.tsx
-- /quality/setup/materials rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-QUALITY: rule 7 broken in MaterialsView.tsx, TargetsView.tsx
-- /quality/setup/plans rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-QUALITY: rule 7 broken in MaterialsView.tsx, TargetsView.tsx
-- /quality/setup/targets rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-QUALITY: rule 7 broken in MaterialsView.tsx, TargetsView.tsx
 

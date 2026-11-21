@@ -110,7 +110,8 @@ export function RuleDrawer({ rules, index, versionId, version, onClose }: { rule
   return (
     <Drawer title={index < 0 ? 'Add rule' : `Edit rule ${editing?.key ?? ''}`} isOpen onClose={onClose} width="md">
       <NoticeBanner notice={w.notice} onReload={() => router.refresh()} />
-      {w.notice?.errors?.length ? <ul>{w.notice.errors.map((x, i) => <li key={i}>{rowName(x.path)}: {x.message}</li>)}</ul> : null}
+      {/* T0D-UIGUARD-1-QUALITY (LD-436 R7): no raw ul; the items keep list semantics. */}
+      {w.notice?.errors?.length ? <div role="list">{w.notice.errors.map((x, i) => <div role="listitem" key={i}>{rowName(x.path)}: {x.message}</div>)}</div> : null}
       <DrawerSection title="Rule" onSave={() => void save()} isSaving={w.pending}>
         <TextField label="Key" name="key" maxLength={40} isRequired value={f.key} onChange={(v) => set('key', v)} {...(errors.key ? { error: errors.key } : {})} />
         <TextField label="Test" name="test_id" maxLength={36} isRequired isReadOnly={!!editing} value={f.test_id} onChange={(v) => set('test_id', v)} {...(errors.test_id ? { error: errors.test_id } : {})} />
@@ -135,11 +136,11 @@ export function RuleDrawer({ rules, index, versionId, version, onClose }: { rule
           <TextField label="Instrument flags to ignore" name="ignored" maxLength={MAX_FLAG_LEN} value={draft} onChange={setDraft} description="Type a flag and press Enter. Up to 20 flags, 16 characters each." />
         </div>
         {f.ignored.length ? (
-          <ul>
+          <div role="list">
             {f.ignored.map((x) => (
-              <li key={x}>{x} <Button size="sm" variant="ghost" onPress={() => set('ignored', f.ignored.filter((y) => y !== x))}>Remove<VisuallyHidden> {x}</VisuallyHidden></Button></li>
+              <div role="listitem" key={x}>{x} <Button size="sm" variant="ghost" onPress={() => set('ignored', f.ignored.filter((y) => y !== x))}>Remove<VisuallyHidden> {x}</VisuallyHidden></Button></div>
             ))}
-          </ul>
+          </div>
         ) : null}
         <TextField label="Note" name="note" maxLength={200} value={f.note} onChange={(v) => set('note', v)} />
       </DrawerSection>

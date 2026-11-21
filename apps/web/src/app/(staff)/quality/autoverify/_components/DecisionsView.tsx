@@ -5,11 +5,13 @@ import { useId, useRef, useState, type MouseEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { Banner } from '@lims/ui/components/Banner';
 import { Button } from '@lims/ui/components/Button';
+import { Card } from '@lims/ui/components/Card';
 import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
 import { DateText, type DateTextProps } from '@lims/ui/components/DateText';
 import { DescriptionList } from '@lims/ui/components/DescriptionList';
 import { Drawer } from '@lims/ui/components/Drawer';
 import { ErrorState } from '@lims/ui/components/ErrorState';
+import { FilterBar } from '@lims/ui/components/FilterBar';
 import { IdText } from '@lims/ui/components/IdText';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { StatusChip } from '@lims/ui/components/StatusChip';
@@ -89,7 +91,8 @@ export function DecisionsView({ rows, next, hasPrevious, problem, sp }: Props) {
   return (
     <>
       <PageHeader title="Auto-verification decisions" helpKey="quality.autoverify_decisions" />
-      <div role="search" className="lims-filter-bar">
+      {/* T0D-UIGUARD-1-QUALITY (LD-353 rule 2, LD-441): the kit FilterBar; the date inputs and selects are its children, applied with the button. */}
+      <FilterBar aria-label="Decision filters">
         <div className="lims-field">
           <label className="lims-label" htmlFor={`${dateId}-from`}>Period from</label>
           <input id={`${dateId}-from`} className="lims-input" type="date" value={from} onChange={(e) => setFrom(e.currentTarget.value)} />
@@ -102,7 +105,7 @@ export function DecisionsView({ rows, next, hasPrevious, problem, sp }: Props) {
         <NativeSelect label="Decision" value={filters.decision} onChange={(v) => setFilters((f) => ({ ...f, decision: v }))} placeholder="All decisions" options={Object.entries(DECISION).map(([value, x]) => ({ value, label: x.label }))} />
         <NativeSelect label="Reason" value={filters.reason} onChange={(v) => setFilters((f) => ({ ...f, reason: v }))} placeholder="All reasons" options={REASONS.map((value) => ({ value, label: REASON_LABEL[value] }))} />
         <Button variant="primary" onPress={() => go({})}>Apply filters</Button>
-      </div>
+      </FilterBar>
       {problem ? <p role="alert" className="lims-error">{problem}</p> : null}
       {gone ? <Banner tone="warning" title="This decision doesn't exist or isn't in your lab." /> : null}
       {/* the kit table opens a row on Enter and double click; a single click is handled here, so the whole row works like the spec's "Row → Drawer" */}
@@ -127,7 +130,8 @@ export function DecisionsView({ rows, next, hasPrevious, problem, sp }: Props) {
               { term: 'Matched rule', value: d.matched_rule_key ?? DASH },
               { term: 'QC status', value: QC[d.qc_status] ?? DASH },
             ]} />
-            <h3>Inputs</h3>
+            {/* T0D-UIGUARD-1-QUALITY (LD-436 R7): the Inputs block is a kit Card with a title row, not a raw h3. */}
+            <Card title="Inputs" region>
             <DescriptionList items={[
               { term: 'Value', value: i?.value_numeric ?? DASH },
               { term: 'Range flag', value: i?.range_flag ? (RANGE_FLAG[i.range_flag] ?? i.range_flag) : DASH },
@@ -136,6 +140,7 @@ export function DecisionsView({ rows, next, hasPrevious, problem, sp }: Props) {
               { term: 'Instrument flags', value: i?.instrument_flags.length ? i.instrument_flags.join(', ') : DASH },
               { term: 'Resulted at', value: i ? <DateText value={i.resulted_at as Iso} withTime /> : DASH },
             ]} />
+            </Card>
             {d.qc_run_id ? <a className="lims-btn lims-btn-secondary" href={qcRunHref(d.qc_run_id)}>Open QC run</a> : null}
           </>
         ) : null}

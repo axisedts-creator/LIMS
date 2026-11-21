@@ -9,3 +9,9 @@
 3. apps/web/.../uikit2.shell.test.ts:67 `expect(last('box-shadow')).not.toMatch(/\d/)` contradicts line 44 of the same file, which requires
    'var(--lims-elevation-1) !important' (contains the digit 1). Ask: change line 67 to reject a literal shadow only, e.g. not.toMatch(/\d+px|rgba?\(/).
 Implementation for all three already matches the side the brief asks for (state art, success icon kept, elevation-1); no further code change needed once ruled.
+
+## Debugger confirmation (verify log 21:34, ui set 228/230)
+Both remaining red tests are items 1 and 2 above: test-vs-test contradictions. No implementation change satisfies both sides without a test or snapshot edit, which the debugger may not make.
+- uikit2.kit.test.tsx:91 needs path "M5 12l5 5L20 7" in the done li; ui-r03-kit-pass.test.tsx.snap:19 pins the done li to one svg with only the `success` path (ui-r03:304 one svg per li).
+- ui-r03-kit-pass.test.tsx:638 snapshot pins DataTable empty state to the 32px `empty` Icon; uikit2.kit.test.tsx:149-165 and done_when 4 need svg.lims-state-art in EmptyState, which DataTable renders (DataTable.tsx:239).
+Ruling needed: update the ui-r03 snapshot (done li icon, DataTable empty art), or relax uikit2 line 91 to accept the success icon's check.

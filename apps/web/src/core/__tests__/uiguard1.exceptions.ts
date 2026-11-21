@@ -178,12 +178,6 @@ export const EXCEPTIONS: GuardException[] = [
     '/lab/orders/[order_id]/results',
     '/lab/settings',
   ]),
-  ...legacy('SMARTREPORT', 5, 'WordingTerms.tsx, CheckTab.tsx, GroupsTab.tsx', [
-    '/smartreport/library',
-    '/smartreport/library/[library_version_id]',
-    '/smartreport/library/[library_version_id]/review',
-    '/smartreport/wording',
-  ]),
   ...legacy('ANALYTICS', 6, 'ReportView.tsx', [
     '/analytics/collections',
     '/analytics/referral-incentive',
@@ -199,9 +193,6 @@ export const EXCEPTIONS: GuardException[] = [
   ]),
   ...legacy('QUALITY', 6, 'ReportView.tsx', [
     '/quality/autoverify/[version_id]',
-  ]),
-  ...legacy('SMARTREPORT', 6, 'SummaryReview.tsx', [
-    '/smartreport/summaries/[summary_id]',
   ]),
 
   // T0D-UIGUARD-2 (LD-436 R7, LD-438, LD-439 c): rule 7 legacy baseline, one entry per route, reason 'legacy baseline LD-436, fix in T0D-UIGUARD-1-<AREA>'.
@@ -367,12 +358,5 @@ export const EXCEPTIONS: GuardException[] = [
     ['/reporting/reports/[report_id]', 'ReportDetailView.tsx'],
     ['/reporting/settings', 'PrintStationery.tsx, ReportingSettingsForm.tsx, SignatoryProfiles.tsx'],
     ['/reporting/templates/[template_id]', 'TemplateEditor.tsx'],
-  ]),
-  ...legacy7('SMARTREPORT', [
-    ['/smartreport/library', 'ReviewPanel.tsx, TextsTab.tsx, PreviewDialog.tsx'],
-    ['/smartreport/library/[library_version_id]', 'ReviewPanel.tsx, TextsTab.tsx, PreviewDialog.tsx'],
-    ['/smartreport/library/[library_version_id]/review', 'ReviewPanel.tsx, TextsTab.tsx, PreviewDialog.tsx'],
-    ['/smartreport/summaries/[summary_id]', 'SummaryReview.tsx'],
-    ['/smartreport/wording', 'ReviewPanel.tsx, TextsTab.tsx, PreviewDialog.tsx'],
   ]),
 ];

@@ -1,0 +1,10 @@
+# T0D-UIGUARD-1-CATALOG impl (writer)
+- Files: 27 catalog components + catalog.css, app/(staff)/catalog/credit-parties/[credit_party_id]/page.tsx, kit Card/Drawer/FilterBar (31; one over the 30 cap); notes/T0D-UIGUARD-1-exceptions.md CATALOG blocks deleted. Registry untouched (LD-441).
+- Rules 1/2/3/5/7: TestHeader + CatalogForbidden draw kit PageHeader; every filter row is the kit FilterBar ("Clear filters", worklist mock); catalog.css weights 600 -> font-weight-medium; AnalytesTab keeps its header with EmptyRow/PlaceholderRows; raw h2/h3 -> Card region / DrawerSection, raw ul/li -> role=list/listbox divs; CatalogHome "Needs attention" = Card + ActionList (Today mock).
+- [CONV] additive kit props (LD-441): Card `region` (section named by title), DrawerSection `action` (caller's submit Save), FilterDef text `search` (searchbox + Enter runs onSearch).
+- [CONV] /catalog/credit-parties/[id] re-exports the list page instead of redirecting (only way to render PageHeader there; same read, permission, no new route).
+- [CONV] Price list Assignments date pair and Popular tests "Add" row are form rows, reclassed from lims-filter-bar to lims-inline.
+- Open: cattests1.tests-page.test.tsx:190 and unslop1.tables.test.tsx:93 pin the old markup (see -dispute.md). Red on HEAD too (checked against a clean HEAD tree): pricetools1 both double-click tests, unslop1 radio-group test, elabmenu3.walk 13 (billing/inventory/lab). Pre-existing, not touched here: rs-c3.static + testimport1.source (route/server baseline drift, 27 vs 26 routes), web-t33.server createDoctor, web-t38 icd help, emptytbl1 lab worklist/pending.
+- The elabmenu3 run rewrites .orchestra/notes/T0D-ELABMENU-3-table.md; revert it before commit (not this task's file).
+- Checks: uiguard1 36/36 green; web tsc clean apart from the existing test/brand.ts errors; kit tsc clean; kit vitest 1670/1678 (fonts, build-tokens, no-raw-style (0 catalog hits), density NaN; none touch Card/Drawer/FilterBar, density not compared against HEAD).
+- rs-cN snapshots: none re-recorded (rs-c3.screens green).

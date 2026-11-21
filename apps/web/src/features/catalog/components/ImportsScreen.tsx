@@ -6,7 +6,9 @@ import { useEffect, useRef, useState, type MouseEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { Banner } from '@lims/ui/components/Banner';
 import { Button } from '@lims/ui/components/Button';
+import { Card } from '@lims/ui/components/Card';
 import { FileUpload } from '@lims/ui/components/FileUpload';
+import { FilterBar } from '@lims/ui/components/FilterBar';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { RadioGroup } from '@lims/ui/components/RadioGroup';
 import { Select } from '@lims/ui/components/Select';
@@ -176,8 +178,9 @@ export function ImportsScreen({ imports, exports: initialExports, priceLists, pe
       {permissions.includes('catalog.test.manage') ? <p><a className="lims-link" href="/catalog/imports?view=tests">Import tests</a></p> : null}
 
       {kinds.length > 0 ? (
-        <section aria-labelledby="imp-new" className="lims-stack">
-          <h2 id="imp-new">Import</h2>
+        // T0D-UIGUARD-1-CATALOG (LD-436 R7): page sections are kit Cards with a title row, no raw h2.
+        <Card title="Import" region>
+          <div className="lims-stack">
           <RadioGroup<ImportKind>
             label="What do you want to import?"
             name="kind"
@@ -211,25 +214,33 @@ export function ImportsScreen({ imports, exports: initialExports, priceLists, pe
           <div>
             <Button variant="primary" isLoading={busy} isDisabled={!canUpload} onPress={() => void upload()}>Upload</Button>
           </div>
-        </section>
+          </div>
+        </Card>
       ) : null}
 
-      {/* T0D-UILIST-3 (LD-353 template 1): one filter row for both history tables */}
-      <div className="lims-filter-bar">
-        <Select<string> label="Kind" name="imp_kind" value={impKind} onChange={setImpKind} options={kindOptions} />
-        <Select<string> label="Status" name="imp_status" value={impStatus} onChange={setImpStatus} options={[{ value: ALL, label: 'All statuses' }, ...IMPORT_STATUSES.map((s) => ({ value: s, label: IMPORT_STATUS_LABEL[s] }))]} />
-        <Select<string> label="Export kind" name="exp_kind" value={expKind} onChange={setExpKind} options={kindOptions.filter((o) => o.value !== 'credit_parties')} />
-        <Select<string> label="Export status" name="exp_status" value={expStatus} onChange={setExpStatus} options={[{ value: ALL, label: 'All statuses' }, ...EXPORT_STATUSES.map((s) => ({ value: s, label: EXPORT_STATUS_LABEL[s] ?? s }))]} />
-      </div>
-      <section aria-labelledby="imp-hist" className="lims-stack">
-        <h2 id="imp-hist">Import history</h2>
+      {/* T0D-UILIST-3 (LD-353 template 1): one filter row for both history tables (T0D-UIGUARD-1-CATALOG: the kit FilterBar) */}
+      <FilterBar
+        filters={[
+          { id: 'imp_kind', label: 'Kind', kind: 'select', options: kindOptions },
+          { id: 'imp_status', label: 'Status', kind: 'select', options: [{ value: ALL, label: 'All statuses' }, ...IMPORT_STATUSES.map((s) => ({ value: s, label: IMPORT_STATUS_LABEL[s] ?? s }))] },
+          { id: 'exp_kind', label: 'Export kind', kind: 'select', options: kindOptions.filter((o) => o.value !== 'credit_parties') },
+          { id: 'exp_status', label: 'Export status', kind: 'select', options: [{ value: ALL, label: 'All statuses' }, ...EXPORT_STATUSES.map((s) => ({ value: s, label: EXPORT_STATUS_LABEL[s] ?? s }))] },
+        ]}
+        value={{ imp_kind: impKind, imp_status: impStatus, exp_kind: expKind, exp_status: expStatus }}
+        onChange={(v) => {
+          const s = (k: string) => (typeof v[k] === 'string' ? (v[k] as string) : ALL);
+          setImpKind(s('imp_kind')); setImpStatus(s('imp_status')); setExpKind(s('exp_kind')); setExpStatus(s('exp_status'));
+        }}
+        onReset={() => { setImpKind(ALL); setImpStatus(ALL); setExpKind(ALL); setExpStatus(ALL); }}
+        resetLabel="Clear filters"
+      />
+      <Card title="Import history" region>
         <MasterTable caption="Import history" cols={importCols} rows={shownImports} empty={imports.length === 0 ? 'No imports yet.' : 'No imports match the filters.'} />
-      </section>
+      </Card>
 
-      <section aria-labelledby="exp-hist" className="lims-stack">
-        <h2 id="exp-hist">Exports</h2>
+      <Card title="Exports" region>
         <MasterTable caption="Exports" cols={exportCols} rows={shownExports} empty={rows.length === 0 ? 'No exports yet.' : 'No exports match the filters.'} />
-      </section>
+      </Card>
     </section>
   );
 }

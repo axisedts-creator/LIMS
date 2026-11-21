@@ -6,12 +6,14 @@ import { Button } from '../Button/Button';
 import { DateRangePicker } from '../DateRangePicker/DateRangePicker';
 import { Select } from '../Select/Select';
 import { TextField } from '../TextField/TextField';
+import { TextInputBase } from '../_shared/TextInputBase';
 import type { IsoDate } from '../_shared/dates';
 
 export type FilterDef = { id: string; label: string } & (
   | { kind: 'select'; options: readonly { value: string; label: string }[]; multiple?: boolean }
   | { kind: 'date_range' }
-  | { kind: 'text'; maxLength: number }
+  /** `search` (T0D-UIGUARD-1-CATALOG, additive, LD-441): the input is a searchbox and Enter runs onSearch, like a search form. */
+  | { kind: 'text'; maxLength: number; search?: boolean }
   | { kind: 'coded'; codedSet: string; options: readonly { code: string; display: string }[] }
 );
 export type FilterValue = Readonly<Record<string, string | readonly string[] | undefined>>;
@@ -66,7 +68,20 @@ export function FilterBar({ filters, value, onChange, onReset, onSearch, resetLa
           // LD-353 rule 2: a search is a short label plus a control (kit.css caps .lims-filter-search) with its button next to it
           return (
             <div key={key} className="lims-filter-search">
-              <TextField label={f.label} name={f.id} maxLength={f.maxLength} value={str(f.id) ?? ''} onChange={(v) => set(f.id, v === '' ? undefined : v)} />
+              {f.search ? (
+                <TextInputBase
+                  label={f.label}
+                  name={f.id}
+                  maxLength={f.maxLength}
+                  autoComplete="off"
+                  inputProps={{ type: 'search' }}
+                  text={str(f.id) ?? ''}
+                  onText={(v) => set(f.id, v === '' ? undefined : v.normalize('NFC'))}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); onSearch?.(); } }}
+                />
+              ) : (
+                <TextField label={f.label} name={f.id} maxLength={f.maxLength} value={str(f.id) ?? ''} onChange={(v) => set(f.id, v === '' ? undefined : v)} />
+              )}
               {onSearch && f.id === firstText ? <Button onPress={onSearch}>Search</Button> : null}
             </div>
           );

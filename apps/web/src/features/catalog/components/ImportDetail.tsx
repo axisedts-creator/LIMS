@@ -5,6 +5,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Banner } from '@lims/ui/components/Banner';
 import { Button } from '@lims/ui/components/Button';
+import { Card } from '@lims/ui/components/Card';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { RadioGroup } from '@lims/ui/components/RadioGroup';
 import { StatusStepper } from '@lims/ui/components/StatusStepper';
@@ -175,8 +176,9 @@ export function ImportDetail({ importRow, issues: initialIssues, priceList, perm
       </div>
 
       {showIssues ? (
-        <section aria-labelledby="imp-issues" className="lims-stack">
-          <h2 id="imp-issues">Issues</h2>
+        // T0D-UIGUARD-1-CATALOG (LD-436 R7): a kit Card region with its title row, no raw h2
+        <Card title="Issues" region>
+          <div className="lims-stack">
           <RadioGroup<Filter>
             label="Show"
             name="severity"
@@ -186,7 +188,8 @@ export function ImportDetail({ importRow, issues: initialIssues, priceList, perm
             options={[{ value: 'all', label: 'All' }, { value: 'error', label: 'Errors' }, { value: 'warning', label: 'Warnings' }]}
           />
           <MasterTable caption="Import issues" cols={cols} rows={issues.map((i) => ({ ...i, id: String(i.seq) }))} empty="No issues." />
-        </section>
+          </div>
+        </Card>
       ) : null}
 
       {open ? (

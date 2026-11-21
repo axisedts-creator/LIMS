@@ -7,6 +7,7 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@lims/ui/components/Button';
+import { Card } from '@lims/ui/components/Card';
 import { Dialog } from '@lims/ui/components/Dialog';
 import { useToast } from '@lims/ui/components/Toast';
 import { createAnalyteFullAction, otherAnalytesAction, testTagsAction, updateAnalyteFullAction, type OtherAnalyte } from '../server/testMgmtActions';
@@ -106,8 +107,9 @@ export function TestDetailsView({ tests, selected, permissions }: { tests: reado
 
   return (
     <div className="catalog-two-pane">
-      <section className="catalog-pane" aria-labelledby={ids.tests}>
-        <h2 id={ids.tests} className="lims-section-title">Tests</h2>
+      {/* T0D-UIGUARD-1-CATALOG (LD-436 R7): each pane is a kit Card region with its title row, no raw h2 */}
+      <div className="catalog-pane">
+      <Card title="Tests" region>
         <input type="search" className="lims-input" aria-label="Search tests" placeholder="Name, short name, code or tag" maxLength={100} value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} />
         <table className="lims-table lims-table-compact">
           <caption className="lims-visually-hidden">Tests</caption>
@@ -131,10 +133,11 @@ export function TestDetailsView({ tests, selected, permissions }: { tests: reado
             {cur < pages ? <a href={`/catalog/tests?view=details`} onClick={(e) => { e.preventDefault(); setPage(cur + 1); }}>Next</a> : null}
           </div>
         ) : null}
-      </section>
+      </Card>
+      </div>
 
-      <section className="catalog-pane" aria-labelledby={ids.params}>
-        <h2 id={ids.params} className="lims-section-title">Parameters</h2>
+      <div className="catalog-pane">
+      <Card title="Parameters" region>
         <div className="lims-inline catalog-gap-1 catalog-wrap">
           <Button size="sm" variant="primary" isDisabled={!selected || !manage} onPress={() => router.push(`${base}?tab=analytes&analyte=new`)}>New parameter</Button>
           <Button size="sm" isDisabled={at < 0} onPress={() => router.push(`${base}?tab=analytes&analyte=${chosen}`)}>Edit parameter</Button>
@@ -175,7 +178,8 @@ export function TestDetailsView({ tests, selected, permissions }: { tests: reado
             ))}
           </tbody>
         </table>
-      </section>
+      </Card>
+      </div>
 
       {dialog === 'remove' && at >= 0 ? (
         <Dialog
@@ -238,16 +242,16 @@ function AddExistingDialog({ testId, params, onClose, onDone, onFail }: { testId
     >
       <input type="search" className="lims-input" aria-label="Filter parameters" placeholder="Code, name or test" maxLength={100} value={filter} onChange={(e) => setFilter(e.target.value)} />
       {error ? <p role="alert">The parameters of the other tests could not be loaded.</p> : all === null ? <p>Loading…</p> : shown.length === 0 ? <p>No parameter found.</p> : null}
-      <ul className="catalog-plain-list catalog-pick-list">
+      <div role="list" className="catalog-plain-list catalog-pick-list">
         {shown.map((a) => (
-          <li key={a.id}>
+          <div role="listitem" key={a.id}>
             <label className="catalog-check">
               <input type="checkbox" checked={picked.has(a.id)} onChange={(e) => setPicked((s) => { const n = new Set(s); if (e.target.checked) n.add(a.id); else n.delete(a.id); return n; })} />
               {`${a.name} (${a.code}, ${a.test_name})`}
             </label>
-          </li>
+          </div>
         ))}
-      </ul>
+      </div>
     </Dialog>
   );
 }

@@ -3817,6 +3817,16 @@ paths:
                 address_text:
                   type: string
                   maxLength: 300
+                tax_number:
+                  description: PAN, full value (stored as given; every read shows it masked). T0C-PARTYSET-1.
+                  type: string
+                  minLength: 1
+                  maxLength: 32
+                national_id_number:
+                  description: National ID number, full value (stored as given; every read shows it masked). T0C-PARTYSET-1.
+                  type: string
+                  minLength: 1
+                  maxLength: 32
             examples:
               synthetic:
                 value:
@@ -3829,6 +3839,8 @@ paths:
                   contact_email: <synthetic-email>
                   contact_phone_e164: "+15555550123"
                   address_text: Synthetic address, Ward 1
+                  tax_number: SYN000000001
+                  national_id_number: SYN-NID-0001
       responses:
         "201":
           description: Created.
@@ -3858,6 +3870,8 @@ paths:
                     contact_email: <synthetic-email>
                     contact_phone_e164: "+15555550123"
                     address_text: Synthetic address, Ward 1
+                    tax_number: "********0001"
+                    national_id_number: "********0002"
                     created_at: 2026-01-15T05:10:00.000Z
                     version: 1
                     projection_status:
@@ -3927,6 +3941,8 @@ paths:
                     contact_email: <synthetic-email>
                     contact_phone_e164: "+15555550123"
                     address_text: Synthetic address, Ward 1
+                    tax_number: "********0001"
+                    national_id_number: "********0002"
                     created_at: 2026-01-15T05:10:00.000Z
                     version: 1
                     projection_status:
@@ -4004,9 +4020,19 @@ paths:
                 address_text:
                   type: string
                   maxLength: 300
+                tax_number:
+                  description: PAN, full value (every read shows it masked). T0C-PARTYSET-1.
+                  type: string
+                  minLength: 1
+                  maxLength: 32
+                national_id_number:
+                  description: National ID number, full value (every read shows it masked). T0C-PARTYSET-1.
+                  type: string
+                  minLength: 1
+                  maxLength: 32
                 unset:
                   type: array
-                  maxItems: 3
+                  maxItems: 5
                   items:
                     type: string
                     maxLength: 18
@@ -4014,6 +4040,8 @@ paths:
                       - contact_email
                       - contact_phone_e164
                       - address_text
+                      - tax_number
+                      - national_id_number
             examples:
               synthetic:
                 value:
@@ -8158,8 +8186,1455 @@ paths:
           $ref: _common.yaml#/components/responses/TooManyRequests
         "500":
           $ref: _common.yaml#/components/responses/Internal
+  # ---- T0C-PARTYSET-1 (LD-321): per party commercial settings, onboarding approval queue, non compliance penalties, government ID reveal ----
+  /v1/partners/admin/party-settings/{party_kind}/{party_id}:
+    get:
+      operationId: getPartyCommercialSetting
+      tags:
+        - partners
+      summary: Get the commercial settings of one party (T0C-PARTYSET-1)
+      description: >-
+        One settings row per party (party_kind + party_id). A party whose settings are not yet saved answers the defaults with is_default true and
+        version 1 (no id). Offline (founder 2026-11-17 09:19 NPT): this read may be cached on the device and refreshed when online.
+      security:
+        - bearerJwt: []
+      x-permission: partners.party_setting.read
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.not_found
+      parameters:
+        - $ref: '#/components/parameters/PartyKind'
+        - $ref: '#/components/parameters/PartyId'
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PartyCommercialSetting'
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-0000005b1001
+                    party_kind: credit_party
+                    party_id: 0193c4a0-0000-7000-8000-0000005b1002
+                    is_default: false
+                    auto_release_reports: true
+                    whatsapp_enabled: true
+                    insurance_enabled: false
+                    print_exception: false
+                    lab_number_scheme_code: KTM_A
+                    billing_cycle: monthly
+                    invoice_payment_days: 30
+                    invoice_blocking_days: 60
+                    invoice_warning_days: 45
+                    interest_bp_per_day: 5
+                    priority: P2
+                    header_footer_mode: both
+                    commission_bp: 1250
+                    tds_bp: 100
+                    auto_block_overdue: true
+                    version: 2
+                    updated_at: '2026-11-17T05:10:00.000Z'
+        '400':
+          $ref: _common.yaml#/components/responses/BadRequest
+        '401':
+          $ref: _common.yaml#/components/responses/Unauthorized
+        '403':
+          $ref: _common.yaml#/components/responses/Forbidden
+        '404':
+          $ref: _common.yaml#/components/responses/NotFound
+        '429':
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        '500':
+          $ref: _common.yaml#/components/responses/Internal
+    put:
+      operationId: setPartyCommercialSetting
+      tags:
+        - partners
+      summary: Save the commercial settings of one party (T0C-PARTYSET-1)
+      description: >-
+        Creates the settings row on the first save (no If-Match) and updates it afterwards (If-Match with the current version; a stale version answers
+        common.version_conflict). An omitted field keeps its saved value (or the default on the first save); unset clears lab_number_scheme_code.
+        interest_bp_per_day is interest per day in basis points, shown as a statement line only and never posted automatically (LD-321).
+        lab_number_scheme_code is a plain code; its offline number blocks belong to the offline wave. Online only.
+      security:
+        - bearerJwt: []
+      x-permission: partners.party_setting.manage
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.not_found
+        - common.version_conflict
+      parameters:
+        - $ref: '#/components/parameters/PartyKind'
+        - $ref: '#/components/parameters/PartyId'
+        - $ref: '#/components/parameters/IfMatchOptional'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PartyCommercialSettingSet'
+            examples:
+              synthetic:
+                value:
+                  auto_release_reports: true
+                  whatsapp_enabled: true
+                  billing_cycle: monthly
+                  invoice_payment_days: 30
+                  invoice_blocking_days: 60
+                  invoice_warning_days: 45
+                  interest_bp_per_day: 5
+                  priority: P2
+                  header_footer_mode: both
+                  commission_bp: 1250
+                  tds_bp: 100
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PartyCommercialSetting'
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-0000005b1003
+                    party_kind: credit_party
+                    party_id: 0193c4a0-0000-7000-8000-0000005b1002
+                    is_default: false
+                    auto_release_reports: true
+                    whatsapp_enabled: true
+                    insurance_enabled: false
+                    print_exception: false
+                    billing_cycle: monthly
+                    invoice_payment_days: 30
+                    invoice_blocking_days: 60
+                    invoice_warning_days: 45
+                    interest_bp_per_day: 5
+                    priority: P2
+                    header_footer_mode: both
+                    commission_bp: 1250
+                    tds_bp: 100
+                    auto_block_overdue: false
+                    version: 1
+                    updated_at: '2026-11-17T05:10:00.000Z'
+        '400':
+          $ref: _common.yaml#/components/responses/BadRequest
+        '401':
+          $ref: _common.yaml#/components/responses/Unauthorized
+        '403':
+          $ref: _common.yaml#/components/responses/Forbidden
+        '404':
+          $ref: _common.yaml#/components/responses/NotFound
+        '409':
+          $ref: _common.yaml#/components/responses/Conflict
+        '422':
+          $ref: _common.yaml#/components/responses/Unprocessable
+        '429':
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        '500':
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/partners/admin/onboarding:
+    get:
+      operationId: listPartyOnboarding
+      tags:
+        - partners
+      summary: List the onboarding approval queue (T0C-PARTYSET-1)
+      description: >-
+        Franchise / partner onboarding queue (ElabAssist Approve and Hold). A row is queued by the service when a party is created for approval;
+        default order is oldest first. q matches the party name, case-insensitive.
+      security:
+        - bearerJwt: []
+      x-permission: partners.onboarding.decide
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.invalid_cursor
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 8
+            enum:
+              - pending
+              - approved
+              - held
+              - rejected
+        - name: party_kind
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 12
+            enum:
+              - partner
+              - credit_party
+              - doctor
+              - referrer
+        - name: q
+          in: query
+          required: false
+          description: Party name contains, case-insensitive.
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 64
+        - $ref: _common.yaml#/components/parameters/Cursor
+        - $ref: _common.yaml#/components/parameters/Limit
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                  - data
+                  - page
+                properties:
+                  data:
+                    type: array
+                    maxItems: 200
+                    items:
+                      $ref: '#/components/schemas/PartyOnboarding'
+                  page:
+                    $ref: _common.yaml#/components/schemas/PageInfo
+              examples:
+                synthetic:
+                  value:
+                    data:
+                      - id: 0193c4a0-0000-7000-8000-0000005b2001
+                        party_kind: partner
+                        party_id: 0193c4a0-0000-7000-8000-0000005b2002
+                        party_name: Synthetic Franchise Lab
+                        status: pending
+                        version: 1
+                        created_at: '2026-11-17T05:10:00.000Z'
+                    page:
+                      limit: 50
+        '400':
+          $ref: _common.yaml#/components/responses/BadRequest
+        '401':
+          $ref: _common.yaml#/components/responses/Unauthorized
+        '403':
+          $ref: _common.yaml#/components/responses/Forbidden
+        '429':
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        '500':
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/partners/admin/onboarding/{onboarding_id}/decision:
+    post:
+      operationId: decidePartyOnboarding
+      tags:
+        - partners
+      summary: Approve, hold or reject a queued party (T0C-PARTYSET-1)
+      description: >-
+        Allowed moves: pending to approved, held or rejected; held to approved or rejected. Approved and rejected are final; any other move answers
+        common.validation_failed. Hold and reject need a reason (1 to 500 characters). The decider and the time are recorded and audited.
+        Online only (never queued offline).
+      security:
+        - bearerJwt: []
+      x-permission: partners.onboarding.decide
+      x-context: tenant
+      x-idempotency: optional
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.not_found
+        - common.version_conflict
+        - common.precondition_required
+      parameters:
+        - $ref: '#/components/parameters/OnboardingId'
+        - $ref: _common.yaml#/components/parameters/IfMatch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - decision
+              properties:
+                decision:
+                  type: string
+                  maxLength: 7
+                  enum:
+                    - approve
+                    - hold
+                    - reject
+                reason:
+                  type: string
+                  minLength: 1
+                  maxLength: 500
+            examples:
+              synthetic:
+                value:
+                  decision: hold
+                  reason: 'Synthetic: registration documents missing'
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PartyOnboarding'
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-0000005b7000
+                    party_kind: partner
+                    party_id: 0193c4a0-0000-7000-8000-0000005b2002
+                    party_name: Synthetic Franchise Lab
+                    status: held
+                    reason: 'Synthetic: registration documents missing'
+                    decided_by: 0193c4a0-0000-7000-8000-0000005b2003
+                    decided_at: '2026-11-17T06:10:00.000Z'
+                    version: 2
+                    created_at: '2026-11-17T05:10:00.000Z'
+        '400':
+          $ref: _common.yaml#/components/responses/BadRequest
+        '401':
+          $ref: _common.yaml#/components/responses/Unauthorized
+        '403':
+          $ref: _common.yaml#/components/responses/Forbidden
+        '404':
+          $ref: _common.yaml#/components/responses/NotFound
+        '409':
+          $ref: _common.yaml#/components/responses/Conflict
+        '422':
+          $ref: _common.yaml#/components/responses/Unprocessable
+        '428':
+          $ref: _common.yaml#/components/responses/PreconditionRequired
+        '429':
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        '500':
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/partners/admin/penalties:
+    get:
+      operationId: listNonCompliancePenalties
+      tags:
+        - partners
+      summary: List non compliance penalties (T0C-PARTYSET-1)
+      security:
+        - bearerJwt: []
+      x-permission: partners.penalty.manage
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.invalid_cursor
+      parameters:
+        - name: is_active
+          in: query
+          required: false
+          schema:
+            type: boolean
+        - name: q
+          in: query
+          required: false
+          description: Code prefix or name contains, case-insensitive.
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 64
+        - $ref: _common.yaml#/components/parameters/Cursor
+        - $ref: _common.yaml#/components/parameters/Limit
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                  - data
+                  - page
+                properties:
+                  data:
+                    type: array
+                    maxItems: 200
+                    items:
+                      $ref: '#/components/schemas/NonCompliancePenalty'
+                  page:
+                    $ref: _common.yaml#/components/schemas/PageInfo
+              examples:
+                synthetic:
+                  value:
+                    data:
+                      - id: 0193c4a0-0000-7000-8000-0000005b3001
+                        code: LATE_SAMPLE
+                        name: Late sample (synthetic)
+                        amount_paisa: 50000
+                        is_active: true
+                        version: 1
+                        created_at: '2026-11-17T05:10:00.000Z'
+                        updated_at: '2026-11-17T05:10:00.000Z'
+                    page:
+                      limit: 50
+        '400':
+          $ref: _common.yaml#/components/responses/BadRequest
+        '401':
+          $ref: _common.yaml#/components/responses/Unauthorized
+        '403':
+          $ref: _common.yaml#/components/responses/Forbidden
+        '429':
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        '500':
+          $ref: _common.yaml#/components/responses/Internal
+    post:
+      operationId: createNonCompliancePenalty
+      tags:
+        - partners
+      summary: Create a non compliance penalty (T0C-PARTYSET-1)
+      description: The code is unique per tenant (a used code answers common.validation_failed); amount_paisa is the default amount of an event.
+      security:
+        - bearerJwt: []
+      x-permission: partners.penalty.manage
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.idempotency_key_required
+        - common.idempotency_key_reused
+        - common.idempotency_in_progress
+      parameters:
+        - $ref: _common.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - code
+                - name
+                - amount_paisa
+              properties:
+                code:
+                  type: string
+                  pattern: ^[A-Z0-9_-]{1,20}$
+                  maxLength: 20
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 120
+                amount_paisa:
+                  type: integer
+                  format: int64
+                  minimum: 0
+                  maximum: 100000000000
+            examples:
+              synthetic:
+                value:
+                  code: LATE_SAMPLE
+                  name: Late sample (synthetic)
+                  amount_paisa: 50000
+      responses:
+        '201':
+          description: Created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NonCompliancePenalty'
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-0000005b7001
+                    code: LATE_SAMPLE
+                    name: Late sample (synthetic)
+                    amount_paisa: 50000
+                    is_active: true
+                    version: 1
+                    created_at: '2026-11-17T05:10:00.000Z'
+                    updated_at: '2026-11-17T05:10:00.000Z'
+        '400':
+          $ref: _common.yaml#/components/responses/BadRequest
+        '401':
+          $ref: _common.yaml#/components/responses/Unauthorized
+        '403':
+          $ref: _common.yaml#/components/responses/Forbidden
+        '409':
+          $ref: _common.yaml#/components/responses/Conflict
+        '422':
+          $ref: _common.yaml#/components/responses/Unprocessable
+        '429':
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        '500':
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/partners/admin/penalties/{penalty_id}:
+    patch:
+      operationId: updateNonCompliancePenalty
+      tags:
+        - partners
+      summary: Update a non compliance penalty (T0C-PARTYSET-1)
+      description: Changes the name or the default amount; events already raised keep their own amount. The code never changes.
+      security:
+        - bearerJwt: []
+      x-permission: partners.penalty.manage
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.not_found
+        - common.version_conflict
+        - common.precondition_required
+      parameters:
+        - $ref: '#/components/parameters/PenaltyId'
+        - $ref: _common.yaml#/components/parameters/IfMatch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              minProperties: 1
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 120
+                amount_paisa:
+                  type: integer
+                  format: int64
+                  minimum: 0
+                  maximum: 100000000000
+            examples:
+              synthetic:
+                value:
+                  amount_paisa: 75000
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NonCompliancePenalty'
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-0000005b7002
+                    code: LATE_SAMPLE
+                    name: Late sample (synthetic)
+                    amount_paisa: 75000
+                    is_active: true
+                    version: 2
+                    created_at: '2026-11-17T05:10:00.000Z'
+                    updated_at: '2026-11-17T06:10:00.000Z'
+        '400':
+          $ref: _common.yaml#/components/responses/BadRequest
+        '401':
+          $ref: _common.yaml#/components/responses/Unauthorized
+        '403':
+          $ref: _common.yaml#/components/responses/Forbidden
+        '404':
+          $ref: _common.yaml#/components/responses/NotFound
+        '409':
+          $ref: _common.yaml#/components/responses/Conflict
+        '422':
+          $ref: _common.yaml#/components/responses/Unprocessable
+        '428':
+          $ref: _common.yaml#/components/responses/PreconditionRequired
+        '429':
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        '500':
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/partners/admin/penalties/{penalty_id}/deactivate:
+    post:
+      operationId: deactivateNonCompliancePenalty
+      tags:
+        - partners
+      summary: Deactivate a non compliance penalty (T0C-PARTYSET-1)
+      description: Sets is_active false so no new event can use it; raised events keep it. Nothing is deleted.
+      security:
+        - bearerJwt: []
+      x-permission: partners.penalty.manage
+      x-context: tenant
+      x-idempotency: optional
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.not_found
+        - common.version_conflict
+        - common.precondition_required
+      parameters:
+        - $ref: '#/components/parameters/PenaltyId'
+        - $ref: _common.yaml#/components/parameters/IfMatch
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NonCompliancePenalty'
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-0000005b7003
+                    code: LATE_SAMPLE
+                    name: Late sample (synthetic)
+                    amount_paisa: 75000
+                    is_active: false
+                    version: 3
+                    created_at: '2026-11-17T05:10:00.000Z'
+                    updated_at: '2026-11-17T07:10:00.000Z'
+        '400':
+          $ref: _common.yaml#/components/responses/BadRequest
+        '401':
+          $ref: _common.yaml#/components/responses/Unauthorized
+        '403':
+          $ref: _common.yaml#/components/responses/Forbidden
+        '404':
+          $ref: _common.yaml#/components/responses/NotFound
+        '409':
+          $ref: _common.yaml#/components/responses/Conflict
+        '428':
+          $ref: _common.yaml#/components/responses/PreconditionRequired
+        '429':
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        '500':
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/partners/admin/penalty-events:
+    get:
+      operationId: listNonComplianceEvents
+      tags:
+        - partners
+      summary: List non compliance penalty events (T0C-PARTYSET-1)
+      description: from_date and to_date filter event_date (inclusive). Default order is newest event first.
+      security:
+        - bearerJwt: []
+      x-permission: partners.penalty.manage
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.invalid_cursor
+      parameters:
+        - name: party_kind
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 12
+            enum:
+              - partner
+              - credit_party
+              - doctor
+              - referrer
+        - name: party_id
+          in: query
+          required: false
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - name: penalty_id
+          in: query
+          required: false
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 7
+            enum:
+              - raised
+              - waived
+              - charged
+        - name: from_date
+          in: query
+          required: false
+          schema:
+            $ref: _common.yaml#/components/schemas/IsoDate
+        - name: to_date
+          in: query
+          required: false
+          schema:
+            $ref: _common.yaml#/components/schemas/IsoDate
+        - $ref: _common.yaml#/components/parameters/Cursor
+        - $ref: _common.yaml#/components/parameters/Limit
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                  - data
+                  - page
+                properties:
+                  data:
+                    type: array
+                    maxItems: 200
+                    items:
+                      $ref: '#/components/schemas/NonComplianceEvent'
+                  page:
+                    $ref: _common.yaml#/components/schemas/PageInfo
+              examples:
+                synthetic:
+                  value:
+                    data:
+                      - id: 0193c4a0-0000-7000-8000-0000005b4001
+                        party_kind: partner
+                        party_id: 0193c4a0-0000-7000-8000-0000005b2002
+                        penalty_id: 0193c4a0-0000-7000-8000-0000005b3001
+                        event_date: '2026-11-17'
+                        amount_paisa: 50000
+                        reason: 'Synthetic: sample arrived late'
+                        status: raised
+                        version: 1
+                        created_at: '2026-11-17T05:10:00.000Z'
+                    page:
+                      limit: 50
+        '400':
+          $ref: _common.yaml#/components/responses/BadRequest
+        '401':
+          $ref: _common.yaml#/components/responses/Unauthorized
+        '403':
+          $ref: _common.yaml#/components/responses/Forbidden
+        '429':
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        '500':
+          $ref: _common.yaml#/components/responses/Internal
+    post:
+      operationId: raiseNonComplianceEvent
+      tags:
+        - partners
+      summary: Raise a non compliance penalty event against a party (T0C-PARTYSET-1)
+      description: >-
+        The event starts raised. amount_paisa defaults to the amount of the penalty; an inactive penalty answers common.validation_failed.
+        Nothing is posted to the ledger until the event is charged. Online only.
+      security:
+        - bearerJwt: []
+      x-permission: partners.penalty.manage
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.idempotency_key_required
+        - common.idempotency_key_reused
+        - common.idempotency_in_progress
+      parameters:
+        - $ref: _common.yaml#/components/parameters/IdempotencyKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - party_kind
+                - party_id
+                - penalty_id
+                - event_date
+              properties:
+                party_kind:
+                  type: string
+                  maxLength: 12
+                  enum:
+                    - partner
+                    - credit_party
+                    - doctor
+                    - referrer
+                party_id:
+                  $ref: _common.yaml#/components/schemas/Uuid
+                penalty_id:
+                  $ref: _common.yaml#/components/schemas/Uuid
+                event_date:
+                  $ref: _common.yaml#/components/schemas/IsoDate
+                amount_paisa:
+                  type: integer
+                  format: int64
+                  minimum: 0
+                  maximum: 100000000000
+                reason:
+                  type: string
+                  minLength: 1
+                  maxLength: 500
+            examples:
+              synthetic:
+                value:
+                  party_kind: partner
+                  party_id: 0193c4a0-0000-7000-8000-0000005b2002
+                  penalty_id: 0193c4a0-0000-7000-8000-0000005b3001
+                  event_date: '2026-11-17'
+                  reason: 'Synthetic: sample arrived late'
+      responses:
+        '201':
+          description: Created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NonComplianceEvent'
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-0000005b7004
+                    party_kind: partner
+                    party_id: 0193c4a0-0000-7000-8000-0000005b2002
+                    penalty_id: 0193c4a0-0000-7000-8000-0000005b3001
+                    event_date: '2026-11-17'
+                    amount_paisa: 50000
+                    reason: 'Synthetic: sample arrived late'
+                    status: raised
+                    version: 1
+                    created_at: '2026-11-17T05:10:00.000Z'
+        '400':
+          $ref: _common.yaml#/components/responses/BadRequest
+        '401':
+          $ref: _common.yaml#/components/responses/Unauthorized
+        '403':
+          $ref: _common.yaml#/components/responses/Forbidden
+        '409':
+          $ref: _common.yaml#/components/responses/Conflict
+        '422':
+          $ref: _common.yaml#/components/responses/Unprocessable
+        '429':
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        '500':
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/partners/admin/penalty-events/{event_id}/waive:
+    post:
+      operationId: waiveNonComplianceEvent
+      tags:
+        - partners
+      summary: Waive a raised penalty event (T0C-PARTYSET-1)
+      description: Only a raised event can be waived (waived and charged are final); a reason is required. Nothing is posted to the ledger. Online only.
+      security:
+        - bearerJwt: []
+      x-permission: partners.penalty.manage
+      x-context: tenant
+      x-idempotency: optional
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.not_found
+        - common.version_conflict
+        - common.precondition_required
+      parameters:
+        - $ref: '#/components/parameters/PenaltyEventId'
+        - $ref: _common.yaml#/components/parameters/IfMatch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - reason
+              properties:
+                reason:
+                  type: string
+                  minLength: 1
+                  maxLength: 500
+            examples:
+              synthetic:
+                value:
+                  reason: 'Synthetic: first offence, waived'
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NonComplianceEvent'
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-0000005b7005
+                    party_kind: partner
+                    party_id: 0193c4a0-0000-7000-8000-0000005b2002
+                    penalty_id: 0193c4a0-0000-7000-8000-0000005b3001
+                    event_date: '2026-11-17'
+                    amount_paisa: 50000
+                    reason: 'Synthetic: first offence, waived'
+                    status: waived
+                    decided_by: 0193c4a0-0000-7000-8000-0000005b2003
+                    version: 2
+                    created_at: '2026-11-17T05:10:00.000Z'
+        '400':
+          $ref: _common.yaml#/components/responses/BadRequest
+        '401':
+          $ref: _common.yaml#/components/responses/Unauthorized
+        '403':
+          $ref: _common.yaml#/components/responses/Forbidden
+        '404':
+          $ref: _common.yaml#/components/responses/NotFound
+        '409':
+          $ref: _common.yaml#/components/responses/Conflict
+        '422':
+          $ref: _common.yaml#/components/responses/Unprocessable
+        '428':
+          $ref: _common.yaml#/components/responses/PreconditionRequired
+        '429':
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        '500':
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/partners/admin/penalty-events/{event_id}/charge:
+    post:
+      operationId: chargeNonComplianceEvent
+      tags:
+        - partners
+      summary: Charge a raised penalty event to the party ledger (T0C-PARTYSET-1)
+      description: >-
+        Only a raised event can be charged. The charge posts exactly one ledger entry (a debit of amount_paisa on the party ledger) and stores its
+        ledger_entry_id; the event is charged once: a repeat with the same Idempotency-Key answers the same event, any other second charge answers
+        common.version_conflict or common.validation_failed and never posts a second entry. Online only (never queued offline).
+      security:
+        - bearerJwt: []
+      x-permission: partners.penalty.manage
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.not_found
+        - common.version_conflict
+        - common.precondition_required
+        - common.idempotency_key_required
+        - common.idempotency_key_reused
+        - common.idempotency_in_progress
+      parameters:
+        - $ref: '#/components/parameters/PenaltyEventId'
+        - $ref: _common.yaml#/components/parameters/IdempotencyKey
+        - $ref: _common.yaml#/components/parameters/IfMatch
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NonComplianceEvent'
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-0000005b4002
+                    party_kind: partner
+                    party_id: 0193c4a0-0000-7000-8000-0000005b2002
+                    penalty_id: 0193c4a0-0000-7000-8000-0000005b3001
+                    event_date: '2026-11-17'
+                    amount_paisa: 50000
+                    status: charged
+                    ledger_entry_id: 0193c4a0-0000-7000-8000-0000005b5001
+                    decided_by: 0193c4a0-0000-7000-8000-0000005b2003
+                    version: 2
+                    created_at: '2026-11-17T05:10:00.000Z'
+        '400':
+          $ref: _common.yaml#/components/responses/BadRequest
+        '401':
+          $ref: _common.yaml#/components/responses/Unauthorized
+        '403':
+          $ref: _common.yaml#/components/responses/Forbidden
+        '404':
+          $ref: _common.yaml#/components/responses/NotFound
+        '409':
+          $ref: _common.yaml#/components/responses/Conflict
+        '422':
+          $ref: _common.yaml#/components/responses/Unprocessable
+        '428':
+          $ref: _common.yaml#/components/responses/PreconditionRequired
+        '429':
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        '500':
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/partners/admin/parties/{party_kind}/{party_id}/id-number:
+    post:
+      operationId: revealPartyIdNumber
+      tags:
+        - partners
+      summary: Reveal the full government ID number of a party (T0C-PARTYSET-1)
+      description: >-
+        Every other read shows tax_number (PAN; pan on a credit party) and national_id_number masked, last four characters only. This operation
+        answers the full value and needs partners.party_id_number.read (privileged, MFA); every call writes an audit event (who, which party,
+        which field, never the value). Online only: the value is never cached on a device, never logged and never exported. A party without
+        the field answers common.not_found.
+      security:
+        - bearerJwt: []
+      x-permission: partners.party_id_number.read
+      x-context: tenant
+      x-idempotency: optional
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.not_found
+        - auth.mfa_required
+      parameters:
+        - $ref: '#/components/parameters/PartyKind'
+        - $ref: '#/components/parameters/PartyId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - field
+              properties:
+                field:
+                  type: string
+                  maxLength: 18
+                  enum:
+                    - tax_number
+                    - national_id_number
+            examples:
+              synthetic:
+                value:
+                  field: tax_number
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                  - party_kind
+                  - party_id
+                  - field
+                  - value
+                properties:
+                  party_kind:
+                    type: string
+                    maxLength: 12
+                    enum:
+                      - partner
+                      - credit_party
+                      - doctor
+                      - referrer
+                  party_id:
+                    $ref: _common.yaml#/components/schemas/Uuid
+                  field:
+                    type: string
+                    maxLength: 18
+                    enum:
+                      - tax_number
+                      - national_id_number
+                  value:
+                    type: string
+                    minLength: 1
+                    maxLength: 64
+              examples:
+                synthetic:
+                  value:
+                    party_kind: partner
+                    party_id: 0193c4a0-0000-7000-8000-0000005b2002
+                    field: tax_number
+                    value: SYN000000001
+        '400':
+          $ref: _common.yaml#/components/responses/BadRequest
+        '401':
+          $ref: _common.yaml#/components/responses/Unauthorized
+        '403':
+          $ref: _common.yaml#/components/responses/Forbidden
+        '404':
+          $ref: _common.yaml#/components/responses/NotFound
+        '429':
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        '500':
+          $ref: _common.yaml#/components/responses/Internal
 components:
   schemas:
+    # ---- T0C-PARTYSET-1 (LD-321) ----
+    PartyCommercialSetting:
+      description: Commercial settings of one party. is_default true = nothing saved yet (the defaults, no id). Money is integer paisa, percent integer basis points.
+      type: object
+      additionalProperties: false
+      required:
+        - party_kind
+        - party_id
+        - is_default
+        - auto_release_reports
+        - whatsapp_enabled
+        - insurance_enabled
+        - print_exception
+        - billing_cycle
+        - invoice_payment_days
+        - invoice_blocking_days
+        - invoice_warning_days
+        - interest_bp_per_day
+        - priority
+        - header_footer_mode
+        - commission_bp
+        - tds_bp
+        - auto_block_overdue
+        - version
+      properties:
+        id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        party_kind:
+          type: string
+          maxLength: 12
+          enum:
+            - partner
+            - credit_party
+            - doctor
+            - referrer
+        party_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        is_default:
+          type: boolean
+        auto_release_reports:
+          type: boolean
+        whatsapp_enabled:
+          type: boolean
+        insurance_enabled:
+          type: boolean
+        print_exception:
+          type: boolean
+        lab_number_scheme_code:
+          type: string
+          pattern: ^[A-Z0-9_-]{1,20}$
+          maxLength: 20
+        billing_cycle:
+          type: string
+          maxLength: 11
+          enum:
+            - daily
+            - weekly
+            - fortnightly
+            - monthly
+            - quarterly
+        invoice_payment_days:
+          type: integer
+          minimum: 0
+          maximum: 365
+        invoice_blocking_days:
+          type: integer
+          minimum: 0
+          maximum: 365
+        invoice_warning_days:
+          type: integer
+          minimum: 0
+          maximum: 365
+        interest_bp_per_day:
+          type: integer
+          minimum: 0
+          maximum: 10000
+        priority:
+          type: string
+          maxLength: 2
+          enum:
+            - P1
+            - P2
+            - P3
+            - P4
+            - P5
+        header_footer_mode:
+          type: string
+          maxLength: 7
+          enum:
+            - with
+            - without
+            - both
+        commission_bp:
+          type: integer
+          minimum: 0
+          maximum: 10000
+        tds_bp:
+          type: integer
+          minimum: 0
+          maximum: 10000
+          default: 0
+        auto_block_overdue:
+          type: boolean
+        version:
+          $ref: _common.yaml#/components/schemas/Version
+        updated_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+    PartyCommercialSettingSet:
+      description: Every field is optional; an omitted field keeps its saved value (the default on the first save).
+      type: object
+      additionalProperties: false
+      properties:
+        auto_release_reports:
+          type: boolean
+        whatsapp_enabled:
+          type: boolean
+        insurance_enabled:
+          type: boolean
+        print_exception:
+          type: boolean
+        lab_number_scheme_code:
+          type: string
+          pattern: ^[A-Z0-9_-]{1,20}$
+          maxLength: 20
+        billing_cycle:
+          type: string
+          maxLength: 11
+          enum:
+            - daily
+            - weekly
+            - fortnightly
+            - monthly
+            - quarterly
+        invoice_payment_days:
+          type: integer
+          minimum: 0
+          maximum: 365
+        invoice_blocking_days:
+          type: integer
+          minimum: 0
+          maximum: 365
+        invoice_warning_days:
+          type: integer
+          minimum: 0
+          maximum: 365
+        interest_bp_per_day:
+          type: integer
+          minimum: 0
+          maximum: 10000
+        priority:
+          type: string
+          maxLength: 2
+          enum:
+            - P1
+            - P2
+            - P3
+            - P4
+            - P5
+        header_footer_mode:
+          type: string
+          maxLength: 7
+          enum:
+            - with
+            - without
+            - both
+        commission_bp:
+          type: integer
+          minimum: 0
+          maximum: 10000
+        tds_bp:
+          type: integer
+          minimum: 0
+          maximum: 10000
+          default: 0
+        auto_block_overdue:
+          type: boolean
+        unset:
+          type: array
+          maxItems: 1
+          items:
+            type: string
+            maxLength: 22
+            enum:
+              - lab_number_scheme_code
+    PartyOnboarding:
+      description: One onboarding queue row per party. status pending, approved, held or rejected; reason, decided_by and decided_at are absent while pending.
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - party_kind
+        - party_id
+        - status
+        - version
+        - created_at
+      properties:
+        id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        party_kind:
+          type: string
+          maxLength: 12
+          enum:
+            - partner
+            - credit_party
+            - doctor
+            - referrer
+        party_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        party_name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        status:
+          type: string
+          maxLength: 8
+          enum:
+            - pending
+            - approved
+            - held
+            - rejected
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 500
+        decided_by:
+          $ref: _common.yaml#/components/schemas/Uuid
+        decided_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        version:
+          $ref: _common.yaml#/components/schemas/Version
+        created_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+    NonCompliancePenalty:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - code
+        - name
+        - amount_paisa
+        - is_active
+        - version
+        - created_at
+        - updated_at
+      properties:
+        id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        code:
+          type: string
+          pattern: ^[A-Z0-9_-]{1,20}$
+          maxLength: 20
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        amount_paisa:
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 100000000000
+        is_active:
+          type: boolean
+        version:
+          $ref: _common.yaml#/components/schemas/Version
+        created_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        updated_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+    NonComplianceEvent:
+      description: status raised, waived or charged; ledger_entry_id is set only when charged (one ledger entry, charged once); decided_by is absent while raised.
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - party_kind
+        - party_id
+        - penalty_id
+        - event_date
+        - amount_paisa
+        - status
+        - version
+        - created_at
+      properties:
+        id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        party_kind:
+          type: string
+          maxLength: 12
+          enum:
+            - partner
+            - credit_party
+            - doctor
+            - referrer
+        party_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        penalty_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        event_date:
+          $ref: _common.yaml#/components/schemas/IsoDate
+        amount_paisa:
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 100000000000
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 500
+        status:
+          type: string
+          maxLength: 7
+          enum:
+            - raised
+            - waived
+            - charged
+        ledger_entry_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        decided_by:
+          $ref: _common.yaml#/components/schemas/Uuid
+        version:
+          $ref: _common.yaml#/components/schemas/Version
+        created_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
     SalesDesignation:
       type: object
       additionalProperties: false
@@ -9881,6 +11356,14 @@ components:
         address_text:
           type: string
           maxLength: 300
+        tax_number:
+          description: PAN, masked (last four characters only, for example ********0001); the full value needs partners.party_id_number.read (revealPartyIdNumber). T0C-PARTYSET-1.
+          type: string
+          maxLength: 64
+        national_id_number:
+          description: National ID number, masked (last four characters only); the full value needs partners.party_id_number.read (revealPartyIdNumber). T0C-PARTYSET-1.
+          type: string
+          maxLength: 64
         suspend_reason_code:
           type: string
           maxLength: 64
@@ -10238,6 +11721,53 @@ components:
           minLength: 1
           maxLength: 2000
   parameters:
+    # ---- T0C-PARTYSET-1 (LD-321) ----
+    PartyKind:
+      name: party_kind
+      in: path
+      required: true
+      description: The LIMS split party model; partner = partners.partners, credit_party = catalog.credit_parties, doctor = catalog.doctors, referrer = a referrer.
+      schema:
+        type: string
+        maxLength: 12
+        enum:
+          - partner
+          - credit_party
+          - doctor
+          - referrer
+    PartyId:
+      name: party_id
+      in: path
+      required: true
+      schema:
+        $ref: _common.yaml#/components/schemas/Uuid
+    OnboardingId:
+      name: onboarding_id
+      in: path
+      required: true
+      schema:
+        $ref: _common.yaml#/components/schemas/Uuid
+    PenaltyId:
+      name: penalty_id
+      in: path
+      required: true
+      schema:
+        $ref: _common.yaml#/components/schemas/Uuid
+    PenaltyEventId:
+      name: event_id
+      in: path
+      required: true
+      schema:
+        $ref: _common.yaml#/components/schemas/Uuid
+    IfMatchOptional:
+      name: If-Match
+      in: header
+      required: false
+      description: Absent = first save of the party settings; present = the current version.
+      schema:
+        type: string
+        maxLength: 12
+        pattern: ^"[1-9][0-9]*"$
     DesignationId:
       name: designation_id
       in: path

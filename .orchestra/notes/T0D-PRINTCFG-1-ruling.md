@@ -1,0 +1,208 @@
+TESTS_WRONG — rs-c6.screens "worklist 1" snapshot still lacks `button Ready to release`; implementation correct. The WRITER (not tester) must make the one-line .snap edit.
+1. Confirmed on disk 2026-11-20: rs-c6.screens.test.tsx.snap:72 `button Search` is followed directly by `button Select an item`; no `button Ready to release` line in worklist 1.
+2. Live render emits it: ReportsWorklist.tsx:19 TAB_LABEL ready_to_release (T0D-UILIST-1 FilterBar, LD-353 template 1, inbox :33). No spec line requires the pre-LD-353 markup (brief gates inbox :20-21).
+3. Root cause of every failed round: .orchestra/run.ps1:61 TestExempt matches `__tests__/__snapshots__/rs-c[0-9]+\..*\.snap`, so run.ps1:163-170 treats this file as non-test: Enforce REVERTS any tester edit and ALLOWS writer/debugger edits. Tester commit df4a425c3 holding only notes is the expected result, not a bug (LD-430).
+4. WRITER, only change: in apps/web/src/features/reporting/__tests__/__snapshots__/rs-c6.screens.test.tsx.snap, insert exactly one line `button Ready to release` after line 72 (`button Search`), before line 73. Commit it; confirm `git show --stat HEAD` lists the .snap; run rs-c6 (expect 60/60).
+5. TESTER: no action. DEBUGGER: no code change. Do not re-dispute; the dispute's "new info" (tester commit lacks .snap) is fully explained by item 3.
+
+--- previous rulings (history) ---
+TESTS_WRONG — rs-c6.screens "worklist 1" snapshot still lacks `button Ready to release`; implementation is correct, no code change.
+1. Dispute (.orchestra/notes/T0D-PRINTCFG-1-dispute.md:2-4) confirmed on disk 2026-11-20: rs-c6.screens.test.tsx.snap:72-73 still read `button Search` then `button Select an item`.
+2. The live render emits the line: ReportsWorklist.tsx:19 TAB_LABEL ready_to_release = 'Ready to release' (FilterBar Status select trigger, T0D-UILIST-1 / LD-353 template 1 "FilterBar in one row", inbox :33). Not in this task's files (inbox :15).
+3. Brief gate (inbox :20-21) is PRINTCFG tests + reporting/billing suites + rs-c2; no spec line requires the pre-LD-353 markup the snap pins.
+4. Static half of the prior ruling has landed: rs-c6.static.test.ts:121-122 now lists `/v1/identity/users/${uuid` and drops branding-assets. Nothing left there.
+5. TESTER, only change: in apps/web/src/features/reporting/__tests__/__snapshots__/rs-c6.screens.test.tsx.snap, insert exactly one line `button Ready to release` after line 72 (`button Search`), before line 73. Or `vitest -u` on rs-c6.screens.test.tsx only, then confirm that is the only diff. COMMIT the .snap (LD-401 note: uncommitted edits were discarded by the lane flow); check `git show --stat HEAD` lists the .snap.
+6. WRITER and DEBUGGER: no code change.
+7. ESCALATION (per LD-399 / LD-401): this is the 5th+ round on this one line; lead/founder must ensure the tester commit includes the .snap, not just notes.
+
+--- previous rulings (history) ---
+TESTS_WRONG — rs-c6.static PRINTCFG.web_api_paths allow-list lacks the contract signature route that review item 1 requires, and the rs-c6 worklist snapshot still lacks the LD-399 line.
+1. Review item 1 (.orchestra/notes/T0D-PRINTCFG-1-review.md:5) requires the upload via uploadUserSignature `POST /v1/identity/users/{membership_id}/signature` (contracts/openapi/identity.yaml:1540); the implementation does this (apps/web/src/features/reporting/server/write.server.ts:139). Extractor entry: `/v1/identity/users/${uuid`.
+2. TESTER, apps/web/src/features/reporting/__tests__/rs-c6.static.test.ts:120-121, PRINTCFG.web_api_paths: add `'/v1/identity/users/${uuid'`; remove `'/v1/identity/settings/branding-assets'` (grep: no non-test reporting file calls it now; review item 1 forbids it).
+3. TESTER, apps/web/src/features/reporting/__tests__/__snapshots__/rs-c6.screens.test.tsx.snap lines 72-73 read `button Search` then `button Select an item`; insert exactly one line `button Ready to release` between them (LD-399; label from ReportsWorklist.tsx:19 TAB_LABEL; T0D-UILIST-1 drift per LD-395). Confirm with `git diff --stat` that the .snap itself changed. Fallback: `vitest -u` on rs-c6.screens.test.tsx only, then check the only snapshot diff is that line.
+4. WRITER and DEBUGGER: no code change. Brief scope (inbox :15, :20) is met; neither gap is a spec requirement on the implementation.
+5. LD-400 said item 3 was on disk; it is not (snap lines 72-73 checked this round). Per LD-399, if it does not land this round, escalate by name.
+
+--- previous rulings (history) ---
+TESTS_WRONG — rs-c6.screens "worklist" snapshot and rs-c6.static "same form field names" pin pre-LD-353 ReportsWorklist.tsx markup that T0D-UILIST-1 replaced. Neither the T0D-PRINTCFG-1 brief nor the spec requires that markup for this task.
+1. The brief gates are (inbox T0D-PRINTCFG-1-arbiter.md:20-21): the new print and stationery tests, the reporting and billing web suites, and an unchanged rs-c2. The files list (line 15) does not include ReportsWorklist.tsx.
+2. Git: the last change to ReportsWorklist.tsx is 74ea3e301 [writer] T0D-UILIST-1 impl. No PRINTCFG commit touches it. rs-c6.baseline.json and rs-c6.screens.test.tsx.snap were last recorded before that (2e2dd94ab T0D-UNSLOP-1, 3252b31dc T0D-WEBFIX-1).
+3. LD-353 (binding, inbox line 33) template 1 says "FilterBar in one row" and that the status filter goes into it. ReportsWorklist.tsx:98-137 does that: `lookup` is now a FilterBar field config `{ id: 'lookup' }` (line 137), not a literal `name="lookup"` the static extractor reads, and the status row now shows the "Ready to release" option (line 19). So the snapshot diff and the missing baseline name both come from UILIST-1 drift.
+4. The PRINTCFG part of the static test is correct: rs-c6.static.test.ts:132/159 subtracts PRINTCFG.field_names before comparing, so the extra PRINTCFG names do not cause the failure.
+5. This is the same drift ruled on earlier for the 3 c6-t31 cases (previous ruling, lines 1-4).
+TEST CHANGE (lead/tester, recorded as T0D-UILIST-1 drift; not done by the PRINTCFG writer): re-record rs-c6.screens.test.tsx.snap "worklist" from current ReportsWorklist.tsx. Then either drop `lookup` from rs-c6.baseline.json field_names (around line 265) or teach the rs-c6.static extractor to read FilterBar `id:` fields. The second option is better because it keeps the PHI lookup field pinned.
+CARRIED FORWARD: the c6-t31 change from the previous ruling still applies. Update c6-t31.screens.test.tsx §2.1 and the CriticalAlertsPanel error case to the LD-353 markup. Find the error by the ErrorState title "Critical alerts could not be loaded" plus its Retry button. Find the lookup by the FilterBar `lookup` field. Keep all behaviour assertions.
+FOR T0D-PRINTCFG-1: pass when its own print and stationery tests, the rest of the reporting and billing suites, and rs-c2 are green. List these 2 rs-c6 cases and the 3 c6-t31 cases as pre-existing T0D-UILIST-1 drift in the task notes. Do not edit ReportsWorklist.tsx or CriticalAlertsPanel.tsx.
+
+## LEAD ITEM LD-395 FOR THE TESTER (written by the lead, 2026-11-19 00:25 NPT; this is yours — the ruling above is correct but incomplete)
+
+You already applied the field_names/extractor half of the ruling above correctly (confirmed in rs-c6.surface.ts). Two things in rs-c6.screens.test.tsx are still unaddressed — fix both, nothing else in this file or any other file:
+
+1. In the `RS-C6 worklist` describe block's "axe clean; one primary at most; tabs and filters keep working markup" test, this line is now wrong because the Status filter is a `kind: 'select'` FilterBar field, not a tab bar (same LD-353 conversion already handled elsewhere in this app):
+```
+expect(screen.getAllByRole('tab').length).toBe(6);
+```
+Replace it with the SAME pattern already proven in `c6-t31.screens.test.tsx` (around lines 108-115) for this exact conversion — click the Status trigger, then read the option list:
+```
+await user().click(screen.getByRole('button', { name: /status/i }));
+expect(screen.getAllByRole('option').length).toBe(6);
+```
+Use whichever `user()` helper this file already imports/uses elsewhere; if this specific test has none in scope, copy the same import c6-t31.screens.test.tsx uses for it. REPORT_TABS (apps/web/src/features/reporting/server/types.ts) still has exactly 6 entries, so "6" is still the right number — only the query method changes, matching the already-landed pattern, not a new one.
+
+2. The re-recorded "worklist" snapshot (__snapshots__/rs-c6.screens.test.tsx.snap) is still stale: it does not contain a `button Ready to release` line that the live render now produces (the Status FilterBar's trigger button shows the currently-selected option's own label, "Ready to release", for this render's tab="ready_to_release" prop). After fix 1 above, re-run the worklist snapshot test with the normal update-snapshot step so it captures the current render fresh, including that button line. Do not hand-edit the .snap file; regenerate it from a passing render.
+
+Do not touch any other test in this file, any other snapshot in this file, rs-c6.static.test.ts, rs-c6.surface.ts, rs-c6.baseline.json, or any source file — PRINTCFG-1 itself never touched this area and this is restyle-drift cleanup only.
+
+WRITER and DEBUGGER: no code change. If a debugger round after this still fails on something inside rs-c6.screens.test.tsx or its snapshot, escalate to lead rather than re-disputing.
+
+## LEAD ITEM LD-399 FOR THE TESTER (written by the lead, 2026-11-19 01:10 NPT)
+
+LD-395 item 1 (tab assertion) landed (commit 8c0a95937). Item 2 (snapshot regen) has not, across two more debugger rounds — the snap file is still stale. Rather than ask you to regenerate it a third time, here is the exact, verified diff pulled directly from the latest verify log.
+
+File: `apps/web/src/features/reporting/__tests__/__snapshots__/rs-c6.screens.test.tsx.snap`, the `RS-C6 key-screen outline snapshots (...) > worklist 1` export.
+
+Current (stale):
+```
+"section Reports
+h1 Reports
+button Help
+button Search
+button Select an item
+button Select an item
+button Open calendar for From
+button Open calendar for To
+button Select an item
+button Reset filters
+input Select all rows
+input Select R2611050001
+a R2611050001
+span Ready to release"
+```
+
+Insert exactly one line, `button Ready to release`, directly after `button Search` and before the first `button Select an item`. Correct (matches the live render exactly, confirmed against the verify log's Received diff):
+```
+"section Reports
+h1 Reports
+button Help
+button Search
+button Ready to release
+button Select an item
+button Select an item
+button Open calendar for From
+button Open calendar for To
+button Select an item
+button Reset filters
+input Select all rows
+input Select R2611050001
+a R2611050001
+span Ready to release"
+```
+
+Make this one-line insertion directly in the `.snap` file (it is a plain literal string, no serialization quirks at this point), or if you prefer, run your normal vitest update-snapshot step against this one test file and confirm the result matches the text above exactly. Either way, touch no other snapshot in this file and no other file.
+
+WRITER and DEBUGGER: no code change. If this one line still is not on disk after this round, stop and escalate to the lead by name rather than a fourth round — something else is blocking the write, not the content.
+
+
+================================================================================
+LEAD ITEM LD-401 FOR THE WRITER (TESTS_WRONG, one allow-list addition in rs-c6.static.test.ts;
+a plain source edit, NOT the snapshot file -- that is a separate, already-escalated item, see below)
+
+Fresh verify (2026-11-18 20:37 UTC) found one more unlisted web API path, from the same already-landed
+reporting signature-upload code this allow-list already forgives byte changes for (write.server.ts
+is already in PRINTCFG.data_files): the literal is '/v1/identity/users/${uuid' (write.server.ts's
+uploadSignatureAction calls /v1/identity/users/${uuid(userId)}/signature). Confirmed by grep: that is
+the only place it appears, nothing destructive.
+
+EDIT of rs-c6.static.test.ts -- find this exact block (inside the PRINTCFG allow-list object):
+
+    web_api_paths: [
+      '/v1/identity/branches', '/v1/identity/roles', '/v1/identity/settings/branding-assets', '/v1/identity/users',
+      '/v1/reporting/print-profiles', '/v1/reporting/print-profiles${qs', '/v1/reporting/print-profiles/preview',
+      '/v1/reporting/signatory-profiles', '/v1/reporting/signatory-profiles/${uuid',
+    ],
+
+Replace it with:
+
+    web_api_paths: [
+      '/v1/identity/branches', '/v1/identity/roles', '/v1/identity/settings/branding-assets', '/v1/identity/users',
+      '/v1/identity/users/${uuid', // LD-401: write.server.ts's uploadSignatureAction, already-allowed file, no new behaviour
+      '/v1/reporting/print-profiles', '/v1/reporting/print-profiles${qs', '/v1/reporting/print-profiles/preview',
+      '/v1/reporting/signatory-profiles', '/v1/reporting/signatory-profiles/${uuid',
+    ],
+
+That is the whole fix for this LEAD ITEM. Do not touch anything else in this file.
+
+----
+NOTE ON THE WORKLIST SNAPSHOT (rs-c6.screens.test.tsx.snap, "worklist 1", the missing
+"button Ready to release" line): the lead attempted a direct edit of this exact file from outside
+the normal writer/tester flow this round and confirmed, via this same fresh verify run, that the
+edit did not survive -- something in this lane's own flow between the edit and the verify discarded
+the uncommitted change. Combined with the 3+ prior rounds where the LEAD ITEM instruction channel
+did not get this one line applied either (LD-399), this snapshot has now failed through both
+available channels. The lead is not attempting a third approach this round and is escalating this
+specific snapshot to the founder as a tooling/process question. WRITER and DEBUGGER: leave this one
+snapshot alone until you hear otherwise; do not attempt the vitest update-snapshot flag again on it
+this round, and do not mark the task done with it still stale. The web_api_paths edit above is
+normal, ruled work -- apply and commit it as usual.
+
+----
+LEAD ITEM, LD-428 (2026-11-20): the block above is lifted.
+
+The founder applied a run.ps1 fix this round (commit 237927bb4) that stops this lane from
+re-merging main while T0D-OFFLINE-3 or T0D-PRINTCFG-1 is in progress - this was the actual cause
+of the snapshot being wiped before commit on every prior attempt.
+
+TESTER: apply the one line worklist snapshot insert exactly as already described above in this
+file under LD-399 (button Ready to release, between the existing button Search and button Select
+an item lines). Commit it as your own test-file edit.
+
+WRITER: nothing for you to do here. The content fix landed already; only the test snapshot was
+ever the open item.
+
+If this does not land after this one attempt, that is new information worth a fresh debug round,
+not a reason to repeat a third prose attempt.
+
+----
+LEAD ITEM, LD-429 (2026-11-20): fourth attempt, with the exact text written out directly.
+
+File: apps/web/src/features/reporting/__tests__/__snapshots__/rs-c6.screens.test.tsx.snap
+
+Find this exact three line run inside the worklist 1 export:
+button Help
+button Search
+button Select an item
+
+Replace it with this four line run, one new line added, nothing else changed:
+button Help
+button Search
+button Ready to release
+button Select an item
+
+That is the entire fix.
+
+TESTER: make this one edit now, as your own test file change, and commit it.
+WRITER: nothing for you to do here.
+
+----
+LEAD ITEM, LD-430 (2026-11-20): correction, writer owns this, not tester.
+
+The worklist 1 snapshot in rs-c6.screens.test.tsx.snap is listed in TestExempt (run.ps1 line 61,
+founder own Nov 14 harness fix): rs-cN snapshot files are product deliverables, writer and
+debugger own them, not the tester. Enforce will correctly revert a tester edit to this file every
+time, that is not a bug.
+
+File: apps/web/src/features/reporting/__tests__/__snapshots__/rs-c6.screens.test.tsx.snap
+
+Find this exact three line run inside the worklist 1 export:
+button Help
+button Search
+button Select an item
+
+Replace it with this four line run, one new line added, nothing else changed:
+button Help
+button Search
+button Ready to release
+button Select an item
+
+WRITER: make this one edit yourself and commit it as an ordinary product file edit.
+TESTER: do not attempt this snapshot again.

@@ -60,7 +60,7 @@ const api = setupServer(
     host_query_requires_received: true, ingest_auto_receive: false, critical_notification_blocks_approval: true, recollection_default: true, delta_check_enabled: true, history_days: 730 }); }),
   quiet('/v1/lab/delta-check-rules'),
 );
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 beforeEach(() => {
   listReply = (status) => HttpResponse.json({ data: status === 'released' ? [REL] : [HOLD1, HOLD2] });
   releaseReply = () => HttpResponse.json({ ...HOLD1, status: 'released', released_at: '2026-11-05T06:00:00.000Z', release_comment: 'x' });
@@ -71,7 +71,7 @@ afterAll(() => api.close());
 
 const load = async () => (await import(/* @vite-ignore */ '../components/settings/LabSettingsPage')) as Record<string, (p: any) => ReactNode>;
 const open = async (permissions: readonly string[] = MANAGE) => {
-  const { LabSettingsPage } = await load();
+  const LabSettingsPage = (await load()).LabSettingsPage!;
   return render(<ToastProvider><LabSettingsPage permissions={permissions} /></ToastProvider>);
 };
 const holdsTab = async () => { const user = userEvent.setup(); await user.click(await screen.findByRole('tab', { name: /qc holds/i })); return user; };

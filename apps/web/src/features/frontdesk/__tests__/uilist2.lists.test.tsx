@@ -32,7 +32,7 @@ const order = { id: U(1), registration_no: 'R-2083-000001', patient_id: U(2), pa
 const approval = { id: U(30), status: 'pending', centre_id: U(3), patient_code: 'P-000123', requested_by: { membership_id: U(91), display_name: 'Synthetic Receptionist' }, discounts: [{ scope: 'bill', kind: 'percent', percent_bp: 3000, reason_code: 'staff_relative' }], computed_discount: npr(45000), gross: npr(150000), percent_of_gross_bp: 3000, reason_code: 'staff_relative', expires_at: '2099-11-07T04:15:00.000Z', version: 7 };
 
 const api = setupServer();
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { cleanup(); api.resetHandlers(); });
 afterAll(() => api.close());
 const serveWork = (o: { flags?: () => Response; orders?: () => Response } = {}) => api.use(
@@ -67,7 +67,8 @@ describe(W, () => {
     const { container } = await show('worklist/page');
     await screen.findByText(/nothing pending/i);
     expectHeader(container, W);
-    expectTable(container, W, { min: 4, headers: ['Registration no', 'Patient', 'Created', 'Actions'] });
+    // re-pinned by T0D-UIDASH-2 (LD-436 worklist mock): Accession no., Patient, Tests, Registered, Time elapsed, Status, then the row menu column
+    expectTable(container, W, { min: 4, headers: ['Accession no.', 'Patient', 'Tests', 'Registered', 'Time elapsed', 'Status', 'Actions'] });
     expectEmptyState(container, W);
   });
 
@@ -150,6 +151,7 @@ describe('same empty table look', () => {
     expect(w.box).toBe(d.box);
     expect(w.table).toBe(d.table);
     expect(w.state, 'EmptyState children: title, the same hint lines').toEqual(d.state);
-    expect(w.th, 'header cells drawn the same way').toEqual(d.th);
+    // T0D-UIDASH-2: the worklist now also draws the two kit columns of the mock (StatusChip column, row menu column); the data header cells are drawn the same way
+    expect(w.th.filter((c) => c !== 'lims-col lims-col-status' && c !== 'lims-col-actions'), 'header cells drawn the same way').toEqual(d.th);
   });
 });

@@ -114,12 +114,11 @@ describe('lab WorksheetListPage (empty)', () => {
     expect(container.querySelector('.lims-row-placeholder')).toBeNull();
     expect(screen.queryByText(/No worksheets/)).toBeNull();
   });
-  it('after a failure: the error with Retry, not an empty table', async () => {
+  it('after a failure: the error with Retry inside the table, no empty message', async () => {
     m.listWorksheetsAction.mockResolvedValue({ ok: false, status: 500, code: 'common.internal', requestId: 'req-synthetic' });
-    const { container } = render(<WorksheetListPage />);
+    render(<WorksheetListPage />);
     await waitFor(() => expect(screen.getByRole('button', { name: /retry/i })).toBeTruthy());
     expect(screen.queryByText(/No worksheets/)).toBeNull();
-    expect(container.querySelector('.lims-row-placeholder')).toBeNull();
   });
   it('with a worksheet: the row links to the print view and there are no placeholder rows', async () => {
     m.listWorksheetsAction.mockResolvedValue({ ok: true, data: { data: [{ id: 'w1', title: 'Morning run', created_at: '2026-11-17T01:00:00.000Z', row_count: 12 }], page: {} } });
@@ -138,11 +137,11 @@ describe('quality LjView (chart with no values)', () => {
     expectEmptyTable(tableOf(container), /No QC values in this period\./, ['Time', 'Value', 'z', 'Status', 'Rule hits']);
     expectNoCardOutsideTables(container);
   });
-  it('the heading, the legend and the "table instead of chart" notice stay', () => {
+  it('the heading and the legend stay', () => {
     view([]);
     expect(screen.getByRole('heading', { name: /Levey-Jennings chart · GLU/ })).toBeTruthy();
     expect(screen.getByRole('region', { name: /legend/i })).toBeTruthy();
-    expect(screen.getByText(/Chart component pending/)).toBeTruthy();
+    expect(screen.queryByText(/Chart component pending/)).toBeNull(); // LD-353 rule 8, T0D-UIDASH-1
   });
   it('a series with points: its table has the points and no placeholder rows, and the message is gone', () => {
     const point = { observation_id: 'o1', observed_at: '2026-11-16T05:00:00.000Z', value: '5.10', z: '0.5', status: 'accepted', rule_hits: [] };

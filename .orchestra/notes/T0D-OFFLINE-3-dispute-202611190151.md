@@ -1,0 +1,6 @@
+# T0D-OFFLINE-3 dispute (debugger, verify 01:49, 2026-11-19)
+Tests cannot pass without a lead widening of LD310_ALLOW (LD-140/LD-310 allow additive restyle drift). No implementation change can fix them: the branch diff vs main has zero implementation files (tests and notes only).
+1. rs-c4.static.test.ts:71 frontdesk_feature: added permission `frontdesk.patient.read` (merged REGSCREEN-2: RegistrationForm.tsx, server/read.server.ts; absent from rs-c4.baseline.json). Not in LD310_ALLOW.permissions.
+2. rs-c4.static.test.ts:78 billing_feature: 22 added route strings (/billing/accounts/ledger, /v1/billing/account-* , cash-transfers*, expense*, credit-parties, daily-collection-summary, the /v1/billing/ kind template string, /v1/identity/centres, /v1/identity/users). Only the frontdesk-scoped '/v1/catalog/tests' CRUMB_ONLY entry exists; billing_feature needs its own route allow (accounting module, already landed).
+3. rs-c4.screens "Daily cash (open shift)" snapshot still fails after the tester -u run; lead must have the tester re-record it by running the whole rs-c4.screens file with -u.
+Do NOT regenerate rs-c4.baseline.json. LD-398 says a 5th patch round needs a pattern decision from the lead.

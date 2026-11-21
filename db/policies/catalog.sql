@@ -319,3 +319,11 @@ CREATE POLICY files__delete__tenant ON catalog.files FOR DELETE TO lims_app
   USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
 CREATE POLICY import_issues__delete__tenant ON catalog.import_issues FOR DELETE TO lims_app
   USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+-- T0C-PARTYSET-1 (LD-321): db/migrations/20261117220000_partners__add_party_settings_and_penalties.sql; no DELETE policy (deactivate / final status, never delete)
+CREATE POLICY icd_code__select__tenant ON catalog.icd_code FOR SELECT TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+CREATE POLICY icd_code__insert__tenant ON catalog.icd_code FOR INSERT TO lims_app
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
+CREATE POLICY icd_code__update__tenant ON catalog.icd_code FOR UPDATE TO lims_app
+  USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()))
+  WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));

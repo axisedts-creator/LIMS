@@ -119,7 +119,10 @@ describe('s4 Register: actions', () => {
     await renderForm();
     const primaries = [...document.querySelectorAll('button.lims-btn-primary')];
     expect(primaries.map((b) => b.textContent?.replace(/Ctrl\+Enter/, '').trim())).toEqual(['Register & print']);
-    expect(screen.queryByRole('button', { name: /draft/i })).toBeNull();
+    // LD-391/LD-393 follow-up, T0D-OFFLINE-3 arbiter (LD-353: T0D-REGSCREEN-2 drafts are approved): both exist, neither is primary
+    for (const n of ['Save as draft', 'Drafts']) {
+      expect(screen.getByRole('button', { name: new RegExp(`^${n}$`) }).className).not.toMatch(/lims-btn-primary/);
+    }
     for (const n of [/^new patient/i, /^discount/i, /^add method/i, /^shortcuts/i]) {
       const b = screen.getByRole('button', { name: n });
       expect(b.className).not.toMatch(/lims-btn-primary/);

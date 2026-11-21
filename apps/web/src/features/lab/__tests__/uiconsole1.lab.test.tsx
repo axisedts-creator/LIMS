@@ -218,7 +218,7 @@ describe('/lab/ingest-exceptions detail, History, bar, filters and security', ()
 const pending = (status: number) => HttpResponse.json({ type: 'about:blank', title: 'x', status, code: status === 501 ? 'operation_pending' : 'common.internal', request_id: 'req-synthetic' }, { status, headers: { 'content-type': 'application/problem+json' } });
 let answer = 501;
 const api = setupServer(http.all(`${ORIGIN}/*`, () => pending(answer)));
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { answer = 501; });
 afterAll(() => api.close());
 

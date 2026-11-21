@@ -21,7 +21,8 @@ import { replacePriceListAssignments } from './replacePriceListAssignments.serve
 import { updatePriceList } from './updatePriceList.server';
 import { updateTaxType } from './updateTaxType.server';
 import { upsertPriceListItems } from './upsertPriceListItems.server';
-import type { ActionResult, Centre, FieldError, PriceItemResult, PriceQuoteResult } from './types';
+import { bulkUpdatePriceListDraft, commitPriceListImport, comparePriceLists, copyPriceList, downloadPriceListTemplate, dryRunPriceListImport, type PriceBulkResult, type PriceComparisonRow, type PriceImportDryRun } from './priceTools.server';
+import type { ActionResult, Centre, FieldError, Page, PriceListVersion, PriceItemResult, PriceQuoteResult } from './types';
 
 type Saved = { id: string; version: number };
 const saved = (r: Saved): Saved => ({ id: r.id, version: r.version });
@@ -32,7 +33,8 @@ async function run<T>(f: () => Promise<T>): Promise<ActionResult<T>> {
   } catch (e) {
     if (e instanceof ApiError) {
       const errors = e.problem['errors'];
-      return { ok: false, status: e.status, code: e.problem.code, ...(Array.isArray(errors) ? { errors: errors as FieldError[] } : {}) };
+      const detail = e.problem.detail; // T0D-PRICETOOLS-1: the server's own text is shown verbatim (row errors, overlap refusals)
+      return { ok: false, status: e.status, code: e.problem.code, ...(Array.isArray(errors) ? { errors: errors as FieldError[] } : {}), ...(typeof detail === 'string' ? { detail } : {}) };
     }
     throw e;
   }
@@ -40,7 +42,8 @@ async function run<T>(f: () => Promise<T>): Promise<ActionResult<T>> {
 
 export const createPriceListAction = async (input: unknown, key: string) => run(async () => saved(await createPriceList(input, key)));
 export const updatePriceListAction = async (id: string, version: number, input: unknown) => run(async () => saved(await updatePriceList(id, version, input)));
-export const replaceAssignmentsAction = async (id: string, version: number, ownerIds: string[]) => run(async () => saved(await replacePriceListAssignments(id, version, { owner_ids: ownerIds })));
+export const replaceAssignmentsAction = async (id: string, version: number, ownerIds: string[], period: { effective_from?: string; effective_to?: string } = {}) =>
+  run(async () => saved(await replacePriceListAssignments(id, version, { owner_ids: ownerIds, ...period })));
 export const createVersionDraftAction = async (priceListId: string, input: unknown, key: string) => run(async () => saved(await createPriceListVersionDraft(priceListId, input, key)));
 export const upsertItemsAction = async (versionId: string, items: unknown, key: string): Promise<ActionResult<PriceItemResult[]>> => run(async () => (await upsertPriceListItems(versionId, { items }, key)).results ?? []);
 export const removeItemsAction = async (versionId: string, ids: string[], key: string): Promise<ActionResult<PriceItemResult[]>> => run(async () => (await removePriceListItems(versionId, { ids }, key)).results ?? []);
@@ -74,3 +77,17 @@ export const createTaxTypeAction = async (input: unknown, key: string) => run(as
 export const updateTaxTypeAction = async (id: string, version: number, input: unknown) => run(async () => saved(await updateTaxType(id, version, input)));
 export const createTaxRuleAction = async (input: unknown, key: string) => run(async () => saved(await createTaxRule(input, key)));
 export const endTaxRuleAction = async (id: string, version: number, input: unknown) => run(async () => saved(await endTaxRule(id, version, input)));
+
+// ---- T0D-PRICETOOLS-1 (LD-321): price list tools. Every write lands in a DRAFT; publishing stays publishVersionAction.
+const ver = (v: PriceListVersion): PriceListVersion => ({ id: v.id, price_list_id: v.price_list_id, version_no: v.version_no, status: v.status, item_count: v.item_count, version: v.version });
+/** The template (no id) or this list's prices (id) as base64 xlsx; a failed download is a plain failure. */
+export async function priceTemplateAction(priceListId?: string): Promise<ActionResult<string>> {
+  const r = await run(() => downloadPriceListTemplate(priceListId));
+  if (!r.ok) return r;
+  return r.data.ok ? { ok: true, data: r.data.base64 } : { ok: false, status: r.data.status, code: 'common.internal' };
+}
+export const dryRunPriceImportAction = async (priceListId: string, form: FormData, key: string): Promise<ActionResult<PriceImportDryRun>> => run(() => dryRunPriceListImport(priceListId, form, key));
+export const commitPriceImportAction = async (batchId: string, changeReason: string, key: string): Promise<ActionResult<PriceListVersion>> => run(async () => ver(await commitPriceListImport(batchId, changeReason, key)));
+export const bulkUpdateDraftAction = async (versionId: string, body: unknown, key: string): Promise<ActionResult<PriceBulkResult>> => run(() => bulkUpdatePriceListDraft(versionId, body, key));
+export const copyPriceListAction = async (targetId: string, body: unknown, key: string): Promise<ActionResult<PriceListVersion>> => run(async () => ver(await copyPriceList(targetId, body, key)));
+export const comparePriceListsAction = async (a: string, b: string, cursor?: string): Promise<ActionResult<Page<PriceComparisonRow>>> => run(() => comparePriceLists(a, b, cursor));

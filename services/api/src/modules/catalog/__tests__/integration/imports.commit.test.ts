@@ -20,7 +20,7 @@ import { makeImportsDb, NOW, TENANT_A, TENANT_B, USER, V7 } from '../helpers/imp
 const T = 20_000;
 const PL = V7('0000000d0001');
 const PL_B = V7('0000000d0002');
-const PRICE_ALL = ['catalog.price_list.read', 'catalog.price_list.manage'];
+const PRICE_ALL = ['catalog.test.read', 'catalog.price_list.read', 'catalog.price_list.manage'];
 const REASON = 'Quarterly tariff revision (synthetic)';
 const EFFECTIVE = '2026-12-01T00:00:00.000Z';
 const OTHER_USER = V7('00000000a002');

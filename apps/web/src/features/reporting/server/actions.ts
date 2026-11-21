@@ -4,9 +4,9 @@
 import 'server-only';
 import { ApiError } from '@/core/api/server-fetch';
 import { problem } from '@/core/session/types';
-import { getReport, getReportPrint, listCriticalAlerts, listOverrideReasons, listReportingCodes } from './read.server';
-import { bulkRelease, confirmOutsourced, createPrint, listOutsourcedFiles, previewTemplate, publishTemplate, recordOverride, regenerate, releaseVersion, retryDelivery, retryRender, revokeQr, rotateCallbackToken, saveNarrativeDraft, saveTemplateDraft, searchReports, signNarrative, startAmendment, updateSettings, uploadNarrativeImage, uploadOutsourced, upsertChannelAccount, upsertMessageText } from './write.server';
-import type { ActionResult, BulkResult, ChannelAccount, CodedOption, CriticalAlert, Delivery, InputFile, MessageText, Narrative, Page, ReportSummary, ReportingSettings, TemplateConfig, TemplateDetail, VersionSummary } from './types';
+import { getReport, getReportPrint, listApprovers, listBranches, listCriticalAlerts, listOverrideReasons, listPrintProfiles, listReportingCodes, listSignatoryProfiles } from './read.server';
+import { bulkRelease, confirmOutsourced, createPrint, listOutsourcedFiles, previewPrintProfile, previewTemplate, publishTemplate, recordOverride, regenerate, releaseVersion, retryDelivery, retryRender, revokeQr, rotateCallbackToken, saveNarrativeDraft, saveTemplateDraft, searchReports, signNarrative, startAmendment, updateSettings, uploadNarrativeImage, uploadOutsourced, uploadSignatureImage, upsertChannelAccount, upsertMessageText, upsertPrintProfile, upsertSignatoryProfile } from './write.server';
+import type { ActionResult, Branch, BulkResult, ChannelAccount, CodedOption, CriticalAlert, Delivery, DocumentKind, InputFile, MessageText, Narrative, Page, PrintProfile, PrintProfileInput, ReportSummary, ReportingSettings, SignatoryInput, SignatoryProfile, SignatoryRow, TemplateConfig, TemplateDetail, VersionSummary } from './types';
 
 async function run<T>(f: () => Promise<T>): Promise<ActionResult<T>> {
   try {
@@ -117,6 +117,34 @@ export async function upsertChannelAccountAction(channel: string, b: Pick<Channe
 }
 export async function rotateCallbackTokenAction(channel: string, version: number): Promise<ActionResult<{ callback_url: string }>> {
   return run(() => rotateCallbackToken(channel, version));
+}
+// ── T0D-PRINTCFG-1 (LD-316): print and stationery, signatories
+export async function listPrintProfilesAction(documentKind?: DocumentKind): Promise<ActionResult<PrintProfile[]>> {
+  return run(async () => (await listPrintProfiles({ document_kind: documentKind })).data ?? []);
+}
+/** listBranches for the branch picker; a failure leaves only "Lab default". */
+export async function listBranchesAction(): Promise<Branch[]> {
+  return listBranches().catch(() => []);
+}
+export async function upsertPrintProfileAction(p: PrintProfileInput): Promise<ActionResult<PrintProfile>> {
+  return run(() => upsertPrintProfile(p));
+}
+export async function previewPrintProfileAction(p: PrintProfileInput, key: string): Promise<ActionResult<{ id: string; state: string }>> {
+  return run(() => previewPrintProfile(p, key));
+}
+export async function listSignatoriesAction(): Promise<ActionResult<SignatoryRow[]>> {
+  return run(async () => {
+    const [users, profiles] = await Promise.all([listApprovers(), listSignatoryProfiles()]);
+    const byUser = new Map((profiles.data ?? []).map((p) => [p.user_id, p]));
+    return users.map((u) => ({ user_id: u.id, user_name: u.name, ...(byUser.get(u.id) ? { profile: byUser.get(u.id)! } : {}) }));
+  });
+}
+export async function upsertSignatoryAction(userId: string, b: SignatoryInput): Promise<ActionResult<SignatoryProfile>> {
+  return run(() => upsertSignatoryProfile(userId, b));
+}
+export async function uploadSignatureAction(userId: string, form: FormData, key: string): Promise<ActionResult<{ asset_id: string }>> {
+  const f = form.get('file');
+  return run(() => (f instanceof Blob ? uploadSignatureImage(userId, f, key) : Promise.reject(new ApiError(400, problem('common.validation_failed', 'Validation failed', 400)))));
 }
 export async function updateSettingsAction(version: number, patch: Partial<Omit<ReportingSettings, 'version'>>, key: string): Promise<ActionResult<ReportingSettings>> {
   return run(() => updateSettings(version, patch, key));

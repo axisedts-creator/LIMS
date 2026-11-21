@@ -253,11 +253,10 @@ describe("T0C-ACCTLIST-1 billing manifest, notes (done_when 4, 6)", () => {
     expect(m![1]).toMatch(new RegExp(`['"]${ID}['"]`));
     expect(read("services/api/src/modules/billing/handlers/index.ts")).not.toContain(ID);
   });
-  it("no migration, no web page change: no db/migrations file names account_summar, the web summary page does not call the list", () => {
+  it("no migration names account_summar (the web list landed in T0D-UILIST-2, LD-358)", () => {
     const mig = join(ROOT, "db/migrations");
     const names = existsSync(mig) ? readdirSync(mig) : [];
     expect(names.filter((n) => /account_summar/i.test(n))).toEqual([]);
-    expect(read("apps/web/src/app/(staff)/billing/accounts/summary/page.tsx")).not.toContain(PATH); // the pre-existing web fallback helper named listAccountSummaries is allowed (ruling)
   });
   it("implementation notes list the two follow-ups (T0B-ACCTLIST-1 handler, T0D-UILIST-2 web list) and the centre_id choice", () => {
     expect(existsSync(NOTES), "notes .orchestra/notes/T0C-ACCTLIST-1-impl.md missing").toBe(true);

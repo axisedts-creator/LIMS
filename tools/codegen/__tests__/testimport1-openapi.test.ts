@@ -116,8 +116,8 @@ describe("T0C-TESTIMPORT-1 contract: catalog.yaml lint and additive baseline", (
 
   it("is additive: 117 operations before, exactly 6 new operations now, every older import operation keeps method and path", () => {
     const ids = allOps();
-    expect(ids.length, "117 + 6 test import operations").toBe(123);
-    expect(new Set(ids).size).toBe(123);
+    expect(ids.length, "117 + 6 test import operations + 5 ICD master operations (T0C-PARTYSET-1)").toBe(128);
+    expect(new Set(ids).size).toBe(128);
     for (const id of Object.keys(NEW_OPS)) expect(opOf(id), `${id} missing`).toBeDefined();
     for (const [id, o] of Object.entries(OLD_IMPORT_OPS)) {
       const f = opOf(id);

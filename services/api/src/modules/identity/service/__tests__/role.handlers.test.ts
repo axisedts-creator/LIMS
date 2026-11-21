@@ -15,13 +15,13 @@ vi.mock('../role.service.js', () => ({ createRoleService: () => svc }));
 const { manifest } = await import('../../index.js');
 const h = (op: string): any => (manifest.handlers as any)[op];
 
-const hctx = (operationId: string) => ({ operationId, clientIp: '203.0.113.9', ...makeCtx().ctx });
+const hctx = (operationId: string) => ({ operationId, clientIp: '203.0.113.9', ...makeCtx().ctx, ports: { IdentityPort: { assertRole: async () => undefined } } });   // SEC-AUTHZ-4 ruling: guard needs the port
 const req = (o: { params?: object; query?: object; headers?: object; body?: unknown } = {}) => ({ params: {}, query: {}, headers: {}, body: undefined, ...o });
 beforeEach(() => { for (const op of OPS) svc[op] = vi.fn(async () => ({ status: 200, body: { ok: op }, version: 3 })); });
 
 describe('no longer stubs; fail closed without an authenticated request context', () => {
   it.each(OPS)('%s: no context -> auth.unauthenticated (the stub answers common.internal); service never called', async (op) => {
-    const e = await rejection(h(op)(req(), { operationId: op, clientIp: '203.0.113.9', log: { info() {}, warn() {}, error() {} } }));
+    const e = await rejection(h(op)(req(), { operationId: op, clientIp: '203.0.113.9', log: { info() {}, warn() {}, error() {} }, ports: { IdentityPort: { assertRole: async () => undefined } } }));
     expect(e?.code).toBe('auth.unauthenticated'); expect(svc[op]).not.toHaveBeenCalled();
   });
   it('a failed call echoes no request input in code/message/detail', async () => {

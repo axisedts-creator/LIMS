@@ -24,6 +24,8 @@ vi.mock('pg', () => {
     if (/g_system_actors/i.test(t)) return { rows: [{ module: 'identity', actor_id: '0190a000-0000-7000-8000-00000000a5a5' }] };
     if (/set_config\(\s*'request\.jwt\.claims'/i.test(t) && /tx_started_at/i.test(t)) return { rows: [{ tx_started_at: new Date() }] };
     if (/ratelimit_hit/i.test(t)) return { rows: [{ allowed: true, retry_after_seconds: 0 }] };
+    if (/ratelimit_peek/i.test(t)) return { rows: [{ hits: 0, last_hit: null }] };
+    if (/ratelimit_clear/i.test(t)) return { rows: [{}] };
     return { rows: [] };
   };
   class Pool {

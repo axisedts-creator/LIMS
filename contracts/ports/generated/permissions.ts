@@ -21,6 +21,8 @@ export type PermissionCode =
   | "billing.credit_party.manage"
   | "billing.credit_party.read"
   | "billing.data.export"
+  | "billing.discount_policy.manage"
+  | "billing.discount_policy.read"
   | "billing.expense.manage"
   | "billing.invoice.cancel"
   | "billing.invoice.issue"
@@ -32,6 +34,7 @@ export type PermissionCode =
   | "billing.refund.request"
   | "billing.release.override"
   | "billing.settings.manage"
+  | "catalog.icd.manage"
   | "catalog.instrument_code_map.manage"
   | "catalog.price_list.manage"
   | "catalog.price_list.read"
@@ -144,10 +147,15 @@ export type PermissionCode =
   | "micro.culture.work"
   | "partners.manifest.receive"
   | "partners.manifest.submit"
+  | "partners.onboarding.decide"
   | "partners.order.read"
   | "partners.partner.manage"
   | "partners.partner.read"
   | "partners.partner_user.manage"
+  | "partners.party_id_number.read"
+  | "partners.party_setting.manage"
+  | "partners.party_setting.read"
+  | "partners.penalty.manage"
   | "partners.pickup.manage"
   | "partners.pickup.request"
   | "partners.price_list.read"
@@ -230,6 +238,8 @@ export const PERMISSION_CODES: readonly PermissionCode[] = [
   "billing.credit_party.manage",
   "billing.credit_party.read",
   "billing.data.export",
+  "billing.discount_policy.manage",
+  "billing.discount_policy.read",
   "billing.expense.manage",
   "billing.invoice.cancel",
   "billing.invoice.issue",
@@ -241,6 +251,7 @@ export const PERMISSION_CODES: readonly PermissionCode[] = [
   "billing.refund.request",
   "billing.release.override",
   "billing.settings.manage",
+  "catalog.icd.manage",
   "catalog.instrument_code_map.manage",
   "catalog.price_list.manage",
   "catalog.price_list.read",
@@ -353,10 +364,15 @@ export const PERMISSION_CODES: readonly PermissionCode[] = [
   "micro.culture.work",
   "partners.manifest.receive",
   "partners.manifest.submit",
+  "partners.onboarding.decide",
   "partners.order.read",
   "partners.partner.manage",
   "partners.partner.read",
   "partners.partner_user.manage",
+  "partners.party_id_number.read",
+  "partners.party_setting.manage",
+  "partners.party_setting.read",
+  "partners.penalty.manage",
   "partners.pickup.manage",
   "partners.pickup.request",
   "partners.price_list.read",
@@ -430,6 +446,7 @@ export const PRIVILEGED: ReadonlySet<PermissionCode> = new Set([
   "billing.cash_transfer.decide",
   "billing.credit_party.manage",
   "billing.data.export",
+  "billing.discount_policy.manage",
   "billing.invoice.cancel",
   "billing.payment.reverse",
   "billing.refund.approve",
@@ -467,6 +484,7 @@ export const PRIVILEGED: ReadonlySet<PermissionCode> = new Set([
   "micro.breakpoint.manage",
   "partners.partner.manage",
   "partners.partner_user.manage",
+  "partners.party_id_number.read",
   "partners.sales.manage",
   "payments.intent.resolve",
   "payments.merchant_config.manage",
@@ -533,6 +551,8 @@ export const ROLE_GRANTS: Readonly<Record<string, readonly PermissionCode[]>> = 
     "billing.credit_party.manage",
     "billing.credit_party.read",
     "billing.data.export",
+    "billing.discount_policy.manage",
+    "billing.discount_policy.read",
     "billing.expense.manage",
     "billing.invoice.cancel",
     "billing.invoice.issue",
@@ -560,6 +580,10 @@ export const ROLE_GRANTS: Readonly<Record<string, readonly PermissionCode[]>> = 
     "inventory.po.manage",
     "inventory.report.export",
     "partners.partner.read",
+    "partners.party_id_number.read",
+    "partners.party_setting.manage",
+    "partners.party_setting.read",
+    "partners.penalty.manage",
     "partners.sales.manage",
     "partners.sales.read",
     "payments.intent.create",
@@ -572,6 +596,7 @@ export const ROLE_GRANTS: Readonly<Record<string, readonly PermissionCode[]>> = 
     "sync.use",
   ],
   front_desk: [
+    "billing.discount_policy.read",
     "billing.invoice.issue",
     "billing.invoice.read",
     "billing.invoice.reprint",
@@ -631,6 +656,7 @@ export const ROLE_GRANTS: Readonly<Record<string, readonly PermissionCode[]>> = 
     "analytics.dashboard.read",
     "anatomic.case.read",
     "anatomic.config.manage",
+    "catalog.icd.manage",
     "catalog.instrument_code_map.manage",
     "catalog.price_list.read",
     "catalog.reference_range.publish",
@@ -680,7 +706,10 @@ export const ROLE_GRANTS: Readonly<Record<string, readonly PermissionCode[]>> = 
     "micro.breakpoint.manage",
     "micro.config.manage",
     "micro.culture.read",
+    "partners.onboarding.decide",
     "partners.partner.read",
+    "partners.party_setting.read",
+    "partners.penalty.manage",
     "partners.referrer.map",
     "partners.sales.manage",
     "partners.sales.read",
@@ -847,9 +876,12 @@ export const ROLE_GRANTS: Readonly<Record<string, readonly PermissionCode[]>> = 
     "billing.account.read",
     "billing.cash_report.read",
     "billing.credit_party.read",
+    "billing.discount_policy.manage",
+    "billing.discount_policy.read",
     "billing.invoice.read",
     "billing.release.override",
     "billing.settings.manage",
+    "catalog.icd.manage",
     "catalog.price_list.manage",
     "catalog.price_list.read",
     "catalog.referrer.export",
@@ -889,8 +921,13 @@ export const ROLE_GRANTS: Readonly<Record<string, readonly PermissionCode[]>> = 
     "identity.user.manage",
     "identity.user.read",
     "instruments.agent.manage",
+    "partners.onboarding.decide",
     "partners.partner.manage",
     "partners.partner.read",
+    "partners.party_id_number.read",
+    "partners.party_setting.manage",
+    "partners.party_setting.read",
+    "partners.penalty.manage",
     "partners.referrer.map",
     "partners.sales.manage",
     "partners.sales.read",

@@ -32,7 +32,7 @@ export default async function WorklistPage({ searchParams }: { searchParams: Pro
     perms.includes('frontdesk.order.edit') ? settle(listCodedSet('flag_resolutions')) : [],
   ]);
   // T0D-UILIST-2 (LD-353 rule 6): the flag list (first tab) not built yet = NotAvailable with its header row; other lists that are pending show their tab's ErrorState
-  if (flagsR === 'pending') return <NotAvailable title="Front-desk worklist" columns={['Registration no', 'Patient', 'Created', 'Actions']} />;
+  if (flagsR === 'pending') return <NotAvailable title="Front-desk worklist" columns={['Accession no.', 'Patient', 'Tests', 'Registered', 'Time elapsed', 'Status', 'Actions']} />;
   const [flags, orders, pre, duplicates, resolutions] = [got(flagsR), got(ordersR), got(preR), got(duplicatesR), got(resolutionsR)];
   const failed = [...(flags ? [] : ['flags' as const]), ...(pre ? [] : ['preRegistered' as const]), ...(dupes && !duplicates ? ['duplicates' as const] : [])];
   return (

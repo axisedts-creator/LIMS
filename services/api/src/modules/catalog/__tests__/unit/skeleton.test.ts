@@ -27,6 +27,7 @@ const NINE = [
   'catalog.test.read', 'catalog.test.manage', 'catalog.price_list.read', 'catalog.price_list.manage',
   'catalog.referrer.manage', 'catalog.instrument_code_map.manage',
   'catalog.referrer.read', 'catalog.reference_range.publish', 'catalog.referrer.export',
+  'catalog.icd.manage', // T0C-PARTYSET-1 (LD-321): the ICD master (the list keeps its historic name NINE)
 ];
 const REQ = { params: {}, query: {}, headers: {}, body: undefined };
 const CTX = { operationId: 'x', clientIp: '203.0.113.7', log: { info() {}, warn() {}, error() {} } };
@@ -41,8 +42,8 @@ const isStub = async (h: Handler): Promise<boolean> => {
 
 describe('manifest + autoload (02-TRD §3, §6.3 of core)', () => {
   // Merge of main: T0C-PRICETOOLS-1 (LD-321, LD-325(b)) added 7 price list tool operations, pending until T0B-PRICETOOLS-1.
-  it('catalog.yaml declares the 107 operations of 02-TRD §5 plus the 3 category operations of T0C-TESTMGMT-1 (LD-318) plus the 7 price list tool operations of T0C-PRICETOOLS-1', () => {
-    expect(OPS).toHaveLength(123); // + the 6 Excel test import operations of T0C-TESTIMPORT-1 (LD-318)
+  it('catalog.yaml declares the 107 operations of 02-TRD §5 plus the 3 category operations of T0C-TESTMGMT-1 (LD-318) plus the 7 price list tool operations of T0C-PRICETOOLS-1 plus the 5 ICD master operations of T0C-PARTYSET-1', () => {
+    expect(OPS).toHaveLength(128); // + the 6 Excel test import operations of T0C-TESTIMPORT-1 (LD-318)
   });
 
   it('manifest has name, openapi path and produces exactly catalog.changed.v1', () => {

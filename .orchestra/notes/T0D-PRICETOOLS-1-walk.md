@@ -1,0 +1,12 @@
+# T0D-PRICETOOLS-1 walk (done_when 1): LIMS price list screens vs ElabAssist
+
+Source: the code of the LIMS screens below (walked before writing) and the ElabAssist walk summary quoted in the task brief (C:/LIMS-state/elabassist-accounting-20261117.md section Price Allocation, elabassist-testmgmt-20261117.md sections Rate Master and Test Rate Card). The C:/LIMS-state files themselves were not readable from this writer session, so the ElabAssist side is the brief's summary.
+
+| LIMS screen (route) | replaces in ElabAssist | what existed | what was missing (now added by this task) |
+|---|---|---|---|
+| Rate Master list `/catalog/price-lists` (SCR-13, PriceListsList) | Rate Master list and the Price Allocation list of party price lists (Franchise, Laboratory, Doctor, Rate Master, Client, Collection Center) | list with Applies to, current / scheduled / draft version, filter bar, New price list | Compare: link "Compare price lists" and the view `?view=compare` (two version pickers, table Test / Price A / Price B / Difference / Percent, Load more, Print, CSV) |
+| Price list detail `/catalog/price-lists/<id>` (SCR-13, PriceListDetail) | Price Allocation detail (party, effective from and to) and Test Rate Card header actions | General, Assignments (owners only), Versions; Export to Excel, Import from Excel and Compare versions were disabled placeholders | Download template, Export to Excel (prefilled), Upload and check (dry run, every error with row, column, code, message, nothing written), Commit to draft, Import history, Copy to (replace or merge, optional percent and rounding), Compare versions link, assignments with Effective from and Effective to and the server overlap refusal |
+| Version editor `/catalog/price-lists/<id>/versions/<vid>` (SCR-14, PriceVersionEditor) | Test Rate Card grid (rate per test) and Price Allocation bulk update | editable grid, Save in batches of 200, Publish | Bulk update dialog: percent or fixed amount, rounding none / rupee / 5 / 10, scope all / department / listed tests, preview of the first 20 changed rows before Apply |
+| Price simulator `/catalog/price-simulator` (SCR-15) | rate lookup of Price Allocation | quote by orderable and party | nothing for this task |
+
+Not covered here (lead, LD-321): Rate Master as an equation engine (decided: it is a named default price list); the offline sync wave (LD-319); party types beyond the split party model (credit party, referrer, centre) are mapped, not added.

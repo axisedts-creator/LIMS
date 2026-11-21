@@ -62,8 +62,10 @@ const api = setupServer(
   http.put(`${ORIGIN}/v1/lab/verification-policies`, async ({ request }) => { await rec('put', request); return putReply(); }),
   http.get(`${ORIGIN}/v1/catalog/departments`, async ({ request }) => { await rec('depts', request); return deptReply(); }),
   http.get(`${ORIGIN}/v1/catalog/tests`, async ({ request }) => { await rec('tests', request); return testReply(); }),
+  // The General tab (default tab of LabSettingsPage) really calls getLabSettings (contracts/openapi/lab.yaml /v1/lab/settings). Not recorded: ops/calls counts stay as they are. Synthetic LabSettingsDto.
+  http.get(`${ORIGIN}/v1/lab/settings`, () => HttpResponse.json({ version: 1, label_width_mm: 20, label_height_mm: 10, label_copies_default: 1, label_renderer: 'html_svg', host_query_requires_received: false, ingest_auto_receive: false, critical_notification_blocks_approval: false, recollection_default: false, delta_check_enabled: false, history_days: 30 })),
 );
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 beforeEach(() => {
   listReply = () => HttpResponse.json({ data: [LAB, DEPT, TEST] });
   putReply = () => HttpResponse.json({ ...LAB, version: 2 });

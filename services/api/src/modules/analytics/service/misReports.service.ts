@@ -1,11 +1,12 @@
 // T0B-MISREPORTS-1 (LD-321, LD-325, LD-346; founder 2026-11-17 04:57 / 09:18 NPT): the delivered MIS reports of the analytics catalogue as ONE parameterised SQL
 // statement per page (no per row query), keyset paged by the rank of the contract default_sort (+ the row's natural key as tie break), tenant predicate explicit
 // ($1, holds even where RLS is bypassed) on every table, business dates INCLUSIVE and capped at 366 days, result capped at the contract row_cap.
-// Money is integer paisa from posted rows only: issued invoices and ledger entries (payments net of reversals and refunds). [CONV] There is no ledger Hold
-// status in this tree yet (FINCTRL); when it lands, held entries are excluded here (LD-321 decision "held ledger entries are excluded from posted balances").
+// Money is integer paisa from posted rows only: issued invoices and ledger entries (payments net of reversals and refunds). [CONV] The Hold status of FINCTRL
+// lives on billing.account_ledger_entries, which no report here reads, so held entries never enter a figure (LD-321 "held ledger entries are excluded").
 // Errors (standard): bad range / filter / limit / a result above row_cap -> common.validation_failed 400 with errors[]; a bad cursor -> common.invalid_cursor.
 import { LimsError } from '../../../core/errors.js';
-import { MIS_DEFS, misColumns, type MisDef, type MisParam } from '../domain/misReports.js';
+import { misColumns, type MisDef, type MisParam } from '../domain/misReports.js';
+import { MIS_ALL_DEFS } from '../domain/reportRegistry.js';
 import type { ExportColumn } from '../export/layout.js';
 import { branchLabels, staffLabels, type LabelsContext } from './labels.service.js';
 import { checkUuidList, invalidField } from './reports.service.js';
@@ -24,8 +25,8 @@ const DEFAULT_LIMIT = 100, MAX_LIMIT = 1000;
 const TZ = `'Asia/Kathmandu'`;
 
 const defOf = (code: string): MisDef => {
-  if (typeof code !== 'string' || !Object.hasOwn(MIS_DEFS, code)) throw new LimsError('analytics.report_unknown');
-  return MIS_DEFS[code]!;
+  if (typeof code !== 'string' || !Object.hasOwn(MIS_ALL_DEFS, code)) throw new LimsError('analytics.report_unknown');
+  return MIS_ALL_DEFS[code]!;
 };
 
 // ------------------------------------------------------------------ validation (shared with the export request: reads nothing)
@@ -104,6 +105,22 @@ const invoices = (q: Q, extra = '') => `SELECT i.* , (i.issued_at AT TIME ZONE $
 /** Posted payments per invoice of `inv` (payments net of reversals / refunds). */
 const paid = (q: Q, inv: string) => `SELECT l.invoice_id, sum(l.amount_paisa) AS p FROM billing.ledger_entries l
   WHERE l.tenant_id = ${q.t} AND l.invoice_id IN (SELECT id FROM ${inv}) GROUP BY l.invoice_id`;
+/**
+ * T0B-MISREPORTS-2 (A39-4, M33, LD-346): per credit party with a partners.party_commercial_setting row (party_kind credit_party) and >= 1 issued invoice in range:
+ * base = Σ (gross - discount - credited_total) of its OWN issued invoices (posted data, cancelled excluded, credit notes subtracted); the rates are read from the
+ * settings at run time (C8 stores none); commission = round half up (base x commission_bp / 10000); tds = round half up (commission x tds_bp / 10000).
+ * [CONV] Held ledger entries (billing.account_ledger_entries, FINCTRL) never enter the base: it is invoice based (CR T0B-MISREPORTS-2 item 2).
+ * LD-408 (CR-C0-MISREPORTS2-001 item 1): parent_credit_party_id set and credit_self_not_parent false -> level 2 with the parent id / name; otherwise level 1, parent ''.
+ * [CONV] the figures of a level 2 row stay the outlet's own (the parent's roll up is read from the parent columns; LD-408 gives no summing rule).
+ */
+const halfUp = (n: string, bp: string) => `floor((${n} * ${bp} + 5000)::numeric / 10000)::bigint`;
+const partyMoney = (q: Q) => `WITH inv AS (${invoices(q, ` AND i.credit_party_id IS NOT NULL${idIn(q, 'i.credit_party_id', 'party_id')}`)}),
+      b AS (SELECT inv.credit_party_id AS party_id, count(DISTINCT inv.order_id) AS n, sum(inv.gross_paisa - inv.discount_paisa - inv.credited_total_paisa) AS base FROM inv GROUP BY 1)
+      SELECT b.party_id, coalesce(cp.name, '') AS party_name, b.n, b.base, s.commission_bp, s.tds_bp, ${halfUp('b.base', 's.commission_bp')} AS c,
+             CASE WHEN s.credit_self_not_parent THEN NULL ELSE s.parent_credit_party_id END AS parent_id, coalesce(pp.name, '') AS parent_name
+        FROM b JOIN partners.party_commercial_setting s ON s.tenant_id = ${q.t} AND s.party_kind = 'credit_party' AND s.party_id = b.party_id
+        LEFT JOIN catalog.credit_parties cp ON cp.tenant_id = ${q.t} AND cp.id = b.party_id
+        LEFT JOIN catalog.credit_parties pp ON pp.tenant_id = ${q.t} AND pp.id = s.parent_credit_party_id AND NOT s.credit_self_not_parent`;
 const orders = (q: Q) => `SELECT o.id, o.patient_id, (o.registered_at AT TIME ZONE ${TZ})::date AS d FROM frontdesk.orders o
   WHERE o.tenant_id = ${q.t} AND o.status <> 'cancelled' AND ${inRange(q, 'o.registered_at')} AND ${q.centre('o.centre_id')}`;
 
@@ -209,6 +226,19 @@ const SQL: Readonly<Record<string, { body(q: Q): string; tie: string }>> = {
         LEFT JOIN frontdesk.orders o ON o.tenant_id = ${q.t} AND o.id = inv.order_id
         LEFT JOIN catalog.credit_parties cp ON cp.tenant_id = ${q.t} AND cp.id = inv.credit_party_id
        GROUP BY inv.credit_party_id`,
+  },
+  two_level_commission: {
+    tie: 'party_id',
+    body: (q) => `WITH m AS (${partyMoney(q)})
+      SELECT coalesce(m.parent_id::text, '') AS parent_party_id, m.parent_name AS parent_party_name, m.party_id::text AS party_id, m.party_name,
+             CASE WHEN m.parent_id IS NULL THEN 1 ELSE 2 END AS level, m.n AS orders_registered,
+             m.base AS net_billed_paisa, m.commission_bp, m.c AS commission_paisa FROM m`,
+  },
+  tds: {
+    tie: 'party_id',
+    body: (q) => `WITH m AS (${partyMoney(q)})
+      SELECT m.party_id::text AS party_id, m.party_name, ${ymd(`${q.from}::date`)} AS period_from, ${ymd(`${q.to}::date`)} AS period_to, m.c AS commission_payable_paisa, m.tds_bp,
+             ${halfUp('m.c', 'm.tds_bp')} AS tds_withheld_paisa, m.c - ${halfUp('m.c', 'm.tds_bp')} AS net_payable_paisa FROM m`,
   },
   // [CONV] sent = lab tests whose workflow or status is outsourced, or processed at a branch other than the order's branch; resulted = resulted / verified / approved.
   outsource: {

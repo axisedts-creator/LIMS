@@ -26,9 +26,9 @@ if (typeof HTMLElement !== 'undefined') (HTMLElement.prototype as any).scrollInt
 export const user = () => userEvent.setup();
 
 // ---------------------------------------------------------------- mocks
-export const router = { push: vi.fn(), replace: vi.fn(), refresh: vi.fn(), back: vi.fn(), prefetch: vi.fn() };
+export const router: Record<'push' | 'replace' | 'refresh' | 'back' | 'prefetch', ReturnType<typeof vi.fn>> = { push: vi.fn(), replace: vi.fn(), refresh: vi.fn(), back: vi.fn(), prefetch: vi.fn() };
 export const nav = { pathname: '/lab/worklist' };
-export const navigationMock = {
+export const navigationMock: { useRouter: () => typeof router; usePathname: () => string; useSearchParams: () => URLSearchParams; notFound: () => never; redirect: (to: string) => never } = {
   useRouter: () => router,
   usePathname: () => nav.pathname,
   useSearchParams: () => new URLSearchParams(),

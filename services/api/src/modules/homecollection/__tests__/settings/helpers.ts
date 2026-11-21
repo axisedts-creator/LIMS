@@ -114,7 +114,10 @@ export const NEW = {
 export const wire = (row: any) => Object.fromEntries(WIRE.map((k) => [k, row[k]]));
 
 /** Both tenants get the BASE row at version 1, except those listed in `none`, which get NO row (lazy-create paths). */
+// LD-347 isolation: the settings rows other files seeded are captured on the first reset and put back by restoreSettings() (afterAll of the settings file).
+let savedSettings: Array<Record<string, unknown>> | undefined;
 export async function resetSettings(none: Array<'a' | 'b'> = []): Promise<void> {
+  savedSettings ??= [...await settingsRows(TENANT_A), ...await settingsRows(TENANT_B)];
   for (const s of ['a', 'b'] as const) {
     const t = s === 'a' ? TENANT_A : TENANT_B;
     await superTx(async (tx) => {
@@ -124,6 +127,20 @@ export async function resetSettings(none: Array<'a' | 'b'> = []): Promise<void> 
       const cols = Object.keys(row);
       await tx.query(`INSERT INTO homecollection.settings (${cols.join(', ')}) VALUES (${cols.map((_, i) => `$${i + 1}`).join(', ')})`,
         cols.map((c) => (c === 'payment_methods' ? JSON.stringify(row[c]) : row[c])));
+    }, t);
+  }
+}
+export async function restoreSettings(): Promise<void> {
+  if (!savedSettings) return;
+  const rows = savedSettings; savedSettings = undefined;
+  for (const t of [TENANT_A, TENANT_B]) {
+    await superTx(async (tx) => {
+      await tx.query('DELETE FROM homecollection.settings WHERE tenant_id = $1', [t]);
+      for (const row of rows.filter((r) => r.tenant_id === t)) {
+        const cols = Object.keys(row);
+        await tx.query(`INSERT INTO homecollection.settings (${cols.join(', ')}) VALUES (${cols.map((_, i) => `$${i + 1}`).join(', ')})`,
+          cols.map((c) => (c === 'payment_methods' ? JSON.stringify(row[c]) : row[c])));
+      }
     }, t);
   }
 }

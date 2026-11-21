@@ -5,6 +5,7 @@ import { LimsError } from '../../../core/errors.js';
 import type { Handler, HandlerContext, HandlerRequest } from '../../../core/module.js';
 import { createRangesService } from '../service/ranges.service.js';
 import { ifMatch } from './masters.handlers.js';
+import { guarded } from './_guard.js';
 
 type Svc = ReturnType<typeof createRangesService>;
 type Ctx = Parameters<Svc['getReferenceRangeSet']>[0] & { events?: Parameters<typeof createRangesService>[0]['events']; ports?: { IdentityPort?: Identity } };
@@ -25,19 +26,19 @@ const setId = (r: HandlerRequest) => obj(r.params)['set_id'];
 const analyteId = (r: HandlerRequest) => obj(r.params)['analyte_id'];
 
 export const rangesHandlers: Readonly<Record<string, Handler>> = Object.freeze({
-  listReferenceRangeSets: bind(async (s, c, r) => ok(await s.listReferenceRangeSets(c, { analyte_id: analyteId(r), status: obj(r.query)['status'] }))),
-  createReferenceRangeSetDraft: bind(async (s, c, r) => ({ status: 201, body: await s.createReferenceRangeSetDraft(c, { analyte_id: analyteId(r), body: r.body }) })),
-  getReferenceRangeSet: bind(async (s, c, r) => ok(await s.getReferenceRangeSet(c, { id: setId(r) }))),
-  replaceReferenceRangeSetBands: bind(async (s, c, r) => ok(await s.replaceReferenceRangeSetBands(c, { id: setId(r), expectedVersion: ifMatch(r), body: r.body }))),
+  listReferenceRangeSets: guarded('catalog.test.read', bind(async (s, c, r) => ok(await s.listReferenceRangeSets(c, { analyte_id: analyteId(r), status: obj(r.query)['status'] })))),
+  createReferenceRangeSetDraft: guarded('catalog.test.manage', bind(async (s, c, r) => ({ status: 201, body: await s.createReferenceRangeSetDraft(c, { analyte_id: analyteId(r), body: r.body }) }))),
+  getReferenceRangeSet: guarded('catalog.test.read', bind(async (s, c, r) => ok(await s.getReferenceRangeSet(c, { id: setId(r) })))),
+  replaceReferenceRangeSetBands: guarded('catalog.test.manage', bind(async (s, c, r) => ok(await s.replaceReferenceRangeSetBands(c, { id: setId(r), expectedVersion: ifMatch(r), body: r.body })))),
   publishReferenceRangeSet: bind(async (s, c, r) => ok(await s.publishReferenceRangeSet(c, { id: setId(r), expectedVersion: ifMatch(r), body: r.body })), true),
   retireReferenceRangeSet: bind(async (s, c, r) => ok(await s.retireReferenceRangeSet(c, { id: setId(r), expectedVersion: ifMatch(r), body: r.body })), true),
-  discardReferenceRangeSetDraft: bind(async (s, c, r) => ok(await s.discardReferenceRangeSetDraft(c, { id: setId(r), expectedVersion: ifMatch(r) }))),
+  discardReferenceRangeSetDraft: guarded('catalog.test.manage', bind(async (s, c, r) => ok(await s.discardReferenceRangeSetDraft(c, { id: setId(r), expectedVersion: ifMatch(r) })))),
 
-  listCriticalLimitSets: bind(async (s, c, r) => ok(await s.listCriticalLimitSets(c, { analyte_id: analyteId(r), status: obj(r.query)['status'] }))),
-  createCriticalLimitSetDraft: bind(async (s, c, r) => ({ status: 201, body: await s.createCriticalLimitSetDraft(c, { analyte_id: analyteId(r), body: r.body }) })),
-  getCriticalLimitSet: bind(async (s, c, r) => ok(await s.getCriticalLimitSet(c, { id: setId(r) }))),
-  replaceCriticalLimitSetBands: bind(async (s, c, r) => ok(await s.replaceCriticalLimitSetBands(c, { id: setId(r), expectedVersion: ifMatch(r), body: r.body }))),
+  listCriticalLimitSets: guarded('catalog.test.read', bind(async (s, c, r) => ok(await s.listCriticalLimitSets(c, { analyte_id: analyteId(r), status: obj(r.query)['status'] })))),
+  createCriticalLimitSetDraft: guarded('catalog.test.manage', bind(async (s, c, r) => ({ status: 201, body: await s.createCriticalLimitSetDraft(c, { analyte_id: analyteId(r), body: r.body }) }))),
+  getCriticalLimitSet: guarded('catalog.test.read', bind(async (s, c, r) => ok(await s.getCriticalLimitSet(c, { id: setId(r) })))),
+  replaceCriticalLimitSetBands: guarded('catalog.test.manage', bind(async (s, c, r) => ok(await s.replaceCriticalLimitSetBands(c, { id: setId(r), expectedVersion: ifMatch(r), body: r.body })))),
   publishCriticalLimitSet: bind(async (s, c, r) => ok(await s.publishCriticalLimitSet(c, { id: setId(r), expectedVersion: ifMatch(r), body: r.body })), true),
   retireCriticalLimitSet: bind(async (s, c, r) => ok(await s.retireCriticalLimitSet(c, { id: setId(r), expectedVersion: ifMatch(r), body: r.body })), true),
-  discardCriticalLimitSetDraft: bind(async (s, c, r) => ok(await s.discardCriticalLimitSetDraft(c, { id: setId(r), expectedVersion: ifMatch(r) }))),
+  discardCriticalLimitSetDraft: guarded('catalog.test.manage', bind(async (s, c, r) => ok(await s.discardCriticalLimitSetDraft(c, { id: setId(r), expectedVersion: ifMatch(r) })))),
 });

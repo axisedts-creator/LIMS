@@ -33,8 +33,9 @@ beforeEach(() => {
 afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 
 describe('c2Resolver forwards the client context', () => {
-  it('sends x-forwarded-for (first entry) and the browser user agent, keeping the BFF key and the session cookie', async () => {
-    incoming({ 'x-forwarded-for': '203.0.113.7, 10.0.0.1', 'user-agent': UA });
+  // SEC-ABUSE-1 / LD-237: incoming address = x-vercel-forwarded-for, else x-real-ip; the client-supplied x-forwarded-for is never read.
+  it('sends x-forwarded-for (from x-vercel-forwarded-for, not the spoofable list) and the browser user agent, keeping the BFF key and the session cookie', async () => {
+    incoming({ 'x-vercel-forwarded-for': '203.0.113.7', 'x-forwarded-for': '6.6.6.6, 10.0.0.1', 'user-agent': UA });
     const r = await resolve();
     expect(r.ok).toBe(true);
     const s = sent();
@@ -50,8 +51,8 @@ describe('c2Resolver forwards the client context', () => {
     expect(sent().get('x-forwarded-for')).toBe('198.51.100.9');
     expect(sent().get('user-agent')).toBe('q'.repeat(512));
   });
-  it.each(['not-an-ip', '203.0.113.7:443', '[2001:db8::1]:443'])('junk first entry %j -> x-forwarded-for not sent', async (xff) => {
-    incoming({ 'x-forwarded-for': xff, 'user-agent': UA });
+  it.each(['not-an-ip', '203.0.113.7:443', '[2001:db8::1]:443'])('junk x-vercel-forwarded-for %j -> x-forwarded-for not sent', async (xff) => {
+    incoming({ 'x-vercel-forwarded-for': xff, 'user-agent': UA });
     await resolve();
     expect(sent().has('x-forwarded-for')).toBe(false);
   });
@@ -69,7 +70,7 @@ describe('c2Resolver forwards the client context', () => {
     expect(sent().get('x-lims-bff-key')).toBe(KEY);
   });
   it('the browser cookie (the sid) is not copied from the incoming headers; only the sid argument is forwarded as cookie', async () => {
-    incoming({ 'x-forwarded-for': '203.0.113.7', cookie: '__Host-lims_sid=OTHER-SECRET; other=1', authorization: 'Bearer BROWSER-SECRET' });
+    incoming({ 'x-vercel-forwarded-for': '203.0.113.7', cookie: '__Host-lims_sid=OTHER-SECRET; other=1', authorization: 'Bearer BROWSER-SECRET' });
     await resolve();
     const s = sent();
     expect(s.get('cookie')).toBe(`__Host-lims_sid=${encodeURIComponent(SID)}`);
@@ -83,7 +84,7 @@ describe('c2Resolver forwards the client context', () => {
   });
   it('nothing is logged', async () => {
     const spies = (['log', 'info', 'warn', 'error', 'debug'] as const).map((k) => vi.spyOn(console, k).mockImplementation(() => {}));
-    incoming({ 'x-forwarded-for': '203.0.113.7', 'user-agent': UA });
+    incoming({ 'x-vercel-forwarded-for': '203.0.113.7', 'user-agent': UA });
     await resolve();
     for (const s of spies) expect(s).not.toHaveBeenCalled();
   });

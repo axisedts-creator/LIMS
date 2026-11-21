@@ -25,7 +25,7 @@ const api = setupServer(
   http.get(`${ORIGIN}/v1/identity/centres`, async ({ request }) => { await rec(request); return HttpResponse.json({ data: [...CENTRES.map((c) => ({ centre_id: c.id, name: c.name, is_active: true })), { centre_id: uuid(2, 9), name: 'Retired Lab', is_active: false }] }); }),
   http.get(`${LAB}/status-board`, async ({ request }) => { await rec(request); return HttpResponse.json({ data: [ROW], page: { limit: 50 } }); }),
 );
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { api.resetHandlers(); calls.length = 0; });
 afterAll(() => api.close());
 

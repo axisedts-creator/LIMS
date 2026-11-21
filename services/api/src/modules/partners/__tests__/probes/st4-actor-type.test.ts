@@ -25,7 +25,7 @@ describe('ST4 classification (generator guard)', () => {
     // while the ticket ops are pending the shared set is empty; once T0B-MSGDESK-1 adds handlers it is exactly the ruling pair
     expect([...partnerSide].filter((p) => staffSide.has(p)).every((p) => ['partners.ticket.manage', 'partners.ticket.read'].includes(p))).toBe(true);
     // + partners.sales.* / partners.ticket.* on those operations once they are implemented (T0C-SALES-1, T0C-MSGDESK-1)
-    expect([...staffSide].filter((p) => !p.startsWith('partners.sales.') && !p.startsWith('partners.ticket.')).sort()).toEqual(['partners.manifest.receive', 'partners.partner.manage', 'partners.partner.read', 'partners.pickup.manage', 'partners.referrer.map']);
+    expect([...staffSide].filter((p) => !p.startsWith('partners.sales.') && !p.startsWith('partners.ticket.') && !/^partners\.(party_setting|onboarding|party_id_number|penalty)\./.test(p)).sort()).toEqual(['partners.manifest.receive', 'partners.partner.manage', 'partners.partner.read', 'partners.pickup.manage', 'partners.referrer.map']);
     expect(ALL.every((o) => o.permission?.startsWith('partners.'))).toBe(true); // no platform.* / frontdesk.* / catalog.* code on a partners route
   });
 });

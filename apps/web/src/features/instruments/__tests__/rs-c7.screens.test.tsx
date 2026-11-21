@@ -28,7 +28,7 @@ vi.mock('@/core/session/server', () => ({
 process.env.LIMS_ORIGIN_API = ORIGIN;
 
 const api = setupServer(http.all(`${ORIGIN}/*`, () => HttpResponse.json({})));
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 beforeEach(() => { vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(new Date('2026-11-14T09:00:00.000Z')); });
 afterEach(() => { vi.useRealTimers(); cleanup(); api.resetHandlers(); localStorage.clear(); });
 afterAll(() => api.close());

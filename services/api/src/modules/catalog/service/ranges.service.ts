@@ -39,8 +39,8 @@ const iso = (v: unknown) => (v instanceof Date ? v : new Date(String(v))).toISOS
 const isIso = (v: unknown): v is string => typeof v === 'string' && ISO_UTC.test(v) && !Number.isNaN(Date.parse(v)) && new Date(v).toISOString() === v;
 const places = (s: string) => (s.split('.')[1] ?? '').length;
 
-/** Signed decimal strings compared exactly (no float): -1 | 0 | 1. */
-function cmpDec(a: string, b: string): number {
+/** Signed decimal strings compared exactly (no float): -1 | 0 | 1. Exported for the Excel import (T0B-TESTIMPORT-1 reuses the band rules, LD-318). */
+export function cmpDec(a: string, b: string): number {
   const p = (s: string) => { const [i = '', f = ''] = s.replace('-', '').split('.'); return { neg: s.startsWith('-'), i, f }; };
   const x = p(a), y = p(b), n = Math.max(x.f.length, y.f.length);
   const bx = BigInt((x.neg ? '-' : '') + x.i + x.f.padEnd(n, '0')), by = BigInt((y.neg ? '-' : '') + y.i + y.f.padEnd(n, '0'));
@@ -137,7 +137,7 @@ function checkBands(f: Fam, v: unknown, min: number): Record<string, unknown>[] 
   if (errors.length) fail(errors.slice(0, 50));
   return rows as Record<string, unknown>[];
 }
-const groupKey = (r: Record<string, unknown>) => `${r['sex']}|${r['instrument_id'] ?? ''}|${r['laboratory_id'] ?? ''}`;
+export const groupKey = (r: Record<string, unknown>) => `${r['sex']}|${r['instrument_id'] ?? ''}|${r['laboratory_id'] ?? ''}`;
 
 /** LD-318 "exactly one default range per group", at publish, for a set that uses default_range / instrument / laboratory (a set using none publishes as before). */
 function defaultErrors(bands: readonly Record<string, unknown>[]): string[] {
@@ -157,7 +157,7 @@ function defaultErrors(bands: readonly Record<string, unknown>[]): string[] {
  * LD-318 "critical outside normal": each critical band must lie outside every normal band it meets (same sex or either 'any', overlapping ages):
  * critical low < normal low, critical high > normal high. Paths /bands/{i}/low | high of the critical band.
  */
-function criticalErrors(crit: readonly Record<string, unknown>[], normal: readonly Record<string, unknown>[]): string[] {
+export function criticalErrors(crit: readonly Record<string, unknown>[], normal: readonly Record<string, unknown>[]): string[] {
   const out = new Set<string>();
   const win = (b: Record<string, unknown>) => ageWindow(b as never);
   crit.forEach((c, i) => {

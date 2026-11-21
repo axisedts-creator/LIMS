@@ -1,0 +1,4 @@
+/* T0D-PRINTCFG-1 (LD-316, LD-353 settings template): editor beside its A4 preview from 64rem (one screen at 1366 x 768), stacked below. Kit tokens only. */
+.pcfg-layout { display: grid; grid-template-columns: minmax(0, 32rem) minmax(0, 1fr); gap: var(--lims-space-6); align-items: start; }
+@media (max-width: 64rem) { .pcfg-layout { grid-template-columns: minmax(0, 1fr); } }
+.pcfg-preview-frame { display: block; width: 100%; max-height: 36rem; aspect-ratio: 210 / 297; border: 1px solid var(--lims-neutral-200); background: var(--lims-neutral-0); }

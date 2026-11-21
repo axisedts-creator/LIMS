@@ -59,7 +59,7 @@ const PANELS = [
   panel(11, { code: 'HP_ELITE_M', name: 'Health package elite (male)', panel_kind: 'package', sex_restriction: 'male', department_id: undefined, department_code: undefined, members: [{ kind: 'test', orderable_id: ID(103), sort_order: 1 }, { kind: 'panel', orderable_id: ID(10), sort_order: 2 }, { kind: 'test', orderable_id: ID(104), sort_order: 3 }] }),
   panel(12, { code: 'OLDP', name: 'Retired panel', is_active: false }),
 ];
-const ord = (n: number, o: Record<string, unknown>) => ({ id: ID(n), kind: 'test', is_orderable: true, is_active: true, revision: 1, ...o });
+const ord = (n: number, o: Record<string, unknown>): Record<string, unknown> => ({ id: ID(n), kind: 'test', is_orderable: true, is_active: true, revision: 1, ...o });
 const ORDERABLES = [
   ord(101, { code: 'TC', name: 'Total cholesterol' }), ord(102, { code: 'HDL', name: 'HDL cholesterol' }), ord(103, { code: 'CBC', name: 'Complete blood count' }),
   ord(104, { code: 'FBS', name: 'Fasting blood sugar' }), ord(10, { kind: 'panel', code: 'LIPID', name: 'Lipid profile', panel_kind: 'clinical' }),
@@ -91,7 +91,7 @@ const api = setupServer(
   http.get(`${ORIGIN}/v1/catalog/doctors/:id`, async ({ request, params }) => { await rec(request); return HttpResponse.json(doctor(31, { id: params.id as string })); }),
   http.get(`${ORIGIN}/v1/catalog/*`, async ({ request }) => { await rec(request); return HttpResponse.json({ data: [], page: { limit: 50 } }); }),
 );
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { cleanup(); api.resetHandlers(); calls.length = 0; push.mockReset(); replace.mockReset(); refresh.mockReset(); localStorage.clear(); sessionStorage.clear(); session.permissions = TEST_MANAGE; });
 afterAll(() => api.close());
 beforeEach(() => { document.body.innerHTML = ''; });

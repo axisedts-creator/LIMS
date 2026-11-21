@@ -16,6 +16,10 @@ import type { Specimen } from '../server/types';
 import { FAILED, NOT_FOUND, call, enterOnEmptyBox, newKey, plural, rowError, statusText } from './shared';
 import { useSerial } from './useSerial';
 import { t } from '@/core/i18n/messages';
+// T0D-OFFLINE-3 (LD-322; done_when 3): offline, the listed specimens are queued as collection.mark_collected and carry the Pending sync badge
+import { OfflineError } from '@/core/offline/store';
+import { isOnline, useOfflineFlows, useOfflineSnapshot } from '@/core/offline/ui/OfflineProvider';
+import { PendingSyncBadge } from '@/core/offline/ui/OfflineParts';
 
 const BARCODE = /^[A-Z0-9]{1,20}$/;
 const REGISTRATION = /^[A-Z0-9]{1,40}$/; // registration_no charset (IC §9.3); a value that also fits BARCODE is looked up as a barcode
@@ -89,6 +93,9 @@ function CollectPanel({ rows, setRows }: { rows: PickRow[]; setRows: Setter<Pick
   const [msg, setMsg] = useState('');
   const [busy, setBusy] = useState(false);
   const busyRef = useRef(false);
+  const flows = useOfflineFlows();
+  const snap = useOfflineSnapshot();
+  const offline = !!flows?.markCollected && !!snap && !isOnline(snap);
 
   const onScan: OnScan = (v) =>
     serial(async () => {
@@ -106,6 +113,16 @@ function CollectPanel({ rows, setRows }: { rows: PickRow[]; setRows: Setter<Pick
     if (busyRef.current || selected.length === 0) return;
     busyRef.current = true;
     setBusy(true);
+    if (offline) { // ponytail: one queued move per specimen, from the rows listed while online (worklist prefetch is a CR)
+      const notes = new Map<string, string | null>();
+      for (const { s } of selected) {
+        try { await flows!.markCollected!({ specimen_id: s.id, version: s.version }); notes.set(s.id, null); } catch (e) { notes.set(s.id, rowError(e instanceof OfflineError ? e.code : 'common.internal')); }
+      }
+      busyRef.current = false;
+      setBusy(false);
+      setRows((p) => p.map((x) => (!notes.has(x.s.id) ? x : notes.get(x.s.id) === null ? { s: x.s, picked: false, done: true } : { ...x, note: notes.get(x.s.id)! })));
+      return;
+    }
     const r = await call(bulkCollectAction(selected.map(({ s }) => ({ id: s.id, version: s.version })), newKey()));
     busyRef.current = false;
     setBusy(false);
@@ -135,7 +152,7 @@ function CollectPanel({ rows, setRows }: { rows: PickRow[]; setRows: Setter<Pick
                   {...(done || note ? { description: done ? 'Collected' : (note as string) } : {})}
                 />
               </td>
-              <td>{s.specimen_type_code}</td>
+              <td>{s.specimen_type_code} <PendingSyncBadge id={s.id} /></td>
               <td>{s.tests.map((t) => t.test_code).join(', ')}</td>
             </tr>
           ))}

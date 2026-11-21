@@ -3,6 +3,7 @@
 // service's camelCase input and fail closed without an authenticated request context. Tenant and actor come from ctx only.
 import { LimsError } from '../../../core/errors.js';
 import type { Handler, HandlerContext, HandlerRequest, HandlerResult } from '../../../core/module.js';
+import { guarded } from './_guard.js';
 import type { BalanceCtx } from '../service/balance.service.js';
 import { createRegisterService, type RegisterService } from '../service/register.service.js';
 
@@ -22,11 +23,20 @@ const pick = (q: Record<string, any>, map: Record<string, string>): Record<strin
   Object.fromEntries(Object.entries(map).filter(([k]) => q[k] !== undefined).map(([k, to]) => [to, q[k]]));
 const RANGE = { limit: 'limit', cursor: 'cursor', fiscal_year_bs: 'fiscalYearBs', centre_id: 'centreId', issued_at_from: 'issuedAtFrom', issued_at_to: 'issuedAtTo' };
 
-export const registerHandlers: Readonly<Record<string, Handler>> = Object.freeze({
+const registerHandlersRaw: Readonly<Record<string, Handler>> = Object.freeze({
   getSalesRegister: bind((s, ctx, q) => s.sales(ctx, pick(q, RANGE))),
   getCancelledInvoiceRegister: bind((s, ctx, q) => s.cancelled(ctx, pick(q, RANGE))),
   getCreditNoteRegister: bind((s, ctx, q) => s.creditNotes(ctx, pick(q, RANGE))),
   getAuditTrail: bind((s, ctx, q) => s.auditTrail(ctx, pick(q, {
     limit: 'limit', cursor: 'cursor', actor_membership_id: 'actorMembershipId', action: 'action', occurred_at_from: 'occurredAtFrom', occurred_at_to: 'occurredAtTo',
   }))),
+});
+
+// SEC-AUTHZ-6 (LD-189 AUTH-SENSITIVE, LD-261; SEC-AUTHZ-1.1): the contract x-permission is asked FIRST, before the wrapped handler reads or writes anything.
+export const registerHandlers: Readonly<Record<string, Handler>> = Object.freeze({
+  ...registerHandlersRaw,
+  getSalesRegister: guarded('billing.invoice.read', registerHandlersRaw['getSalesRegister']!),
+  getCancelledInvoiceRegister: guarded('billing.invoice.read', registerHandlersRaw['getCancelledInvoiceRegister']!),
+  getCreditNoteRegister: guarded('billing.invoice.read', registerHandlersRaw['getCreditNoteRegister']!),
+  getAuditTrail: guarded('billing.data.export', registerHandlersRaw['getAuditTrail']!),
 });

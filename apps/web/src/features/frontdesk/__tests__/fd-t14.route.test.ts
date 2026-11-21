@@ -19,7 +19,7 @@ const ID = U(40);
 const upstream: { url: URL; auth: string | null }[] = [];
 const problem = (status: number, code: string) => HttpResponse.json({ type: 'about:blank', title: code, status, code }, { status, headers: { 'content-type': 'application/problem+json' } });
 const api = setupServer();
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { api.resetHandlers(); upstream.length = 0; token = 'jwt-synthetic'; });
 afterAll(() => api.close());
 

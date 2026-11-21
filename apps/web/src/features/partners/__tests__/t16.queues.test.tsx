@@ -37,7 +37,7 @@ const api = setupServer(
   http.post(`${A}/referrers/:id/unmap`, async ({ request }) => { await rec(request); return HttpResponse.json({}); }),
   http.post(`${ORIGIN}/v1/catalog/doctors/search`, async ({ request }) => { await rec(request); return HttpResponse.json({ data: [doctorHit()] }); }),
 );
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { cleanup(); api.resetHandlers(); calls.length = 0; refresh.mockReset(); session.perms = []; vi.useRealTimers(); });
 afterAll(() => api.close());
 

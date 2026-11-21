@@ -1,0 +1,14 @@
+
+----
+LEAD ITEM, LD-430 (2026-11-20): correction, writer owns this, not tester.
+
+The Daily cash open shift snapshot in rs-c4.screens.test.tsx is listed in TestExempt (run.ps1 line
+61, founder own Nov 14 harness fix): rs-cN snapshot files are product deliverables, writer and
+debugger own them, not the tester. Enforce will correctly revert a tester edit to this file every
+time, that is not a bug.
+
+WRITER: regenerate this one snapshot yourself (Daily cash open shift export in
+rs-c4.screens.test.tsx) to match the screen current real rendered output, exactly as already
+described above in this file under the LD-409 ruling (stat row, chart, page-status date badge).
+Do not touch the other 4 snapshots in that file. Commit it as an ordinary product file edit.
+TESTER: do not attempt this snapshot again.

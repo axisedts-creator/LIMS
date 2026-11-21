@@ -1,13 +1,13 @@
 // HC-T09 / H3 assignHomeVisit (02-TRD §5.1 H3, §4.1; PRD US-03-1, -3 … -10; 08 A19 D-131, P-44; security 07 §4/§5). Runs the handler over a real PG17 tx with a FrontdeskPort fake (see helpers.ts).
 // Fails now: H3 is the HC-T01 stub (`LIMS_CORE_ENV` stub -> 501 / common.internal), so every call below rejects or returns no 200 body.
-// Dates: this file owns 2027-04-01 .. 2027-06-30 (routes are unique per centre + phlebotomist + date; files run in parallel on one DB).
+// Dates: this file owns 2034-01-01 .. 2034-03-31 (LD-347) (routes are unique per centre + phlebotomist + date; files run in parallel on one DB).
 import { beforeAll, describe, expect, it } from 'vitest';
 import { DISPATCHER, DISPATCHER_B, HC_CENTRE, MEMBER, MEMBER2, NOBODY, NOT_ELIGIBLE, OTHER_CENTRE, P, PHLEBO, T, TENANT_B, addActiveVisits, assign, assignedVisit, assignmentsOf, bookingVisit, cancel, day, dop,
   failure, frontDeskVisit, hasPointer, key, newOrder, q, req, responseErrors, routeFor, routeRow, routesOf, sameInstant, schedule, seedWorld, staffName, superTx, transitionsOf, uid,
   unassign, viaPipeline, visitRow, winOf, worldOf, type DFx } from './helpers.js';
 import { listPhlebos } from '../visits/helpers.js';
 
-const BASE = '2027-04-01';
+const BASE = '2034-01-01';   // LD-347 isolation only: was 2027-04-01, inside snapshot/helpers.ts nextDay range; no assertion depends on the year
 let n = 0;
 const D = (): string => day(BASE, n++);
 let W: Awaited<ReturnType<typeof worldOf>>;

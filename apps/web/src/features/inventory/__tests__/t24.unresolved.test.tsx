@@ -6,6 +6,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
+import type { ReactNode } from 'react';
 import { ToastProvider } from '@lims/ui/components/Toast';
 import { actionBar, detailPane } from '../../../__tests__/uiconsole1.helpers';
 import { ID, IDEM_RE, ORIGIN, PERM_MANAGE, PERM_NONE, PERM_READ, api, fact, hit, hits, page, problem, resetHits, router, state } from './t24.harness';
@@ -14,14 +15,14 @@ vi.mock('next/navigation', async () => (await import('./t24.harness')).navigatio
 vi.mock('server-only', () => ({}));
 vi.mock('@/core/session/server', async () => (await import('./t24.harness')).sessionMock);
 
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 beforeEach(() => { resetHits(); Object.values(router).forEach((f) => f.mockReset()); state.permissions = PERM_MANAGE; state.path = '/inventory/unresolved'; });
 afterEach(() => { cleanup(); api.resetHandlers(); });
 afterAll(() => api.close());
 
 const mount = async (sp: Record<string, string | undefined> = {}) => {
   const mod = await import('../../../app/(staff)/inventory/unresolved/page');
-  return render(<ToastProvider>{await mod.default({ searchParams: Promise.resolve(sp) } as never)}</ToastProvider>);
+  return render(<ToastProvider>{await (mod.default as unknown as (p: unknown) => Promise<ReactNode>)({ searchParams: Promise.resolve(sp) })}</ToastProvider>);
 };
 // T0D-UICONSOLE-1: the queue is the console list (a table); the row actions live in the sticky bar of the SELECTED record.
 const rowOf = async (text: RegExp) => (await within(await screen.findByRole('table')).findByText(text)).closest('tr') as HTMLElement;

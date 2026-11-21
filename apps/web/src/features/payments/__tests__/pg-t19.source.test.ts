@@ -89,7 +89,7 @@ describe('imports and unsafe patterns (REQ-SEC-068, REQ-SEC-058, 07-SECURITY: no
   });
   it('uses the kit for the things the spec names: StatusChip(generic) for refunds/findings, MoneyText/DateText/IdText, ConfirmDialog, Tabs, StatTile, Switch, Banner, DatePicker, MoneyField, DataTable, FilterBar, Card', () => {
     const all = files().map((f) => strip(read(f))).join('\n');
-    for (const k of ['StatusChip', 'MoneyText', 'DateText', 'IdText', 'ConfirmDialog', 'Tabs', 'StatTile', 'Switch', 'Banner', 'DatePicker', 'MoneyField', 'DataTable', 'FilterBar', 'Card']) expect(all, k).toMatch(new RegExp(`\\b${k}\\b`));
+    for (const k of ['StatusChip', 'MoneyText', 'DateText', 'IdText', 'ConfirmDialog', 'Tabs', 'StatTile', 'Switch', 'Banner', 'DatePicker', 'MoneyField', 'DataTable', 'FilterBar', 'Card']) expect(all, k).toMatch(new RegExp(k === 'Card' ? '\\b(?:Card|SettingsForm)\\b' : `\\b${k}\\b`)); // LD-353 template 4: the settings sections are tabs of the kit SettingsForm, not Cards
     expect(all).toMatch(/StatusChip[^>]*kind=["'{]+generic/);
   });
 });

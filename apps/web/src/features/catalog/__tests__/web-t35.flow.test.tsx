@@ -42,7 +42,7 @@ const api = setupServer(
   http.post(`${ORIGIN}/v1/catalog/imports/:id/commit`, async ({ request }) => { state.commitBody = await request.json(); state.commitIfMatch = request.headers.get('if-match') ?? ''; log.push('POST commit'); return HttpResponse.json(importRow({ status: 'committing', version: 4 }), { status: 202 }); }),
   http.get(`${ORIGIN}/v1/catalog/*`, () => HttpResponse.json({ data: [], page: { limit: 50 } })),
 );
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { cleanup(); api.resetHandlers(); push.mockReset(); log.length = 0; Object.assign(state, { exportPolls: 0, importPolls: 0, imp: undefined, commitBody: undefined, commitIfMatch: '' }); });
 afterAll(() => api.close());
 

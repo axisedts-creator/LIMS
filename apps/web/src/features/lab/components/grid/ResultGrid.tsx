@@ -26,6 +26,9 @@ import {
   amendResultAction, bulkApproveAction, bulkEnterAction, bulkVerifyAction, getAnalyteTrendAction, getResultHistoryAction, listCommentCodesAction, returnResultAction,
 } from '../../server/actions';
 import type { AckFlag, AmendBody, CodedOption, DowntimeFields, EnterEntry, GridResult, HistoryRow, OrderResults, TrendResponse, VerifyItem } from '../../server/types';
+import { t as msg } from '@/core/i18n/messages';
+import { isOnline, useOfflineFlows, useOfflineSnapshot } from '@/core/offline/ui/OfflineProvider';
+import { PendingSyncBadge } from '@/core/offline/ui/OfflineParts';
 import { FAILED, call, newKey } from '../shared';
 import { CommentCell } from './CommentCell';
 import { AmendDialog, ReturnDialog, VerifyPrompt } from './ResultDialogs';
@@ -100,6 +103,10 @@ export function ResultGrid({ data, analytes = {}, permissions, patientId, return
   const toast = useToast();
   const can = (p: string) => permissions.includes(p);
   const canEnter = can('lab.result.enter'), canVerify = can('lab.result.verify'), canApprove = can('lab.result.approve'), canAmend = can('lab.result.amend');
+  // T0D-OFFLINE-4 (LD-322; done_when 1): offline, Save queues ONE result.enter operation (append only) and the row shows Pending sync
+  const flows = useOfflineFlows();
+  const snap = useOfflineSnapshot();
+  const offline = !!flows?.enterResults && !!snap && !isOnline(snap);
 
   const index = (d: OrderResults) => Object.fromEntries(d.items.flatMap((i) => i.results).map((r) => [r.id, r]));
   const [results, setResultsState] = useState<Record<string, GridResult>>(() => index(data));
@@ -240,6 +247,17 @@ export function ResultGrid({ data, analytes = {}, permissions, patientId, return
     }
     if (entries.length === 0) return resultsRef.current;
     if (entries.length > MAX_BATCH) { setBanner({ kind: 'error', text: `Save at most ${MAX_BATCH} results at a time.` }); return null; }
+    if (offline) {
+      busyRef.current = true; setBusy(true); setBanner(null);
+      try {
+        const q = await flows!.enterResults!({ entries });
+        if (!q.ok) { setBanner({ kind: 'error', text: q.message }); return null; }
+        const done = entries.map((x) => x.result_id);
+        setEdits((p) => Object.fromEntries(Object.entries(p).filter(([id]) => !done.includes(id))));
+        toast.show({ tone: 'success', title: msg('offline.saved_offline') });
+      } catch { setBanner({ kind: 'error', text: FAILED }); } finally { busyRef.current = false; setBusy(false); }
+      return null; // verification offline happens in the verification queue with the local policy check
+    }
     let downtime: DowntimeFields | undefined;
     if (dtOn) {
       const v = validateDowntime(dtAt, dtRef, downtimeMaxHours);
@@ -487,6 +505,7 @@ export function ResultGrid({ data, analytes = {}, permissions, patientId, return
         return createPortal(
           <>
             {originSlot ? createPortal(<StatusChip kind="generic" status="instrument" tone="info" label="Instrument" size="sm" />, originSlot, `${ORIGIN_PREFIX}${r.id}`) : null}
+            <PendingSyncBadge id={r.id} />
             {prov ? <Tooltip content={prov}><span role="note" tabIndex={0} aria-label={`Calculation: ${prov}`} className="lims-chip lims-chip-sm">ƒ</span></Tooltip> : null}
             {editable(r)
               ? <CommentCell key={r.id} defaultValue={r.comment_text ?? ''} defaultCodes={r.comment_codes ?? []} lookupCode={lookup} onChange={(c) => onComment(r.id, c)} />

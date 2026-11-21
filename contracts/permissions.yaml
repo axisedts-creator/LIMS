@@ -64,6 +64,8 @@ permissions:
   - { code: catalog.referrer.read, privileged: false, roles: [tenant_admin, lab_manager, front_desk, finance, centre_staff] }   # CR-C3-003
   - { code: catalog.reference_range.publish, privileged: true, roles: [pathologist, lab_manager] }   # clinical sign-off: analyte versions, ranges, critical limits (08 A13 D-18)   # CR-C3-003
   - { code: catalog.referrer.export, privileged: true, roles: [tenant_admin, lab_manager] }   # doctors' contacts (04 A4 data export)   # CR-C3-003
+  # T0C-PARTYSET-1 (LD-321): per tenant ICD master (catalog.icd_code); staff only
+  - { code: catalog.icd.manage, privileged: false, roles: [tenant_admin, lab_manager] }
   # frontdesk (C4)
   - { code: frontdesk.registration.create, privileged: false, roles: [front_desk, centre_staff] }
   - { code: frontdesk.patient.read,      privileged: false, roles: [front_desk, centre_staff, lab_technologist, pathologist, tenant_admin] }   # tenant_admin: 08 A13 D-28
@@ -96,6 +98,8 @@ permissions:
   # T0C-ACCT-1 (LD-313 c): lab accounting in the billing module (account groups / particulars / expense types, account ledger, expenses, cash transfers)
   - { code: billing.account.read,          privileged: false, roles: [finance, tenant_admin] }
   - { code: billing.account.manage,        privileged: true,  roles: [finance, tenant_admin] }   # account group / particular / expense type masters
+  - { code: billing.discount_policy.read,  privileged: false, roles: [finance, tenant_admin, front_desk] }   # T0C-FINCTRL-1 (LD-321): discount reasons, slabs, limits, authorities, my policy
+  - { code: billing.discount_policy.manage, privileged: true, roles: [finance, tenant_admin] }              # T0C-FINCTRL-1 (LD-321): discount masters (deactivate, never delete)
   - { code: billing.account_entry.create,  privileged: false, roles: [finance] }
   - { code: billing.account_entry.reverse, privileged: true,  roles: [finance] }                 # a correction is a reversal entry, never an edit (LD-313 b)
   - { code: billing.expense.manage,        privileged: false, roles: [finance] }
@@ -225,6 +229,12 @@ permissions:
   # T0C-SALES-1 (LD-321): sales hierarchy (designations, representatives, manager tree, party assignment, service areas); staff only
   - { code: partners.sales.read,   privileged: false, roles: [tenant_admin, finance, lab_manager] }
   - { code: partners.sales.manage, privileged: true,  roles: [tenant_admin, finance, lab_manager] }
+  # T0C-PARTYSET-1 (LD-321): per party commercial settings, onboarding approval queue, non compliance penalties, government ID reveal; staff only
+  - { code: partners.party_setting.read,   privileged: false, roles: [tenant_admin, finance, lab_manager] }
+  - { code: partners.party_setting.manage, privileged: false, roles: [tenant_admin, finance] }
+  - { code: partners.onboarding.decide,    privileged: false, roles: [tenant_admin, lab_manager] }
+  - { code: partners.party_id_number.read, privileged: true,  roles: [tenant_admin, finance] }   # full PAN / national id number; every read audited
+  - { code: partners.penalty.manage,       privileged: false, roles: [tenant_admin, finance, lab_manager] }
   # T0C-SYNC-1 (LD-322): offline sync (device registry, number blocks; conflict inbox in part 2); staff only. sync.use has two segments (named verbatim by LD-322)
   - { code: sync.use,              privileged: false, roles: [tenant_admin, front_desk, finance, lab_technologist, pathologist, lab_manager, centre_staff, phlebotomist, owner_viewer, radiologist] }
   - { code: sync.device.manage,    privileged: true,  roles: [tenant_admin] }

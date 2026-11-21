@@ -27,8 +27,24 @@ exports[`RS-C15 key-screen snapshots > Gateway settings 1`] = `
 <span style="position: absolute; width: 1px; height: 1px; padding: 0px; margin: -1px; overflow: hidden; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); white-space: nowrap; border: 0px;">Note: </span>Environment: Production</p>
 </div>
 </div>
-<div class="lims-card">
-<h2 class="lims-card-title">eSewa</h2>
+<div class="lims-settings">
+<div class="lims-settings-tabs">
+<template>
+</template>
+<div class="lims-tabs" data-rac="" data-orientation="horizontal">
+<div class="lims-tablist" data-rac="" data-collection="aria-id" id="ID" aria-label="Payment settings sections" role="tablist" aria-orientation="horizontal" data-orientation="horizontal">
+<div class="lims-tab" data-rac="" tabindex="0" data-collection="aria-id" data-key="esewa" data-aria-id="true" id="ID" aria-selected="true" aria-controls="ID" role="tab" data-selected="true">eSewa</div>
+<div class="lims-tab" data-rac="" tabindex="-1" data-collection="aria-id" data-key="khalti" data-aria-id="true" id="ID" aria-selected="false" role="tab">Khalti</div>
+<div class="lims-tab" data-rac="" tabindex="-1" data-collection="aria-id" data-key="fonepay" data-aria-id="true" id="ID" aria-selected="false" role="tab">Fonepay</div>
+<div class="lims-tab" data-rac="" tabindex="-1" data-collection="aria-id" data-key="settings" data-aria-id="true" id="ID" aria-selected="false" role="tab">Refunds and labels</div>
+</div>
+<div id="ID" aria-labelledby="ID" tabindex="0" role="tabpanel" class="lims-tabpanel" data-rac="">
+</div>
+</div>
+</div>
+<form novalidate="" class="lims-form lims-settings-form" data-label-placement="above">
+<div class="lims-settings-fields">
+<div class="lims-settings-section">
 <span class="lims-chip lims-chip-md lims-tone-success" data-tone="success">
 <svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
 <path d="M12 3a9 9 0 100 18 9 9 0 000-18zM8 12l3 3 5-6">
@@ -50,20 +66,18 @@ exports[`RS-C15 key-screen snapshots > Gateway settings 1`] = `
 </div>
 <p>Set · fingerprint ab12cd34</p>
 <div class="lims-field">
-<label class="lims-label" for="_r_fh_">Replace secret key</label>
+<label class="lims-label" for="_r_fl_">Replace secret key</label>
 <div class="lims-input-group">
-<input id="_r_fh_" class="lims-input" autocomplete="new-password" maxlength="256" type="password" value="" name="secret_input">
+<input id="_r_fl_" class="lims-input" autocomplete="new-password" maxlength="256" type="password" value="" name="secret_input">
 </div>
 </div>
-<button class="lims-btn lims-btn-primary lims-btn-md" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID">
-<span class="lims-btn-label">Save</span>
-</button>
+<div>
 <button class="lims-btn lims-btn-secondary lims-btn-md" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID">
 <span class="lims-btn-label">Test connection</span>
 </button>
 </div>
-<div class="lims-card">
-<h2 class="lims-card-title">Khalti</h2>
+</div>
+<div class="lims-settings-section" hidden="">
 <span class="lims-chip lims-chip-md lims-tone-neutral" data-tone="neutral">
 <svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
 <path d="M12 3a9 9 0 100 18 9 9 0 000-18z">
@@ -94,20 +108,18 @@ exports[`RS-C15 key-screen snapshots > Gateway settings 1`] = `
 </span>Use Khalti refund API</label>
 <p class="lims-description">Only after the LIMS provider has confirmed the refund API in the sandbox. Otherwise refunds are done in the Khalti dashboard.</p>
 <div class="lims-field">
-<label class="lims-label" for="_r_fv_">Secret key</label>
+<label class="lims-label" for="_r_g1_">Secret key</label>
 <div class="lims-input-group">
-<input id="_r_fv_" class="lims-input" autocomplete="new-password" maxlength="256" type="password" value="" name="secret_input">
+<input id="_r_g1_" class="lims-input" autocomplete="new-password" maxlength="256" type="password" value="" name="secret_input">
 </div>
 </div>
-<button class="lims-btn lims-btn-primary lims-btn-md" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID">
-<span class="lims-btn-label">Save</span>
-</button>
+<div>
 <button class="lims-btn lims-btn-secondary lims-btn-md" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID">
 <span class="lims-btn-label">Test connection</span>
 </button>
 </div>
-<div class="lims-card">
-<h2 class="lims-card-title">Fonepay</h2>
+</div>
+<div class="lims-settings-section" hidden="">
 <span class="lims-chip lims-chip-md lims-tone-neutral" data-tone="neutral">
 <svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
 <path d="M12 3a9 9 0 100 18 9 9 0 000-18z">
@@ -123,8 +135,7 @@ exports[`RS-C15 key-screen snapshots > Gateway settings 1`] = `
 </span>
 </span>Enabled</label>
 </div>
-<div class="lims-card">
-<h2 class="lims-card-title">Refunds and labels</h2>
+<div class="lims-settings-section" hidden="">
 <div class="lims-field" data-rac="">
 <label class="lims-label" id="ID" for="ID">Two-person threshold</label>
 <div class="lims-input-group">
@@ -148,9 +159,14 @@ exports[`RS-C15 key-screen snapshots > Gateway settings 1`] = `
 <span class="lims-switch-thumb">
 </span>
 </span>Nightly reconciliation</label>
-<button class="lims-btn lims-btn-primary lims-btn-md" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID">
+</div>
+</div>
+<div class="lims-settings-bar">
+<button class="lims-btn lims-btn-primary lims-btn-md" data-rac="" type="submit" tabindex="0" data-aria-id="true" id="ID">
 <span class="lims-btn-label">Save</span>
 </button>
+</div>
+</form>
 </div>
 <div class="lims-toast-region">
 </div>"

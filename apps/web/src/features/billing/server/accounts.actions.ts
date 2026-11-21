@@ -2,7 +2,7 @@
 // T0D-ACCT-1 (LD-313) server actions for the accounting screens; errors become { ok:false, code } (same shape as ./actions.ts).
 import 'server-only';
 import { ApiError } from '@/core/api/server-fetch';
-import { createAccountGroup, createAccountLedgerEntry, createAccountParticular, reverseAccountLedgerEntry, updateAccountMaster, type CreateEntryInput, type GroupNature } from './accounts.server';
+import { createAccountGroup, createAccountLedgerEntry, createAccountParticular, holdAccountLedgerEntry, reverseAccountLedgerEntry, updateAccountMaster, type CreateEntryInput, type GroupNature } from './accounts.server';
 import type { ActionResult } from './types';
 
 type Job<T> = () => (Promise<T>);
@@ -29,4 +29,8 @@ export async function createAccountParticularAction(p: { account_group_id: strin
 }
 export async function updateAccountMasterAction(kind: 'group' | 'particular', id: string, version: number, patch: { name?: string; is_active?: boolean }, key: string): Promise<ActionResult<true>> {
   return run(async () => (await updateAccountMaster(kind, id, version, patch, key), true as const));
+}
+/** T0D-FINCTRL-1 (LD-321): Hold / Release on an account entry (POST .../hold or .../release with {reason}). */
+export async function holdAccountEntryAction(entryId: string, action: 'hold' | 'release', reason: string, key: string): Promise<ActionResult<true>> {
+  return run(async () => (await holdAccountLedgerEntry(entryId, action, reason, key), true as const));
 }

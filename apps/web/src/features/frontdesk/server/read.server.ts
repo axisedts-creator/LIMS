@@ -48,6 +48,11 @@ export async function listCentres(): Promise<Centre[]> {
   // kind: LD-310 / T0D-REGSCREEN-1 (Laboratory / Franchise centre selectors)
   return r.data.filter((c) => c.is_active !== false).map((c) => ({ id: (c.centre_id ?? c.id) as string, name: c.name, ...(c.kind ? { kind: c.kind } : {}) }));
 }
+/** T0D-FINCTRL-1 (LD-321) getMyDiscountPolicy (billing.discount_policy.read): the signed in user's own limit and authority (absent = none) and the
+ *  active tenant discount reasons. The discount form falls back to the F25 coded set when this read fails. */
+export interface DiscountCeiling { max_discount_bp: number; max_discount_paisa: number }
+export interface MyDiscountPolicy { own_limit?: DiscountCeiling; authority?: DiscountCeiling; reasons: { code: string; name: string; display_order?: number }[] }
+export const getMyDiscountPolicy = () => serverFetch<MyDiscountPolicy>('/v1/billing/discount-policy/me');
 export async function getDiscountApproval(approvalId: string): Promise<{ id: string; status?: string; state?: string }> {
   return serverFetch(`/v1/frontdesk/discount-approvals/${id(approvalId)}`);
 }

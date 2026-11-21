@@ -20,9 +20,13 @@ import { TextArea } from '@lims/ui/components/TextArea';
 import { useToast } from '@lims/ui/components/Toast';
 import { lookupSpecimenAction, receiveSpecimenAction, rejectSpecimenAction } from '../server/actions';
 import type { RejectionReason, Specimen } from '../server/types';
-import { FAILED, NOT_FOUND, call, enterOnEmptyBox, newKey } from './shared';
+import { FAILED, NOT_FOUND, call, enterOnEmptyBox, newKey, rowError } from './shared';
 import { useSerial } from './useSerial';
 import { t } from '@/core/i18n/messages';
+// T0D-OFFLINE-3 (LD-322; done_when 3): offline, Accept queues accession.receive and the specimen carries the Pending sync badge
+import { OfflineError } from '@/core/offline/store';
+import { isOnline, useOfflineFlows, useOfflineSnapshot } from '@/core/offline/ui/OfflineProvider';
+import { PendingSyncBadge } from '@/core/offline/ui/OfflineParts';
 
 const LOCATION_KEY = 'lims.lab.receive.location'; // value = centre id only
 const LOG_MAX = 50; // [CONV] 03-APP-FLOW §3.3
@@ -67,6 +71,9 @@ function Screen({ centres, rejectionReasons, recollectionDefault, permissions }:
   const [busy, setBusy] = useState(false);
   const busyRef = useRef(false);
   const seq = useRef(0);
+  const flows = useOfflineFlows();
+  const snap = useOfflineSnapshot();
+  const offline = !!flows?.receiveSpecimen && !!snap && !isOnline(snap);
   const box = useRef<HTMLDivElement>(null);
   // Scan jobs run later than the render that queued them: they read the latest choices from here.
   const live = useRef({ centreId, auto });
@@ -117,6 +124,15 @@ function Screen({ centres, rejectionReasons, recollectionDefault, permissions }:
     if (busyRef.current) return;
     busyRef.current = true;
     setBusy(true);
+    if (offline) {
+      try {
+        await flows!.receiveSpecimen!({ specimen_id: s.id, version: s.version, processing_centre_id: centre });
+        addLog(s.barcode, 'Received');
+      } catch (e) { addLog(s.barcode, `Error: ${e instanceof OfflineError ? rowError(e.code) : FAILED}`); }
+      busyRef.current = false;
+      setBusy(false);
+      return focusBox();
+    }
     const r = await call(receiveSpecimenAction(s.id, s.version, centre, newKey()));
     busyRef.current = false;
     setBusy(false);
@@ -186,7 +202,7 @@ function Screen({ centres, rejectionReasons, recollectionDefault, permissions }:
       {msg ? <p className="lims-description">{msg}</p> : null}
       {current ? (
         <section aria-label="Current specimen">
-          <p><strong>{current.barcode}</strong></p>
+          <p><strong>{current.barcode}</strong> <PendingSyncBadge id={current.id} /></p>
           <dl>
             <dt>Registration no</dt>
             <dd>{current.registration_no}</dd>

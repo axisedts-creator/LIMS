@@ -19,7 +19,7 @@ import { A_HB, A_MCV, A_RBC, api, callsTo, loadTests, reset, S, show, testDetail
 
 const HB = testDetail(1, 'HB', 'Hemoglobin', { analytes: [A_HB, A_RBC, A_MCV] });
 
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterAll(() => api.close());
 beforeEach(() => { reset(); loadTests(HB); });
 afterEach(() => { cleanup(); api.resetHandlers(); });

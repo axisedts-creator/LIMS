@@ -11,6 +11,7 @@
 import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';
 import { LimsError } from '../../../core/errors.js';
 import { loadBillingConfig } from '../config.js';
+import { fiscalYearLabel as fiscalYearLabelOf, fyStartOf } from '../domain/fiscalYear.js';
 import { toPaisa } from '../domain/money/paisa.js';
 import * as accounts from '../repository/accounts.repo.js';
 import * as repo from '../repository/expenses.repo.js';
@@ -78,9 +79,13 @@ async function actorInfo(ctx: BalanceCtx) {
 const nowIso = (ctx: BalanceCtx): string => iso((ctx.now as () => unknown)());
 
 /** Post one account ledger entry (receipt number under the tenant lock already held by the caller via nextReceiptSeq) and access-audit it. */
-async function post(ctx: BalanceCtx, tx: Tx, e: Omit<accounts.NewEntry, 'id' | 'receiptNo' | 'receiptSeq' | 'bankName' | 'referenceNo' | 'paymentDetails'> & { seq: number }) {
+async function post(ctx: BalanceCtx, tx: Tx, e: Omit<accounts.NewEntry, 'id' | 'receiptNo' | 'receiptSeq' | 'bankName' | 'referenceNo' | 'paymentDetails' | 'fiscalYearLabel'> & { seq: number }) {
   const { seq, ...rest } = e;
-  const row = await accounts.insertEntry(tx, { ...rest, id: uuidv7(), bankName: null, referenceNo: null, paymentDetails: null, receiptNo: receiptNoOf(seq), receiptSeq: seq });
+  // T0B-FINCTRL-1 done_when 5: every ledger row carries the server set fiscal year label of its own entry_date (tenant start, default Shrawan 1)
+  const s = await identity(ctx).getTenantSettings?.(ctx, { keys: ['fiscal_year_start_bs'] });
+  let fiscalYearLabel: string;
+  try { fiscalYearLabel = fiscalYearLabelOf(e.entryDate as never, fyStartOf(s?.fiscal_year_start_bs)); } catch { throw fail(['/entry_date']); }
+  const row = await accounts.insertEntry(tx, { ...rest, id: uuidv7(), bankName: null, referenceNo: null, paymentDetails: null, receiptNo: receiptNoOf(seq), receiptSeq: seq, fiscalYearLabel });
   const audit = e.reversesEntryId
     ? { action: 'account_entry.reverse', detail: { reverses_entry_id: e.reversesEntryId } }
     : { action: 'account_entry.create' };

@@ -38,18 +38,32 @@ export function clock(startMs: number) {
 
 /**
  * In-memory stand-in for `app.ratelimit_hit(p_key_hash, p_window_seconds, p_limit)` — a line-by-line port of
- * 05-SCHEMA.md §10 (sliding-window approximation, REQ-SEC-079). Exposed as a pg-style `query(sql, values)`.
+ * 05-SCHEMA.md §10 (sliding-window approximation, REQ-SEC-079), plus app.ratelimit_peek / app.ratelimit_clear (LD-410). Exposed as a pg-style `query(sql, values)`.
  * Records the SQL text so tests can prove only the SECURITY DEFINER function is touched (table has no grants).
  */
 export function fakePg(now: () => number) {
   const counters = new Map<string, number>(); // `${key_hash}|${window_start_s}` -> hits
+  const hitTimes = new Map<string, number[]>(); // key_hash -> ms of every hit (stands in for the last_hit column + peek's window count)
   const executed: Array<{ sql: string; values: unknown[] }> = [];
   const state = { down: false };
   async function query(sql: string, values: unknown[] = []): Promise<{ rows: any[] }> {
     executed.push({ sql, values });
     if (state.down) throw new Error('ECONNREFUSED');
+    // LD-410: app.ratelimit_peek(p_key_hash, p_window_seconds) -> (hits, last_hit) never writes; app.ratelimit_clear(p_key_hash) deletes that key only.
+    if (/app\.ratelimit_peek/.test(sql)) {
+      const [k, w] = values as [string, number];
+      const ts = (hitTimes.get(k) ?? []).filter((t) => t > now() - w * 1000);
+      return { rows: [{ hits: ts.length, last_hit: ts.length ? new Date(ts[ts.length - 1]!) : null }] };
+    }
+    if (/app\.ratelimit_clear/.test(sql)) {
+      const k = values[0] as string;
+      for (const ck of [...counters.keys()]) if (ck.startsWith(`${k}|`)) counters.delete(ck);
+      hitTimes.delete(k);
+      return { rows: [{}] };
+    }
     if (!/app\.ratelimit_hit/.test(sql)) throw new Error(`unexpected SQL: ${sql}`);
     const [keyHash, windowSeconds, limit] = values as [string, number, number];
+    hitTimes.set(keyHash, [...(hitTimes.get(keyHash) ?? []), now()]);   // last_hit column (LD-410)
     const nowS = now() / 1000;
     const cur = Math.floor(nowS / windowSeconds) * windowSeconds;
     const prev = cur - windowSeconds;

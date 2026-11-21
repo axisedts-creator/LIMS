@@ -105,7 +105,7 @@ const api = setupServer(
   http.post(`${ORIGIN}/v1/billing/account-ledger-entries`, async ({ request }) => { await rec(request); await delay(latency); return HttpResponse.json({ id: U(320), receipt_no: 'ACC-000010' }, { status: 201 }); }),
   http.all(`${ORIGIN}/v1/billing/*`, async ({ request }) => { await rec(request); return HttpResponse.json({}, { status: 200 }); }),
 );
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { cleanup(); api.resetHandlers(); calls.length = 0; latency = 0; push.mockReset(); refresh.mockReset(); localStorage.clear(); sessionStorage.clear(); vi.restoreAllMocks(); });
 afterAll(() => api.close());
 

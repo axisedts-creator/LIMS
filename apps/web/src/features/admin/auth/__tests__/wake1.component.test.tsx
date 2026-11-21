@@ -13,6 +13,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import type { ComponentProps } from 'react';
 import axe from 'axe-core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import AuthLayout from '@/app/(auth)/layout';
@@ -120,7 +121,7 @@ interface Case {
 const CASES: Case[] = [
   {
     name: 'LoginForm',
-    draw: (action) => void render(<LoginForm action={action} />),
+    draw: (action) => void render(<LoginForm action={action as ComponentProps<typeof LoginForm>['action']} />),
     submit: async (u) => {
       await u.type(screen.getByLabelText(/^work email/i), 'user@example.test');
       await u.type(screen.getByLabelText('Password'), 'Correct-horse-1');
@@ -130,7 +131,7 @@ const CASES: Case[] = [
   },
   {
     name: 'MfaChallengeForm',
-    draw: (action) => void render(<MfaChallengeForm action={action} logoutAction={vi.fn()} />),
+    draw: (action) => void render(<MfaChallengeForm action={action as ComponentProps<typeof MfaChallengeForm>['action']} logoutAction={vi.fn()} />),
     submit: async (u) => {
       await u.click(screen.getAllByRole('textbox')[0]!);
       await u.paste('123456');
@@ -140,7 +141,7 @@ const CASES: Case[] = [
   },
   {
     name: 'SetPasswordForm',
-    draw: (action) => void render(<SetPasswordForm action={action} variant="recovery" />),
+    draw: (action) => void render(<SetPasswordForm action={action as ComponentProps<typeof SetPasswordForm>['action']} variant="recovery" />),
     submit: async (u) => {
       await u.type(screen.getByLabelText('New password'), 'Correct-horse-battery-1');
       await u.type(screen.getByLabelText('Confirm password'), 'Correct-horse-battery-1');

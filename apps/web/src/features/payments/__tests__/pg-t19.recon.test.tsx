@@ -92,7 +92,7 @@ const api = setupServer(
   http.get(`${ORIGIN}/v1/payments/coded-sets/finding_kinds`, () => HttpResponse.json({ data: codes.finding_kinds })),
   http.get(`${ORIGIN}/v1/payments/coded-sets/finding_resolutions`, () => HttpResponse.json({ data: codes.finding_resolutions })),
 );
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { cleanup(); api.resetHandlers(); calls.length = 0; refresh.mockReset(); perms.current = READ; reset(); });
 afterAll(() => api.close());
 

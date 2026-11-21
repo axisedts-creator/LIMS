@@ -98,7 +98,7 @@ const api = setupServer(
   ...(['refund_reject_reasons', 'refund_fail_reasons', 'refund_hold_reasons'] as const).map((s) =>
     http.get(`${ORIGIN}/v1/payments/coded-sets/${s}`, async ({ request }) => { await rec(request); return HttpResponse.json({ data: codes[s] }); })),
 );
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 beforeEach(() => { vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(new Date('2026-11-12T06:00:00Z')); });
 afterEach(() => { vi.useRealTimers(); cleanup(); api.resetHandlers(); calls.length = 0; refresh.mockReset(); push.mockReset(); perms.current = READ; reset(); });
 afterAll(() => api.close());

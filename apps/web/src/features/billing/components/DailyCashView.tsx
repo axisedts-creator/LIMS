@@ -19,6 +19,8 @@ import type { CashSession, DailyCash, Money } from '../server/types';
 import { Ad, BsAd, errorText, formatNpr, hasPerm, humanize, npr } from './format';
 import { ExportButtons } from './ExportButtons';
 import { t } from '@/core/i18n/messages';
+import { isOnline, useOfflineFlows, useOfflineSnapshot } from '@/core/offline/ui/OfflineProvider';
+import { PendingSyncBadge } from '@/core/offline/ui/OfflineParts';
 
 type Line = DailyCash['rows'][number] | { total: true; gross: Money; reversed: Money; net: Money };
 const isTotal = (l: Line): l is Extract<Line, { total: true }> => 'total' in l;
@@ -45,7 +47,7 @@ export function DailyCashView({ report, session, permissions }: { report: DailyC
   const sessions: ColumnDef<CashSession>[] = [
     { id: 'staff', header: 'Staff', isRowHeader: true, cell: (s) => s.opened_by.display_name },
     { id: 'opened', header: 'Opened', cell: (s) => <Ad value={s.opened_at} withTime /> },
-    { id: 'closed', header: 'Closed', cell: (s) => (s.closed_at ? <Ad value={s.closed_at} withTime /> : 'Open') },
+    { id: 'closed', header: 'Closed', cell: (s) => <>{s.closed_at ? <Ad value={s.closed_at} withTime /> : 'Open'} <PendingSyncBadge id={s.id} /></> },
     { id: 'expected', header: 'Expected cash', align: 'end', cell: (s) => npr(cashRow(s)?.expected) },
     { id: 'counted', header: 'Counted cash', align: 'end', cell: (s) => npr(cashRow(s)?.counted) },
     { id: 'variance', header: 'Variance', cell: (s) => varianceText(cashRow(s)?.variance) },
@@ -84,7 +86,7 @@ function MyShift({ session }: { session: CashSession }) {
   const [closing, setClosing] = useState(false);
   return (
     <section aria-label="My shift">
-      <h2>My shift</h2>
+      <h2>My shift <PendingSyncBadge id={session.id} /></h2>
       <ul>{session.rows.map((r) => <li key={r.method_code}>{humanize(r.method_code)}: {npr(r.expected)}</li>)}</ul>
       <Button variant="primary" onPress={() => setClosing(true)}>Close shift</Button>
       {closing ? <CloseShiftDialog session={session} onClose={() => setClosing(false)} /> : null}
@@ -100,6 +102,9 @@ function CloseShiftDialog({ session, onClose }: { session: CashSession; onClose:
   const [error, setError] = useState<string>();
   const key = useRef(crypto.randomUUID());
   const inFlight = useRef(false);
+  const flows = useOfflineFlows();
+  const snap = useOfflineSnapshot();
+  const offline = !!flows?.closeDay && !!snap && !isOnline(snap);
   const submit = async () => {
     if (inFlight.current) return;
     const cash = counted['cash'];
@@ -107,6 +112,12 @@ function CloseShiftDialog({ session, onClose }: { session: CashSession; onClose:
     inFlight.current = true;
     try {
       const body = Object.entries(counted).filter((e): e is [string, FieldMoney] => !!e[1]).map(([method_code, m]) => ({ method_code, amount_paisa: m.amountPaisa }));
+      if (offline) {
+        // T0D-OFFLINE-4 (LD-322; done_when 5): one daily_cash.close operation; someone else closing the day comes back as a conflict on the badge and in the Offline panel
+        const q = await flows!.closeDay!({ session_id: session.id, counted: body, ...(note ? { note } : {}) });
+        if (q.ok) { onClose(); toast.show({ tone: 'success', title: t('offline.saved_offline') }); } else setError(q.message);
+        return;
+      }
       const r = await closeCashSessionAction(session.id, session.version, { counted: body, ...(note ? { note } : {}) }, key.current);
       if (r.ok) { onClose(); toast.show({ tone: 'success', title: 'Shift closed.' }); router.refresh(); } else setError(errorText(r.code));
     } finally {

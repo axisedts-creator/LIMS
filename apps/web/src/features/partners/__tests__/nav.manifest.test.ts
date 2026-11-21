@@ -33,7 +33,11 @@ async function loadManifest() {
 test('nav.manifest: module=partners with the five §1 entries, verbatim ids/labels/routes/permissions/group/order', async () => {
   const { navManifest } = await loadManifest();
   assert.equal(navManifest.module, 'partners');
-  assert.equal(navManifest.entries.length, EXPECTED.length, 'exactly the five §1 entries (partner/manifest detail pages are not nav entries)');
+  // T0D-SALES-1 (LD-321) adds four sales entries (additive, after order 50; pinned by sales1.source.test.ts): the five §1 entries stay verbatim, detail pages are still not nav entries.
+  assert.ok(navManifest.entries.length >= EXPECTED.length, 'at least the five §1 entries (partner/manifest detail pages are not nav entries)');
+  // T0D-PARTYSET-1 (LD-321) adds three more (Onboarding queue, Penalties, Penalty events; pinned by partyset1.source.test.ts).
+  // T0D-MSGDESK-1 (LD-321) adds partners.tickets (pinned by msgdesk1.source.test.ts).
+  assert.ok(navManifest.entries.length <= EXPECTED.length + 4 + 3 + 1, 'only the four T0D-SALES-1, the three T0D-PARTYSET-1 and the one T0D-MSGDESK-1 entries are added');
   for (const x of EXPECTED) {
     const e = navManifest.entries.find((n) => n.id === x.id);
     assert.ok(e, `entry ${x.id}`);

@@ -25,7 +25,7 @@ const HB = testDetail(1, 'HB', 'Hemoglobin', { is_popular: true, short_name: 'Hb
 const CBC = testDetail(2, 'CBC', 'Complete blood count', { is_popular: false, short_name: 'CBC' });
 const GLU = testDetail(3, 'GLU', 'Glucose fasting', { department_id: BIOC.id, is_popular: true, short_name: 'Glu', category_id: CAT2.id });
 
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterAll(() => api.close());
 beforeEach(() => { reset(); loadTests(HB, CBC, GLU); });
 afterEach(() => { cleanup(); api.resetHandlers(); });

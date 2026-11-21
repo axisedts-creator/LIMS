@@ -43,17 +43,19 @@ const ADJUST = PERMISSIONS.stockAdjust;
 const FUTURE_SLACK_MS = 300_000; // 02-TRD §4.7: an instant may lie at most 300 s ahead of the clock
 const DEFAULT_BACKDATE_DAYS = 7;
 
-// ---------------------------------------------------------------- DB error mapping (P-1): a violated constraint is the caller's field, never a 500
+// ---------------------------------------------------------------- DB error mapping (P-1): a violated constraint is never a 500
+// C12.T-26 ruling (02-CONVENTIONS §11.3.1, 07-SECURITY P-T1 / P-T3): an unknown or tenant-B item / pack / test / instrument (the tenant-scoped FKs) is 404 common.not_found,
+// the same answer for both (no existence oracle). 400 stays for shape errors and an analyte that is not of the test (02-TRD #70).
 const BY_CONSTRAINT: Record<string, () => LimsError> = {
   consumption_rules__current__p_uq: () => new LimsError('inventory.rule_conflict'),
-  consumption_rules__item__fk: () => invalid(fieldError('/item_id')),
-  consumption_rules__test__fk: () => invalid(fieldError('/test_id')),
+  consumption_rules__item__fk: notFound,
+  consumption_rules__test__fk: notFound,
   consumption_rules__analyte__fk: () => invalid(fieldError('/analyte_id')),
-  consumption_rules__instrument__fk: () => invalid(fieldError('/instrument_id')),
-  consumption_rules__pack__fk: () => new LimsError('inventory.uom_mismatch'),
+  consumption_rules__instrument__fk: notFound,
+  consumption_rules__pack__fk: notFound,
   consumption_rules__shape__ck: () => invalid(fieldError('/rule_kind')),
-  consumption_facts__test__fk: () => invalid(fieldError('/test_id')),
-  consumption_facts__instrument__fk: () => invalid(fieldError('/instrument_id')),
+  consumption_facts__test__fk: notFound,
+  consumption_facts__instrument__fk: notFound,
 };
 const mapped = async <T>(p: Promise<T>): Promise<T> => {
   try { return await p; } catch (e) {
@@ -101,7 +103,8 @@ async function baseQty(rc: RepoCtx, itemId: string, qty: string, packId: string 
   const entered = formatScaled(scaled(qty, 6), 6);
   if (packId === undefined) return { qty_base: entered, entered_qty: entered, entered_pack_id: null };
   const pack = await getPack(rc, packId);
-  if (pack === null || pack['item_id'] !== itemId) throw new LimsError('inventory.uom_mismatch');
+  if (pack === null) throw notFound(); // T-26 ruling: an unknown or tenant-B pack (RLS hides it) is 404
+  if (pack['item_id'] !== itemId) throw new LimsError('inventory.uom_mismatch');
   let base: string;
   try { base = packToBase(qty, String(pack['qty_in_base'])); } catch { throw invalid(fieldError('/qty')); } // pack quantities carry at most 3 decimals
   return { qty_base: base, entered_qty: entered, entered_pack_id: packId };
@@ -112,6 +115,14 @@ async function checkCatalog(ctx: HandlerContext, testId: string | undefined, ana
   if (testId === undefined) return;
   const t = await (ctx.ports as any).CatalogPort.getTest(ctx, { testId });
   if (analyteId !== undefined && !((t?.analytes ?? []) as { id: string }[]).some((a) => a.id === analyteId)) throw invalid(fieldError('/analyte_id'));
+}
+
+/** T-26 ruling (P-T1): an unknown or tenant-B instrument / test is 404 BEFORE any matching, store resolution or role check (no oracle, no write).
+ *  [CONV] the instrument is looked up in the published directory (CR-C9-006, as resolveStore); the test in catalog.tests, the row consumption_*__test__fk references
+ *  (catalog.v_pub_test_directory also needs an orderable row); RLS hides tenant B. */
+async function assertRefs(rc: RepoCtx, r: { test_id?: string | null; instrument_id?: string | null }): Promise<void> {
+  if (r.instrument_id && (await first(rc, 'SELECT 1 FROM instruments.v_pub_instrument_directory WHERE tenant_id = $1 AND instrument_id = $2', [r.instrument_id])) === null) throw notFound();
+  if (r.test_id && (await first(rc, 'SELECT 1 FROM catalog.tests WHERE tenant_id = $1 AND id = $2', [r.test_id])) === null) throw notFound();
 }
 
 const lockRule = async (rc: RepoCtx, id: string): Promise<Row> => (await first(rc, 'SELECT * FROM inventory.consumption_rules WHERE tenant_id = $1 AND id = $2 FOR UPDATE', [id])) ?? Promise.reject(notFound());
@@ -131,7 +142,8 @@ export async function listRules(ctx: HandlerContext, f: RuleListQuery): Promise<
 export async function createRule(ctx: HandlerContext, input: RuleCreateInput): Promise<Dto> {
   const rc = rcOf(ctx);
   await checkCatalog(ctx, input.test_id, input.analyte_id);
-  if ((await getItem(rc, input.item_id)) === null) throw invalid(fieldError('/item_id'));
+  if ((await getItem(rc, input.item_id)) === null) throw notFound(); // T-26 ruling: unknown or tenant-B item
+  await assertRefs(rc, { instrument_id: input.instrument_id ?? null });
   const qty = await baseQty(rc, input.item_id, input.qty, input.pack_id);
   const row = await mapped(insertRule(rc, {
     id: uuidv7(), rule_kind: input.rule_kind, test_id: input.test_id ?? null, analyte_id: input.analyte_id ?? null, instrument_id: input.instrument_id ?? null, item_id: input.item_id, ...qty,
@@ -233,6 +245,7 @@ export async function listFacts(ctx: HandlerContext, f: FactListQuery): Promise<
 // ---------------------------------------------------------------- #74 preview (dry run: reads only)
 export async function previewConsumption(ctx: HandlerContext, input: PreviewInput): Promise<Dto> {
   const rc = rcOf(ctx);
+  await assertRefs(rc, input); // T-26 ruling: 404, not 200 with no lines
   const clk = await clock(ctx);
   const perms = await permissionsOf(ctx);
   const cost = perms.includes(PERMISSIONS.costRead);
@@ -253,6 +266,7 @@ export async function previewConsumption(ctx: HandlerContext, input: PreviewInpu
 // ---------------------------------------------------------------- #76 manual log (AC-15.1 calibration, AC-15.3 qc, AC-15.2 window; P-B7)
 export async function logEvent(ctx: HandlerContext, input: LogEventInput): Promise<Dto> {
   const rc = rcOf(ctx);
+  await assertRefs(rc, input); // T-26 ruling: 404 before the P-B7 403
   const clk = await clock(ctx);
   const at = Date.parse(input.occurred_at);
   const backdate = Number((await getSettings(rc))?.['backdate_max_days'] ?? DEFAULT_BACKDATE_DAYS);

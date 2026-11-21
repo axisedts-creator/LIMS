@@ -5307,6 +5307,15 @@ paths:
               - approved
               - rejected
               - reversed
+              - held
+        - name: fiscal_year_label
+          in: query
+          required: false
+          schema:
+            type: string
+            minLength: 7
+            maxLength: 7
+            pattern: ^[0-9]{4}/[0-9]{2}$
         - name: entry_date_from
           in: query
           required: false
@@ -6522,6 +6531,1195 @@ paths:
           $ref: _common.yaml#/components/responses/Forbidden
         "404":
           $ref: _common.yaml#/components/responses/NotFound
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/billing/discount-reasons:
+    get:
+      operationId: listDiscountReasons
+      tags:
+        - billing
+      summary: List discount reasons
+      description: T0C-FINCTRL-1 (LD-321, founder blanket authority LD-310). The tenant discount reason master (ElabAssist Discount Reason), ordered by display_order.
+      security:
+        - bearerJwt: []
+      x-permission: billing.discount_policy.read
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.invalid_cursor
+      parameters:
+        - name: is_active
+          in: query
+          required: false
+          schema:
+            type: boolean
+        - &a1
+          $ref: _common.yaml#/components/parameters/Cursor
+        - &a2
+          $ref: _common.yaml#/components/parameters/Limit
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DiscountReasonPage"
+              examples:
+                synthetic:
+                  value:
+                    data:
+                      - id: 0193c4a0-0000-7000-8000-00000fc00100
+                        code: PARTNER_FAMILY
+                        name: Partner Family
+                        is_active: true
+                        display_order: 1
+                        version: 1
+                        created_at: 2026-11-17T04:15:00.000Z
+                        updated_at: 2026-11-17T04:15:00.000Z
+                    page:
+                      limit: 50
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+    post:
+      operationId: createDiscountReason
+      tags:
+        - billing
+      summary: Create a discount reason
+      description: T0C-FINCTRL-1 (LD-321, founder blanket authority LD-310). Code unique per tenant (upper case, immutable); a duplicate -> common.validation_failed. Reasons are deactivated, never deleted.
+      security:
+        - bearerJwt: []
+      x-permission: billing.discount_policy.manage
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.idempotency_key_reused
+      parameters:
+        - &a3
+          name: Idempotency-Key
+          in: header
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 64
+            pattern: ^[A-Za-z0-9_-]{1,64}$
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateDiscountReasonRequest"
+            examples:
+              synthetic:
+                value:
+                  code: PARTNER_FAMILY
+                  name: Partner Family
+                  display_order: 1
+      responses:
+        "201":
+          description: Created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DiscountReason"
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-00000fc00101
+                    code: PARTNER_FAMILY
+                    name: Partner Family
+                    is_active: true
+                    display_order: 1
+                    version: 1
+                    created_at: 2026-11-17T04:15:00.000Z
+                    updated_at: 2026-11-17T04:15:00.000Z
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/billing/discount-reasons/{discount_reason_id}:
+    patch:
+      operationId: updateDiscountReason
+      tags:
+        - billing
+      summary: Update a discount reason
+      description: T0C-FINCTRL-1 (LD-321, founder blanket authority LD-310). Rename, reorder or deactivate (is_active false); the code never changes (approvals and reports refer to it). No delete.
+      security:
+        - bearerJwt: []
+      x-permission: billing.discount_policy.manage
+      x-context: tenant
+      x-idempotency: optional
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.version_conflict
+        - common.precondition_required
+      parameters:
+        - name: discount_reason_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - name: If-Match
+          in: header
+          required: true
+          schema:
+            type: string
+            maxLength: 12
+            pattern: ^"[1-9][0-9]*"$
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateDiscountReasonRequest"
+            examples:
+              synthetic:
+                value:
+                  name: Partner Family
+                  display_order: 2
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DiscountReason"
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-00000fc00102
+                    code: PARTNER_FAMILY
+                    name: Partner Family
+                    is_active: true
+                    display_order: 2
+                    version: 2
+                    created_at: 2026-11-17T04:15:00.000Z
+                    updated_at: 2026-11-17T04:15:00.000Z
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "428":
+          $ref: _common.yaml#/components/responses/PreconditionRequired
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/billing/discount-slabs:
+    get:
+      operationId: listPartyDiscountSlabs
+      tags:
+        - billing
+      summary: List party discount slabs
+      description: T0C-FINCTRL-1 (LD-321, founder blanket authority LD-310). ElabAssist Discount slab per party.
+      security:
+        - bearerJwt: []
+      x-permission: billing.discount_policy.read
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.invalid_cursor
+      parameters:
+        - name: party_kind
+          in: query
+          required: false
+          schema: &a4
+            type: string
+            maxLength: 12
+            enum:
+              - credit_party
+              - partner
+              - doctor
+              - franchise
+        - name: party_id
+          in: query
+          required: false
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - name: is_active
+          in: query
+          required: false
+          schema:
+            type: boolean
+        - *a1
+        - *a2
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PartyDiscountSlabPage"
+              examples:
+                synthetic:
+                  value:
+                    data:
+                      - id: 0193c4a0-0000-7000-8000-00000fc00103
+                        party_kind: credit_party
+                        party_id: 0193c4a0-0000-7000-8000-00000fc00003
+                        amount_from_paisa: 0
+                        amount_to_paisa: 100000
+                        discount_bp: 500
+                        effective_from: 2026-11-17
+                        is_active: true
+                        version: 1
+                        created_at: 2026-11-17T04:15:00.000Z
+                        updated_at: 2026-11-17T04:15:00.000Z
+                    page:
+                      limit: 50
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+    post:
+      operationId: createPartyDiscountSlab
+      tags:
+        - billing
+      summary: Create a party discount slab
+      description: "T0C-FINCTRL-1 (LD-321, founder blanket authority LD-310). Amount range is half open [amount_from_paisa, amount_to_paisa); dates are inclusive, effective_to absent = open ended. Two ACTIVE slabs of one party must not overlap in both the amount range and the date range: an overlap -> common.validation_failed (enforced in the database)."
+      security:
+        - bearerJwt: []
+      x-permission: billing.discount_policy.manage
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.idempotency_key_reused
+      parameters:
+        - *a3
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePartyDiscountSlabRequest"
+            examples:
+              synthetic:
+                value:
+                  party_kind: credit_party
+                  party_id: 0193c4a0-0000-7000-8000-00000fc00003
+                  amount_from_paisa: 0
+                  amount_to_paisa: 100000
+                  discount_bp: 500
+                  effective_from: 2026-11-17
+      responses:
+        "201":
+          description: Created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PartyDiscountSlab"
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-00000fc00104
+                    party_kind: credit_party
+                    party_id: 0193c4a0-0000-7000-8000-00000fc00003
+                    amount_from_paisa: 0
+                    amount_to_paisa: 100000
+                    discount_bp: 500
+                    effective_from: 2026-11-17
+                    is_active: true
+                    version: 1
+                    created_at: 2026-11-17T04:15:00.000Z
+                    updated_at: 2026-11-17T04:15:00.000Z
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/billing/discount-slabs/{party_discount_slab_id}:
+    patch:
+      operationId: updatePartyDiscountSlab
+      tags:
+        - billing
+      summary: Update a party discount slab
+      description: T0C-FINCTRL-1 (LD-321, founder blanket authority LD-310). Changes the ranges or the percentage; the party never changes. The no overlap rule is checked again -> common.validation_failed.
+      security:
+        - bearerJwt: []
+      x-permission: billing.discount_policy.manage
+      x-context: tenant
+      x-idempotency: optional
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.version_conflict
+        - common.precondition_required
+      parameters:
+        - name: party_discount_slab_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - name: If-Match
+          in: header
+          required: true
+          schema:
+            type: string
+            maxLength: 12
+            pattern: ^"[1-9][0-9]*"$
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdatePartyDiscountSlabRequest"
+            examples:
+              synthetic:
+                value:
+                  discount_bp: 750
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PartyDiscountSlab"
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-00000fc00105
+                    party_kind: credit_party
+                    party_id: 0193c4a0-0000-7000-8000-00000fc00003
+                    amount_from_paisa: 0
+                    amount_to_paisa: 100000
+                    discount_bp: 750
+                    effective_from: 2026-11-17
+                    is_active: true
+                    version: 2
+                    created_at: 2026-11-17T04:15:00.000Z
+                    updated_at: 2026-11-17T04:15:00.000Z
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "428":
+          $ref: _common.yaml#/components/responses/PreconditionRequired
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/billing/discount-slabs/{party_discount_slab_id}/deactivate:
+    post:
+      operationId: deactivatePartyDiscountSlab
+      tags:
+        - billing
+      summary: Deactivate a party discount slab
+      description: T0C-FINCTRL-1 (LD-321, founder blanket authority LD-310). Sets is_active false (never deleted); idempotent on an inactive slab.
+      security:
+        - bearerJwt: []
+      x-permission: billing.discount_policy.manage
+      x-context: tenant
+      x-idempotency: optional
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.version_conflict
+        - common.precondition_required
+      parameters:
+        - name: party_discount_slab_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - name: If-Match
+          in: header
+          required: true
+          schema:
+            type: string
+            maxLength: 12
+            pattern: ^"[1-9][0-9]*"$
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PartyDiscountSlab"
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-00000fc00106
+                    party_kind: credit_party
+                    party_id: 0193c4a0-0000-7000-8000-00000fc00003
+                    amount_from_paisa: 0
+                    amount_to_paisa: 100000
+                    discount_bp: 500
+                    effective_from: 2026-11-17
+                    is_active: false
+                    version: 2
+                    created_at: 2026-11-17T04:15:00.000Z
+                    updated_at: 2026-11-17T04:15:00.000Z
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "428":
+          $ref: _common.yaml#/components/responses/PreconditionRequired
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/billing/discount-slabs/resolve:
+    get:
+      operationId: resolveDiscountSlab
+      tags:
+        - billing
+      summary: Resolve the discount slab for a party and bill amount
+      description: "T0C-FINCTRL-1 (LD-321, founder blanket authority LD-310). Returns the active slab of the party whose half open amount range holds amount_paisa on on_date (default: today, Asia/Kathmandu). No slab -> matched false. A read the offline layer may cache."
+      security:
+        - bearerJwt: []
+      x-permission: billing.discount_policy.read
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+      parameters:
+        - name: party_kind
+          in: query
+          required: true
+          schema: *a4
+        - name: party_id
+          in: query
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - name: amount_paisa
+          in: query
+          required: true
+          schema:
+            type: integer
+            format: int64
+            minimum: 0
+            maximum: 9007199254740991
+        - name: on_date
+          in: query
+          required: false
+          schema:
+            $ref: _common.yaml#/components/schemas/IsoDate
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DiscountSlabResolution"
+              examples:
+                synthetic:
+                  value:
+                    matched: true
+                    slab:
+                      id: 0193c4a0-0000-7000-8000-00000fc00107
+                      party_kind: credit_party
+                      party_id: 0193c4a0-0000-7000-8000-00000fc00003
+                      amount_from_paisa: 0
+                      amount_to_paisa: 100000
+                      discount_bp: 500
+                      effective_from: 2026-11-17
+                      is_active: true
+                      version: 1
+                      created_at: 2026-11-17T04:15:00.000Z
+                      updated_at: 2026-11-17T04:15:00.000Z
+                    discount_bp: 500
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/billing/discount-limits:
+    get:
+      operationId: listUserDiscountLimits
+      tags:
+        - billing
+      summary: List per user discount limits
+      description: "T0C-FINCTRL-1 (LD-321, founder blanket authority LD-310). ElabAssist Discount Limit: the most a user may give on one bill without approval."
+      security:
+        - bearerJwt: []
+      x-permission: billing.discount_policy.read
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.invalid_cursor
+      parameters:
+        - name: user_id
+          in: query
+          required: false
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - name: is_active
+          in: query
+          required: false
+          schema:
+            type: boolean
+        - *a1
+        - *a2
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserDiscountLimitPage"
+              examples:
+                synthetic:
+                  value:
+                    data:
+                      - id: 0193c4a0-0000-7000-8000-00000fc00108
+                        user_id: 0193c4a0-0000-7000-8000-00000fc00005
+                        max_discount_bp: 1000
+                        max_discount_paisa: 50000
+                        is_active: true
+                        version: 1
+                        created_at: 2026-11-17T04:15:00.000Z
+                        updated_at: 2026-11-17T04:15:00.000Z
+                    page:
+                      limit: 50
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/billing/discount-limits/{user_id}:
+    put:
+      operationId: setUserDiscountLimit
+      tags:
+        - billing
+      summary: Set the discount limit of a user
+      description: "T0C-FINCTRL-1 (LD-321, founder blanket authority LD-310). Creates or replaces the one active limit of the user (path user_id). If-Match is optional: absent on the first save, the current version afterwards."
+      security:
+        - bearerJwt: []
+      x-permission: billing.discount_policy.manage
+      x-context: tenant
+      x-idempotency: optional
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.version_conflict
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - name: If-Match
+          in: header
+          required: false
+          schema:
+            type: string
+            maxLength: 12
+            pattern: ^"[1-9][0-9]*"$
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SetUserDiscountLimitRequest"
+            examples:
+              synthetic:
+                value:
+                  max_discount_bp: 1000
+                  max_discount_paisa: 50000
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserDiscountLimit"
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-00000fc00109
+                    user_id: 0193c4a0-0000-7000-8000-00000fc00005
+                    max_discount_bp: 1000
+                    max_discount_paisa: 50000
+                    is_active: true
+                    version: 1
+                    created_at: 2026-11-17T04:15:00.000Z
+                    updated_at: 2026-11-17T04:15:00.000Z
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/billing/discount-authorities:
+    get:
+      operationId: listDiscountAuthorities
+      tags:
+        - billing
+      summary: List discount authorities
+      description: "T0C-FINCTRL-1 (LD-321, founder blanket authority LD-310). ElabAssist Discount Authority / Authorize person: who may approve a discount above a limit, and up to how much."
+      security:
+        - bearerJwt: []
+      x-permission: billing.discount_policy.read
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.invalid_cursor
+      parameters:
+        - name: user_id
+          in: query
+          required: false
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - name: is_active
+          in: query
+          required: false
+          schema:
+            type: boolean
+        - *a1
+        - *a2
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DiscountAuthorityPage"
+              examples:
+                synthetic:
+                  value:
+                    data:
+                      - id: 0193c4a0-0000-7000-8000-00000fc00110
+                        user_id: 0193c4a0-0000-7000-8000-00000fc00007
+                        max_discount_bp: 5000
+                        max_discount_paisa: 500000
+                        is_active: true
+                        version: 1
+                        created_at: 2026-11-17T04:15:00.000Z
+                        updated_at: 2026-11-17T04:15:00.000Z
+                    page:
+                      limit: 50
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+    post:
+      operationId: createDiscountAuthority
+      tags:
+        - billing
+      summary: Create a discount authority
+      description: T0C-FINCTRL-1 (LD-321, founder blanket authority LD-310). Deactivated, never deleted.
+      security:
+        - bearerJwt: []
+      x-permission: billing.discount_policy.manage
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.idempotency_key_reused
+      parameters:
+        - *a3
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateDiscountAuthorityRequest"
+            examples:
+              synthetic:
+                value:
+                  user_id: 0193c4a0-0000-7000-8000-00000fc00007
+                  max_discount_bp: 5000
+                  max_discount_paisa: 500000
+      responses:
+        "201":
+          description: Created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DiscountAuthority"
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-00000fc00111
+                    user_id: 0193c4a0-0000-7000-8000-00000fc00007
+                    max_discount_bp: 5000
+                    max_discount_paisa: 500000
+                    is_active: true
+                    version: 1
+                    created_at: 2026-11-17T04:15:00.000Z
+                    updated_at: 2026-11-17T04:15:00.000Z
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/billing/discount-authorities/{discount_authority_id}/deactivate:
+    post:
+      operationId: deactivateDiscountAuthority
+      tags:
+        - billing
+      summary: Deactivate a discount authority
+      description: T0C-FINCTRL-1 (LD-321, founder blanket authority LD-310). Sets is_active false (never deleted).
+      security:
+        - bearerJwt: []
+      x-permission: billing.discount_policy.manage
+      x-context: tenant
+      x-idempotency: optional
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.version_conflict
+        - common.precondition_required
+      parameters:
+        - name: discount_authority_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - name: If-Match
+          in: header
+          required: true
+          schema:
+            type: string
+            maxLength: 12
+            pattern: ^"[1-9][0-9]*"$
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DiscountAuthority"
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-00000fc00112
+                    user_id: 0193c4a0-0000-7000-8000-00000fc00007
+                    max_discount_bp: 5000
+                    max_discount_paisa: 500000
+                    is_active: false
+                    version: 2
+                    created_at: 2026-11-17T04:15:00.000Z
+                    updated_at: 2026-11-17T04:15:00.000Z
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "428":
+          $ref: _common.yaml#/components/responses/PreconditionRequired
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/billing/discount-policy/me:
+    get:
+      operationId: getMyDiscountPolicy
+      tags:
+        - billing
+      summary: Get my discount policy
+      description: T0C-FINCTRL-1 (LD-321, founder blanket authority LD-310). The caller own active limit and authority (absent = none) and the active discount reasons, for the billing screen. Never another user. A read the offline layer may cache.
+      security:
+        - bearerJwt: []
+      x-permission: billing.discount_policy.read
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MyDiscountPolicy"
+              examples:
+                synthetic:
+                  value:
+                    own_limit:
+                      max_discount_bp: 1000
+                      max_discount_paisa: 50000
+                    reasons:
+                      - code: PARTNER_FAMILY
+                        name: Partner Family
+                        display_order: 1
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/billing/account-ledger-entries/{account_ledger_entry_id}/hold:
+    post:
+      operationId: holdLedgerEntry
+      tags:
+        - billing
+      summary: Hold an account ledger entry
+      description: T0C-FINCTRL-1 (LD-321, founder blanket authority LD-310). Only a submitted entry can be held (submitted -> held); anything else -> common.immutable_record. Amount, party, particular, date and type never change. Posted balances, statements and summaries exclude held entries until they are released; held entries are listed apart.
+      security:
+        - bearerJwt: []
+      x-permission: billing.account.manage
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.idempotency_key_reused
+        - common.immutable_record
+      parameters:
+        - name: account_ledger_entry_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - *a3
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LedgerHoldReasonRequest"
+            examples:
+              synthetic:
+                value:
+                  reason: Cheque not cleared
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountLedgerEntry"
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-00000fc00113
+                    centre_id: 0193c4a0-0000-7000-8000-00000fc00009
+                    party_kind: credit_party
+                    party_id: 0193c4a0-0000-7000-8000-00000fc00010
+                    entry_date: 2026-11-17
+                    account_particular_id: 0193c4a0-0000-7000-8000-00000fc00011
+                    entry_type: credit
+                    amount_paisa: 150000
+                    payment_mode: cheque
+                    bank_name: Synthetic Bank
+                    reference_no: SYN-REF-1
+                    comments: Synthetic comment
+                    receipt_no: ACC-000001
+                    created_by: 0193c4a0-0000-7000-8000-00000fc00012
+                    last_modified_by: 0193c4a0-0000-7000-8000-00000fc00013
+                    created_at: 2026-11-17T04:15:00.000Z
+                    fiscal_year_label: 2083/84
+                    status: held
+                    held_reason: Cheque not cleared
+                    held_by: 0193c4a0-0000-7000-8000-00000fc00014
+                    held_at: 2026-11-17T04:15:00.000Z
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/billing/account-ledger-entries/{account_ledger_entry_id}/release:
+    post:
+      operationId: releaseLedgerEntry
+      tags:
+        - billing
+      summary: Release a held account ledger entry
+      description: T0C-FINCTRL-1 (LD-321, founder blanket authority LD-310). Only a held entry can be released; it returns to submitted and counts in posted balances again (held_* stay as history, released_by / released_at are set). Anything else -> common.immutable_record.
+      security:
+        - bearerJwt: []
+      x-permission: billing.account.manage
+      x-context: tenant
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.idempotency_key_reused
+        - common.immutable_record
+      parameters:
+        - name: account_ledger_entry_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - *a3
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LedgerHoldReasonRequest"
+            examples:
+              synthetic:
+                value:
+                  reason: Cheque cleared
+      responses:
+        "200":
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountLedgerEntry"
+              examples:
+                synthetic:
+                  value:
+                    id: 0193c4a0-0000-7000-8000-00000fc00114
+                    centre_id: 0193c4a0-0000-7000-8000-00000fc00009
+                    party_kind: credit_party
+                    party_id: 0193c4a0-0000-7000-8000-00000fc00010
+                    entry_date: 2026-11-17
+                    account_particular_id: 0193c4a0-0000-7000-8000-00000fc00011
+                    entry_type: credit
+                    amount_paisa: 150000
+                    payment_mode: cheque
+                    bank_name: Synthetic Bank
+                    reference_no: SYN-REF-1
+                    comments: Synthetic comment
+                    receipt_no: ACC-000001
+                    created_by: 0193c4a0-0000-7000-8000-00000fc00012
+                    last_modified_by: 0193c4a0-0000-7000-8000-00000fc00013
+                    created_at: 2026-11-17T04:15:00.000Z
+                    fiscal_year_label: 2083/84
+                    status: submitted
+                    held_reason: Cheque not cleared
+                    held_by: 0193c4a0-0000-7000-8000-00000fc00014
+                    held_at: 2026-11-17T04:15:00.000Z
+                    released_by: 0193c4a0-0000-7000-8000-00000fc00015
+                    released_at: 2026-11-17T04:15:00.000Z
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "422":
+          $ref: _common.yaml#/components/responses/Unprocessable
         "429":
           $ref: _common.yaml#/components/responses/TooManyRequests
         "500":
@@ -8442,6 +9640,18 @@ components:
         note:
           type: string
           maxLength: 500
+        previous_outstanding_cash_paisa:
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 9007199254740991
+          description: "T0C-FINCTRL-1 (LD-321): cash carried forward from the day before (ElabAssist Previous Outstanding Cash), set when the session opens."
+        deposit_paisa:
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 9007199254740991
+          description: "T0C-FINCTRL-1 (LD-321): cash deposited (ElabAssist Deposit Amount); 0 until recorded."
         version:
           $ref: _common.yaml#/components/schemas/Version
       description: "[CONV] expected per method, counted, variance (TRD B17)."
@@ -8474,6 +9684,12 @@ components:
         note:
           type: string
           maxLength: 500
+        deposit_paisa:
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 9007199254740991
+          description: "T0C-FINCTRL-1 (LD-321): optional cash deposited at close (ElabAssist Deposit Amount)."
     DailyCash:
       type: object
       additionalProperties: false
@@ -9536,6 +10752,26 @@ components:
             - approved
             - rejected
             - reversed
+            - held
+          description: "T0C-FINCTRL-1 (LD-321): held = on hold (ElabAssist Entry Status Hold); posted balances, statements and summaries count every status except held."
+        held_reason:
+          type: string
+          minLength: 1
+          maxLength: 500
+        held_by:
+          $ref: _common.yaml#/components/schemas/Uuid
+        held_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        released_by:
+          $ref: _common.yaml#/components/schemas/Uuid
+        released_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        fiscal_year_label:
+          type: string
+          minLength: 7
+          maxLength: 7
+          pattern: ^[0-9]{4}/[0-9]{2}$
+          description: "T0C-FINCTRL-1 (LD-321): Nepali fiscal year (B.S.) such as 2083/84, set by the server from entry_date (year start Shrawan 1 until the accountant confirms)."
         reverses_entry_id:
           $ref: _common.yaml#/components/schemas/Uuid
         receipt_no:
@@ -10051,3 +11287,386 @@ components:
           type: string
           minLength: 1
           maxLength: 1000
+    DiscountReason:
+      type: object
+      additionalProperties: false
+      description: T0C-FINCTRL-1 (LD-321, founder blanket authority LD-310). Tenant discount reason (ElabAssist Discount Reason).
+      required:
+        - id
+        - code
+        - name
+        - is_active
+        - display_order
+        - version
+        - created_at
+        - updated_at
+      properties:
+        id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        code: &a1
+          type: string
+          minLength: 1
+          maxLength: 32
+          pattern: ^[A-Z0-9_]{1,32}$
+        name: &a2
+          type: string
+          minLength: 1
+          maxLength: 200
+        is_active:
+          type: boolean
+        display_order: &a3
+          type: integer
+          minimum: 0
+          maximum: 9999
+        version: &a4
+          $ref: _common.yaml#/components/schemas/Version
+        created_at: &a5
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        updated_at: &a6
+          $ref: _common.yaml#/components/schemas/IsoUtc
+    DiscountReasonPage:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - page
+      properties:
+        data:
+          type: array
+          maxItems: 200
+          items:
+            $ref: "#/components/schemas/DiscountReason"
+        page:
+          $ref: _common.yaml#/components/schemas/PageInfo
+    CreateDiscountReasonRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - code
+        - name
+      properties:
+        code: *a1
+        name: *a2
+        display_order: *a3
+    UpdateDiscountReasonRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        name: *a2
+        display_order: *a3
+        is_active:
+          type: boolean
+      minProperties: 1
+    PartyDiscountSlab:
+      type: object
+      additionalProperties: false
+      description: T0C-FINCTRL-1 (LD-321, founder blanket authority LD-310). Discount slab of one party (ElabAssist Discount slab); effective_to absent = open ended.
+      required:
+        - id
+        - party_kind
+        - party_id
+        - amount_from_paisa
+        - amount_to_paisa
+        - discount_bp
+        - effective_from
+        - is_active
+        - version
+        - created_at
+        - updated_at
+      properties:
+        id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        party_kind: &a7
+          type: string
+          maxLength: 12
+          enum:
+            - credit_party
+            - partner
+            - doctor
+            - franchise
+        party_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        amount_from_paisa:
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 9007199254740991
+          description: Lower bound, inclusive.
+        amount_to_paisa: &a8
+          type: integer
+          format: int64
+          minimum: 1
+          maximum: 9007199254740991
+          description: "Upper bound, exclusive (not included): the slab holds amounts from amount_from_paisa up to but not including amount_to_paisa; greater than amount_from_paisa."
+        discount_bp:
+          type: integer
+          minimum: 0
+          maximum: 10000
+          description: Discount in basis points (500 = 5 percent).
+        effective_from:
+          $ref: _common.yaml#/components/schemas/IsoDate
+        effective_to:
+          $ref: _common.yaml#/components/schemas/IsoDate
+        is_active:
+          type: boolean
+        version: *a4
+        created_at: *a5
+        updated_at: *a6
+    PartyDiscountSlabPage:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - page
+      properties:
+        data:
+          type: array
+          maxItems: 200
+          items:
+            $ref: "#/components/schemas/PartyDiscountSlab"
+        page:
+          $ref: _common.yaml#/components/schemas/PageInfo
+    CreatePartyDiscountSlabRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - party_kind
+        - party_id
+        - amount_from_paisa
+        - amount_to_paisa
+        - discount_bp
+        - effective_from
+      properties:
+        party_kind: *a7
+        party_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        amount_from_paisa:
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 9007199254740991
+        amount_to_paisa: *a8
+        discount_bp:
+          type: integer
+          minimum: 0
+          maximum: 10000
+        effective_from:
+          $ref: _common.yaml#/components/schemas/IsoDate
+        effective_to:
+          $ref: _common.yaml#/components/schemas/IsoDate
+    UpdatePartyDiscountSlabRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        amount_from_paisa:
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 9007199254740991
+        amount_to_paisa: *a8
+        discount_bp:
+          type: integer
+          minimum: 0
+          maximum: 10000
+        effective_from:
+          $ref: _common.yaml#/components/schemas/IsoDate
+        effective_to:
+          $ref: _common.yaml#/components/schemas/IsoDate
+      minProperties: 1
+    DiscountSlabResolution:
+      type: object
+      additionalProperties: false
+      description: T0C-FINCTRL-1 (LD-321, founder blanket authority LD-310). matched false = no active slab (slab and discount_bp absent).
+      required:
+        - matched
+      properties:
+        matched:
+          type: boolean
+        slab:
+          $ref: "#/components/schemas/PartyDiscountSlab"
+        discount_bp:
+          type: integer
+          minimum: 0
+          maximum: 10000
+    UserDiscountLimit:
+      type: object
+      additionalProperties: false
+      description: T0C-FINCTRL-1 (LD-321, founder blanket authority LD-310). Per user discount limit (ElabAssist Discount Limit); one active row per user.
+      required:
+        - id
+        - user_id
+        - max_discount_bp
+        - max_discount_paisa
+        - is_active
+        - version
+        - created_at
+        - updated_at
+      properties:
+        id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        user_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        max_discount_bp:
+          type: integer
+          minimum: 0
+          maximum: 10000
+        max_discount_paisa:
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 9007199254740991
+          description: Most discount on one bill, paisa.
+        is_active:
+          type: boolean
+        version: *a4
+        created_at: *a5
+        updated_at: *a6
+    UserDiscountLimitPage:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - page
+      properties:
+        data:
+          type: array
+          maxItems: 200
+          items:
+            $ref: "#/components/schemas/UserDiscountLimit"
+        page:
+          $ref: _common.yaml#/components/schemas/PageInfo
+    SetUserDiscountLimitRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - max_discount_bp
+        - max_discount_paisa
+      properties:
+        max_discount_bp:
+          type: integer
+          minimum: 0
+          maximum: 10000
+        max_discount_paisa:
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 9007199254740991
+        is_active:
+          type: boolean
+    DiscountAuthority:
+      type: object
+      additionalProperties: false
+      description: T0C-FINCTRL-1 (LD-321, founder blanket authority LD-310). Discount authority (ElabAssist Discount Authority / Authorize person).
+      required:
+        - id
+        - user_id
+        - max_discount_bp
+        - max_discount_paisa
+        - is_active
+        - version
+        - created_at
+        - updated_at
+      properties:
+        id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        user_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        max_discount_bp:
+          type: integer
+          minimum: 0
+          maximum: 10000
+        max_discount_paisa:
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 9007199254740991
+        is_active:
+          type: boolean
+        version: *a4
+        created_at: *a5
+        updated_at: *a6
+    DiscountAuthorityPage:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+        - page
+      properties:
+        data:
+          type: array
+          maxItems: 200
+          items:
+            $ref: "#/components/schemas/DiscountAuthority"
+        page:
+          $ref: _common.yaml#/components/schemas/PageInfo
+    CreateDiscountAuthorityRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - user_id
+        - max_discount_bp
+        - max_discount_paisa
+      properties:
+        user_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        max_discount_bp:
+          type: integer
+          minimum: 0
+          maximum: 10000
+        max_discount_paisa:
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 9007199254740991
+    DiscountCeiling:
+      type: object
+      additionalProperties: false
+      required:
+        - max_discount_bp
+        - max_discount_paisa
+      properties:
+        max_discount_bp:
+          type: integer
+          minimum: 0
+          maximum: 10000
+        max_discount_paisa:
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 9007199254740991
+    DiscountReasonOption:
+      type: object
+      additionalProperties: false
+      required:
+        - code
+        - name
+      properties:
+        code: *a1
+        name: *a2
+        display_order: *a3
+    MyDiscountPolicy:
+      type: object
+      additionalProperties: false
+      description: T0C-FINCTRL-1 (LD-321, founder blanket authority LD-310). The signed in user own limit and authority (absent = none) and the active reasons.
+      required:
+        - reasons
+      properties:
+        own_limit:
+          $ref: "#/components/schemas/DiscountCeiling"
+        authority:
+          $ref: "#/components/schemas/DiscountCeiling"
+        reasons:
+          type: array
+          maxItems: 200
+          items:
+            $ref: "#/components/schemas/DiscountReasonOption"
+    LedgerHoldReasonRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - reason
+      properties:
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 500

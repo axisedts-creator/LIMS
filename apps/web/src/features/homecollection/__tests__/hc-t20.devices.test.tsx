@@ -34,7 +34,7 @@ let wipe: R;
 const reset = () => { wipe = () => HttpResponse.json({ ...D1, status: 'wipe_requested', version: 4, wipe_requested_at: '2026-11-14T04:00:00.000Z' }); };
 reset();
 const api = setupServer(http.post(`${API}/devices/:id/wipe`, async ({ request }) => { await rec(request); return wipe(); }));
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 beforeEach(() => { vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(new Date('2026-11-14T04:00:00Z')); });
 afterEach(() => { vi.useRealTimers(); cleanup(); api.resetHandlers(); calls.length = 0; refresh.mockReset(); reset(); });
 afterAll(() => api.close());

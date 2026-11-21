@@ -2,6 +2,7 @@
 // core pipeline; these handlers re-check what they need (fail closed), are pure reads, never echo input, and never log PHI. Centre scoping = RLS `__tenant_centre` (unknown id == other centre == 404).
 import { LimsError, type FieldError } from '../../../core/errors.js';
 import type { Handler, HandlerContext, HandlerRequest } from '../../../core/module.js';
+import { guarded } from './_guard.js';
 import type { StorageAdapter } from '../../../core/storage/index.js';
 import { streamStored, type RequestHeaders } from '../../../core/storage/stream.js';
 import { displayStatus, toDetail, toSummary, toVersionSummary } from '../mappers/report.mapper.js';
@@ -104,7 +105,7 @@ async function summaries(c: Ctx, rows: any[]): Promise<any[]> {
   return rows.map((r) => toSummary(r, vs.get(r['id']) ?? [], its.get(r['id']) ?? []));
 }
 
-export const reportsReadHandlers: Readonly<Record<string, Handler>> = Object.freeze({
+const reportsReadRaw: Readonly<Record<string, Handler>> = Object.freeze({
   // R1 — delivery-free summaries from the snapshot columns; no port call.
   listReports: async (req: HandlerRequest, hctx: HandlerContext) => {
     const c = staff(hctx); const { filter, statuses, limit, sortKey } = parseList(req.query);
@@ -237,4 +238,16 @@ export const reportsReadHandlers: Readonly<Record<string, Handler>> = Object.fre
     if (all.length > lim) { const last = pageRows[lim - 1]!; page['next_cursor'] = b64({ k: last.k, i: last.id }); }
     return { status: 200, body: { data, page } };
   },
+});
+
+// SEC-AUTHZ-7 (LD-189, LD-261): every staff read asks reporting.report.read (the contract x-permission) first; the conditional lab.specimen.read (barcode search) and
+// reporting.report.release (unreleased draft view) checks stay inside the handlers as additional floors.
+export const reportsReadHandlers: Readonly<Record<string, Handler>> = Object.freeze({
+  ...reportsReadRaw,
+  listReports: guarded('reporting.report.read', reportsReadRaw['listReports']!),
+  searchReports: guarded('reporting.report.read', reportsReadRaw['searchReports']!),
+  getReport: guarded('reporting.report.read', reportsReadRaw['getReport']!),
+  getReportVersion: guarded('reporting.report.read', reportsReadRaw['getReportVersion']!),
+  downloadReportVersionPdf: guarded('reporting.report.read', reportsReadRaw['downloadReportVersionPdf']!),
+  listCriticalAlerts: guarded('reporting.report.read', reportsReadRaw['listCriticalAlerts']!),
 });

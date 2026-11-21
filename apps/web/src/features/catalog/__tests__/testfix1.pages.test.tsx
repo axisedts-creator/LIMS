@@ -5,7 +5,7 @@
 //   crash      : an empty catalog (all lists []) never throws on any view of /catalog/tests, whether the list answers {data:[],page:{limit}} or {data:[]}
 //                (no `page` key) or {data:[],page:null}, and a failing API call is either shown as an inline warning or rethrown as the ApiError itself, NEVER a TypeError.
 //   main list  : list / details / popular decide on GET /v1/catalog/tests, categories on GET /v1/catalog/test-categories: 403 -> the "no access" page
-//                (CatalogForbidden, no throw); 500 or a network error -> the page throws the ApiError (error.tsx), unchanged.
+//                (CatalogForbidden, no throw); 500 or network -> PageError in the page (LD-353 rule 6, T0D-UILIST-3).
 //   secondary  : departments, specimen types and categories (the list view's filter / form lists, the categories view's department names) are optional:
 //                ANY failure of one (500, 403, network error) is caught; the page renders with that list empty and ONE small inline warning
 //                (role alert|status|note) that names the list and says it "could not be loaded"; no status code, error code or stack in it.
@@ -73,7 +73,7 @@ const api = setupServer(
   }),
 );
 
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterAll(() => api.close());
 beforeEach(() => { API.shape = 'paged'; API.fail.clear(); API.data = {}; API.calls.length = 0; TM.session.permissions = MANAGE; TM.nav.search = ''; });
 afterEach(() => { cleanup(); api.resetHandlers(); TM.push.mockClear(); TM.replace.mockClear(); TM.refresh.mockReset(); });
@@ -112,6 +112,15 @@ const apiError = (o: Outcome, status?: number) => {
   if (o.ok) return;
   expect(o.error, `a failing API call must surface as the ApiError itself, got ${o.error instanceof Error ? `${o.error.name}: ${o.error.message}` : String(o.error)}`).toBeInstanceOf(ApiError);
   if (status) expect((o.error as ApiError).status).toBe(status);
+};
+/** LD-353 rule 6 (T0D-UILIST-3): a failed list renders PageError in the page: title kept, message, Retry, no leak. */
+const pageError = (o: Outcome, title: string, tabs: boolean) => {
+  const root = shown(o);
+  if (tabs) expect(within(root).getByRole('tablist', { name: /test management/i })).toBeTruthy();
+  expect(within(root).getByRole('heading', { name: title })).toBeTruthy();
+  expect(root.textContent).toContain('This page could not be loaded.');
+  expect(within(root).getByRole('button', { name: /retry/i })).toBeTruthy();
+  expect(root.textContent).not.toMatch(LEAK);
 };
 const forbidden = (o: Outcome) => expect(within(shown(o)).getByRole('heading', { name: /don.t have access to this part of the catalog/i })).toBeTruthy();
 const noAccessText = () => /catalog\.test\.read permission/i;
@@ -234,14 +243,13 @@ describe('each of the four API calls failing alone, per view (done_when 1 and 3)
         for (const f of FAILS) {
           const main = path === MAIN[view];
           const secondary = SECONDARY[view].includes(path);
-          const label = main ? `MAIN list ${path} -> ${f === 403 ? 'no access page' : 'throws the ApiError'}` : secondary ? `secondary ${path} -> page + inline warning` : `${path} (not needed by this view) -> page renders`;
+          const label = main ? `MAIN list ${path} -> ${f === 403 ? 'no access page' : 'PageError in the page'}` : secondary ? `secondary ${path} -> page + inline warning` : `${path} (not needed by this view) -> page renders`;
           it(`${failName(f)}: ${label}`, async () => {
             API.fail.set(path, f);
             const o = await open('tests', search);
             if (main) {
               if (f === 403) return forbidden(o);
-              if (f === 'network') { expect(o.ok).toBe(false); return; }
-              return apiError(o, 500);
+              return pageError(o, 'Test Details', true);
             }
             const root = shown(o);
             expect(within(root).getByRole('tablist', { name: /test management/i })).toBeTruthy();
@@ -345,13 +353,18 @@ describe.each(SCREENS)('/catalog/$route (done_when 5)', ({ route, main, others, 
       expect(warnings(root)).toEqual([]);
     });
   }
-  it(`${main} failing (500): the page throws the ApiError (error.tsx)`, async () => {
+  // LD-353 rule 6 / T0D-UILIST-3: only comment-codes renders PageError in the page; the other four keep the throw (checked: grep PageError app/(staff)/catalog/<route>/page.tsx).
+  it(`${main} failing (500): ${route === 'comment-codes' ? 'PageError in the page (title, message, Retry)' : 'the page throws the ApiError (error.tsx)'}`, async () => {
     API.fail.set(main, 500);
-    apiError(await open(route), 500);
+    const o = await open(route);
+    if (route === 'comment-codes') return pageError(o, 'Notes', false);
+    apiError(o, 500);
   });
-  it(`${main} failing (network error): the page throws`, async () => {
+  it(`${main} failing (network error): ${route === 'comment-codes' ? 'PageError in the page (title, message, Retry)' : 'the page throws'}`, async () => {
     API.fail.set(main, 'network');
-    expect((await open(route)).ok).toBe(false);
+    const o = await open(route);
+    if (route === 'comment-codes') return pageError(o, 'Notes', false);
+    expect(o.ok).toBe(false);
   });
   it(`${main} answering 403: the "no access" page`, async () => {
     API.fail.set(main, 403);

@@ -12,7 +12,7 @@ import {
   type ReportsContext,
 } from '../service/reports.service.js';
 import { MAX_FILTER_IDS } from '../service/context.service.js';
-import { isMisReport } from '../domain/misReports.js';
+import { isMisCode as isMisReport } from '../domain/reportRegistry.js'; // T0B-MISREPORTS-2: the 9 plain MIS codes + two_level_commission and tds
 import { checkMisExportParams } from '../service/misReports.service.js';
 import type { ExportCell, ExportColumn, ExportKind } from './layout.js';
 

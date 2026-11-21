@@ -38,7 +38,8 @@ export function DiscountApprovalsInbox({ approvals, permissions, currentMembersh
 
   useEffect(() => {
     if (!canApprove) return;
-    const t = setInterval(() => { setNow(Date.now()); routerRef.current.refresh(); }, POLL_MS);
+    // LD-240: no refresh while the tab is hidden.
+    const t = setInterval(() => { setNow(Date.now()); if (document.visibilityState !== 'hidden') routerRef.current.refresh(); }, POLL_MS);
     return () => clearInterval(t);
   }, [canApprove]);
 

@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Metro Labs Worklist (proposed, compact)</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&family=Noto+Sans+Devanagari:wght@400;500&family=Noto+Sans+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit}
+select{font-family:inherit}
+.lims-row:hover{background:#F3F7EE !important}
+</style>
+</helmet>
+<div style="min-height: 100%; background: #F3F3F3; color: #0A1A17; font-family: Poppins, 'Noto Sans Devanagari', system-ui, sans-serif; font-size: 12.6px; line-height: 18px; display: flex; flex-wrap: wrap; align-items: stretch">
+
+  <aside style="flex: 1 1 232px; max-width: 232px; box-sizing: border-box; background: #FFFFFF; border-right: 1px solid #ECECEC; display: flex; flex-direction: column">
+    <div style="height: 44px; box-sizing: border-box; border-bottom: 1px solid #ECECEC; display: flex; align-items: center; justify-content: center; gap: 8px">
+      <div style="width: 24px; height: 24px; border-radius: 8px; background: #005A52; display: flex; align-items: center; justify-content: center">
+        <div style="width: 8px; height: 8px; border-radius: 9999px; background: #A0C032"></div>
+      </div>
+      <span style="font-size: 14.4px; line-height: 20px; font-weight: 500">Metro Labs</span>
+    </div>
+    <label style="margin: 8px 8px 0; height: 32px; box-sizing: border-box; display: flex; align-items: center; gap: 8px; padding: 0 8px; border: 1px solid #ECECEC; border-radius: 8px; background: #F3F3F3">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5C6A66" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 21l-4.3-4.3 M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14z"></path></svg>
+      <input type="search" aria-label="Find a screen" placeholder="Find a screen" style="flex: 1; min-width: 0; border: 0; outline: none; background: transparent; font-family: inherit; font-size: 12.6px; color: #0A1A17">
+    </label>
+    <nav aria-label="Main" style="padding: 8px; display: flex; flex-direction: column; gap: 2px">
+      <div style="padding: 8px 8px 4px; font-size: 10.8px; line-height: 14px; font-weight: 500; color: #5C6A66">Work</div>
+      <a href="#" style="display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 8px; border-radius: 8px; color: #2F463C; font-weight: 500">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5C6A66" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"></path></svg>
+        Today
+      </a>
+      <a href="#" aria-current="page" style="display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 8px; border-radius: 8px; background: #ECF3D7; color: #005A52; font-weight: 500">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#005A52" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4h6v3H9z M7 5H6a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1h-1"></path></svg>
+        Front desk
+      </a>
+      <a href="#" style="display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 8px; border-radius: 8px; color: #2F463C; font-weight: 500">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5C6A66" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3h6 M10 3v8.5L5.5 19a2 2 0 0 0 1.7 3h9.6a2 2 0 0 0 1.7-3L14 11.5V3"></path></svg>
+        Samples
+      </a>
+      <a href="#" style="display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 8px; border-radius: 8px; color: #2F463C; font-weight: 500">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5C6A66" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h4l3-8 4 16 3-8h4"></path></svg>
+        Lab bench
+      </a>
+      <a href="#" style="display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 8px; border-radius: 8px; color: #2F463C; font-weight: 500">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5C6A66" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V8z M14 3v5h4 M9 14l2 2 4-4"></path></svg>
+        Results
+      </a>
+      <div style="padding: 12px 8px 4px; font-size: 10.8px; line-height: 14px; font-weight: 500; color: #5C6A66">Office</div>
+      <a href="#" style="display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 8px; border-radius: 8px; color: #2F463C; font-weight: 500">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5C6A66" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16v12H4z M4 10h16 M15 14h2"></path></svg>
+        Billing
+      </a>
+      <a href="#" style="display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 8px; border-radius: 8px; color: #2F463C; font-weight: 500">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5C6A66" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 20V10 M12 20V4 M19 20v-7"></path></svg>
+        Reports
+      </a>
+      <a href="#" style="display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 8px; border-radius: 8px; color: #2F463C; font-weight: 500">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5C6A66" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h10 M18 7h2 M4 17h2 M10 17h10 M16 5v4 M8 15v4"></path></svg>
+        Settings
+      </a>
+    </nav>
+    <div style="margin-top: auto; box-sizing: border-box; padding: 8px 16px; border-top: 1px solid #ECECEC; display: flex; flex-direction: column">
+      <span style="font-size: 12.6px; line-height: 18px; font-weight: 500">Sample User</span>
+      <span style="font-size: 10.8px; line-height: 14px; color: #5C6A66">Lab administrator +1</span>
+    </div>
+  </aside>
+
+  <div style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column">
+    <header style="box-sizing: border-box; height: 44px; background: #FFFFFF; border-bottom: 1px solid #ECECEC; padding: 0 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px">
+      <span style="font-size: 12.6px; line-height: 18px; color: #4D6359">Front desk / Worklist</span>
+      <div style="display: flex; align-items: center; gap: 8px; flex: 1 1 200px; justify-content: flex-end">
+        <label style="display: flex; align-items: center; gap: 8px; height: 30px; box-sizing: border-box; padding: 0 12px; border: 1px solid #ECECEC; border-radius: 8px; background: #F3F3F3; flex: 1 1 200px; max-width: 416px">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5C6A66" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 21l-4.3-4.3 M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14z"></path></svg>
+          <input type="search" aria-label="Search patients or samples" placeholder="Search patients or samples" style="flex: 1; min-width: 0; border: 0; outline: none; background: transparent; font-family: inherit; font-size: 12.6px; color: #0A1A17">
+        </label>
+        <button type="button" aria-label="Notifications" style="width: 30px; height: 30px; border: 1px solid #ECECEC; border-radius: 8px; background: #FFFFFF; display: flex; align-items: center; justify-content: center; cursor: pointer">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2F463C" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9a6 6 0 0 1 12 0c0 6 2 7 2 7H4s2-1 2-7 M10 20a2 2 0 0 0 4 0"></path></svg>
+        </button>
+      </div>
+    </header>
+
+    <main style="box-sizing: border-box; padding: 20px 24px 32px; flex: 1">
+      <div style="max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px">
+
+        <div style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px">
+          <div style="display: flex; flex-direction: column; gap: 2px">
+            <h1 style="margin: 0; font-size: 16px; line-height: 24px; font-weight: 600">Worklist</h1>
+            <p style="margin: 0; font-size: 11.7px; line-height: 16px; color: #5C6A66">Samples registered at the front desk today, newest first</p>
+          </div>
+          <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px">
+            <button type="button" style="display: flex; align-items: center; height: 30px; padding: 0 12px; border: 1px solid #CFD6CF; border-radius: 8px; background: #FFFFFF; color: #2F463C; font-size: 12.6px; font-weight: 500; cursor: pointer">Export</button>
+            <button type="button" style="display: flex; align-items: center; gap: 4px; height: 30px; padding: 0 12px; border: 0; border-radius: 8px; background: #005A52; color: #FFFFFF; font-size: 12.6px; font-weight: 500; cursor: pointer">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14 M5 12h14"></path></svg>
+              New registration
+            </button>
+          </div>
+        </div>
+
+        <section aria-label="Samples" style="background: #FFFFFF; border: 1px solid #ECECEC; border-radius: 12px; box-shadow: 0 1px 2px rgb(0 90 82 / 0.06); overflow: hidden">
+
+          <nav aria-label="Status" style="display: flex; flex-wrap: wrap; gap: 0 20px; padding: 0 16px; border-bottom: 1px solid #ECECEC">
+            <a href="#" aria-current="page" style="display: flex; align-items: center; gap: 6px; height: 36px; box-sizing: border-box; border-bottom: 2px solid #005A52; margin-bottom: -1px; color: #005A52; font-weight: 500">All
+              <span style="min-width: 20px; height: 18px; box-sizing: border-box; padding: 0 6px; border-radius: 9999px; background: #ECF3D7; font-size: 10.8px; display: flex; align-items: center; justify-content: center; font-variant-numeric: tabular-nums">148</span>
+            </a>
+            <a href="#" style="display: flex; align-items: center; gap: 6px; height: 36px; box-sizing: border-box; color: #4D6359; font-weight: 500">Awaiting collection
+              <span style="min-width: 20px; height: 18px; box-sizing: border-box; padding: 0 6px; border-radius: 9999px; background: #EEF3EF; font-size: 10.8px; display: flex; align-items: center; justify-content: center; font-variant-numeric: tabular-nums">7</span>
+            </a>
+            <a href="#" style="display: flex; align-items: center; gap: 6px; height: 36px; box-sizing: border-box; color: #4D6359; font-weight: 500">In testing
+              <span style="min-width: 20px; height: 18px; box-sizing: border-box; padding: 0 6px; border-radius: 9999px; background: #EEF3EF; font-size: 10.8px; display: flex; align-items: center; justify-content: center; font-variant-numeric: tabular-nums">64</span>
+            </a>
+            <a href="#" style="display: flex; align-items: center; gap: 6px; height: 36px; box-sizing: border-box; color: #4D6359; font-weight: 500">Ready to release
+              <span style="min-width: 20px; height: 18px; box-sizing: border-box; padding: 0 6px; border-radius: 9999px; background: #EEF3EF; font-size: 10.8px; display: flex; align-items: center; justify-content: center; font-variant-numeric: tabular-nums">21</span>
+            </a>
+            <a href="#" style="display: flex; align-items: center; gap: 6px; height: 36px; box-sizing: border-box; color: #4D6359; font-weight: 500">Overdue
+              <span style="min-width: 20px; height: 18px; box-sizing: border-box; padding: 0 6px; border-radius: 9999px; background: #FDE7E4; color: #9C1C12; font-size: 10.8px; display: flex; align-items: center; justify-content: center; font-variant-numeric: tabular-nums">6</span>
+            </a>
+          </nav>
+
+          <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 12px 16px; border-bottom: 1px solid #ECECEC">
+            <label style="display: flex; align-items: center; gap: 8px; height: 30px; box-sizing: border-box; padding: 0 12px; border: 1px solid #ECECEC; border-radius: 8px; background: #FFFFFF; flex: 1 1 220px; max-width: 320px">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5C6A66" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 21l-4.3-4.3 M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14z"></path></svg>
+              <input type="search" aria-label="Filter worklist" placeholder="Filter by name or accession no." style="flex: 1; min-width: 0; border: 0; outline: none; background: transparent; font-family: inherit; font-size: 12.6px; color: #0A1A17">
+            </label>
+            <select aria-label="Department" style="height: 30px; padding: 0 8px; border: 1px solid #ECECEC; border-radius: 8px; background: #FFFFFF; color: #2F463C; font-size: 12.6px">
+              <option>All departments</option>
+              <option>Biochemistry</option>
+              <option>Haematology</option>
+              <option>Microbiology</option>
+            </select>
+            <select aria-label="Registered" style="height: 30px; padding: 0 8px; border: 1px solid #ECECEC; border-radius: 8px; background: #FFFFFF; color: #2F463C; font-size: 12.6px">
+              <option>Registered today</option>
+              <option>Yesterday</option>
+              <option>Last 7 days</option>
+            </select>
+            <button type="button" style="height: 30px; padding: 0 8px; border: 0; background: transparent; color: #005A52; font-size: 12.6px; font-weight: 500; cursor: pointer">Clear filters</button>
+          </div>
+
+          <div style="overflow-x: auto">
+            <table style="width: 100%; min-width: 920px; border-collapse: collapse; font-size: 12.6px; line-height: 18px">
+              <thead>
+                <tr style="background: #F3F3F3; height: 32px">
+                  <th scope="col" style="width: 44px; padding: 0 0 0 16px; border-bottom: 1px solid #ECECEC; text-align: left">
+                    <input type="checkbox" aria-label="Select all rows" style="width: 14px; height: 14px; margin: 0; accent-color: #005A52; vertical-align: middle">
+                  </th>
+                  <th scope="col" style="padding: 0 12px; border-bottom: 1px solid #ECECEC; text-align: left; font-size: 10.8px; line-height: 14px; font-weight: 500; color: #4D6359">Accession no.</th>
+                  <th scope="col" style="padding: 0 12px; border-bottom: 1px solid #ECECEC; text-align: left; font-size: 10.8px; line-height: 14px; font-weight: 500; color: #4D6359">Patient</th>
+                  <th scope="col" style="padding: 0 12px; border-bottom: 1px solid #ECECEC; text-align: right; font-size: 10.8px; line-height: 14px; font-weight: 500; color: #4D6359">Tests</th>
+                  <th scope="col" style="padding: 0 12px; border-bottom: 1px solid #ECECEC; text-align: left; font-size: 10.8px; line-height: 14px; font-weight: 500; color: #4D6359">Registered</th>
+                  <th scope="col" style="padding: 0 12px; border-bottom: 1px solid #ECECEC; text-align: right; font-size: 10.8px; line-height: 14px; font-weight: 500; color: #4D6359">Time elapsed</th>
+                  <th scope="col" style="padding: 0 12px; border-bottom: 1px solid #ECECEC; text-align: left; font-size: 10.8px; line-height: 14px; font-weight: 500; color: #4D6359">Status</th>
+                  <th scope="col" style="padding: 0 12px; border-bottom: 1px solid #ECECEC; text-align: left; font-size: 10.8px; line-height: 14px; font-weight: 500; color: #4D6359">Assigned to</th>
+                  <th scope="col" style="width: 44px; padding: 0 8px 0 0; border-bottom: 1px solid #ECECEC"><span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Actions</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                <sc-for list="{{rows}}" as="row" hint-placeholder-count="12">
+                  <tr class="lims-row" style="background: {{row.bg}}; height: 40px">
+                    <td style="padding: 0 0 0 16px; border-bottom: 1px solid #ECECEC">
+                      <input type="checkbox" aria-label="Select row" checked="{{row.sel}}" style="width: 14px; height: 14px; margin: 0; accent-color: #005A52; vertical-align: middle">
+                    </td>
+                    <td style="padding: 0 12px; border-bottom: 1px solid #ECECEC; font-family: 'Noto Sans Mono', monospace; font-size: 11.7px; color: #0A1A17">{{row.acc}}</td>
+                    <td style="padding: 0 12px; border-bottom: 1px solid #ECECEC">
+                      <div style="font-weight: 500">{{row.name}}</div>
+                      <div style="font-size: 10.8px; line-height: 14px; color: #5C6A66">{{row.meta}}</div>
+                    </td>
+                    <td style="padding: 0 12px; border-bottom: 1px solid #ECECEC; text-align: right; font-variant-numeric: tabular-nums">{{row.tests}}</td>
+                    <td style="padding: 0 12px; border-bottom: 1px solid #ECECEC; color: #2F463C; font-variant-numeric: tabular-nums">{{row.time}}</td>
+                    <td style="padding: 0 12px; border-bottom: 1px solid #ECECEC; text-align: right; font-variant-numeric: tabular-nums">
+                      <sc-if value="{{row.late}}" hint-placeholder-val="{{ false }}">
+                        <span style="color: #9C1C12; font-weight: 500">{{row.tat}}</span>
+                      </sc-if>
+                      <sc-if value="{{row.ontime}}" hint-placeholder-val="{{ true }}">
+                        <span style="color: #2F463C">{{row.tat}}</span>
+                      </sc-if>
+                    </td>
+                    <td style="padding: 0 12px; border-bottom: 1px solid #ECECEC">
+                      <sc-if value="{{row.isWait}}" hint-placeholder-val="{{ false }}">
+                        <span style="display: inline-flex; align-items: center; gap: 6px; height: 20px; box-sizing: border-box; padding: 0 8px; border-radius: 9999px; background: #FFF1D0; border: 1px solid #F2D6A8; color: #7A4B00; font-size: 10.8px; font-weight: 500"><span style="width: 6px; height: 6px; border-radius: 9999px; background: #7A4B00"></span>Awaiting collection</span>
+                      </sc-if>
+                      <sc-if value="{{row.isColl}}" hint-placeholder-val="{{ false }}">
+                        <span style="display: inline-flex; align-items: center; gap: 6px; height: 20px; box-sizing: border-box; padding: 0 8px; border-radius: 9999px; background: #EEF0EC; border: 1px solid #CFD6CF; color: #46524E; font-size: 10.8px; font-weight: 500"><span style="width: 6px; height: 6px; border-radius: 9999px; background: #46524E"></span>Collected</span>
+                      </sc-if>
+                      <sc-if value="{{row.isTest}}" hint-placeholder-val="{{ true }}">
+                        <span style="display: inline-flex; align-items: center; gap: 6px; height: 20px; box-sizing: border-box; padding: 0 8px; border-radius: 9999px; background: #E3EEFB; border: 1px solid #B9D1EE; color: #1A4F8B; font-size: 10.8px; font-weight: 500"><span style="width: 6px; height: 6px; border-radius: 9999px; background: #1A4F8B"></span>In testing</span>
+                      </sc-if>
+                      <sc-if value="{{row.isReady}}" hint-placeholder-val="{{ false }}">
+                        <span style="display: inline-flex; align-items: center; gap: 6px; height: 20px; box-sizing: border-box; padding: 0 8px; border-radius: 9999px; background: #E4F4DE; border: 1px solid #BCDEB0; color: #14612F; font-size: 10.8px; font-weight: 500"><span style="width: 6px; height: 6px; border-radius: 9999px; background: #14612F"></span>Ready to release</span>
+                      </sc-if>
+                      <sc-if value="{{row.isOver}}" hint-placeholder-val="{{ false }}">
+                        <span style="display: inline-flex; align-items: center; gap: 6px; height: 20px; box-sizing: border-box; padding: 0 8px; border-radius: 9999px; background: #FDE7E4; border: 1px solid #F1BDB5; color: #9C1C12; font-size: 10.8px; font-weight: 500"><span style="width: 6px; height: 6px; border-radius: 9999px; background: #9C1C12"></span>Overdue</span>
+                      </sc-if>
+                    </td>
+                    <td style="padding: 0 12px; border-bottom: 1px solid #ECECEC">
+                      <sc-if value="{{row.has}}" hint-placeholder-val="{{ true }}">
+                        <div style="display: flex; align-items: center; gap: 8px">
+                          <span style="width: 20px; height: 20px; border-radius: 9999px; background: #EEF3EF; color: #2F463C; font-size: 10px; font-weight: 500; display: flex; align-items: center; justify-content: center">{{row.ini}}</span>
+                          <span style="font-size: 11.7px; color: #2F463C">{{row.who}}</span>
+                        </div>
+                      </sc-if>
+                      <sc-if value="{{row.none}}" hint-placeholder-val="{{ false }}">
+                        <span style="font-size: 11.7px; color: #5C6A66">Unassigned</span>
+                      </sc-if>
+                    </td>
+                    <td style="padding: 0 8px 0 0; border-bottom: 1px solid #ECECEC; text-align: right">
+                      <button type="button" aria-label="Row actions" style="width: 28px; height: 28px; border: 0; border-radius: 8px; background: transparent; cursor: pointer; display: inline-flex; align-items: center; justify-content: center">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5C6A66" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v.01 M12 12v.01 M12 19v.01"></path></svg>
+                      </button>
+                    </td>
+                  </tr>
+                </sc-for>
+              </tbody>
+            </table>
+          </div>
+
+          <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px">
+            <span style="font-size: 11.7px; line-height: 16px; color: #4D6359; font-variant-numeric: tabular-nums">Showing 1 to 12 of 148</span>
+            <div style="display: flex; align-items: center; gap: 8px">
+              <button type="button" disabled style="height: 30px; padding: 0 12px; border: 1px solid #ECECEC; border-radius: 8px; background: #FFFFFF; color: #7A9185; font-size: 12.6px; font-weight: 500">Previous</button>
+              <span style="font-size: 11.7px; color: #4D6359; padding: 0 4px; font-variant-numeric: tabular-nums">Page 1 of 13</span>
+              <button type="button" style="height: 30px; padding: 0 12px; border: 1px solid #CFD6CF; border-radius: 8px; background: #FFFFFF; color: #2F463C; font-size: 12.6px; font-weight: 500; cursor: pointer">Next</button>
+            </div>
+          </div>
+        </section>
+
+        <p style="margin: 0; font-size: 10.8px; line-height: 14px; color: #5C6A66">Sample data for layout only. Header row always present, numbers right-aligned, one row height, status as a labelled chip, 30px controls, weights 400 and 500.</p>
+      </div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const src = [
+      ['004141', 'Ram Bahadur Thapa', '58 y, M', 3, '10:42', '0h 25m', 'wait', ''],
+      ['004140', 'Mina Gurung', '27 y, F', 6, '10:31', '0h 36m', 'coll', 'Sunita R.'],
+      ['004139', 'Hari Prasad Adhikari', '64 y, M', 4, '10:18', '0h 49m', 'test', 'Anil S.'],
+      ['004138', 'Kabita Shrestha', '41 y, F', 2, '10:05', '1h 02m', 'test', 'Anil S.'],
+      ['004137', 'Binod Tamang', '19 y, M', 7, '09:52', '1h 15m', 'test', 'Pooja M.'],
+      ['004136', 'Anita Rai', '36 y, F', 3, '09:40', '1h 27m', 'ready', 'Pooja M.'],
+      ['004135', 'Suresh Maharjan', '52 y, M', 5, '09:12', '1h 55m', 'ready', 'Sunita R.'],
+      ['004134', 'Laxmi Poudel', '70 y, F', 8, '08:47', '2h 20m', 'test', 'Anil S.'],
+      ['004133', 'Dipak Magar', '45 y, M', 2, '08:30', '2h 37m', 'ready', 'Pooja M.'],
+      ['004132', 'Sarita Basnet', '31 y, F', 4, '08:05', '3h 02m', 'over', 'Sunita R.'],
+      ['004131', 'Nabin Khadka', '8 y, M', 3, '07:48', '3h 19m', 'over', 'Anil S.'],
+      ['004130', 'Gita Neupane', '56 y, F', 9, '07:35', '3h 32m', 'test', 'Pooja M.']
+    ];
+    const rows = src.map((r) => {
+      const who = r[7];
+      const parts = who.replace('.', '').split(' ');
+      const ini = who ? (parts[0][0] + (parts[1] ? parts[1][0] : '')) : '';
+      const sel = r[0] === '004139';
+      return {
+        acc: 'ML-26-' + r[0],
+        name: r[1],
+        meta: r[2],
+        tests: String(r[3]),
+        time: r[4],
+        tat: r[5],
+        late: r[6] === 'over',
+        ontime: r[6] !== 'over',
+        isWait: r[6] === 'wait',
+        isColl: r[6] === 'coll',
+        isTest: r[6] === 'test',
+        isReady: r[6] === 'ready',
+        isOver: r[6] === 'over',
+        has: who !== '',
+        none: who === '',
+        who: who,
+        ini: ini,
+        sel: sel,
+        bg: sel ? '#ECF3D7' : '#FFFFFF'
+      };
+    });
+    return { rows };
+  }
+}
+</script>
+</body>
+</html>

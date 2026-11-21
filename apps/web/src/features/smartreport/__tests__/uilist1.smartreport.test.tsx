@@ -34,7 +34,7 @@ const row = { id: id(11), order_id: id(201), centre_id: id(101), status: 'draft'
 const version = { id: id(21), version_no: 3, status: 'approved', language: 'en', approved_by_display_name: 'Synthetic Approver', approved_at: '2026-01-10T04:30:00.000Z', updated_at: '2026-01-11T04:30:00.000Z', version: 2 };
 
 const api = setupServer();
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { cleanup(); api.resetHandlers(); });
 afterAll(() => api.close());
 const list = (path: string, reply: () => Response) => api.use(

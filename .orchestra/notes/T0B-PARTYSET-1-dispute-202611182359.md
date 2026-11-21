@@ -1,0 +1,5 @@
+# T0B-PARTYSET-1 dispute (writer, 2026-11-18 after LD-392 merge; lane 0 behind main)
+Run: tests/partners/T0B-PARTYSET-1.pg.sh -> 11209 pass / 8 fail / 64 skip; boot 2/2 pass. referrers.wording and testmgmt boot pins now GREEN (merge fixed them, confirms LD-392).
+1. TESTS_WRONG (LD-385): catalog/__tests__/partyset/doctor.test.ts, 7 cases send/expect `commission_bp` on createDoctor/updateDoctor. LD-385 removed the doctor rate from the Doctor schemas and catalog.doctors; the API now answers common.validation_failed common.unknown_field. Tester must drop commission_bp from these 7 cases (keep speciality, hospital, national_id_number and masking assertions) and assert the field is refused/absent. Writer will NOT re-add it (LD-385, LD-392).
+2. NOT THIS TASK: billing/repository/__tests__/repo.static.test.ts "no ${…} interpolation" fails on accounts.repo.ts lines 173/178 `RETURNING ${ENTRY_RETURNING}` (constant column list), added by T0B-FINCTRL-1 (fe8803117), arrived with the main merge. No PARTYSET file involved. Needs a FINCTRL fix (inline the column list) or a ruling; left untouched.
+No implementation change made. Log: .orchestra/notes/ps1-run.log.

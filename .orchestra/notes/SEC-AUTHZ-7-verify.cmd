@@ -1,0 +1,1 @@
+pnpm --dir services/api exec vitest run src/modules/reporting/__tests__/authz7.reporting-guards.test.ts src/modules/inventory/__tests__/authz7.inventory-guards.test.ts src/modules/anatomic/__tests__/authz7.anatomic-guards.test.ts && node --test tests/security/authz-reporting-inventory-anatomic.test.mjs tests/security/authz-classification.test.mjs

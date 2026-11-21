@@ -32,6 +32,12 @@ INSERT INTO billing.cs_payment_methods (tenant_id, code, display, is_cash, requi
 INSERT INTO billing.cs_reasons (tenant_id, set_name, code, display, sort_order, id, created_by, updated_by) VALUES
   (pg_temp.id('01'), 'probe-1', 'probe-1', 'probe-1', 1, pg_temp.id('f1'), pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('02'), 'probe-3', 'probe-3', 'probe-3', 3, pg_temp.id('f3'), pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
+INSERT INTO billing.discount_authority (id, tenant_id, user_id, max_discount_bp, max_discount_paisa, created_by, updated_by) VALUES
+  (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('f1'), 1, 1, pg_temp.id('99'), pg_temp.id('99')),
+  (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('f3'), 3, 3, pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
+INSERT INTO billing.discount_reason (id, tenant_id, code, name, created_by, updated_by) VALUES
+  (pg_temp.id('f1'), pg_temp.id('01'), 'B', 'probe-1', pg_temp.id('99'), pg_temp.id('99')),
+  (pg_temp.id('f3'), pg_temp.id('02'), 'D', 'probe-3', pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
 INSERT INTO billing.expense_types (id, tenant_id, name, account_particular_id, created_by, updated_by) VALUES
   (pg_temp.id('f1'), pg_temp.id('01'), 'probe-1', pg_temp.id('f1'), pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('f3'), pg_temp.id('02'), 'probe-3', pg_temp.id('f3'), pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
@@ -84,6 +90,9 @@ INSERT INTO billing.order_balances (tenant_id, order_id, centre_id, billing_mode
   (pg_temp.id('01'), pg_temp.id('f1'), pg_temp.id('21'), 'cash', pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('01'), pg_temp.id('f2'), pg_temp.id('22'), 'cash', pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('02'), pg_temp.id('f3'), pg_temp.id('23'), 'cash', pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
+INSERT INTO billing.party_discount_slab (id, tenant_id, party_kind, party_id, amount_from_paisa, amount_to_paisa, discount_bp, effective_from, created_by, updated_by) VALUES
+  (pg_temp.id('f1'), pg_temp.id('01'), 'credit_party', pg_temp.id('f1'), 1, 9007199254740991, 1, now()::date, pg_temp.id('99'), pg_temp.id('99')),
+  (pg_temp.id('f3'), pg_temp.id('02'), 'credit_party', pg_temp.id('f3'), 3, 9007199254740991, 3, now()::date, pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
 INSERT INTO billing.payment_intent_refs (tenant_id, intent_id, order_id, gateway, amount_paisa, created_by, id) VALUES
   (pg_temp.id('01'), pg_temp.id('f1'), pg_temp.id('f1'), 'esewa', 1, pg_temp.id('99'), pg_temp.id('f1')),
   (pg_temp.id('02'), pg_temp.id('f3'), pg_temp.id('f3'), 'esewa', 3, pg_temp.id('99'), pg_temp.id('f3')) ON CONFLICT DO NOTHING;
@@ -98,3 +107,6 @@ INSERT INTO billing.release_overrides (id, tenant_id, order_id, centre_id, reaso
 INSERT INTO billing.settings (tenant_id, created_by, updated_by) VALUES
   (pg_temp.id('01'), pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('02'), pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
+INSERT INTO billing.user_discount_limit (id, tenant_id, user_id, max_discount_bp, max_discount_paisa, created_by, updated_by) VALUES
+  (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('f1'), 1, 1, pg_temp.id('99'), pg_temp.id('99')),
+  (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('f3'), 3, 3, pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;

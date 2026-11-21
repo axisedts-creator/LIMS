@@ -1,0 +1,484 @@
+[core] WARNING: Executable file detection not yet supported on 'win32'.
+Schema updated
+psql:/repo/db/migrations/20261105001300_identity__create_identity_schema.sql:7: NOTICE:  schema "identity" already exists, skipping
+psql:/repo/db/migrations/20261105001500_catalog__create_catalog_schema.sql:10: NOTICE:  schema "catalog" already exists, skipping
+psql:/repo/db/migrations/20261105001600_frontdesk__create_frontdesk_schema.sql:7: NOTICE:  schema "frontdesk" already exists, skipping
+psql:/repo/db/migrations/20261105001700_billing__create_billing_schema.sql:7: NOTICE:  schema "billing" already exists, skipping
+psql:/repo/db/migrations/20261105001800_lab__create_lab_schema.sql:10: NOTICE:  schema "lab" already exists, skipping
+psql:/repo/db/migrations/20261105001900_reporting__create_reporting_schema.sql:145: NOTICE:  identifier "message_template_texts__tenant_id_template_code_channel_language__uq" will be truncated to "message_template_texts__tenant_id_template_code_channel_languag"
+psql:/repo/db/migrations/20261105001900_reporting__create_reporting_schema.sql:177: NOTICE:  identifier "report_template_versions__tenant_id_template_id__published__p_uq" will be truncated to "report_template_versions__tenant_id_template_id__published__p_u"
+psql:/repo/db/migrations/20261105001900_reporting__create_reporting_schema.sql:443: NOTICE:  identifier "deliveries__tenant_id_channel_account_id_provider_message_id__p_uq" will be truncated to "deliveries__tenant_id_channel_account_id_provider_message_id__p"
+psql:/repo/db/migrations/20261105001900_reporting__create_reporting_schema.sql:682: NOTICE:  identifier "narrative_versions__tenant_id_narrative_report_id_version_no__uq" will be truncated to "narrative_versions__tenant_id_narrative_report_id_version_no__u"
+psql:/repo/db/migrations/20261115192000_identity__add_provisioning_schema.sql:47: NOTICE:  identifier "tenant_contract_acceptances__tenant_id_document_accepted_at__idx" will be truncated to "tenant_contract_acceptances__tenant_id_document_accepted_at__id"
+                                                       set_config                                                        
+-------------------------------------------------------------------------------------------------------------------------
+ {"tenant_id":"01a1a98a-ac40-7000-8000-00000000a001","sub":"01a1b34e-1000-7eee-9d29-d7ca59a102b5","actor_type":"system"}
+(1 row)
+
+                                                       set_config                                                        
+-------------------------------------------------------------------------------------------------------------------------
+ {"tenant_id":"01a1a98a-ac40-7000-8000-00000000b001","sub":"01a1b34e-1000-7eee-9d29-d7ca59a102b5","actor_type":"system"}
+(1 row)
+
+ set_config 
+------------
+ 
+(1 row)
+
+                                                       set_config                                                        
+-------------------------------------------------------------------------------------------------------------------------
+ {"tenant_id":"01a1a98a-ac40-7000-8000-00000000a001","sub":"01a1b34e-1004-782c-a681-49b1ce74d717","actor_type":"system"}
+(1 row)
+
+                                                       set_config                                                        
+-------------------------------------------------------------------------------------------------------------------------
+ {"tenant_id":"01a1a98a-ac40-7000-8000-00000000b001","sub":"01a1b34e-1004-782c-a681-49b1ce74d717","actor_type":"system"}
+(1 row)
+
+== T0B-MISREPORTS-2 run 1 of 1
+
+ RUN  v5.1.0 C:/LIMS-lanes/C0-0J/services/api
+
+ ❯ src/modules/analytics/__tests__/probes/contract.probe.test.ts (53 tests | 2 failed) 125ms
+   ❯ P13 net_billed_paisa never leaves the flag-gated referral report (08 A17 D-44, B13) (4)
+     × export registry: top_referrers and dashboard columns carry no per-referrer money; the referral report column is flag-gated 10ms
+     × in C8 source (non-test), net_billed_paisa appears only in the referral / billing-rollup files 13ms
+{"level":"warn","ts":"2026-11-18T19:57:09.298Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:09.560Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:09.560Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:09.560Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/csv' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:09.560Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:10.168Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:10.169Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:10.169Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:10.169Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:11.241Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:11.241Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:11.241Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/xml' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:11.241Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:12.331Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:12.331Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:12.331Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:13.504Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:13.504Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:13.504Z","service":"api","env":"ci","version":"0.0.0","msg":"Handlers for some security requirements were missing: patientPreAuth, queueDisplayToken"}
+{"level":"warn","ts":"2026-11-18T19:57:14.325Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:14.325Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:14.325Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:14.325Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:14.325Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:14.951Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:15.485Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:15.485Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:15.485Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:15.485Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:15.485Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/csv' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:15.485Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:15.968Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:15.968Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:15.968Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/octet-stream' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:15.968Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:15.968Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:15.968Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:15.968Z","service":"api","env":"ci","version":"0.0.0","msg":"Handlers for some security requirements were missing: deviceToken"}
+{"level":"warn","ts":"2026-11-18T19:57:16.563Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:16.563Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/csv' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:17.695Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:18.435Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:18.435Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:18.435Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/csv' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:19.153Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:19.153Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:19.960Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:19.960Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/html' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:19.960Z","service":"api","env":"ci","version":"0.0.0","msg":"Handlers for some security requirements were missing: paymentCallbackToken"}
+{"level":"warn","ts":"2026-11-18T19:57:20.317Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:21.044Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:21.044Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:21.044Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:21.044Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:21.044Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:21.044Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for '*/*' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:21.044Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/plain' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:21.044Z","service":"api","env":"ci","version":"0.0.0","msg":"Handlers for some security requirements were missing: portalSession"}
+{"level":"warn","ts":"2026-11-18T19:57:21.538Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:28.445Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:28.650Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:28.650Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:28.650Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/csv' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:28.650Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:29.247Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:29.247Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:29.247Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:29.247Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:29.826Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:29.826Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:29.826Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/xml' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:29.826Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:30.626Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:30.626Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:30.626Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:31.331Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:31.331Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:31.331Z","service":"api","env":"ci","version":"0.0.0","msg":"Handlers for some security requirements were missing: patientPreAuth, queueDisplayToken"}
+{"level":"warn","ts":"2026-11-18T19:57:32.065Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:32.065Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:32.065Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:32.065Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:32.065Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:32.469Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:33.040Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:33.040Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:33.041Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:33.041Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:33.041Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/csv' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:33.041Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:33.555Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:33.555Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:33.555Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/octet-stream' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:33.555Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:33.555Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:33.555Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:33.555Z","service":"api","env":"ci","version":"0.0.0","msg":"Handlers for some security requirements were missing: deviceToken"}
+{"level":"warn","ts":"2026-11-18T19:57:34.253Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:34.253Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/csv' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:35.432Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:36.693Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:36.693Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:36.693Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/csv' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:37.696Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:37.696Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:38.337Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:38.337Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/html' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:38.337Z","service":"api","env":"ci","version":"0.0.0","msg":"Handlers for some security requirements were missing: paymentCallbackToken"}
+{"level":"warn","ts":"2026-11-18T19:57:38.591Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:39.026Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:39.026Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:39.026Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:39.026Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:39.026Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:39.026Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for '*/*' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:39.026Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/plain' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:39.027Z","service":"api","env":"ci","version":"0.0.0","msg":"Handlers for some security requirements were missing: portalSession"}
+{"level":"warn","ts":"2026-11-18T19:57:39.498Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"info","ts":"2026-11-18T19:57:43.264Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1f03c-8fb7-7061-ba3b-3716cb449d04","module":"analytics","operation_id":"getAnalyticsDashboard","route":"/v1/analytics/dashboard","status":401,"duration_ms":40,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-18T19:57:43.267Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1f03c-8fe1-7375-be53-22676a73fe3f","module":"analytics","operation_id":"getIncomeReport","route":"/v1/analytics/reports/income","status":401,"duration_ms":2,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-18T19:57:43.270Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1f03c-8fe4-7901-8c05-300dc4695e53","module":"analytics","operation_id":"getDepartmentIncomeReport","route":"/v1/analytics/reports/department-income","status":401,"duration_ms":2,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-18T19:57:43.272Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1f03c-8fe6-7da0-bbcc-17ad2f200f83","module":"analytics","operation_id":"getCollectionsReport","route":"/v1/analytics/reports/collections","status":401,"duration_ms":2,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-18T19:57:43.275Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1f03c-8fe9-780e-994b-a0faa446af6e","module":"analytics","operation_id":"getVolumeReport","route":"/v1/analytics/reports/volume","status":401,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-18T19:57:43.277Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1f03c-8feb-76a2-a42c-f0bb2f6bdb5a","module":"analytics","operation_id":"getTopReferrersReport","route":"/v1/analytics/reports/top-referrers","status":401,"duration_ms":2,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-18T19:57:43.279Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1f03c-8fee-79a4-9089-edea1408f074","module":"analytics","operation_id":"getTopCentresReport","route":"/v1/analytics/reports/top-centres","status":401,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-18T19:57:43.282Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1f03c-8ff0-7e58-b158-4545455322e0","module":"analytics","operation_id":"getReferralIncentiveReport","route":"/v1/analytics/reports/referral-incentive","status":401,"duration_ms":2,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-18T19:57:43.286Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1f03c-8ff3-7056-acdd-b4cd7688156e","module":"analytics","operation_id":"getTestsDoneReport","route":"/v1/analytics/reports/tests-done","status":401,"duration_ms":3,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-18T19:57:43.291Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1f03c-8ff7-7515-8460-1c8d1534e1e1","module":"analytics","operation_id":"getTatReport","route":"/v1/analytics/reports/tat","status":401,"duration_ms":3,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-18T19:57:43.294Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1f03c-8ffc-76c3-8db0-3d46117c22ed","module":"analytics","operation_id":"getPendingTestsSummary","route":"/v1/analytics/reports/pending-tests/summary","status":401,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-18T19:57:43.297Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1f03c-8fff-74ab-b61a-41e9e573a04d","module":"analytics","operation_id":"listPendingTests","route":"/v1/analytics/reports/pending-tests/items","status":401,"duration_ms":2,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-18T19:57:43.300Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1f03c-9002-728c-8ac9-4b85b7e39aa7","module":"analytics","operation_id":"getQualityIndicatorsReport","route":"/v1/analytics/reports/quality-indicators","status":401,"duration_ms":2,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-18T19:57:43.302Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1f03c-9004-7954-99e8-b4216467b82c","module":"analytics","operation_id":"getDeliveryReport","route":"/v1/analytics/reports/delivery","status":401,"duration_ms":2,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-18T19:57:43.305Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1f03c-9007-79ed-9553-8f21caaee4f1","module":"analytics","operation_id":"getInterfacesReport","route":"/v1/analytics/reports/interfaces","status":401,"duration_ms":2,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-18T19:57:43.306Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1f03c-9009-76c5-8b38-09207ae0c468","module":"analytics","operation_id":"getAnalyticsFilterOptions","route":"/v1/analytics/filter-options","status":401,"duration_ms":0,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-18T19:57:43.307Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1f03c-900a-76bf-9a2e-05d77729518c","module":"analytics","operation_id":"getAnalyticsFreshness","route":"/v1/analytics/freshness","status":401,"duration_ms":0,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-18T19:57:43.308Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1f03c-900b-719c-bd68-b86a3a4aebed","module":"analytics","operation_id":"listAnalyticsExports","route":"/v1/analytics/exports","status":401,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-18T19:57:43.309Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1f03c-900c-76b4-b9e6-aa832c7fdd68","module":"analytics","operation_id":"getAnalyticsExport","route":"/v1/analytics/exports/{export_id}","status":401,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-18T19:57:43.310Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1f03c-900d-7786-a626-0b1034859990","module":"analytics","operation_id":"downloadAnalyticsExport","route":"/v1/analytics/exports/{export_id}/file","status":401,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-18T19:57:43.311Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1f03c-900f-7ee8-ad29-1d9fb1560f65","module":"analytics","operation_id":"listReportSchedules","route":"/v1/analytics/schedules","status":401,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-18T19:57:43.312Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1f03c-9010-74d1-9f3b-8f756cbef059","module":"analytics","operation_id":"getReportSchedule","route":"/v1/analytics/schedules/{schedule_id}","status":401,"duration_ms":0,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-18T19:57:43.313Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1f03c-9010-74d2-a3e5-8f8a1705406f","module":"analytics","operation_id":"getReportRun","route":"/v1/analytics/report-runs/{report_run_id}","status":401,"duration_ms":0,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-18T19:57:43.314Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1f03c-9011-7f48-a34f-aa77ce5d17a1","module":"analytics","operation_id":"getCollectionsFilterOptions","route":"/v1/analytics/filter-options/collections","status":401,"duration_ms":0,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-18T19:57:43.315Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1f03c-9012-737c-aa82-a470b7a32b2d","module":"core","operation_id":"unmatched","status":404,"duration_ms":0,"db_count":0,"db_ms":0,"error_code":"common.not_found","msg":"request"}
+{"level":"warn","ts":"2026-11-18T19:57:58.553Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:00.238Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"CatalogPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-18T19:58:00.238Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"FrontdeskPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-18T19:58:00.238Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"BillingPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-18T19:58:00.238Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"LabPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-18T19:58:00.238Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"ReportingPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-18T19:58:00.238Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"NotificationPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-18T19:58:00.238Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"IdentityPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-18T19:58:00.239Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"PaymentProviderPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-18T19:58:00.239Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"SmartReportPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-18T19:58:00.239Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"QualityPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-18T19:58:00.239Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"BillingCommandPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-18T19:58:00.239Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"RenderPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-18T19:58:00.239Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"EngagementPort","forced":false,"msg":"fake port active"}
+{"level":"info","ts":"2026-11-18T19:58:00.943Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1f03c-d4e6-79c8-8269-0ba46eb37066","module":"catalog","operation_id":"listThings","route":"/v1/catalog/things","status":200,"duration_ms":8,"db_count":0,"db_ms":0,"msg":"request"}
+{"level":"info","ts":"2026-11-18T19:58:00.946Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1f03c-d4f1-752e-a9e2-85a4561378e2","module":"identity","operation_id":"getIdentityProbe","route":"/v1/identity/probe","status":200,"duration_ms":1,"db_count":0,"db_ms":0,"msg":"request"}
+{"level":"warn","ts":"2026-11-18T19:58:00.975Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"CatalogPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-18T19:58:00.975Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"FrontdeskPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-18T19:58:00.975Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"BillingPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-18T19:58:00.975Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"LabPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-18T19:58:00.975Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"ReportingPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-18T19:58:00.975Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"NotificationPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-18T19:58:00.975Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"IdentityPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-18T19:58:00.975Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"PaymentProviderPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-18T19:58:00.975Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"SmartReportPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-18T19:58:00.975Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"QualityPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-18T19:58:00.975Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"BillingCommandPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-18T19:58:00.975Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"RenderPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-18T19:58:00.975Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"EngagementPort","forced":false,"msg":"fake port active"}
+{"level":"info","ts":"2026-11-18T19:58:01.119Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1f03c-d59e-7a89-874f-6e0a2c9798c3","module":"catalog","operation_id":"getThing","route":"/v1/catalog/things/{id}","status":200,"duration_ms":1,"db_count":0,"db_ms":0,"msg":"request"}
+{"level":"warn","ts":"2026-11-18T19:58:01.135Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"CatalogPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-18T19:58:01.136Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"FrontdeskPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-18T19:58:01.136Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"BillingPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-18T19:58:01.136Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"LabPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-18T19:58:01.136Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"ReportingPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-18T19:58:01.136Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"NotificationPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-18T19:58:01.136Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"IdentityPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-18T19:58:01.136Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"PaymentProviderPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-18T19:58:01.136Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"SmartReportPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-18T19:58:01.136Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"QualityPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-18T19:58:01.136Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"BillingCommandPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-18T19:58:01.136Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"RenderPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-18T19:58:01.136Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"EngagementPort","forced":false,"msg":"fake port active"}
+{"level":"info","ts":"2026-11-18T19:58:01.257Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1f03c-d627-7e29-955b-2ff796aa0b84","module":"catalog","operation_id":"createThing","route":"/v1/catalog/things","status":201,"duration_ms":2,"db_count":0,"db_ms":0,"msg":"request"}
+{"level":"info","ts":"2026-11-18T19:58:01.258Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1f03c-d62a-7cf6-a5a9-5c6109689a38","module":"catalog","operation_id":"deleteThing","route":"/v1/catalog/things/{id}","status":204,"duration_ms":1,"db_count":0,"db_ms":0,"msg":"request"}
+{"level":"warn","ts":"2026-11-18T19:58:01.271Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"CatalogPort","forced":false,"msg":"fake port active"}
+{"level":"info","ts":"2026-11-18T19:58:01.427Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1f03c-d6d2-7922-8334-d5029f043712","module":"core","operation_id":"unmatched","status":404,"duration_ms":0,"db_count":0,"db_ms":0,"error_code":"common.not_found","msg":"request"}
+{"level":"warn","ts":"2026-11-18T19:58:01.271Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"FrontdeskPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-18T19:58:01.271Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"BillingPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-18T19:58:01.271Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"LabPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-18T19:58:01.271Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"ReportingPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-18T19:58:01.271Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"NotificationPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-18T19:58:01.271Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"IdentityPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-18T19:58:01.271Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"PaymentProviderPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-18T19:58:01.271Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"SmartReportPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-18T19:58:01.271Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"QualityPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-18T19:58:01.271Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"BillingCommandPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-18T19:58:01.271Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"RenderPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-18T19:58:01.271Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"EngagementPort","forced":false,"msg":"fake port active"}
+{"level":"info","ts":"2026-11-18T19:58:01.419Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1f03c-d6a8-7aad-9462-eeedc8edd832","module":"core","operation_id":"unmatched","status":404,"duration_ms":35,"db_count":0,"db_ms":0,"error_code":"common.not_found","msg":"request"}
+{"level":"info","ts":"2026-11-18T19:58:01.421Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1f03c-d6cc-7422-9325-6feb00897a70","module":"core","operation_id":"unmatched","status":404,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"common.not_found","msg":"request"}
+{"level":"info","ts":"2026-11-18T19:58:01.422Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1f03c-d6cd-78c6-b98b-d8fabfa4f075","module":"core","operation_id":"unmatched","status":404,"duration_ms":0,"db_count":0,"db_ms":0,"error_code":"common.not_found","msg":"request"}
+{"level":"warn","ts":"2026-11-18T19:58:01.458Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"CatalogPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-18T19:58:01.458Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"FrontdeskPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-18T19:58:01.458Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"BillingPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-18T19:58:01.458Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"LabPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-18T19:58:01.458Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"ReportingPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-18T19:58:01.458Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"NotificationPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-18T19:58:01.458Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"IdentityPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-18T19:58:01.458Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"PaymentProviderPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-18T19:58:01.458Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"SmartReportPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-18T19:58:01.458Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"QualityPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-18T19:58:01.458Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"BillingCommandPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-18T19:58:01.458Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"RenderPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-18T19:58:01.458Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"EngagementPort","forced":false,"msg":"fake port active"}
+{"level":"error","ts":"2026-11-18T19:58:01.518Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1f03c-d72c-7ca2-802d-fa1b93728e6a","module":"catalog","operation_id":"deleteThing","route":"/v1/catalog/things/{id}","status":501,"duration_ms":1,"db_count":0,"db_ms":0,"msg":"request"}
+{"level":"info","ts":"2026-11-18T19:58:01.519Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1f03c-d72e-7a17-9701-9d494c66838f","module":"catalog","operation_id":"listThings","route":"/v1/catalog/things","status":200,"duration_ms":1,"db_count":0,"db_ms":0,"msg":"request"}
+{"level":"warn","ts":"2026-11-18T19:58:01.551Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"CatalogPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-18T19:58:01.551Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"FrontdeskPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-18T19:58:01.551Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"BillingPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-18T19:58:01.551Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"LabPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-18T19:58:01.551Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"ReportingPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-18T19:58:01.551Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"NotificationPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-18T19:58:01.551Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"IdentityPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-18T19:58:01.551Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"PaymentProviderPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-18T19:58:01.551Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"SmartReportPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-18T19:58:01.551Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"QualityPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-18T19:58:01.551Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"BillingCommandPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-18T19:58:01.551Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"RenderPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-18T19:58:01.551Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"EngagementPort","forced":false,"msg":"fake port active"}
+{"level":"info","ts":"2026-11-18T19:58:01.651Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1f03c-d7b3-76cf-a523-0a93199d4df6","module":"identity","operation_id":"getIdentityProbe","route":"/v1/identity/probe","status":200,"duration_ms":1,"db_count":0,"db_ms":0,"msg":"request"}
+{"level":"warn","ts":"2026-11-18T19:58:01.707Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"CatalogPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-18T19:58:02.561Z","service":"api","env":"ci","version":"0.0.0","event":"core_sync_unmounted","msg":"no JWT config: core sync operations are not mounted"}
+{"level":"warn","ts":"2026-11-18T19:58:01.707Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"FrontdeskPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-18T19:58:01.707Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"BillingPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-18T19:58:01.707Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"LabPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-18T19:58:01.707Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"ReportingPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-18T19:58:01.707Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"NotificationPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-18T19:58:01.707Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"IdentityPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-18T19:58:01.707Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"PaymentProviderPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-18T19:58:01.707Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"SmartReportPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-18T19:58:01.707Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"QualityPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-18T19:58:01.707Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"BillingCommandPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-18T19:58:01.707Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"RenderPort","forced":false,"msg":"fake port active"}
+{"level":"warn","ts":"2026-11-18T19:58:01.707Z","service":"api","env":"ci","version":"0.0.0","event":"fake_port_active","port":"EngagementPort","forced":false,"msg":"fake port active"}
+{"level":"info","ts":"2026-11-18T19:58:01.820Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1f03c-d85b-7fca-b07b-4268dbaae63f","module":"catalog","operation_id":"listThings","route":"/v1/catalog/things","status":200,"duration_ms":1,"db_count":0,"db_ms":0,"msg":"request"}
+{"level":"warn","ts":"2026-11-18T19:58:02.649Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"info","ts":"2026-11-18T19:58:02.801Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1f03c-dc2e-73de-92ac-2c57b042c79b","module":"sample","operation_id":"listSampleItems","route":"/v1/core/sample/items","status":200,"duration_ms":2,"db_count":0,"db_ms":0,"msg":"request"}
+{"level":"warn","ts":"2026-11-18T19:58:03.589Z","service":"api","env":"ci","version":"0.0.0","event":"core_sync_unmounted","msg":"no JWT config: core sync operations are not mounted"}
+{"level":"warn","ts":"2026-11-18T19:58:04.228Z","service":"api","env":"ci","version":"0.0.0","event":"core_sync_unmounted","msg":"no JWT config: core sync operations are not mounted"}
+{"level":"warn","ts":"2026-11-18T19:58:04.849Z","service":"api","env":"staging","version":"0.0.0","event":"core_sync_unmounted","msg":"no JWT config: core sync operations are not mounted"}
+{"level":"warn","ts":"2026-11-18T19:58:05.656Z","service":"api","env":"production","version":"0.0.0","event":"core_sync_unmounted","msg":"no JWT config: core sync operations are not mounted"}
+{"level":"warn","ts":"2026-11-18T19:58:03.658Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"info","ts":"2026-11-18T19:58:03.672Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1f03c-df97-73e3-9edf-c585fe89d5b5","module":"core","operation_id":"unmatched","status":404,"duration_ms":0,"db_count":0,"db_ms":0,"error_code":"common.not_found","msg":"request"}
+{"level":"warn","ts":"2026-11-18T19:58:04.292Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"info","ts":"2026-11-18T19:58:04.300Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1f03c-e20b-718f-92d7-046c1dbc97cd","module":"core","operation_id":"unmatched","status":404,"duration_ms":0,"db_count":0,"db_ms":0,"error_code":"common.not_found","msg":"request"}
+{"level":"warn","ts":"2026-11-18T19:58:04.927Z","service":"api","env":"staging","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"info","ts":"2026-11-18T19:58:04.951Z","service":"api","env":"staging","version":"0.0.0","request_id":"01a1f03c-e497-718b-b2be-32b48c19dd32","module":"core","operation_id":"unmatched","status":404,"duration_ms":0,"db_count":0,"db_ms":0,"error_code":"common.not_found","msg":"request"}
+{"level":"warn","ts":"2026-11-18T19:58:05.736Z","service":"api","env":"production","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"info","ts":"2026-11-18T19:58:05.741Z","service":"api","env":"production","version":"0.0.0","request_id":"01a1f03c-e7ad-74f4-ba0d-0983a3fef207","module":"core","operation_id":"unmatched","status":404,"duration_ms":0,"db_count":0,"db_ms":0,"error_code":"common.not_found","msg":"request"}
+{"level":"warn","ts":"2026-11-18T19:58:07.960Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:58.777Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:58.777Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:58.777Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/csv' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:58.777Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:59.618Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:59.618Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:59.618Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-18T19:57:59.618Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:00.979Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:00.980Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:00.980Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/xml' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:00.980Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:02.340Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:02.340Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:02.340Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:03.696Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:03.696Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:03.696Z","service":"api","env":"ci","version":"0.0.0","msg":"Handlers for some security requirements were missing: patientPreAuth, queueDisplayToken"}
+{"level":"warn","ts":"2026-11-18T19:58:04.438Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:04.438Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:04.438Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:04.438Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:04.438Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:05.094Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:05.791Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:05.791Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:05.791Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:05.791Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:05.791Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/csv' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:05.791Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:06.766Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:06.766Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:06.766Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/octet-stream' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:06.766Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:06.766Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:06.766Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:06.766Z","service":"api","env":"ci","version":"0.0.0","msg":"Handlers for some security requirements were missing: deviceToken"}
+{"level":"warn","ts":"2026-11-18T19:58:07.757Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:07.757Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/csv' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:08.978Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:09.864Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:09.864Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:09.864Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/csv' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:10.762Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:10.762Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:11.734Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:11.734Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/html' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:11.734Z","service":"api","env":"ci","version":"0.0.0","msg":"Handlers for some security requirements were missing: paymentCallbackToken"}
+{"level":"warn","ts":"2026-11-18T19:58:12.212Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:13.205Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:13.206Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:13.206Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:13.206Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:13.206Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:13.206Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for '*/*' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:13.206Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/plain' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:13.206Z","service":"api","env":"ci","version":"0.0.0","msg":"Handlers for some security requirements were missing: portalSession"}
+{"level":"warn","ts":"2026-11-18T19:58:13.951Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"info","ts":"2026-11-18T19:58:19.692Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1f03d-1e29-7c81-89d8-22eca651a114","module":"core","operation_id":"getLiveness","route":"/v1/core/health/live","status":200,"duration_ms":2,"db_count":0,"db_ms":0,"msg":"request"}
+{"level":"warn","ts":"2026-11-18T19:58:08.280Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:08.280Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:08.281Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/csv' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:08.281Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:09.101Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:09.102Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:09.102Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:09.102Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:10.262Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:10.263Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:10.263Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/xml' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:10.263Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:11.695Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:11.695Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:11.695Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:13.150Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:13.150Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:13.150Z","service":"api","env":"ci","version":"0.0.0","msg":"Handlers for some security requirements were missing: patientPreAuth, queueDisplayToken"}
+{"level":"warn","ts":"2026-11-18T19:58:14.300Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:14.300Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:14.300Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:14.300Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:14.300Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:15.189Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:15.903Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:15.903Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:15.904Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:15.904Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:15.904Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/csv' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:15.904Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:16.864Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:16.864Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:16.864Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/octet-stream' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:16.865Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:16.865Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:16.865Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:16.865Z","service":"api","env":"ci","version":"0.0.0","msg":"Handlers for some security requirements were missing: deviceToken"}
+{"level":"warn","ts":"2026-11-18T19:58:17.946Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:17.946Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/csv' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:19.371Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:20.397Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:20.397Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:20.397Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/csv' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:21.685Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:21.685Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:22.963Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:22.963Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/html' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:22.963Z","service":"api","env":"ci","version":"0.0.0","msg":"Handlers for some security requirements were missing: paymentCallbackToken"}
+{"level":"warn","ts":"2026-11-18T19:58:23.679Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:24.702Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:24.702Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:24.702Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:24.702Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:24.702Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:24.702Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for '*/*' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:24.702Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/plain' not found"}
+{"level":"warn","ts":"2026-11-18T19:58:24.703Z","service":"api","env":"ci","version":"0.0.0","msg":"Handlers for some security requirements were missing: portalSession"}
+{"level":"warn","ts":"2026-11-18T19:58:25.519Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"info","ts":"2026-11-18T19:58:31.647Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1f03d-4cd4-7006-910e-25014756f93b","module":"core","operation_id":"getLiveness","route":"/v1/core/health/live","status":200,"duration_ms":9,"db_count":0,"db_ms":0,"msg":"request"}
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/modules/analytics/__tests__/probes/contract.probe.test.ts > P13 net_billed_paisa never leaves the flag-gated referral report (08 A17 D-44, B13) > export registry: top_referrers and dashboard columns carry no per-referrer money; the referral report column is flag-gated
+AssertionError: expected [ Array(2) ] to deeply equal [ [ 'referral_incentive', …(1) ] ]
+
+- Expected
++ Received
+
+  [
+    [
+      "referral_incentive",
+      "referralIncentiveReportEnabled",
+    ],
++   [
++     "two_level_commission",
++     "referralIncentiveReportEnabled",
++   ],
+  ]
+
+ ❯ src/modules/analytics/__tests__/probes/contract.probe.test.ts:92:20
+     90|     expect(REPORT_REGISTRY['dashboard']!.exportColumns).not.toContain(…
+     91|     const owners = Object.entries(REPORT_REGISTRY).filter(([, d]) => d…
+     92|     expect(owners).toEqual([['referral_incentive', 'referralIncentiveR…
+       |                    ^
+     93|   });
+     94|   it('in C8 source (non-test), net_billed_paisa appears only in the re…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/modules/analytics/__tests__/probes/contract.probe.test.ts > P13 net_billed_paisa never leaves the flag-gated referral report (08 A17 D-44, B13) > in C8 source (non-test), net_billed_paisa appears only in the referral / billing-rollup files
+AssertionError: expected [ 'service/misReports.service.ts' ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "service/misReports.service.ts",
++ ]
+
+ ❯ src/modules/analytics/__tests__/probes/contract.probe.test.ts:99:49
+     97|     ]);
+     98|     const hits = sources(ANALYTICS_SRC).filter((f) => readFileSync(f, …
+     99|     expect(hits.filter((h) => !allowed.has(h))).toEqual([]);
+       |                                                 ^
+    100|     const workerHits = sources(WORKER_SRC).filter((f) => readFileSync(…
+    101|     expect(workerHits.filter((h) => h !== 'tasks/self_check.ts')).toEq…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed | 69 passed | 4 skipped (74)
+      Tests  2 failed | 2843 passed | 51 skipped (2896)
+   Start at  01:41:54
+   Duration  109.81s (tests 86%, import 13%, transform 1%, setup 1%)
+

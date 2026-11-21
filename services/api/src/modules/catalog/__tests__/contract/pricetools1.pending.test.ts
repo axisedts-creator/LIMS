@@ -32,7 +32,9 @@ describe('T0C-PRICETOOLS-1: catalog manifest covers the new operations (handler 
     for (const id of NEW_OPS) expect(handlerIds.includes(id) || pending.includes(id), `${id} neither handled nor pending`).toBe(true);
     // T0C-TESTIMPORT-1 (LD-318, LD-325(b)) adds its six operations to the same list (pinned in testimport1.pending.test.ts).
     const TESTIMPORT = ['downloadCatalogImportTemplate', 'validateCatalogImport', 'commitCatalogImport', 'listCatalogImports', 'getCatalogImport', 'downloadCatalogImportErrors'];
-    expect(pending.filter((id) => !NEW_OPS.includes(id) && !TESTMGMT_OPS.includes(id) && !TESTIMPORT.includes(id)), 'only the test category, price list tool and test import operations may be pending in catalog').toEqual([]);
+    // T0C-PARTYSET-1 (LD-321) adds its five ICD master operations (pinned in partyset1.pending.test.ts).
+    const PARTYSET = ['listIcdMasterCodes', 'searchIcdMasterCodes', 'createIcdMasterCode', 'updateIcdMasterCode', 'deactivateIcdMasterCode'];
+    expect(pending.filter((id) => !NEW_OPS.includes(id) && !TESTMGMT_OPS.includes(id) && !TESTIMPORT.includes(id) && !PARTYSET.includes(id)), 'only the test category, price list tool and test import operations may be pending in catalog').toEqual([]);
     for (const id of ['listPriceLists', 'createPriceList', 'replacePriceListAssignments', 'publishPriceListVersion', 'upsertPriceListItems']) expect(handlerIds, `${id} keeps its handler`).toContain(id);
   });
 });

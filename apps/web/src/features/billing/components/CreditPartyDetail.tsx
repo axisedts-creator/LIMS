@@ -6,14 +6,18 @@ import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
 import { DescriptionList } from '@lims/ui/components/DescriptionList';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { Tabs } from '@lims/ui/components/Tabs';
+import { t } from '@/core/i18n/messages';
+import { CommercialSettings } from '@/features/partners/components/CommercialSettings';
+import type { PartyCommercialSetting } from '@/features/partners/server/partyset.server';
 import type { CreditParty, Money } from '../server/types';
 import { Ad, formatNpr, humanize, npr } from './format';
 
 export interface Charge { id: string; order_id?: string; invoice_id?: string; status: string; amount: Money; created_at: string }
 export interface StatementMonth { period_month: string; fiscal_year_bs: string; invoiced: Money; paid: Money; credited: Money; closing_balance: Money }
-type Tab = 'terms' | 'charges' | 'statement';
+type Tab = 'terms' | 'charges' | 'statement' | 'commercial';
 
-export function CreditPartyDetail({ party, charges, statement }: { party: CreditParty; charges: readonly Charge[]; statement: readonly StatementMonth[] }) {
+// T0D-PARTYSET-1 (LD-321): `setting` undefined = no partners.party_setting.read (no tab); null = the read failed (banner in the tab).
+export function CreditPartyDetail({ party, charges, statement, setting, permissions = [] }: { party: CreditParty; charges: readonly Charge[]; statement: readonly StatementMonth[]; setting?: PartyCommercialSetting | null | undefined; permissions?: readonly string[] }) {
   const [tab, setTab] = useState<Tab>('terms');
   const chargeCols: ColumnDef<Charge>[] = [
     { id: 'when', header: 'Created', isRowHeader: true, cell: (c) => <Ad value={c.created_at} withTime /> },
@@ -34,7 +38,7 @@ export function CreditPartyDetail({ party, charges, statement }: { party: Credit
   return (
     <section aria-label={`Credit party ${party.name}`}>
       <PageHeader title={party.name} helpKey="billing.credit_party" />
-      <Tabs items={[{ id: 'terms', label: 'Terms' }, { id: 'charges', label: 'Charges' }, { id: 'statement', label: 'Statement' }]} selectedId={tab} onChange={(id) => setTab(id as Tab)} aria-label="Credit party">
+      <Tabs items={[{ id: 'terms', label: 'Terms' }, { id: 'charges', label: 'Charges' }, { id: 'statement', label: 'Statement' }, ...(setting !== undefined ? [{ id: 'commercial', label: t('partners.partyset.tab') }] : [])]} selectedId={tab} onChange={(id) => setTab(id as Tab)} aria-label="Credit party">
         {tab === 'terms' ? (
           <DescriptionList
             items={[
@@ -47,6 +51,7 @@ export function CreditPartyDetail({ party, charges, statement }: { party: Credit
           />
         ) : null}
         {tab === 'charges' ? <DataTable caption="Charges" columns={chargeCols} rows={charges} getRowId={(c) => c.id} emptyState={{ title: 'No charges yet.' }} /> : null}
+        {tab === 'commercial' && setting !== undefined ? <CommercialSettings setting={setting} permissions={permissions} /> : null}
         {tab === 'statement' ? <DataTable caption="Statement" columns={stmtCols} rows={statement} getRowId={(m) => m.period_month} emptyState={{ title: 'No statement months yet.' }} /> : null}
       </Tabs>
     </section>

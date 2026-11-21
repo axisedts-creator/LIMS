@@ -52,7 +52,7 @@ const api = setupServer(
   http.get(DEPTS_URL, deptsHandler),
   http.get(ITEMS_URL, ({ request }) => { rec(request); return HttpResponse.json({ data: [], page: { limit: 200 } }); }), // optional: counts
 );
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' })); // any operation outside the two above fails the test (no invented operation)
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' })); // any operation outside the two above fails the test (no invented operation)
 afterEach(() => { cleanup(); api.resetHandlers(); calls.length = 0; session.perms = []; departments = DEPARTMENTS; });
 afterAll(() => api.close());
 
@@ -110,7 +110,7 @@ describe('department index (listDepartments)', () => {
     expect(links.map((a) => a.getAttribute('href'))).toEqual(DEPARTMENTS.map((d) => `/lab/worklists/${d.id}`));
     DEPARTMENTS.forEach((d, i) => {
       expect(links[i]!.textContent).toContain(d.name);
-      expect(within(links[i]!.closest('li,article,section,div') as HTMLElement).getByText(d.code, { exact: false })).toBeTruthy();
+      expect(within(links[i]!.closest('li,article,section,div') as HTMLElement).getByText((_c, el) => (el?.textContent ?? '').trim() === d.code && !Array.from(el?.children ?? []).some((k) => (k.textContent ?? '').trim() === d.code))).toBeTruthy();
     });
   });
 

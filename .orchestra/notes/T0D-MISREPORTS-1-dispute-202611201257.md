@@ -1,0 +1,6 @@
+# T0D-MISREPORTS-1 dispute (writer, round 2, 2026-11-20)
+All verify.cmd suites green (misreports1 141, an-t17 30, an-t18 58, an-t19 357+1 skip, an-t20 137, an-t24 87, uidash1 78, acct1 199, acct2 273, finctrl1 392, bl-t20 54, rs-c2 74).
+rs-c8 (not in verify.cmd, but ruling point 3 orders its re-record) still fails 3/36 — the tester re-record (b011b6423) is incomplete:
+1. rs-c8.screens.test.tsx "Report hub (tabs)" and rs-c8.screens.admin.test.tsx "New schedule form": snapshots mismatched; ruling 3 said re-record "the two snapshots" — only rs-c8.baseline.json was changed. Tester: run with -u from this tree.
+2. rs-c8.static.test.ts:63-69 "every page route link ...": the re-recorded baseline.json:90 pins route "/analytics/reports/${misSlug" (extractor cuts at "("), and line 67 EXISTING only accepts `${...}` closed; so the baseline route itself fails line 68. Any writer change to report-codes.ts:59 breaks the logic sha pinned in the same baseline (line 45-51). Tester: accept `\$\{[^}]*` (unclosed template) in EXISTING, or have the signature extractor keep the full `${misSlug(code)}`, then re-record. Target /analytics/reports/[reportCode] exists, so the link is valid.
+No implementation change needed.

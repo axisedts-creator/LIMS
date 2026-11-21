@@ -82,7 +82,13 @@ describe('route row, navigation entry, strings and help', () => {
 
   it('no new permission and no registry change: contracts/permissions.yaml is byte-identical to the tree before this task, and the administrator role still holds the permission', () => {
     const now = read(join(ROOT, 'contracts', 'permissions.yaml'));
-    expect(now).toBe(gitShow('contracts/permissions.yaml'));
+    // LD-431: main-landed tasks may ADD permissions after the frozen BASE; every BASE line must still be present.
+    // A list that main extended changes its last item's terminator (`x]` becomes `x,`), so only a trailing `]` or `,` is ignored.
+    const norm = (l: string) => l.replace(/[\],](\s*(#.*)?)$/, '$1');
+    const nowLines = new Set(now.split('\n').map(norm));
+    for (const line of gitShow('contracts/permissions.yaml').split('\n').filter((l) => l.trim() !== '')) {
+      expect(nowLines.has(norm(line)), `BASE line missing from contracts/permissions.yaml: ${line}`).toBe(true);
+    }
     expect(now).toMatch(/code: frontdesk\.settings\.manage,[^\n]*tenant_admin/);
   });
 

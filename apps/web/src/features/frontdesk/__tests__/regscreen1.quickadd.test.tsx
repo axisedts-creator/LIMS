@@ -372,7 +372,7 @@ describe('totals bar: Total, Net, Paid, Balance, Refund, Billed', () => {
 });
 
 describe('discount percent and amount, at registration and test level', () => {
-  const lastDiscounts = () => of('POST', PATH.quote).at(-1)?.body.discounts as any[] | undefined;
+  const lastDiscounts = () => of('POST', PATH.quote).at(-1)?.body.discounts as { percent_bp?: number; [k: string]: unknown }[] | undefined;
   it('registration level Discount percent -> {scope bill, kind percent, percent_bp}; Discount amount -> {scope bill, kind amount, amount_paisa}', async () => {
     const u = user();
     await form();

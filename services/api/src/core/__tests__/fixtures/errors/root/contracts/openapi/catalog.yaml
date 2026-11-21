@@ -23,6 +23,17 @@ paths:
         - { name: code, in: path, required: true, schema: { type: string, maxLength: 100 } }
       responses:
         '200': { description: ok, content: { application/json: { schema: { type: object } } } }
+  /v1/catalog/internal/{code}:   # SEC-ERR-1: throws LimsError(code, <internal detail>)
+    get:
+      operationId: limsErrorInternalDetail
+      security: []
+      x-public: "fixture"
+      x-idempotency: none
+      x-rate-limit-tier: general
+      parameters:
+        - { name: code, in: path, required: true, schema: { type: string, maxLength: 100 } }
+      responses:
+        '200': { description: ok, content: { application/json: { schema: { type: object } } } }
   /v1/catalog/detail:
     get:
       operationId: withDetail

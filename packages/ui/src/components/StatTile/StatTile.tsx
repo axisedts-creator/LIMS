@@ -4,7 +4,8 @@ import { Icon } from '../Icon/Icon';
 
 export interface StatTileProps {
   label: string;
-  value: string;
+  /** T0D-UIDASH-2: a node too (MoneyText, a Not available line). */
+  value: ReactNode;
   delta?: { value: string; direction: 'up' | 'down' | 'flat'; isGood?: boolean };
   /** App-relative link (e.g. '/lab/reports?status=pending'); anything else is not rendered as a link (REQ-SEC-088). */
   href?: string;

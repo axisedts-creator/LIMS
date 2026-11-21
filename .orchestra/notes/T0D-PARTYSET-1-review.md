@@ -1,0 +1,5 @@
+APPROVE
+
+Round 2. The only defect from round 1 (missing CR) is fixed: `.orchestra/cr/T0D-PARTYSET-1.md` now exists and follows the spec/program/04-CHANGE-REQUESTS.md §2 template (Title, From/To, Type, Blocking no, Problem, Proposed change, Backward compatible, Tenant/security, IRD, Alternatives, Tests). It covers gaps (a) PartyOnboarding created_by, (b) NonComplianceEvent party_name/penalty_name, (c) Doctor tax_number, (e) party search, all additive and non-blocking, sent to C0-0B. Fix commit 6dd2f8aad touches only `.orchestra/cr` and the impl note; no source changed since round 1, so the round 1 source checks still hold (names verbatim from partners.yaml/catalog.yaml, Idempotency-Key and If-Match per contract, permissions per LD-321 and routes.yaml, reveal audited server side and kept in component state only, no PHI or secrets, owned paths only, nothing under admin, platform or auth).
+
+Tests re-run by the reviewer on 2026-11-20, all green: partyset1 165/165, sales1 102/102, uiset1 69/69, rs-c2 74/74, nav.manifest node test 7/7. Round 1 also ran t16 120/120, uilist3 173/173, web-t33.components 76/76 and nav-complete.catalog 6/6; no source changed since then.

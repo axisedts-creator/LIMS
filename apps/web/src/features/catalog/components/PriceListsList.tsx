@@ -32,7 +32,15 @@ export function PriceListsList({ priceLists, permissions }: { priceLists: readon
   const shown = priceLists.filter((p) => (!q || p.code.toLowerCase().includes(q) || p.name.toLowerCase().includes(q)) && (!f.owner_kind || p.owner_kind === f.owner_kind) && (!f.status || p.is_active === (f.status === 'active')));
   return (
     <section aria-label="Price lists">
-      <PageHeader title={t('catalog.nav.price_lists')} helpKey="catalog.price_lists" actions={open ? <Button variant="primary" onPress={open}>New price list</Button> : null} />
+      <PageHeader
+        title={t('catalog.nav.price_lists')}
+        helpKey="catalog.price_lists"
+        actions={<>
+          {/* T0D-PRICETOOLS-1: the compare view of this route (no new route); readers too */}
+          <a className="lims-link" href="/catalog/price-lists?view=compare">{t('catalog.price_tools.compare_lists')}</a>
+          {open ? <Button variant="primary" onPress={open}>New price list</Button> : null}
+        </>}
+      />
       {/* T0D-EMPTYTBL-1 (LD-310): headers always drawn; the empty message (with New price list repeated) is a body row. */}
       <FilterBar
         filters={[

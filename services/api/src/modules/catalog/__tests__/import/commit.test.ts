@@ -5,7 +5,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import { SHEET } from './columns.js';
 import {
   T, TENANT_A, TENANT_B, MANAGE, ageBatch, analytesByTag, appTx, auditRows, batchRows, build, call, catalogRevision, changedEvents, commit, errorsOf, expectCode, fails, fresh, getBatch, im, mkAnalyte, mkTest,
-  ownerRows, publishVersion, req, schemaErrors, sha, snapshot, testsByTag, uid, upload, uploadFails, validated, versionsOf, expectInvalid, type Ctx,
+  orderableIds, ownerRows, publishVersion, req, schemaErrors, sha, snapshot, testsByTag, uid, upload, uploadFails, validated, versionsOf, expectInvalid, type Ctx,
 } from './helpers.js';
 import { GOLDEN_COUNTS, golden, readWorkbook, workbook, type Data } from './xlsx.js';
 
@@ -19,7 +19,7 @@ async function written(tenant: string, t: string) {
   const sets = await versionsOf(ids, 'reference_range_sets'); const crit = await versionsOf(ids, 'critical_limit_sets'); const vers = await versionsOf(ids, 'analyte_versions');
   const ranges = sets.length ? await ownerRows('catalog.reference_ranges', 'set_id = ANY($1::uuid[])', [sets.map((s: any) => s.id)]) : [];
   const limits = crit.length ? await ownerRows('catalog.critical_limits', 'set_id = ANY($1::uuid[])', [crit.map((s: any) => s.id)]) : [];
-  const panels = await ownerRows('catalog.panels', 'tenant_id = $1 AND code LIKE $2', [tenant, `%${t}`]);
+  const panels = await ownerRows('catalog.panels', `tenant_id = $1 AND ${orderableIds('panel')}`, [tenant, `%${t}`]);
   const members = panels.length ? await ownerRows('catalog.panel_members', 'panel_id = ANY($1::uuid[])', [panels.map((p: any) => p.id)]) : [];
   return { tests, analytes, vers, sets, crit, ranges, limits, panels, members };
 }
@@ -78,7 +78,9 @@ describe('commit (done_when 6)', () => {
     const audit = await auditRows('import_batch', v.batch.id);
     expect(audit.map((a: any) => a.action)).toEqual(['INSERT', 'UPDATE']);
     const last = audit[1];
-    expect(last.new_values).toMatchObject({ status: 'committed', file_sha256: sha(bytes), counts: GOLDEN_COUNTS });
+    // ruling #2: tg_row_audit puts only the changed columns into an UPDATE row, and the guard forbids changing file_sha256/counts, so the hash and counts are on the INSERT row
+    expect(audit[0].new_values).toMatchObject({ file_sha256: sha(bytes), counts: GOLDEN_COUNTS });
+    expect(last.new_values).toMatchObject({ status: 'committed' });
     expect(last.changed_columns).toEqual(expect.arrayContaining(['status', 'committed_at', 'committed_by']));
     const test = (await testsByTag(TENANT_A, X.t))[0];
     expect((await auditRows('tests', test.id)).map((a: any) => a.action)).toContain('INSERT');

@@ -38,7 +38,7 @@ afterEach(() => { vi.useRealTimers(); cleanup(); session.perms = []; });
 
 const instruments = [{ id: ID(950), instrument_code: 'BIO-1', display_name: 'Synthetic chemistry analyser 1' }, { id: ID(951), instrument_code: 'BIO-2', display_name: 'Synthetic chemistry analyser 2' }];
 const tests = [{ id: ID(70), code: 'GLU', name: 'Glucose' }, { id: ID(71), code: 'CREA', name: 'Creatinine' }];
-const stores = [{ id: ID(301), branch_id: ID(401), branch_name: 'Synthetic Branch BR-1', store_code: 'BR1-ST1', name: 'Synthetic store 1', store_kind: 'main', is_default_consumption: true, is_active: true, version: 1 }];
+const stores = [{ id: ID(301), branch_id: ID(401), branch_name: 'Synthetic Branch BR-1', store_code: 'BR1-ST1', name: 'Synthetic store 1', store_kind: 'main' as const, is_default_consumption: true, is_active: true, version: 1 }];
 const reasons = [{ code: 'not_consumed', display: 'Not consumed' }, { code: 'other', display: 'Other' }];
 const fact = (n: number, o: Record<string, unknown> = {}) => ({
   id: ID(850 + n), fact_kind: 'test', source: 'event', status: 'unresolved', instrument_id: ID(950), test_id: ID(70), occurred_at: ago(300), business_date: '2026-11-16', multiplier: 1, rules_applied: 1, movements: [], version: 1, ...o,

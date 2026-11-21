@@ -4,11 +4,10 @@
 import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Banner } from '@lims/ui/components/Banner';
-import { Button } from '@lims/ui/components/Button';
-import { Card } from '@lims/ui/components/Card';
-import { Form } from '@lims/ui/components/Form';
 import { IntegerField } from '@lims/ui/components/IntegerField';
 import { PageHeader } from '@lims/ui/components/PageHeader';
+import { SettingsForm } from '@lims/ui/components/SettingsForm';
+import { Tabs } from '@lims/ui/components/Tabs';
 import { TextField } from '@lims/ui/components/TextField';
 import { useToast } from '@lims/ui/components/Toast';
 import { t } from '@/core/i18n/messages';
@@ -33,6 +32,8 @@ const NUM_KEYS = Object.keys(NUM_LABELS) as SettingsNumKey[];
 const FIELD_PTRS = new Set([...NUM_KEYS, 'update_window_from', 'update_window_to'].map((k) => `/${k}`));
 
 type Nums = Record<SettingsNumKey, number | undefined>;
+// T0D-UISETTINGS-1 (LD-353 template 4): the two former cards are the two tabs of the kit SettingsForm.
+const TABS = [{ id: 'backlog', label: 'Backlog and clock' }, { id: 'agent', label: 'Agent PC' }] as const;
 
 export function InstrumentSettingsForm({ settings, permissions = [] }: { settings: InstrumentSettings; permissions?: readonly string[] }) {
   const router = useRouter();
@@ -45,6 +46,8 @@ export function InstrumentSettingsForm({ settings, permissions = [] }: { setting
   const [serverErr, setServerErr] = useState<Record<string, string>>({});
   const [alert, setAlert] = useState<string>();
   const [busy, setBusy] = useState(false);
+  const [dirty, setDirty] = useState(false);
+  const [tab, setTab] = useState<string>('backlog');
   const inFlight = useRef(false);
   const version = useRef(settings.version);
   if (settings.version > version.current) version.current = settings.version;
@@ -52,7 +55,7 @@ export function InstrumentSettingsForm({ settings, permissions = [] }: { setting
 
   const build = (): Record<string, unknown> => ({ ...nums, ...(from ? { update_window_from: from } : {}), ...(to ? { update_window_to: to } : {}) });
   const clientErr = fieldErrorsByPointer(validateSettings(build()));
-  const clear = (ptr: string) => setServerErr(({ [ptr]: _, ...r }) => r);
+  const clear = (ptr: string) => { setDirty(true); setServerErr(({ [ptr]: _, ...r }) => r); };
   const err = (ptr: string) => {
     const e = serverErr[ptr] ?? (show ? clientErr[ptr] : undefined);
     return e ? { error: e } : {};
@@ -75,6 +78,7 @@ export function InstrumentSettingsForm({ settings, permissions = [] }: { setting
         savedWindow.current = win;
         version.current = r.data.version;
         setServerErr({});
+        setDirty(false);
         toast.show({ tone: 'success', title: windowChanged ? WINDOW_SAVED : 'Saved.' }); // [CONV] text for a save without window change
         router.refresh();
         return;
@@ -99,29 +103,43 @@ export function InstrumentSettingsForm({ settings, permissions = [] }: { setting
     <TextField label={label} name={k} maxLength={5} value={value} description="HH:MM, optional. Set both or neither." onChange={(v) => { set(v); clear(`/${k}`); }} {...readOnly} {...err(`/${k}`)} />
   );
 
+  // Every section stays mounted (hidden when not selected) so the kit Form validates fields on the other tab too.
+  const fields = (
+    <>
+      <div className="lims-settings-section" hidden={tab !== 'backlog'}>
+        {num('default_backlog_threshold')}
+        {num('backlog_max_oldest_pending_seconds')}
+        {num('clock_offset_warn_seconds')}
+      </div>
+      <div className="lims-settings-section" hidden={tab !== 'agent'}>
+        {num('agent_uploaded_retention_hours')}
+        {time('Update window from', 'update_window_from', from, setFrom)}
+        {time('Update window to', 'update_window_to', to, setTo)}
+        <p className="lims-description">{RETENTION_HELP}</p>
+      </div>
+    </>
+  );
+  const tabs = <Tabs aria-label="Instrument settings sections" items={TABS} selectedId={tab} onChange={setTab} />;
+
   return (
     <section aria-label="Instrument settings">
       {/* T0D-UNSLOP-1 (LD-344, LD-353 rule 8): the page had no h1; the title is the menu name. */}
       <PageHeader title={t('instruments.nav.settings')} helpKey="instruments.settings" />
-      <Form onSubmit={submit}>
-        {alert ? (
-          <div role="alert">
-            <Banner tone={alert === CONFLICT ? 'warning' : 'danger'} title={alert} />
-          </div>
-        ) : null}
-        <Card title="Backlog and clock">
-          {num('default_backlog_threshold')}
-          {num('backlog_max_oldest_pending_seconds')}
-          {num('clock_offset_warn_seconds')}
-        </Card>
-        <Card title="Agent PC">
-          {num('agent_uploaded_retention_hours')}
-          {time('Update window from', 'update_window_from', from, setFrom)}
-          {time('Update window to', 'update_window_to', to, setTo)}
-        </Card>
-        <p className="lims-description">{RETENTION_HELP}</p>
-        {ro ? null : <Button type="submit" variant="primary" shortcut="Ctrl+Enter" isLoading={busy}>Save</Button>}
-      </Form>
+      {alert ? (
+        <div role="alert">
+          <Banner tone={alert === CONFLICT ? 'warning' : 'danger'} title={alert} />
+        </div>
+      ) : null}
+      {ro ? (
+        <div className="lims-settings">
+          <div className="lims-settings-tabs">{tabs}</div>
+          <div className="lims-settings-form"><div className="lims-settings-fields">{fields}</div></div>
+        </div>
+      ) : (
+        <SettingsForm tabs={tabs} onSave={submit} isSaving={busy} isDirty={dirty}>
+          {fields}
+        </SettingsForm>
+      )}
     </section>
   );
 }

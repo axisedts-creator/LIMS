@@ -50,7 +50,7 @@ const api = setupServer(
   ...SCREENS.map((s) => http.get(`${ORIGIN}${s.api}`, () => { served += 1; return mode === 'empty' ? list([]) : mode === 'one' ? list([s.row]) : problem(); })),
   http.get(`${ORIGIN}/v1/quality/qc-status`, () => list([])), // plan options: best effort
 );
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { cleanup(); mode = 'empty'; served = 0; });
 afterAll(() => api.close());
 

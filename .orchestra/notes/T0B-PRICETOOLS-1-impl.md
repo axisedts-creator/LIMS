@@ -1,0 +1,7 @@
+# T0B-PRICETOOLS-1 impl (writer; LD-321, LD-325)
+- Files: NEW domain/priceTools.ts, service/priceTools.service.ts (7 ops), handlers/priceTools.handlers.ts; EDIT handlers/index.ts, index.ts (pendingOperations = []), import/xlsx.ts (additive), pricing.service.ts (dated assignments), pricing.handlers.ts, quote.service.ts (assignment resolved by `at`). No code change after the ruling: the revised tests pass against the existing impl.
+- [CONV] createPriceList's EMPTY draft v1 is filled in place by commit / copy; a draft holding items is 409 common.version_conflict. Re-commit of a committed batch returns the first version (200).
+- [CONV] no catalog storage bucket: bytes not stored; batch seal sha256(file_sha256|rows), file_ref "sha256:<hex>"; bulk/copy refusals = 422 catalog.formula_invalid. Both in .orchestra/cr/T0B-PRICETOOLS-1.md.
+- Checks (after ruling, PG17 harness tests/catalog/T0B-PRICETOOLS-1.pg.sh, run 1): 6299 pass, 9 fail; every pricetools, probe and testmgmt/boot test GREEN. Reds: partyset/doctor.test.ts x7 (commission_bp unknown field, PARTYSET owner, ruling 7) and real-modules-boot + pending-operations timeouts under the full parallel run.
+- Boot tests ALONE on a fresh PG17: 3 files, 94 pass, 40 s. Timeouts = host load, not code. Harness stops on first red run, so runs 2-3 not reached.
+- OPEN: 3 green runs blocked by doctor.test (other task) and boot timeouts under load (lead: serial boot run or longer budget); effective_from column validated only; template not capped at 5000 rows.

@@ -58,7 +58,7 @@ export async function endpointExists(tx: Tx, tenantId: string, kind: string, id:
 /** Signed pocket balance (credits - debits) of a user / centre pocket, as text (bigint). */
 export async function pocketBalance(tx: Tx, tenantId: string, partyId: string): Promise<string> {
   return (await tx.query(`SELECT COALESCE(SUM(CASE entry_type WHEN 'credit' THEN amount_paisa ELSE -amount_paisa END), 0)::text AS s FROM billing.account_ledger_entries
-    WHERE tenant_id = $1 AND party_kind = 'user_pocket' AND party_id = $2`, [tenantId, partyId])).rows[0].s;
+    WHERE tenant_id = $1 AND party_kind = 'user_pocket' AND party_id = $2 AND status <> 'held'`, [tenantId, partyId])).rows[0].s;   // T0B-FINCTRL-1: posted entries only
 }
 export async function particularByCode(tx: Tx, tenantId: string, code: string): Promise<string | undefined> {
   return (await tx.query('SELECT id FROM billing.account_particulars WHERE tenant_id = $1 AND code = $2', [tenantId, code])).rows[0]?.id;
@@ -92,7 +92,7 @@ export async function listTransfers(tx: Tx, f: { tenantId: string; status?: stri
 export async function dailyCollection(tx: Tx, a: { tenantId: string; centreId: string; day: string }): Promise<Row[]> {
   return (await tx.query(`SELECT mode AS payment_mode, SUM(n)::text AS entry_count, SUM(amt)::text AS total_paisa FROM (
       SELECT e.payment_mode AS mode, 1 AS n, e.amount_paisa AS amt FROM billing.account_ledger_entries e
-      WHERE e.tenant_id = $1 AND e.centre_id = $2 AND e.entry_date = $3::date AND e.entry_type = 'credit' AND e.reverses_entry_id IS NULL
+      WHERE e.tenant_id = $1 AND e.centre_id = $2 AND e.entry_date = $3::date AND e.entry_type = 'credit' AND e.reverses_entry_id IS NULL AND e.status <> 'held'
         AND NOT EXISTS (SELECT 1 FROM billing.account_ledger_entries r WHERE r.tenant_id = e.tenant_id AND r.reverses_entry_id = e.id)
       UNION ALL
       SELECT l.method_code, CASE l.entry_kind WHEN 'payment' THEN 1 WHEN 'reversal' THEN -1 ELSE 0 END,

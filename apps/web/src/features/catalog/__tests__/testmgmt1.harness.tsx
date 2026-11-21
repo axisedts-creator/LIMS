@@ -157,7 +157,7 @@ const PAGES = {
 } as const;
 const PATHS: Record<keyof typeof PAGES, string> = { tests: '/catalog/tests', test: '/catalog/tests/x', units: '/catalog/units', specimens: '/catalog/specimens', 'comment-codes': '/catalog/comment-codes', panels: '/catalog/panels', panel: '/catalog/panels/x' };
 /** Render a catalog page like Next does: the server page gets parsed params + search params, client parts read useSearchParams. */
-export async function show(route: keyof typeof PAGES, opts: { params?: Sp; search?: string } = {}) {
+export async function show(route: keyof typeof PAGES, opts: { params?: Sp; search?: string } = {}): Promise<ReturnType<typeof render>> {
   const search = (opts.search ?? '').replace(/^\?/, '');
   TM.nav.search = search;
   TM.nav.path = route === 'test' && opts.params?.['test_id'] ? `/catalog/tests/${opts.params['test_id']}` : route === 'panel' && opts.params?.['panel_id'] ? `/catalog/panels/${opts.params['panel_id']}` : PATHS[route];

@@ -1,5 +1,5 @@
 // Fiscal year of an instant (02-TRD §12 "FY derivation"; US-BL-01.3; 04 L16: FY starts 1 Shrawan). Pure.
-import { instantToBs, type IsoUtc } from '../../../../../../packages/shared-ts/src/bsdate/index.js';
+import { adToBs, instantToBs, type IsoDate, type IsoUtc } from '../../../../../../packages/shared-ts/src/bsdate/index.js';
 import { LimsError } from '../../../core/errors.js';
 
 export interface FiscalYear { readonly short: string; readonly long: string }
@@ -21,6 +21,22 @@ export function fiscalYearOf(instant: IsoUtc, timezone = 'Asia/Kathmandu'): Fisc
   const y = b.month >= 4 ? b.year : b.year - 1;
   const long = `${y}/${String((y + 1) % 100).padStart(2, '0')}`;
   return { short: long.slice(1), long };
+}
+
+/** T0B-FINCTRL-1 (LD-321): fiscal year start of a tenant, B.S. month / day. Default Shrawan 1 until the lab accountant confirms (notes: T0B-FINCTRL-1-impl.md). */
+export interface FyStart { readonly month: number; readonly day: number }
+export const SHRAWAN_1: FyStart = Object.freeze({ month: 4, day: 1 });
+/** A setting value as a start, or the default when absent / malformed (fail safe to the statutory Shrawan 1). */
+export function fyStartOf(v: unknown): FyStart {
+  const o = typeof v === 'object' && v !== null ? (v as Record<string, unknown>) : undefined;
+  const m = o?.['month'], d = o?.['day'];
+  return Number.isInteger(m) && Number.isInteger(d) && (m as number) >= 1 && (m as number) <= 12 && (d as number) >= 1 && (d as number) <= 32 ? { month: m as number, day: d as number } : SHRAWAN_1;
+}
+/** fiscal_year_label of a calendar date: '<BS year the FY began>/<next year, 2 digits>' (e.g. 2026-11-17 -> 2083/84 with the Shrawan 1 start). Throws BsDateError out of range. */
+export function fiscalYearLabel(date: IsoDate, start: FyStart = SHRAWAN_1): string {
+  const b = adToBs(date);
+  const y = b.month > start.month || (b.month === start.month && b.day >= start.day) ? b.year : b.year - 1;
+  return `${y}/${String((y + 1) % 100).padStart(2, '0')}`;
 }
 
 /** TRD §12 step 3: the counter row's FY must still be the FY of allocated_at. */

@@ -3,6 +3,7 @@
 import { LimsError } from '../../../core/errors.js';
 import type { Handler, HandlerContext, HandlerRequest } from '../../../core/module.js';
 import { createImportsService, type ImportsCtx } from '../service/imports.service.js';
+import { guarded } from './_guard.js';
 
 type Svc = ReturnType<typeof createImportsService>;
 type Ports = { IdentityPort?: Parameters<typeof createImportsService>[0]['identity'] };
@@ -30,8 +31,8 @@ function ifMatch(req: HandlerRequest): number {
 }
 
 export const importsHandlers: Readonly<Record<string, Handler>> = Object.freeze({
-  downloadImportTemplate: bind(async (s, ctx, req) => attachment(await s.downloadTemplate(ctx, obj(req.params)['kind']))),
-  createImport: bind(async (s, ctx, req) => {
+  downloadImportTemplate: guarded('catalog.test.read', bind(async (s, ctx, req) => attachment(await s.downloadTemplate(ctx, obj(req.params)['kind'])))),
+  createImport: guarded('catalog.test.read', bind(async (s, ctx, req) => {
     // [CONV] multipart shape from the core parser: fields as strings, `file` = { filename, mimetype, data: Buffer }.
     const b = obj(req.body);
     const f = obj(b['file']);
@@ -40,23 +41,23 @@ export const importsHandlers: Readonly<Record<string, Handler>> = Object.freeze(
       file: { filename: f['filename'], mimeType: f['mimetype'] ?? f['mimeType'], bytes: f['data'] ?? f['bytes'] },
     });
     return { status: out.status, body: out.body, headers: etag(out.body) };
-  }),
-  listImports: bind(async (s, ctx, req) => {
+  })),
+  listImports: guarded('catalog.test.read', bind(async (s, ctx, req) => {
     const q = obj(req.query);
     return { status: 200, body: await s.listImports(ctx, { kind: q['kind'], status: q['status'], cursor: q['cursor'], limit: q['limit'] }) };
-  }),
-  getImport: bind(async (s, ctx, req) => { const b = await s.getImport(ctx, obj(req.params)['import_id']); return { status: 200, body: b, headers: etag(b) }; }),
-  listImportIssues: bind(async (s, ctx, req) => {
+  })),
+  getImport: guarded('catalog.test.read', bind(async (s, ctx, req) => { const b = await s.getImport(ctx, obj(req.params)['import_id']); return { status: 200, body: b, headers: etag(b) }; })),
+  listImportIssues: guarded('catalog.test.read', bind(async (s, ctx, req) => {
     const q = obj(req.query);
     return { status: 200, body: await s.listImportIssues(ctx, obj(req.params)['import_id'], { severity: q['severity'], cursor: q['cursor'], limit: q['limit'] }) };
-  }),
-  downloadImportReport: bind(async (s, ctx, req) => attachment(await s.downloadImportReport(ctx, obj(req.params)['import_id']))),
-  discardImport: bind(async (s, ctx, req) => {
+  })),
+  downloadImportReport: guarded('catalog.test.read', bind(async (s, ctx, req) => attachment(await s.downloadImportReport(ctx, obj(req.params)['import_id'])))),
+  discardImport: guarded('catalog.test.read', bind(async (s, ctx, req) => {
     const b = await s.discardImport(ctx, obj(req.params)['import_id'], ifMatch(req));
     return { status: 200, body: b, headers: etag(b) };
-  }),
-  commitImport: bind(async (s, ctx, req) => {
+  })),
+  commitImport: guarded('catalog.test.read', bind(async (s, ctx, req) => {
     const b = await s.commitImport(ctx, obj(req.params)['import_id'], ifMatch(req), req.body);
     return { status: 202, body: b, headers: etag(b) };
-  }),
+  })),
 });

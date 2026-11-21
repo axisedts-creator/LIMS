@@ -119,8 +119,8 @@ describe("T0C-TESTMGMT-1 contract: catalog.yaml lint and additive baseline", () 
   it("is additive: the 107 original operations keep method, path, permission and idempotency; exactly 3 new operations", () => {
     const ids = allOps();
     // T0C-PRICETOOLS-1 (LD-321) adds 7 price list tool operations on top (pinned in pricetools1-openapi.test.ts): 107 original + 3 category operations + 7 = 117; T0C-TESTIMPORT-1 (LD-318) adds 6 Excel test import operations (pinned in testimport1-openapi.test.ts): 123
-    expect(ids.length, "107 original + 3 category operations + 7 price list tool operations + 6 test import operations").toBe(123);
-    expect(new Set(ids).size).toBe(123);
+    expect(ids.length, "107 original + 3 category operations + 7 price list tool operations + 6 test import operations + 5 ICD master operations (T0C-PARTYSET-1)").toBe(128);
+    expect(new Set(ids).size).toBe(128);
     for (const id of ["getCatalogRevision", "searchOrderables", "listDepartments", "listTests", "createTest", "getTestDetail", "updateTest", "setTestTatTargets", "createAnalyte", "updateAnalyte",
       "createAnalyteVersionDraft", "updateAnalyteVersionDraft", "publishAnalyteVersion", "validateFormula", "createReferenceRangeSetDraft", "replaceReferenceRangeSetBands", "publishReferenceRangeSet",
       "replaceCriticalLimitSetBands", "listPanels", "createPanel", "updatePanel", "listCommentCodes", "createCommentCode", "updateCommentCode", "listUnits", "listMethods", "listValueSets"]) expect(opOf(id), id).toBeDefined();

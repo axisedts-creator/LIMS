@@ -93,7 +93,7 @@ const api = setupServer(
     return HttpResponse.json({ data: [] });
   }),
 );
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { answer = 0; api.resetHandlers(); });
 afterAll(() => api.close());
 const posts = () => calls.filter((c) => c.method === 'POST' && /bulk-(verify|approve)$/.test(c.url.pathname));

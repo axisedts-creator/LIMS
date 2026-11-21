@@ -1,3 +1,4 @@
+'use client';
 import { useRef, type KeyboardEvent, type ReactNode } from 'react';
 import { Input, Label, Text, TextArea as RacTextArea, TextField as RacTextField } from 'react-aria-components';
 import { useFormField } from '../Form/FormContext';

@@ -1,5 +1,5 @@
 // contracts/ports/LabPort.ts
-import type { RequestContext, Uuidv7, IsoUtc, DecimalString, Code, Priority, Sex, ResultStatus, SpecimenStatus, Page } from './common';
+import type { RequestContext, Uuidv7, IsoUtc, DecimalString, Code, Priority, Sex, ResultStatus, SpecimenStatus, Page } from './common.js';
 export const LAB_PORT_VERSION = 1 as const;
 
 export interface ResultView {
@@ -21,7 +21,7 @@ export interface ResultView {
 }
 export interface OrderResults {
   readonly orderId: Uuidv7;
-  readonly specimens: readonly { readonly specimenId: Uuidv7; readonly specimenTypeCode: Code; readonly status: import('./common').SpecimenStatus;
+  readonly specimens: readonly { readonly specimenId: Uuidv7; readonly specimenTypeCode: Code; readonly status: import('./common.js').SpecimenStatus;
                                  readonly collectedAt?: IsoUtc; readonly receivedAt?: IsoUtc;
                                  readonly barcode?: string /* added by 08 (CR-C6-006): P2, scope 'approved' only */ }[];
   readonly items: readonly { readonly orderItemId: Uuidv7; readonly testId: Uuidv7; readonly departmentId: Uuidv7; readonly results: readonly ResultView[] }[];

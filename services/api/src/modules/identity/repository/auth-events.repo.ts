@@ -76,21 +76,32 @@ export function sealerFromEnv(env: NodeJS.ProcessEnv = process.env): Sealer {
 const LOGIN_CONTEXT_SQL = `SELECT platform_staff_id, platform_role, platform_active, platform_allowed_cidrs::text[] AS platform_allowed_cidrs,
   membership_count, tenant_id, tenant_status, membership_id, membership_status, membership_locked, mfa_required, has_verified_factor,
   idle_timeout_minutes, absolute_session_hours FROM app.identity_login_context($1::uuid)`;
+// LD-208 SESSION-ACTOR-1: SessionState.actor source; read-only DEFINER, ids as bind parameters only
+const SESSION_ACTOR_SQL = 'SELECT display_name, role_codes, tenant_code FROM app.identity_session_actor($1::uuid, $2::uuid, $3::uuid)';
+// LD-300 / T0B-LOGIN-1: absolute_expires_at ($16) and expires_at ($19) capped at the DATABASE now() + 12 h (same now() as created_at), so
+// sessions__absolute__ck holds even when the application clock is ahead of the database clock. Never patient rows here.
 const SESSION_SQL = `INSERT INTO identity.sessions (id, tenant_id, kind, user_id, membership_id, gotrue_session_id, token_sha256, state, aal,
   refresh_token_enc, access_token_enc, enc_key_id, access_expires_at, idle_timeout_minutes, idle_expires_at, absolute_expires_at,
   client_ip, user_agent, expires_at, created_by, updated_by)
-  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, nullif($17, '')::inet, $18, $19, $20, $20)`;
+  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, least($16::timestamptz, now() + interval '12 hours'), nullif($17, '')::inet, $18,
+  least($19::timestamptz, now() + interval '12 hours'), $20, $20)`;
 // T31 staff_mobile: same row + app_instance_id / app_platform (sessions__app__ck)
 const APP_SESSION_SQL = `INSERT INTO identity.sessions (id, tenant_id, kind, user_id, membership_id, gotrue_session_id, token_sha256, state, aal,
   refresh_token_enc, access_token_enc, enc_key_id, access_expires_at, idle_timeout_minutes, idle_expires_at, absolute_expires_at,
   client_ip, user_agent, expires_at, created_by, updated_by, app_instance_id, app_platform)
-  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, nullif($17, '')::inet, $18, $19, $20, $20, $21, $22)`;
+  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, least($16::timestamptz, now() + interval '12 hours'), nullif($17, '')::inet, $18,
+  least($19::timestamptz, now() + interval '12 hours'), $20, $20, $21, $22)`;
 // T31 AU-T17: permission through an active role of the membership (tenant bound; plain SQL under the tenant policies)
 const MEMBERSHIP_PERMISSION_SQL = `SELECT EXISTS (SELECT 1 FROM core.membership_roles mr
     JOIN core.roles r ON r.tenant_id = mr.tenant_id AND r.id = mr.role_id AND r.is_active
     JOIN core.role_permissions rp ON rp.tenant_id = r.tenant_id AND rp.role_id = r.id
   WHERE mr.tenant_id = $1 AND mr.membership_id = $2 AND rp.permission_code = $3) AS ok`;
-const PLATFORM_SESSION_SQL = 'SELECT app.identity_platform_auth_write_session_insert($1::uuid, $2::jsonb)';
+// LD-222 AUTH-ACTOR-2: same read as core-repo membershipPermissions (and the same active-role rule as above), inside the tenant-bound tx
+const MEMBERSHIP_PERMISSIONS_SQL = `SELECT DISTINCT rp.permission_code FROM core.membership_roles mr
+    JOIN core.roles r ON r.tenant_id = mr.tenant_id AND r.id = mr.role_id AND r.is_active
+    JOIN core.role_permissions rp ON rp.tenant_id = r.tenant_id AND rp.role_id = r.id
+  WHERE mr.tenant_id = $1 AND mr.membership_id = $2 ORDER BY rp.permission_code`;
+const PLATFORM_SESSION_SQL ='SELECT app.identity_platform_auth_write_session_insert($1::uuid, $2::jsonb)';
 const STAFF_LOGIN_SQL = 'SELECT app.identity_platform_auth_write_staff_login($1::uuid)';
 const TOUCH_SQL = `UPDATE core.memberships SET last_login_at = $3, updated_at = now(), updated_by = $4 WHERE tenant_id = $1 AND id = $2`;
 const ENQUEUE_SQL = 'SELECT app.enqueue_job($1, $2::jsonb, $3)';
@@ -108,6 +119,9 @@ export function createAuthRepo(o: { seal?: Sealer } = {}) {
     async loginContext(tx: Q, sub: string): Promise<Record<string, unknown> | undefined> {
       return (await tx.query(LOGIN_CONTEXT_SQL, [sub])).rows[0];
     },
+    async sessionActor(tx: Q, a: { userId: string; tenantId: string | null; membershipId: string | null }): Promise<Record<string, unknown> | undefined> {
+      return (await tx.query(SESSION_ACTOR_SQL, [a.userId, a.tenantId, a.membershipId])).rows[0];
+    },
     async insertSession(tx: Q, s: NewSession): Promise<void> {
       const k = sealBoth(s);
       const p = [s.id, s.tenantId, s.kind, s.userId, s.membershipId, s.gotrueSessionId, s.tokenSha256, s.state, s.aal,
@@ -118,6 +132,9 @@ export function createAuthRepo(o: { seal?: Sealer } = {}) {
     },
     async membershipHasPermission(tx: Q, a: { tenantId: string; membershipId: string; permission: string }): Promise<boolean> {
       return (await tx.query(MEMBERSHIP_PERMISSION_SQL, [a.tenantId, a.membershipId, a.permission])).rows[0]?.ok === true;
+    },
+    async membershipPermissions(tx: Q, a: { tenantId: string; membershipId: string }): Promise<string[]> {
+      return (await tx.query(MEMBERSHIP_PERMISSIONS_SQL, [a.tenantId, a.membershipId])).rows.map((r: any) => r.permission_code as string);
     },
     /** 08 A28.1: jsonb_populate_record + INSERT SELECT v.* means every NOT NULL column (defaults included) is sent explicitly. */
     async insertPlatformSession(tx: Q, s: NewSession): Promise<void> {

@@ -151,6 +151,10 @@ class ReportingApi {
   Future<Object?> listPortalLinks({required String reportId}) =>
       _send('GET', '/v1/reporting/reports/${Uri.encodeComponent(reportId)}/portal-links');
 
+  /// GET /v1/reporting/print-profiles
+  Future<Object?> listPrintProfiles({Map<String, Object?>? query}) =>
+      _send('GET', '/v1/reporting/print-profiles', query: query);
+
   /// GET /v1/reporting/report-templates
   Future<Object?> listReportTemplates({Map<String, Object?>? query}) =>
       _send('GET', '/v1/reporting/report-templates', query: query);
@@ -162,6 +166,14 @@ class ReportingApi {
   /// GET /v1/reporting/reports
   Future<Object?> listReports({Map<String, Object?>? query}) =>
       _send('GET', '/v1/reporting/reports', query: query);
+
+  /// GET /v1/reporting/signatory-profiles
+  Future<Object?> listSignatoryProfiles() =>
+      _send('GET', '/v1/reporting/signatory-profiles');
+
+  /// POST /v1/reporting/print-profiles/preview
+  Future<Object?> previewPrintProfile({Map<String, String>? headers, Object? body}) =>
+      _send('POST', '/v1/reporting/print-profiles/preview', headers: headers, body: body);
 
   /// POST /v1/reporting/report-templates/{template_id}/previews
   Future<Object?> previewReportTemplate({required String templateId, Map<String, String>? headers, Object? body}) =>
@@ -263,9 +275,17 @@ class ReportingApi {
   Future<Object?> upsertMessageTemplateText({required String templateCode, required String channel, Map<String, String>? headers, Object? body}) =>
       _send('PUT', '/v1/reporting/message-templates/${Uri.encodeComponent(templateCode)}/texts/${Uri.encodeComponent(channel)}', headers: headers, body: body);
 
+  /// PUT /v1/reporting/print-profiles
+  Future<Object?> upsertPrintProfile({Object? body}) =>
+      _send('PUT', '/v1/reporting/print-profiles', body: body);
+
   /// PUT /v1/reporting/referrer-preferences/{referrer_id}
   Future<Object?> upsertReferrerPreference({required String referrerId, Object? body}) =>
       _send('PUT', '/v1/reporting/referrer-preferences/${Uri.encodeComponent(referrerId)}', body: body);
+
+  /// PUT /v1/reporting/signatory-profiles/{user_id}
+  Future<Object?> upsertSignatoryProfile({required String userId, Object? body}) =>
+      _send('PUT', '/v1/reporting/signatory-profiles/${Uri.encodeComponent(userId)}', body: body);
 
   /// POST /v1/reporting/portal/otp-challenges/{challenge_id}/verify
   Future<Object?> verifyPortalOtp({required String challengeId, Object? body}) =>

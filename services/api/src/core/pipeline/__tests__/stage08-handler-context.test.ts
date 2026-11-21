@@ -4,7 +4,7 @@ import { claimsA, count, makeRig, MEMBERSHIP, op, pgError, REQ_ID, SUB, TENANT_A
 
 const MEMBERS = [
   'tenantId', 'actor', 'requestId', 'tx', 'now', 'ports', 'db', 'core', 'audit', 'events', 'rateLimit', 'uploads', 'files', 'storage',
-  'log', 'services', 'operationId', 'clientIp', 'download', 'commitOnError', 'noRetry',
+  'log', 'metrics', 'services','operationId', 'clientIp', 'bffKey', 'download', 'commitOnError', 'noRetry',
 ];
 
 async function capture(over: Record<string, unknown> = {}, rigOpts: Parameters<typeof makeRig>[0] = {}) {

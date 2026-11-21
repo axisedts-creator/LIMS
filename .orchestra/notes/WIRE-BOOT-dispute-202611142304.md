@@ -1,0 +1,6 @@
+# WIRE-BOOT dispute (debugger)
+Failing: infra/tests/static/test_t0d_dep01_images.py RealEnvExample.test_env_example (check_env_example, line ~416; rule in file docstring line 29: "every name is read by a tracked non-test source file").
+Fact: .env.example now has the 7 names (LD-192 worked). The check uses tracked_source_names() = whole-word `git grep` for the full name in non-test .ts. The 7 names are real but composed at runtime, so the full string never appears in source: payments/config.ts:49 `K = s => LIMS_PAYMENTS_${s}` (lines 83,109,125: 'KEK_FILE','PUBLIC_BASE_URL','ESEWA_FORM_URL'); engagement/config.ts:73-75 `rawKey(env,'OTP_HMAC_KEY_FILE')` etc. (prefix added inside rawKey).
+Conflict: LD-188 rule 3 requires these names in render.yaml/.env.example AND the T0D-DEP-01 test green, but the test's literal-grep rule cannot hold for prefix-composed names.
+Implementation fix is out of reach: only a literal mention in engagement/config.ts and payments/config.ts would satisfy it, and LD-188 forbids touching other files of those modules. Tests may not be edited by me.
+Options for lead: (a) authorise a one-line comment naming the full names in each of those two config.ts files; or (b) relax tracked_source_names (prefix+suffix match) in the T0D-DEP-01 test (tester/lead).

@@ -8,22 +8,27 @@ import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js
 import { div, parseDecimal, roundDp, sub, toDecimalString, type Decimal } from '../../../../../../packages/shared-ts/src/decimal/index.js';
 import { LimsError } from '../../../core/errors.js';
 import { loadQualityConfig } from '../config.js';
-import { createQcViewRepo, type Row, type SyncRepo } from '../repository/qcview.repo.js';
+import { createQcViewRepo, type ReprocessRepo, type Row, type SyncRepo } from '../repository/qcview.repo.js';
 import { createSettingsService } from './settings.service.js';
 
 export type ObservationDraft = Row;
 export type Classification = ObservationDraft;
 export interface RunAssembler { assign(ctx: ObsCtx, draft: ObservationDraft): Promise<{ qc_run_id: string }> }
-export interface ObsCtx { readonly tenantId: string; readonly actor: { readonly id: string }; readonly tx: any; readonly now: () => string; readonly ports?: any; readonly log?: any }
+export interface ObsCtx { readonly tenantId: string; readonly actor: { readonly id: string }; readonly tx: any; readonly now: () => string; readonly ports?: any; readonly log?: any; readonly metrics?: any }
 export interface SyncResult {
   imported: number; duplicates: number; importErrors: number; pages: number; budgetExhausted: boolean;
   counts: Record<string, number>; cursor: { at: string; id: string } | null;
 }
 
+export interface ReprocessResult { reclassified: number; adopted: number; unchanged: number; errors: number; counts: Record<string, number> }
+
 const DAY_MS = 86_400_000;
 const SAVEPOINT = 'qc_row';
+const UNASSIGNED = ['unmapped_analyte', 'non_numeric', 'no_plan', 'unmapped_control', 'level_not_in_plan', 'lot_expired', 'no_target', 'unit_mismatch', 'late_unassigned'];   // §6.3 non-assigned statuses: zeroed so a cleared status leaves the gauge
 const ms = (iso: string): number => Date.parse(iso.replace(/(\.\d{3})\d*Z$/, '$1Z'));   // µs text -> ms (Date.parse is not specified beyond 3 digits)
 const keyCmp = (a: { at: string; id: string }, b: { at: string; id: string }): number => (a.at < b.at ? -1 : a.at > b.at ? 1 : a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
+// §14 metrics never break an import (labels are enums / codes; tenant_id only on gauges, REQ-SEC-098).
+const emit = (f: () => void): void => { try { f(); } catch { /* ignore */ } };
 const isDataError = (e: any): boolean => /^(22|23)/.test(String(e?.code ?? ''));
 
 /** Half-up to exactly 6 places, plain decimal string (numeric(20,6) / numeric(14,6)). */
@@ -37,7 +42,7 @@ const unassignedRunAssembler: RunAssembler = {
 };
 
 export function createObservationService(deps: {
-  repo?: SyncRepo; assembler?: RunAssembler; config?: { syncBatch?: number; syncOverlapSeconds?: number; syncTimeBudgetSeconds?: number }; nowMs?: () => number;
+  repo?: SyncRepo & Partial<ReprocessRepo>; assembler?: RunAssembler; config?: { syncBatch?: number; syncOverlapSeconds?: number; syncTimeBudgetSeconds?: number }; nowMs?: () => number;
 } = {}) {
   const repo = deps.repo ?? createQcViewRepo();
   const assembler = deps.assembler ?? unassignedRunAssembler;
@@ -68,6 +73,13 @@ export function createObservationService(deps: {
       status: '', plan_id: null, level_id: null, lot_id: null, target_id: null, mean: null, sd: null, z: null, qc_run_id: null,
       classified_at: ctx.now(), created_by: ctx.actor.id, updated_by: ctx.actor.id,
     };
+    return place(ctx, o, tzIn, false);
+  }
+
+  /** Rows 1-10 over a draft whose observed_at is already fixed. `adopt` = D-60 history adoption (T-11): rows 4-8 only, "would be assigned" becomes late_unassigned (row 9 is not evaluated, no run). */
+  async function place(ctx: ObsCtx, o: Row, tzIn: string | undefined, adopt: boolean): Promise<Classification> {
+    const t = ctx.tenantId;
+    const observedMs = ms(o['observed_at']);
     const done = (status: string): Classification => { o['status'] = status; return o; };
 
     if (!o['analyte_id']) return done('unmapped_analyte');                                                // row 1
@@ -91,6 +103,7 @@ export function createObservationService(deps: {
     const mean = parseDecimal(target['mean']), sd = parseDecimal(target['sd']);
     if (!mean || !sd || sd.m === 0n) return done('no_target');
     o['target_id'] = target['id']; o['mean'] = fixed6(mean); o['sd'] = fixed6(sd); o['z'] = fixed6(div(sub(value, mean), sd));
+    if (adopt) return done('late_unassigned');                                                            // D-60: charted history, never assembled
     const lastRun = await repo.latestEvaluatedRunAt(ctx.tx, t, o['plan_id']);
     if (lastRun !== undefined && observedMs < ms(lastRun)) return done('late_unassigned');                // row 9 (charted, no run)
     return done('assigned');                                                                              // row 10
@@ -118,6 +131,7 @@ export function createObservationService(deps: {
         } catch (e: any) {
           if (!isDataError(e)) throw e;   // not a poison row: abort the run (the job tx rolls back, the cursor stays)
           await ctx.tx.query(`ROLLBACK TO SAVEPOINT ${SAVEPOINT}`);
+          emit(() => ctx.metrics?.inc('lims_quality_qc_observations_total', { status: 'import_error' }));
           res.importErrors++; res.counts['import_error'] = (res.counts['import_error'] ?? 0) + 1;
           ctx.log?.warn?.({ event: 'quality_qc_import_error', qc_result_id: r['qc_result_id'], sqlstate: String(e.code) });   // no values, no raw ids
           continue;
@@ -125,6 +139,11 @@ export function createObservationService(deps: {
         if (!inserted) { await ctx.tx.query(`ROLLBACK TO SAVEPOINT ${SAVEPOINT}`); res.duplicates++; continue; }   // lost a race with an overlapping job
         await ctx.tx.query(`RELEASE SAVEPOINT ${SAVEPOINT}`);
         res.imported++; res.counts[draft['status']] = (res.counts[draft['status']] ?? 0) + 1;
+        emit(() => {
+          ctx.metrics?.inc('lims_quality_qc_observations_total', { status: draft['status'] });
+          // [CONV] eval lag = C5 created_at (view row) -> evaluation; an `assigned` row is evaluated by the assembler in this call.
+          if (draft['status'] === 'assigned') ctx.metrics?.observe('lims_quality_qc_eval_lag_seconds', Math.max(0, (nowMs() - ms(r['created_at'])) / 1000));
+        });
       }
     }
   }
@@ -135,8 +154,69 @@ export function createObservationService(deps: {
   const cmpStr = (a: string, b: string): number => (a < b ? -1 : a > b ? 1 : 0);
   const withoutRun = (d: ObservationDraft): ObservationDraft => { const { qc_run_id: _drop, ...rest } = d; return rest; };
 
+  /** Stored observation -> a fresh draft (classification columns reset; source columns, id and observed_at kept as stored). */
+  const draftOf = (ctx: ObsCtx, s: Row): Row => ({
+    id: s['id'], tenant_id: ctx.tenantId, source_qc_result_id: s['source_qc_result_id'], source: s['source'], instrument_id: s['instrument_id'], analyte_id: s['analyte_id'],
+    control_id_raw: s['control_id_raw'], control_lot_raw: s['control_lot_raw'] ?? null, control_level_raw: s['control_level_raw'] ?? null, value: s['value'] ?? null, unit_code: s['unit_code'] ?? null,
+    instrument_result_time: s['instrument_result_time'] ?? null, received_at: s['received_at'], observed_at: s['observed_at'], observed_at_basis: s['observed_at_basis'],
+    status: '', plan_id: null, level_id: null, lot_id: null, target_id: null, mean: null, sd: null, z: null, qc_run_id: null,
+    classified_at: ctx.now(), created_by: s['created_by'], updated_by: ctx.actor.id,
+  });
+  const PENDING = ['level_not_in_plan', 'no_plan', 'no_target', 'unit_mismatch', 'unmapped_control'];   // §6.4: the statuses a re-process may move
+  const PATCH = ['status', 'plan_id', 'level_id', 'lot_id', 'target_id', 'mean', 'sd', 'z', 'qc_run_id', 'classified_at', 'updated_by'];
+
   return {
     classify,
+
+    /**
+     * §6.4 re-processing on ctx.tx (the job tx). Scope = exactly one of instrument_id (map created: every analyte of the instrument) / plan_id (plan or target activated: that ACTIVE plan's pair).
+     * In-window rows (observed_at >= now - reprocess_window_days) get the full §6.3 table (an `assigned` result goes through the run assembler). D-60 (LD plan activation, plan scope only):
+     * OLDER `no_plan` rows are adopted with rows 4-8 only - never assembled, no run, no event. Each row has its own savepoint; the update is guarded by the status it was read with.
+     */
+    async reprocessPending(ctx: ObsCtx, scope: { instrument_id?: string; plan_id?: string }): Promise<ReprocessResult> {
+      const { instrument_id: instrumentId, plan_id: planId } = scope ?? {};
+      if (!!instrumentId === !!planId) throw new LimsError('common.validation_failed');   // exactly one scope id; no tenant-wide sweep
+      const rr = repo as SyncRepo & ReprocessRepo;
+      const t = ctx.tenantId;
+      const res: ReprocessResult = { reclassified: 0, adopted: 0, unchanged: 0, errors: 0, counts: {} };
+
+      let instrument = instrumentId, analyte: string | undefined;
+      if (planId) {
+        const plan = await rr.findPlan(ctx.tx, t, planId);
+        if (!plan || plan.status !== 'active') return res;   // retired / draft / foreign / unknown: nothing to do
+        instrument = plan.instrument_id; analyte = plan.analyte_id;
+        await repo.lockPair(ctx.tx, t, instrument!, analyte!);   // serialise with the run assembler before reading
+      }
+      const cutoff = new Date(ms(ctx.now()) - (await rr.getReprocessWindowDays(ctx.tx, t)) * DAY_MS).toISOString();
+      const an = analyte === undefined ? {} : { analyteId: analyte };   // VERIFY-GREEN-4: exactOptionalPropertyTypes, no key when absent
+      const inWindow = await rr.listPendingObservations(ctx.tx, t, { instrumentId: instrument!, ...an, statuses: PENDING, observedFrom: cutoff });
+      const history = planId ? await rr.listPendingObservations(ctx.tx, t, { instrumentId: instrument!, ...an, statuses: ['no_plan'], observedBefore: cutoff }) : [];
+      if (!planId) for (const a of [...new Set(inWindow.map((r) => r['analyte_id'] as string))].sort()) await repo.lockPair(ctx.tx, t, instrument!, a);   // deterministic order; stale reads are caught by the status guard
+
+      const tz = inWindow.length + history.length ? await tenantZone(ctx) : '';
+      for (const [rows, adopt] of [[inWindow, false], [history, true]] as const) {
+        for (const stored of rows) {
+          const draft = await place(ctx, draftOf(ctx, stored), tz, adopt);
+          if (draft['status'] === stored['status']) { res.unchanged++; continue; }
+          await ctx.tx.query(`SAVEPOINT ${SAVEPOINT}`);
+          try {
+            if (draft['status'] === 'assigned') draft['qc_run_id'] = (await assembler.assign(ctx, withoutRun(draft))).qc_run_id;
+            if (!(await rr.updateObservation(ctx.tx, t, stored['id'], stored['status'], Object.fromEntries(PATCH.map((k) => [k, draft[k]]))))) {
+              await ctx.tx.query(`ROLLBACK TO SAVEPOINT ${SAVEPOINT}`); res.unchanged++; continue;   // a concurrent job moved the row
+            }
+          } catch (e: any) {
+            if (!isDataError(e)) throw e;
+            await ctx.tx.query(`ROLLBACK TO SAVEPOINT ${SAVEPOINT}`);
+            res.errors++;
+            ctx.log?.warn?.({ event: 'quality_qc_reprocess_error', id: stored['id'], sqlstate: String(e.code) });   // no values, no raw ids
+            continue;
+          }
+          await ctx.tx.query(`RELEASE SAVEPOINT ${SAVEPOINT}`);
+          res[adopt ? 'adopted' : 'reclassified']++; res.counts[draft['status']] = (res.counts[draft['status']] ?? 0) + 1;
+        }
+      }
+      return res;
+    },
 
     /** §6.2 steps 1-6 on ctx.tx. Resolves with the counters; any non-data error rejects. The caller (task) enqueues the continuation when budgetExhausted. */
     async syncQcObservations(ctx: ObsCtx): Promise<SyncResult> {
@@ -169,6 +249,11 @@ export function createObservationService(deps: {
         if (nowMs() - started >= budget! * 1000) { res.budgetExhausted = true; break; }
         prev = key;
         page = await repo.readPageAfter(ctx.tx, t, { afterAt: key.at, afterId: key.id, limit: batch! });
+      }
+      emit(() => ctx.metrics?.set('lims_quality_qc_sync_last_success_timestamp_seconds', nowMs() / 1000, { tenant_id: t }));   // end of a successful run only
+      if (repo.countUnassignedByStatus) {
+        const counts = await repo.countUnassignedByStatus(ctx.tx, t);
+        emit(() => { for (const status of [...new Set([...UNASSIGNED, ...Object.keys(counts)])]) ctx.metrics?.set('lims_quality_unassigned_observations', counts[status] ?? 0, { status, tenant_id: t }); });
       }
       return res;
     },

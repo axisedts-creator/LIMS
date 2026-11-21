@@ -66,7 +66,8 @@ export function DictionariesTab({ canManage }: { canManage: boolean }) {
       {fixed ? <Banner tone="info" title={AST_NOTE} /> : null}
       <FailNotice fail={fail} />
       {canEdit ? <div><Button onPress={() => setEditing('new')}>Add code</Button></div> : null}
-      <DataTable<MicroCodeDto> caption="Codes" columns={columns} rows={rows} getRowId={(c) => c.code} isLoading={!loaded} emptyState={{ title: 'No codes.' }} />
+      {/* T0D-UILIST-1, LD-353 rule 5: kit cellTitle keeps cells on one line (title on cut cells), the table scrolls in its box, so "Escherichia coli" does not wrap at 1366 px */}
+      <DataTable<MicroCodeDto> cellTitle caption="Codes" columns={columns} rows={rows} getRowId={(c) => c.code} isLoading={!loaded} emptyState={{ title: 'No codes.' }} />
       {editing ? <CodeDrawer key={editing === 'new' ? 'new' : editing.code} set={set} code={editing === 'new' ? undefined : editing} onClose={() => setEditing(undefined)} onSaved={reload} /> : null}
     </section>
   );

@@ -40,7 +40,7 @@ export function RangePreview({ analyteId, specimenTypes }: { analyteId: string; 
   const m = result?.reference_range;
   const c = result?.critical_limits;
   return (
-    <section className="lims-stack" style={{ gap: 'var(--lims-space-3)' }} aria-label="Preview">
+    <section className="lims-stack catalog-gap-3" aria-label="Preview">
       <Form onSubmit={submit} errorSummary={false}>
         <Select label="Sex" name="sex" isRequired {...(sex ? { value: sex } : {})} onChange={setSex} options={SEXES.map((s) => ({ value: s, label: cap(s) }))} />
         <IntegerField label="Age" name="age" min={0} max={73000} isRequired {...(age !== undefined ? { value: age } : {})} onChange={(v) => { setAge(v); setAgeError(undefined); }} {...(ageError ? { error: ageError } : {})} />
@@ -50,7 +50,7 @@ export function RangePreview({ analyteId, specimenTypes }: { analyteId: string; 
         <Button type="submit" variant="primary">Preview</Button>
       </Form>
       {fail ? <FailBanner fail={fail} /> : null}
-      <div role="status" className="lims-stack" style={{ gap: 'var(--lims-space-1)' }}>
+      <div role="status" className="lims-stack catalog-gap-1">
         {result?.no_reference_range ? <p>No reference range</p> : null}
         {m && (m.kind === 'text' || m.kind === 'ordinal') ? (
           <>

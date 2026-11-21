@@ -177,11 +177,11 @@ export function RangesTab({ analyte, kind, sets, valueSet, specimenTypes, permis
   const addBand = () => setBands([...bands, { sex: 'any', ...(critical ? {} : { kind: 'numeric', sort_order: bands.length }) }]);
 
   return (
-    <div className="lims-stack" style={{ gap: 'var(--lims-space-3)' }}>
+    <div className="lims-stack catalog-gap-3">
       {fail ? <FailBanner fail={fail} /> : null}
       {sets.length === 0 ? <p>{EMPTY[kind]}</p> : null}
       {sets.length > 0 ? (
-        <ul className="lims-inline" style={{ gap: 'var(--lims-space-2)', listStyle: 'none', padding: 0 }} aria-label="Versions">
+        <ul className="lims-inline catalog-gap-2 catalog-plain-list" aria-label="Versions">
           {sets.map((s) => (
             <li key={s.id}>
               <Button size="sm" variant={s.id === set?.id ? 'primary' : 'secondary'} onPress={() => setSelectedId(s.id)}>{`v${s.version_no}`}</Button>{' '}
@@ -190,7 +190,7 @@ export function RangesTab({ analyte, kind, sets, valueSet, specimenTypes, permis
           ))}
         </ul>
       ) : null}
-      <div className="lims-inline" style={{ gap: 'var(--lims-space-2)' }}>
+      <div className="lims-inline catalog-gap-2">
         {canManage ? <Button isDisabled={!!draftSet} onPress={() => void newVersion()}>New version</Button> : null}
         {canManage && draftSet ? <Button variant="danger" onPress={() => setDialog('discard')}>Discard draft</Button> : null}
         {draftSet ? <GatedButton variant="primary" missing={missingPublish} onPress={() => setDialog('publish')}>Publish…</GatedButton> : null}
@@ -201,7 +201,7 @@ export function RangesTab({ analyte, kind, sets, valueSet, specimenTypes, permis
           <p className="lims-description">{AGE_RULE}</p>
           <EditableGrid label={critical ? 'Critical limit bands' : 'Reference range bands'} columns={columns} rows={rows} isReadOnly={!editable} onCellChange={onCell} />
           {editable ? (
-            <div className="lims-inline" style={{ gap: 'var(--lims-space-2)' }}>
+            <div className="lims-inline catalog-gap-2">
               <Button onPress={addBand}>Add band</Button>
               <Button isDisabled={bands.length <= 1} onPress={() => setBands(bands.slice(0, -1))}>Remove last band</Button>
               <Button variant="primary" onPress={() => void save()}>Save</Button>
@@ -234,8 +234,8 @@ export function RangesTab({ analyte, kind, sets, valueSet, specimenTypes, permis
   );
 }
 
-/** Publish… / Retire… (AC-05.9): change reason 1–500 + typed analyte code; Idempotency-Key kept across the step-up retry. */
-function SetActionDialog({ mode, kind, set, analyteCode, onClose, onDone, onFail }: {
+/** Publish… / Retire… (AC-05.9): change reason 1–500 + typed analyte code; Idempotency-Key kept across the step-up retry. Also used by RangeManager (T0D-TESTMGMT-1). */
+export function SetActionDialog({ mode, kind, set, analyteCode, onClose, onDone, onFail }: {
   mode: 'publish' | 'retire';
   kind: RangeKind;
   set: RangeSet;
@@ -274,8 +274,8 @@ function SetActionDialog({ mode, kind, set, analyteCode, onClose, onDone, onFail
         {stay ? <FailBanner fail={stay} /> : null}
         <TextArea label="Change reason" name="change_reason" maxLength={500} isRequired value={reason} onChange={setReason} />
         <TextField label={`Type ${analyteCode} to confirm`} name="confirm" maxLength={32} isRequired value={typed} onChange={setTyped} {...(typedError ? { error: typedError } : {})} />
-        <p><span aria-hidden="true">🔒</span> Requires two-step verification</p>
-        <div className="lims-inline" style={{ gap: 'var(--lims-space-2)', justifyContent: 'flex-end' }}>
+        <p>Requires two-step verification</p>
+        <div className="lims-inline catalog-gap-2 catalog-end">
           <Button variant="ghost" onPress={onClose}>Cancel</Button>
           <Button type="submit" variant="primary" shortcut="Ctrl+Enter" isLoading={busy}>{verb}</Button>
         </div>

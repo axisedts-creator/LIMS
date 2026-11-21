@@ -1,0 +1,6 @@
+# T0C-ACCTFIX-1 tests (tester)
+- NEW tools/codegen/__tests__/acctfix1-openapi.test.ts: 3 bounds (minimum -2147483648 / -9007199254740991, maximums unchanged, int64), descriptions (net of refunds and reversals, negative when refunds exceed collections) on 3 fields + DailyCollectionRow, X10, example refund_only_day (Ajv valid, sum, negative), out of range rejected, lintRepo root = [].
+- UPDATED stale pins (LD-334) in acct1-openapi.test.ts: reachable-schema paisa walk (signed exception for DailyCollectionRow/Summary) and the two isPaisa checks in getDailyCollectionSummary.
+- Now: acctfix1 10 fail / 7 pass (minimum 0, no descriptions, no refund_only_day); lint-openapi and c4 green.
+- BASELINE RED, not this task: acct1 "generated clients fresh" (routes.g.dart, shared-ts routes/generated.ts stale: implementer must run codegen) and acct1 "migration file" (pin says only 20261117130000 may follow 20261117120000_billing; newer 20261117140000_frontdesk__narrow_pari... exists). The 2nd is a stale pin from another task, left unchanged; lead must rule (verify.cmd stays red until then).
+- Run: .orchestra\notes\T0C-ACCTFIX-1-verify.cmd (lane root from %~dp0..\.., LD-334 rule). Needed `pnpm install --frozen-lockfile --offline` in this lane (node_modules was missing).

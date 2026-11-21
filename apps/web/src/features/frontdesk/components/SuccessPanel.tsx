@@ -6,10 +6,16 @@ import { Button } from '@lims/ui/components/Button';
 import { Card } from '@lims/ui/components/Card';
 import { MoneyText } from '@lims/ui/components/MoneyText';
 import { InvoicePrintFrame } from '@/features/billing/components/print/InvoicePrintView';
+import { ReceiptPrintFrame } from '@/features/billing/components/print/ReceiptPrintView';
+import type { ReceiptDocument } from '@/features/billing/server/types';
+// T0D-OFFLINE-3 (LD-322): an order saved offline shows its provisional numbers (final after sync), the Pending sync badge and the lab codes
+import { DocNumber, PendingSyncBadge } from '@/core/offline/ui/OfflineParts';
+import { t } from '@/core/i18n/messages';
 import type { InvoicePrintDocument } from '@/features/billing/server/types';
 import { newKey } from '../forms/draft';
 import { printInvoiceAction, requestLabelPrintsAction } from '../server/actions';
 import type { RegistrationResult } from '../server/types';
+import './frontdesk.css';
 
 const LABEL_RETRY_MS = 1000; // 08 A13 D-4: retried every 1 s ...
 const LABEL_GIVE_UP_MS = 10_000; // ... up to 10 s
@@ -24,9 +30,12 @@ const SMS: Record<string, string> = {
 };
 type Labels = { s: 'off' } | { s: 'preparing' } | { s: 'ready' } | { s: 'error'; text: string };
 type Printed = 'no' | 'printing' | 'original' | 'failed';
+/** T0D-OFFLINE-3: what the device knows of an order saved offline; receipts print from it, the invoice prints once synced */
+export interface OfflineSaved { receipts: ReceiptDocument[]; lab_codes: { orderable_id: string; value: string; provisional: boolean; mark?: string }[]; patient_code?: string }
 
-export function SuccessPanel({ result, onNew, onOpenOrder, retryLabelsRef }: { result: RegistrationResult; onNew: () => void; onOpenOrder: () => void; retryLabelsRef: { current: (() => void) | null } }) {
-  const invoice = result.invoice;
+export function SuccessPanel({ result, onNew, onOpenOrder, retryLabelsRef, offline }: { result: RegistrationResult; onNew: () => void; onOpenOrder: () => void; retryLabelsRef: { current: (() => void) | null }; offline?: OfflineSaved }) {
+  const invoice = offline ? undefined : result.invoice; // offline: no server print; the receipts print locally below
+  const [receipt, setReceipt] = useState<ReceiptDocument | null>(offline?.receipts[0] ?? null);
   const [printed, setPrinted] = useState<Printed>('no');
   const [doc, setDoc] = useState<InvoicePrintDocument | null>(null);
   const [labels, setLabels] = useState<Labels>({ s: result.label_print?.autoprint ? 'preparing' : 'off' });
@@ -79,20 +88,38 @@ export function SuccessPanel({ result, onNew, onOpenOrder, retryLabelsRef }: { r
     return () => { retryLabelsRef.current = null; };
   }, [labels.s, prepareLabels, retryLabelsRef]);
 
+  if (offline) {
+    return (
+      <Card title="Registered">
+        <div role="status">
+          <p>{t('offline.saved_offline')} <PendingSyncBadge id={result.order.id} /></p>
+          {offline.patient_code ? <p>Patient id <DocNumber value={offline.patient_code} /></p> : null}
+          {result.invoice ? <p>Invoice <DocNumber value={result.invoice.invoice_no} /></p> : null}
+          {offline.receipts.map((x) => <p key={x.receipt_no}>Receipt <DocNumber value={x.receipt_no} /></p>)}
+          {offline.lab_codes.length ? <p>Lab codes {offline.lab_codes.map((l) => (l.provisional ? `${l.value} PENDING` : l.value)).join(', ')}</p> : null}
+        </div>
+        <div className="lims-reg-actions">
+          {offline.receipts.length ? <Button onPress={() => setReceipt(offline.receipts[0]!)}>Print copy</Button> : null}
+          <Button variant="primary" onPress={onNew} shortcut="Ctrl+Shift+N">New registration</Button>
+        </div>
+        {receipt ? <ReceiptPrintFrame receipt={receipt} isOpen onDone={() => setReceipt(null)} /> : null}
+      </Card>
+    );
+  }
   const paid = result.balance?.paid, due = result.balance?.due;
   const sms = SMS[result.notifications?.registration_sms ?? ''];
   return (
     <Card title="Registered">
       <div role="status">
-        <p className="lims-reg-no" style={{ fontSize: '2rem', fontWeight: 700, userSelect: 'all' }}>{result.order.registration_no}</p>
+        <p className="lims-reg-no">{result.order.registration_no}</p>
         {invoice ? (
           <p>
-            <span>{invoice.invoice_no}</span>{' '}
+            <DocNumber value={invoice.invoice_no} />{' '}
             {printed === 'original' ? <span>Printed (original)</span> : printed === 'failed' ? <span>Not printed</span> : printed === 'printing' ? <span>Printing…</span> : null}
           </p>
         ) : null}
         {paid && due ? (
-          <dl style={{ display: 'flex', gap: 24 }}>
+          <dl className="lims-reg-paid-due">
             <div><dt>Paid</dt><dd><MoneyText value={{ amountPaisa: paid.amount_paisa, currency: 'NPR' }} /></dd></div>
             <div><dt>Due</dt><dd><MoneyText value={{ amountPaisa: due.amount_paisa, currency: 'NPR' }} /></dd></div>
           </dl>
@@ -114,7 +141,7 @@ export function SuccessPanel({ result, onNew, onOpenOrder, retryLabelsRef }: { r
           onLoad={(e) => { try { e.currentTarget.contentWindow?.focus(); e.currentTarget.contentWindow?.print(); } catch { /* a print failure must not block the desk */ } }}
         />
       ) : null}
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 16 }}>
+      <div className="lims-reg-actions">
         {invoice ? <Button onPress={() => void print('customer_copy', false)} isDisabled={printed === 'printing'}>Print copy</Button> : null}
         <Button onPress={onOpenOrder} shortcut="Alt+G">Open order</Button>
         <Button variant="primary" onPress={onNew} shortcut="Ctrl+Shift+N">New registration</Button>

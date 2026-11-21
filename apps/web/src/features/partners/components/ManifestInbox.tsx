@@ -4,11 +4,13 @@ import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Badge } from '@lims/ui/components/Badge';
 import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
-import { FilterBar } from '@lims/ui/components/FilterBar';
+import { Button } from '@lims/ui/components/Button';
+import { DateRangePicker, type DateRange } from '@lims/ui/components/DateRangePicker';
 import { PageHeader } from '@lims/ui/components/PageHeader';
+import { Select } from '@lims/ui/components/Select';
 import { Switch } from '@lims/ui/components/Switch';
 import type { ManifestSummary } from '../server/types';
-import { Ad, Chip, LoadFailed, useUrlFilters } from './common';
+import { Ad, Chip, LOAD_FAILED, useUrlFilters } from './common';
 
 export const WAITING = 'submitted,partially_received';
 const STATES = [{ value: WAITING, label: 'Waiting for receipt' }, { value: 'received', label: 'Received' }];
@@ -23,7 +25,8 @@ export function ManifestInbox({ rows, failed, filters }: { rows: readonly Manife
   const refresh = useRef(router.refresh);
   refresh.current = router.refresh;
   useEffect(() => {
-    const t = setInterval(() => refresh.current(), 60_000);
+    // LD-240: no refresh while the tab is hidden.
+    const t = setInterval(() => { if (document.visibilityState !== 'hidden') refresh.current(); }, 60_000);
     return () => clearInterval(t);
   }, []);
 
@@ -42,26 +45,28 @@ export function ManifestInbox({ rows, failed, filters }: { rows: readonly Manife
   return (
     <section aria-label="Partner manifests">
       <PageHeader title="Partner manifests" helpKey="partners.inbox" />
-      <FilterBar
-        filters={[{ id: 'state', label: 'State', kind: 'select', options: STATES }, { id: 'submitted', label: 'Submitted between', kind: 'date_range' }]}
-        value={{ state: filters.state, ...(from && to ? { submitted: [from, to] } : {}) }}
-        onChange={(v) => {
-          const r = Array.isArray(v['submitted']) ? (v['submitted'] as string[]) : [];
-          setUrl({
-            state: v['state'] as string | undefined,
-            submitted_at_from: r[0] ? new Date(`${r[0]}T00:00:00+05:45`).toISOString() : undefined,
-            submitted_at_to: r[1] ? new Date(`${r[1]}T23:59:59.999+05:45`).toISOString() : undefined,
-          });
-        }}
-        onReset={() => setUrl({ state: undefined, submitted_at_from: undefined, submitted_at_to: undefined, has_failed_lines: undefined, has_missing_samples: undefined })}
-      />
-      <Switch label="Has samples needing attention" isSelected={filters.has_failed_lines === 'true'} onChange={(v) => setUrl({ has_failed_lines: v ? 'true' : undefined })} />
-      <Switch label="Order exists but sample missing" isSelected={filters.has_missing_samples === 'true'} onChange={(v) => setUrl({ has_missing_samples: v ? 'true' : undefined })} />
-      {failed ? (
-        <LoadFailed />
-      ) : (
-        <DataTable caption="Partner manifests" columns={columns} rows={rows} getRowId={(m) => m.id} emptyState={{ title: 'No manifests', body: 'Submitted partner boxes will show here.' }} onRowAction={(m) => router.push(`/partners/manifests/${m.id}`)} />
-      )}
+      {/* T0D-UILIST-3 (LD-353 template 1, rule 2): one filter row; the kit FilterBar markup (role=search, .lims-filter-bar) holds the two switches too. */}
+      <div role="search" className="lims-filter-bar">
+        <Select label="State" name="state" options={STATES} {...(filters.state ? { value: filters.state } : {})} onChange={(v) => setUrl({ state: v })} />
+        <DateRangePicker
+          label="Submitted between"
+          name="submitted"
+          {...(from && to ? { value: { from, to } as DateRange } : {})}
+          onChange={(r) => setUrl({
+            submitted_at_from: r ? new Date(`${r.from}T00:00:00+05:45`).toISOString() : undefined,
+            submitted_at_to: r ? new Date(`${r.to}T23:59:59.999+05:45`).toISOString() : undefined,
+          })}
+        />
+        <Switch label="Has samples needing attention" isSelected={filters.has_failed_lines === 'true'} onChange={(v) => setUrl({ has_failed_lines: v ? 'true' : undefined })} />
+        <Switch label="Order exists but sample missing" isSelected={filters.has_missing_samples === 'true'} onChange={(v) => setUrl({ has_missing_samples: v ? 'true' : undefined })} />
+        <Button variant="ghost" onPress={() => setUrl({ state: undefined, submitted_at_from: undefined, submitted_at_to: undefined, has_failed_lines: undefined, has_missing_samples: undefined })}>
+          Reset filters
+        </Button>
+      </div>
+      {/* LD-353 rules 5 and 6: on a failed load the header row stays and the ErrorState (Retry) sits in the table body */}
+      <div {...(failed ? { role: 'alert' } : {})}>
+        <DataTable caption="Partner manifests" columns={columns} rows={rows} getRowId={(m) => m.id} cellTitle {...(failed ? { error: { title: LOAD_FAILED, onRetry: () => router.refresh() } } : {})} emptyState={{ title: 'No manifests', body: 'Submitted partner boxes will show here.' }} onRowAction={(m) => router.push(`/partners/manifests/${m.id}`)} />
+      </div>
     </section>
   );
 }

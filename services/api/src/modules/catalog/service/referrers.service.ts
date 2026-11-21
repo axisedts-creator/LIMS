@@ -6,6 +6,7 @@
 // [CONV] auto code DR{seq:5} from code_counters (`next_value` = next to hand out); a merged doctor can be neither verified nor reactivated (409 catalog.version_in_use).
 import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';   // [CONV] relative import (same as masters.service.ts)
 import { LimsError, type FieldError } from '../../../core/errors.js';
+import { isIdNumber, maskedOrAbsent } from '../../partners/domain/id-number.js';   // T0B-PARTYSET-1: the one masking place (done_when 5)
 import { decodeCursor, encodeCursor } from '../mappers/masters.mapper.js';
 import * as repo from '../repo/masters.repo.js';
 import {
@@ -16,21 +17,25 @@ import { createRevisionService } from './revision.service.js';
 
 const MANAGE = 'catalog.referrer.manage';
 const COLS = ['id', 'doctor_code', 'display_name', 'name_normalised', 'qualification', 'registration_council', 'registration_no', 'phone_e164', 'email', 'notes',
-  'is_verified', 'source', 'merged_into_id', 'is_active', 'version', 'created_at'];
+  'speciality', 'hospital', 'national_id_number', 'is_verified', 'source', 'merged_into_id', 'is_active', 'version', 'created_at'];
 const CONTACTS = ['phone_e164', 'email'];
-const OPTIONAL = ['qualification', 'registration_council', 'registration_no', 'phone_e164', 'email', 'notes'];
+// T0B-PARTYSET-1 (LD-321): speciality, hospital and the national ID number (masked in every read, domain/id-number.ts) are additive optionals.
+// LD-385: no doctor rate column here; a doctor's rate lives only in partners.party_commercial_setting (party kind doctor).
+const OPTIONAL = ['qualification', 'registration_council', 'registration_no', 'phone_e164', 'email', 'notes', 'speciality', 'hospital', 'national_id_number'];
 const CODE_IN = /^[A-Za-z0-9_-]{1,20}$/;          // checked BEFORE upper-casing: no Unicode case-fold forgeries (ı -> I)
 const PHONE = /^\+[1-9][0-9]{7,14}$/;
 const EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 const MAX_HINTS = 10;
 
-type Kind = 'name' | 'text' | 'phone' | 'email' | 'bool';
+type Kind = 'name' | 'text' | 'phone' | 'email' | 'bool' | 'idnum';
 const FIELDS: Record<string, { k: Kind; max?: number }> = {
   display_name: { k: 'name', max: 120 }, qualification: { k: 'text', max: 120 }, registration_council: { k: 'text', max: 20 }, registration_no: { k: 'text', max: 30 },
   phone_e164: { k: 'phone' }, email: { k: 'email' }, notes: { k: 'text', max: 500 }, is_active: { k: 'bool' }, quick_add: { k: 'bool' }, doctor_code: { k: 'text' },
+  speciality: { k: 'name', max: 120 }, hospital: { k: 'name', max: 200 }, national_id_number: { k: 'idnum' },
 };
-const CREATE_KEYS = ['doctor_code', 'display_name', 'qualification', 'registration_council', 'registration_no', 'phone_e164', 'email', 'notes', 'quick_add'];
-const UPDATE_KEYS = ['display_name', 'qualification', 'registration_council', 'registration_no', 'phone_e164', 'email', 'notes', 'is_active', 'unset'];
+const PARTYSET_KEYS = ['speciality', 'hospital', 'national_id_number'];
+const CREATE_KEYS = ['doctor_code', 'display_name', 'qualification', 'registration_council', 'registration_no', 'phone_e164', 'email', 'notes', 'quick_add', ...PARTYSET_KEYS];
+const UPDATE_KEYS = ['display_name', 'qualification', 'registration_council', 'registration_no', 'phone_e164', 'email', 'notes', 'is_active', 'unset', ...PARTYSET_KEYS];
 
 /** Lower-case, NFC, trimmed, single spaces (05-SCHEMA name_normalised; APP-FLOW F-09). */
 export const normaliseName = (s: string): string => s.normalize('NFC').toLowerCase().trim().replace(/\s+/g, ' ');
@@ -39,9 +44,10 @@ const likeEscape = (s: string) => s.replace(/[\\%_]/g, '\\$&');
 function okValue(key: string, v: unknown): boolean {
   const f = FIELDS[key]!;
   if (f.k === 'bool') return typeof v === 'boolean';
+  if (f.k === 'idnum') return isIdNumber(v);                                                          // length and characters only
   if (typeof v !== 'string') return false;
   switch (f.k) {
-    case 'name': return v.length <= f.max! && v.trim().length >= 1;
+    case 'name': return v.length <= f.max! && v.trim().length >= 1 && !v.includes('\u0000');
     case 'text': return key === 'doctor_code' ? CODE_IN.test(v.trim()) : v.length <= f.max!;
     case 'phone': return PHONE.test(v);
     case 'email': return v.length <= 254 && EMAIL.test(v);
@@ -70,11 +76,16 @@ type R = Record<string, any>;
 const summary = (r: R) => ({
   id: r.id as string, doctor_code: r.doctor_code as string, display_name: r.display_name as string, ...(r.qualification == null ? {} : { qualification: r.qualification as string }),
   is_verified: r.is_verified === true, is_active: r.is_active === true, canonical_doctor_id: (r.merged_into_id ?? r.id) as string,
+  ...nid(r),
 });
-/** Doctor DTO: NULL optionals omitted; phone/email only when `contacts`. */
+const nid = (r: R): R => { const m = maskedOrAbsent(r.national_id_number); return m === undefined ? {} : { national_id_number: m }; };
+/** Doctor DTO: NULL optionals omitted; phone/email only when `contacts`; the national ID number masked always. */
 const doctorDto = (r: R, contacts: boolean) => {
   const out: R = { id: r.id, doctor_code: r.doctor_code, display_name: r.display_name };
-  for (const k of OPTIONAL) if (r[k] != null && (contacts || !CONTACTS.includes(k))) out[k] = r[k];
+  for (const k of OPTIONAL) {
+    if (r[k] == null || (!contacts && CONTACTS.includes(k))) continue;
+    out[k] = k === 'national_id_number' ? maskedOrAbsent(r[k]) : r[k];
+  }
   out['is_verified'] = r.is_verified === true; out['source'] = r.source;
   if (r.merged_into_id != null) out['merged_into_id'] = r.merged_into_id;
   out['is_active'] = r.is_active === true; out['version'] = Number(r.version);
@@ -129,7 +140,8 @@ export interface ReferrersDeps extends Deps {
 
 export function createReferrersService(deps: ReferrersDeps) {
   const revision = createRevisionService(deps);
-  const nowOf = (ctx: Ctx) => ctx.now?.() ?? new Date().toISOString();
+  // T0B-PARTYSET-1: accept a Date as well as the pipeline's ISO string (same normalisation as CatalogPort.impl nowOf); the event schema needs a string.
+  const nowOf = (ctx: Ctx): string => { const n: unknown = ctx.now?.(); return typeof n === 'string' ? n : (n instanceof Date ? n : new Date()).toISOString(); };
   const bump = (ctx: Ctx, id: string, changeKind: string, at: string) =>
     revision.bumpRevision(ctx, { entityType: 'doctor', entityId: id, changeKind, effectiveFrom: at });
   const q = (ctx: Ctx, text: string, values: unknown[]) => (ctx.tx as Tx).query(text, values);
@@ -138,7 +150,7 @@ export function createReferrersService(deps: ReferrersDeps) {
   async function nextCode(ctx: Ctx): Promise<string> {
     const { rows } = await q(ctx,
       'INSERT INTO catalog.code_counters (tenant_id, counter_key, next_value, created_by) VALUES ($1, $2, 2, $3) ' +
-      'ON CONFLICT (tenant_id, counter_key) DO UPDATE SET next_value = next_value + 1, updated_at = now() RETURNING next_value',
+      'ON CONFLICT (tenant_id, counter_key) DO UPDATE SET next_value = catalog.code_counters.next_value + 1, updated_at = now() RETURNING next_value',
       [ctx.tenantId, 'doctor_code', ctx.actor.id]);
     return `DR${String(Number(rows[0].next_value) - 1).padStart(5, '0')}`;
   }

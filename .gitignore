@@ -7,6 +7,7 @@ coverage/
 .dart_tool/
 .env
 .env.*
+!.env.example
 *.pem
 !services/api/src/modules/instruments/__tests__/fixtures/config/*.pem
 !apps/bridge-agent/testdata/config/*.pem
@@ -18,3 +19,10 @@ tools/codegen/out/
 .orchestra/out/
 .orchestra/lock-*
 Claude outputs/
+
+# SEC-HYG-1 (LD-240, audit 11.1): local tool output, never tracked
+.tmp/
+*.tmp
+test-results/
+
+.next/

@@ -1,4 +1,6 @@
 // Field patterns and limits copied verbatim from contracts/openapi/inventory.yaml / 04-UI-UX §3 so the forms reject what the API rejects.
+import type { AlertKind, AlertStatus } from '../server/types';
+
 export const ITEM_CODE = String.raw`^[A-Z0-9][A-Z0-9_.\-]{0,31}$`;
 export const PACK_CODE = String.raw`^[A-Z0-9_]{1,16}$`;
 export const STORE_CODE = String.raw`^[A-Z0-9][A-Z0-9_\-]{0,15}$`; // supplier_code uses the same pattern
@@ -25,6 +27,24 @@ export const STORE_KINDS = [
   { value: 'bench', label: 'Bench' },
   { value: 'other', label: 'Other' },
 ] as const;
+
+// 04-UI-UX §3 S16 kind labels (one per alert_kind enum value, in contract order) and the status words with their tone.
+export const ALERT_KIND_LABEL: Record<AlertKind, string> = {
+  below_reorder: 'Below reorder level',
+  expiry_soon: 'Expiring soon',
+  expired_on_hand: 'Expired stock on hand',
+  open_stability_exceeded: 'Open container past stability',
+  negative_stock: 'Stock below zero',
+  unresolved_consumption: 'Waiting consumption',
+  expired_lot_in_use: 'Expired lot in use',
+  balance_drift: 'Stock record mismatch',
+  reconciliation_gap: 'Counts differ from lab',
+};
+export const ALERT_STATUS_CHIP: Record<AlertStatus, { label: string; tone: 'warning' | 'info' | 'success' }> = {
+  open: { label: 'Open', tone: 'warning' },
+  acknowledged: { label: 'Acknowledged', tone: 'info' },
+  resolved: { label: 'Resolved', tone: 'success' },
+};
 
 /** Select sentinel for "no value" on optional coded fields. */
 export const NONE: string = 'none';

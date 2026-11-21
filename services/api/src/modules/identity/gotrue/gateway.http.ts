@@ -8,6 +8,7 @@ import { idMetrics } from '../metrics.js';
 export interface HttpGoTrueGatewayOptions {
   url: string;          // LIMS_IDENTITY_GOTRUE_URL (internal API-network URL)
   serviceKey: string;   // LIMS_IDENTITY_GOTRUE_SERVICE_KEY
+  publishableKey?: string;   // optional; hosted Supabase `apikey` on non-admin calls (LD-199); env name: see gotrueGatewayFromEnv
   fetch?: typeof fetch;
   timeoutMs?: number;   // default 3000
 }
@@ -46,6 +47,7 @@ function toTokens(method: string, b: Record<string, unknown>): GoTrueTokens {
 export function gotrueGatewayFromEnv(): GoTrueGateway {
   return createHttpGoTrueGateway({
     url: process.env['LIMS_IDENTITY_GOTRUE_URL'] ?? '', serviceKey: process.env['LIMS_IDENTITY_GOTRUE_SERVICE_KEY'] ?? '',
+    publishableKey: process.env['LIMS_IDENTITY_GOTRUE_PUBLISHABLE_KEY'] ?? '',
   });
 }
 
@@ -60,8 +62,13 @@ export function createHttpGoTrueGateway(opts: HttpGoTrueGatewayOptions): GoTrueG
   async function attempt(method: string, path: string, auth: Auth, body?: unknown): Promise<Res | 'network'> {
     const headers: Record<string, string> = { accept: 'application/json' };
     if (body !== undefined) headers['content-type'] = 'application/json';
-    if (auth && 'admin' in auth) headers['authorization'] = `Bearer ${opts.serviceKey}`;
-    else if (auth) headers['authorization'] = `Bearer ${auth.bearer}`;
+    // LD-199 (IDGW-APIKEY-1): hosted Supabase Auth needs `apikey`. Admin calls: the service key (same as authorization).
+    // Every other call: the optional publishable key only when set, never the service key.
+    if (auth && 'admin' in auth) { headers['authorization'] = `Bearer ${opts.serviceKey}`; headers['apikey'] = opts.serviceKey; }
+    else {
+      if (auth) headers['authorization'] = `Bearer ${auth.bearer}`;
+      if (opts.publishableKey) headers['apikey'] = opts.publishableKey;
+    }
     const ctl = new AbortController();
     const timer = setTimeout(() => ctl.abort(), timeoutMs);
     try {

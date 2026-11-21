@@ -135,6 +135,12 @@ GoTrue config the gateway relies on (C1 owns the values; see `.orchestra/cr/T1.n
 - Env: none
 - Source: https://github.com/supabase/auth/blob/v2.197.0/internal/api/api.go
 
+## Hosted Supabase (LD-199, IDGW-APIKEY-1)
+The hosted Supabase Auth gateway (`LIMS_IDENTITY_GOTRUE_URL` = the project's `/auth/v1`) rejects calls without an `apikey` header; the pinned self-hosted GoTrue behind the internal gateway does not need it.
+Evidence (founder, read-only `GET /admin/users?per_page=1`, new-style `sb_secret_` key): `Authorization` only → 401 `No API key found in request`; `apikey` only → 200; `apikey` + `Authorization: Bearer` same key → 200.
+Gateway behaviour: admin calls (`/admin/*`, `/invite`) send `apikey` and `Authorization: Bearer` both = the service key; every other call sends `apikey` = the optional `LIMS_IDENTITY_GOTRUE_PUBLISHABLE_KEY` only when non-empty (never the service key); unset/empty = no `apikey` header (self-hosted, unchanged).
+Neither key is logged or put in an error or metric label. Secret keys are refused from browser-like User-Agents; Node `fetch` is unaffected.
+
 ## Verdicts
 - AAL_CLAIM: CONFIRMED — `aal1` after password login, `aal2` after TOTP verify, kept across refresh, new login is `aal1` (live; also C0 SP-1).
 - SESSION_ID_CLAIM: CONFIRMED — `session_id` UUID claim on every access token, unchanged by refresh and TOTP verify (live).

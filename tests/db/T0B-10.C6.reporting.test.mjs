@@ -68,7 +68,7 @@ const trgName = (s) => /TRIGGER\s+(\w+)/i.exec(s)[1];
 const isAudit = (s) => /app\.tg_row_audit\(/i.test(s);
 function policies(sql) {
   return stmts(sql).filter((s) => /^CREATE\s+POLICY\s+(?!%)/i.test(ws(s))).map((s) => {
-    const m = /^CREATE\s+POLICY\s+(\w+)\s+ON\s+([\w.]+)\s+FOR\s+(SELECT|INSERT|UPDATE|DELETE|ALL)\s+TO\s+([\w, ]+?)\s+(?=USING|WITH)([\s\S]*)$/i.exec(ws(s));
+    const m = /^CREATE\s+POLICY\s+(\w+)\s+ON\s+([\w.]+)(?:\s+AS\s+(?:PERMISSIVE|RESTRICTIVE))?\s+FOR\s+(SELECT|INSERT|UPDATE|DELETE|ALL)\s+TO\s+([\w, ]+?)\s+(?=USING|WITH)([\s\S]*)$/i.exec(ws(s));
     assert.ok(m, `parsable policy: ${ws(s).slice(0, 110)}`);
     const rest = m[5], wi = rest.search(/\bWITH\s+CHECK\b/i);
     const using = /^USING/i.test(rest) ? (wi < 0 ? rest : rest.slice(0, wi)).replace(/^\s*USING\s*/i, '').trim() : '';
@@ -158,6 +158,9 @@ function expectedPolicies() {
     add(tbl, `${tbl}__select__${scope}`, 'SELECT', 'lims_app', pred); add(tbl, `${tbl}__insert__${scope}`, 'INSERT', 'lims_app', null, pred);
     if (!noUpdate) add(tbl, `${tbl}__update__${scope}`, 'UPDATE', 'lims_app', pred, pred);
   };
+  // T0B-PEVPOL-1 (LD-257, CR-C0-T0B-REVIEW-1-001): provider_events UPDATE = system actor only, one NULL -> value stamp of applied_at (narrowed by migration 20261116020000; db/policies/reporting.sql carries the same text)
+  const PE = `${T} AND ${STAFF} AND ${SYS}`;
+  add('provider_events', 'provider_events__update__tenant', 'UPDATE', 'lims_app', `${PE} AND applied_at IS NULL`, `${PE} AND applied_at IS NOT NULL`);
   for (const q of TENANT_ONLY) trio(q.split('.')[1], 'tenant', `${T} AND ${STAFF}`, q.endsWith('delivery_attempts'));
   for (const q of CENTRE_T) trio(q.split('.')[1], 'tenant_centre', `${T} AND ${STAFF} AND ${CSP}`, false);
   const lk = `${T} AND ${PORTAL} AND link_id = (SELECT app.current_actor_id())`, sy = `${T} AND ${SYS}`;     // portal_sessions: "identical pattern" to otp_challenges
@@ -345,7 +348,8 @@ test('policies written literally in migrations are identical to db/policies/repo
   const inFile = new Map(policies(polSql()).map((p) => [p.key, p.text]));
   const inMig = policies(repSql()).filter((x) => x.table.startsWith('reporting.') && !/\.event_inbox$/.test(x.table));
   assert.ok(inMig.length > 0, 'policies must be created in the migrations (the policy file is a copy)');
-  for (const p of inMig) assert.equal(norm(inFile.get(p.key) ?? ''), norm(p.text), p.key);
+  // T0B-PEVPOL-1: provider_events__update__tenant is CREATEd in the schema migration with the wide text and narrowed by an additive ALTER POLICY; the file carries the narrowed text (checked in the 'EXACTLY' test above and in tests/db/T0B-PEVPOL-1.static.test.mjs)
+  for (const p of inMig) { if (p.key === 'provider_events__update__tenant@reporting.provider_events') continue; assert.equal(norm(inFile.get(p.key) ?? ''), norm(p.text), p.key); }
   assert.deepEqual(inMig.map((p) => p.key).sort(), gotPolicies().map((p) => p.key).sort(), 'every policy of the file is created by a migration and vice versa');
 });
 
@@ -444,7 +448,7 @@ test('audit triggers (app.tg_row_audit, AC-0B-5.x): <t>__audit AFTER INSERT OR U
 });
 
 // ================================================================ DEFINER inventory (db/meta/definer-inventory.yaml; 08 §4.7, A21.4, REQ-SEC-020)
-test('db/meta/definer-inventory.yaml: the 4 reporting DEFINERs registered with owner lims_reporting_lookup, execute [lims_api], a why, the tables they touch and owner policies that exist in db/policies/reporting.sql', () => {
+test('db/meta/definer-inventory.yaml: the 4 reporting DEFINERs registered with owner lims_reporting_lookup, execute [lims_api, lims_reporting_lookup], a why, the tables they touch and owner policies that exist in db/policies/reporting.sql', () => {
   const inv = JSON.parse(readFileSync(root + 'db/meta/definer-inventory.yaml', 'utf8').replace(/^\s*#.*$/gm, '')).definers;
   const touches = {
     'app.reporting_verify_qr': ['reporting.qr_tokens SELECT', 'reporting.report_versions SELECT'],
@@ -455,7 +459,7 @@ test('db/meta/definer-inventory.yaml: the 4 reporting DEFINERs registered with o
   const pols = new Set(policies(polSql()).map((p) => p.name));
   for (const f of DEFINERS) {
     const e = inv[f]; assert.ok(e, `inventory entry ${f}`);
-    assert.equal(e.owner, 'lims_reporting_lookup', `${f} owner`); assert.deepEqual([...e.execute], ['lims_api'], `${f} execute`);
+    assert.equal(e.owner, 'lims_reporting_lookup', `${f} owner`); assert.deepEqual([...e.execute].sort(), ['lims_api', 'lims_reporting_lookup'], `${f} execute (lims_api by GRANT; owner lims_reporting_lookup via proacl, LD-230 item 10)`);
     assert.ok(typeof e.why === 'string' && e.why.length > 5, `${f} why`);
     for (const t of touches[f]) assert.ok(e.touches.some((x) => ws(x).toUpperCase().startsWith(t.toUpperCase())), `${f} touches ${t}`);
     assert.ok(e.policies.length >= 1, `${f} names its owner policies`);

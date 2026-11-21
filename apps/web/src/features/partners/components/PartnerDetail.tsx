@@ -19,7 +19,11 @@ import {
   changePartnerUserRoleAction, deactivatePartnerUserAction, invitePartnerUserAction, reactivatePartnerAction, reactivatePartnerUserAction, resyncPartnerAction, suspendPartnerAction,
 } from '../server/actions';
 import type { ActionResult, ManifestSummary, Partner, PartnerUser, Referrer } from '../server/types';
+import { t } from '@/core/i18n/messages';
+import type { PartyCommercialSetting } from '../server/partyset.server';
 import { Ad, Chip, DialogError, LoadFailed, Notice, REASONS, errorText, hasPerm } from './common';
+import { CommercialSettings } from './CommercialSettings';
+import { MaskedId } from './MaskedId';
 
 type Role = PartnerUser['partner_role'];
 const ROLES = [{ value: 'partner_admin', label: 'Administrator' }, { value: 'partner_member', label: 'Member' }] as const;
@@ -151,7 +155,8 @@ function DoctorsTab({ rows }: { rows: readonly Referrer[] | null }) {
   return <DataTable caption="Partner doctors" columns={columns} rows={rows} getRowId={(r) => r.id} emptyState={{ title: 'No doctors' }} />;
 }
 
-export function PartnerDetail({ partner, users, manifests, referrers, permissions }: { partner: Partner; users: readonly PartnerUser[] | null; manifests: readonly ManifestSummary[] | null; referrers: readonly Referrer[] | null; permissions: readonly string[] }) {
+// T0D-PARTYSET-1 (LD-321): `setting` = the Commercial settings read (undefined without partners.party_setting.read: no tab; null: the read failed).
+export function PartnerDetail({ partner, users, manifests, referrers, permissions, setting }: { partner: Partner; users: readonly PartnerUser[] | null; manifests: readonly ManifestSummary[] | null; referrers: readonly Referrer[] | null; permissions: readonly string[]; setting?: PartyCommercialSetting | null | undefined }) {
   const router = useRouter();
   const toast = useToast();
   const [tab, setTab] = useState('overview');
@@ -167,6 +172,7 @@ export function PartnerDetail({ partner, users, manifests, referrers, permission
     { id: 'overview', label: 'Overview' }, { id: 'users', label: 'Users' },
     ...(hasPerm(permissions, 'partners.manifest.receive') ? [{ id: 'manifests', label: 'Manifests' }] : []),
     ...(hasPerm(permissions, 'partners.referrer.map') ? [{ id: 'doctors', label: 'Doctors' }] : []),
+    ...(setting !== undefined ? [{ id: 'commercial', label: t('partners.partyset.tab') }] : []),
   ];
   const synced = (label: string, at?: string): ReactNode => <p>{label}: {at ? <Ad value={at} withTime /> : 'not yet'}</p>;
   const contact = [partner.contact_email, partner.contact_phone_e164, partner.address_text].filter(Boolean).join(' · ');
@@ -176,7 +182,6 @@ export function PartnerDetail({ partner, users, manifests, referrers, permission
       <PageHeader
         title={partner.name}
         helpKey="partners.detail"
-        breadcrumbs={[{ label: 'Partners', href: '/partners' }, { label: partner.partner_code }]}
         status={<Chip code={partner.status} />}
         actions={canManage ? (
           <>
@@ -198,6 +203,8 @@ export function PartnerDetail({ partner, users, manifests, referrers, permission
                 { term: 'Receiving centre', value: partner.receiving_centre.name },
                 { term: 'Orders are created', value: partner.conversion_mode === 'on_submit' ? 'As soon as the partner submits' : 'When the lab receives the samples' },
                 { term: 'Contact', value: contact || '—' },
+                { term: t('partners.idnumber.pan'), value: <MaskedId partyKind="partner" partyId={partner.id} field="tax_number" masked={partner.tax_number} permissions={permissions} /> },
+                { term: t('partners.idnumber.national_id'), value: <MaskedId partyKind="partner" partyId={partner.id} field="national_id_number" masked={partner.national_id_number} permissions={permissions} /> },
               ]}
             />
             {synced('Prices synced', partner.projection_status?.price_list_synced_at)}
@@ -207,6 +214,7 @@ export function PartnerDetail({ partner, users, manifests, referrers, permission
         {tab === 'users' ? <UsersTab partner={partner} users={users} canManage={canManage} /> : null}
         {tab === 'manifests' ? <ManifestsTab rows={manifests} /> : null}
         {tab === 'doctors' ? <DoctorsTab rows={referrers} /> : null}
+        {tab === 'commercial' && setting !== undefined ? <CommercialSettings setting={setting} permissions={permissions} /> : null}
       </Tabs>
       <ConfirmDialog
         title="Suspend partner"

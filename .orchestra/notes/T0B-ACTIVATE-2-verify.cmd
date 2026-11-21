@@ -1,0 +1,1 @@
+pnpm --dir services/api exec vitest run src/modules/identity/handlers/__tests__/activate.chain.test.ts src/modules/identity/repository/__tests__/mfa.repo.accept-invitation.test.ts src/modules/identity/domain/__tests__/invitation.state.test.ts

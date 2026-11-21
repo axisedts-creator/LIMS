@@ -1,0 +1,7 @@
+APPROVE
+# T0C-M4-PATIENT-1 review (reviewer)
+Diff 4fcfdc22e..HEAD: 14 files (limit 24), all in the brief's paths (lib/app is the shell/router chrome; one shared-widget edit in packages/ui-flutter cr16_widgets.dart, first task of the series as allowed).
+Checked: A5 matches C16 04-UI-UX §1.1/A5 (Orders default, Reports, More; Bookings hidden without `features.bookings`, noted open); More rows match 03-APP-FLOW (A6, A21, A22, A23); bell = existing NotificationBell (E45); route path and redirect unchanged; shell in LimsSecureScreen.
+Security: lock surfaces change colour only (scaffoldBackgroundColor); A2/A3 steps, requests, texts unchanged; no existing test edited. No hex literals, no PHI logging (profile list errors swallowed silently), no secrets, no board sample content; gaps listed in impl note. No DB/RLS/permission/error-code surface in this task.
+Ran: `flutter test` in apps/patient_app: 879 pass. `flutter analyze` on touched lib + test files: no issues. packages/ui-flutter `flutter test`: 128 pass, 2 fail in test/dependency_pins_test.dart (reads db/meta/decisions/T0-03-dependencies.md and pubspec files, none touched by this diff: pre-existing, not this task).
+Non-blocking (already in impl note, patient-2 scope): profile switcher selection does not yet filter Orders/Reports; Orders/Reports keep their own AppBar under the shell bar; switcher sits under the bar, not in it ([CONV] for text scale 1.3).

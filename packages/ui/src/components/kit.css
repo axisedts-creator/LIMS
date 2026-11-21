@@ -1,3 +1,4 @@
+/* LD-251 / 13-M-SERIES s2.3 (T0D-MSERIES-1): pill controls (radius full), cards/dialogs/drawers radius xl (24), button 48, field 46 (compact 30 since T0D-DENSITY-1, LD-310; see the end of this file). */
 /* @lims/ui component styles. Requires dist/tokens.css (CSS variables) and assets/fonts/fonts.css (bundled fonts).
    Text controls use min-height, never height, so Devanagari never clips (04-UI-UX §1.4). */
 
@@ -22,10 +23,11 @@
 /* Actions */
 .lims-btn {
   display: inline-flex; align-items: center; gap: var(--lims-space-2);
-  min-height: 40px; min-width: 24px; padding: var(--lims-space-1) var(--lims-space-3);
-  border: 1px solid var(--lims-neutral-300); border-radius: var(--lims-radius-md);
+  min-height: 48px; min-width: 24px; padding: var(--lims-space-1) var(--lims-space-5);
+  border: 1px solid var(--lims-neutral-300); border-radius: var(--lims-radius-full);
   background: var(--lims-neutral-0); color: var(--lims-neutral-900);
   font: inherit; font-weight: var(--lims-font-weight-medium); cursor: pointer;
+  transition: background-color var(--lims-motion-duration-fast) var(--lims-motion-easing), border-color var(--lims-motion-duration-fast) var(--lims-motion-easing);
 }
 .lims-btn-sm { min-height: 28px; padding: 0 var(--lims-space-2); }
 .lims-btn-primary { background: var(--lims-accent); color: var(--lims-accent-fg); border-color: var(--lims-accent); }
@@ -40,8 +42,8 @@
 .lims-kbd { font-family: var(--lims-font-family-mono); font-size: var(--lims-font-size-xs-size); opacity: 0.8; }
 .lims-popover { background: var(--lims-neutral-0); border: 1px solid var(--lims-neutral-200); border-radius: var(--lims-radius-lg); box-shadow: var(--lims-elevation-2); z-index: var(--lims-z-dropdown); }
 .lims-popover-body { padding: var(--lims-space-3); outline: none; max-width: 360px; }
-.lims-popover-title { margin: 0 0 var(--lims-space-2); font-size: var(--lims-font-size-md-size); font-weight: var(--lims-font-weight-semibold); }
-.lims-tooltip { max-width: 280px; padding: var(--lims-space-1) var(--lims-space-2); border-radius: var(--lims-radius-sm); background: var(--lims-neutral-900); color: var(--lims-neutral-0); font-size: var(--lims-font-size-sm-size); z-index: var(--lims-z-dropdown); }
+.lims-popover-title { margin: 0 0 var(--lims-space-2); font-size: var(--lims-font-size-md-size); font-weight: var(--lims-font-weight-medium); }
+.lims-tooltip { max-width: 280px; padding: var(--lims-space-1) var(--lims-space-2); border-radius: var(--lims-radius-lg); background: var(--lims-neutral-900); color: var(--lims-neutral-0); font-size: var(--lims-font-size-sm-size); z-index: var(--lims-z-dropdown); }
 .lims-spinner { display: inline-flex; align-items: center; }
 .lims-menu, .lims-listbox { padding: var(--lims-space-1); outline: none; min-width: 160px; }
 .lims-menuitem, .lims-option { display: flex; align-items: center; gap: var(--lims-space-2); min-height: 32px; padding: var(--lims-space-1) var(--lims-space-2); border-radius: var(--lims-radius-md); cursor: default; }
@@ -54,10 +56,12 @@
 .lims-label { font-weight: var(--lims-font-weight-medium); }
 .lims-input-group { display: flex; align-items: center; gap: var(--lims-space-1); }
 .lims-input {
-  flex: 1; min-height: 40px; padding: var(--lims-space-1) var(--lims-space-3);
-  border: 1px solid var(--lims-neutral-300); border-radius: var(--lims-radius-md);
+  flex: 1; min-height: 46px; padding: var(--lims-space-1) var(--lims-space-4);
+  border: 1px solid var(--lims-neutral-300); border-radius: var(--lims-radius-full);
   background: var(--lims-neutral-0); color: var(--lims-neutral-900); font: inherit;
 }
+/* Multi-line text and table cells are not round (13 s2.3). */
+textarea.lims-input, .lims-input.lims-rte-surface, .lims-egrid-table .lims-input { border-radius: var(--lims-radius-md); }
 .lims-field[data-invalid] .lims-input { border-color: var(--lims-tone-danger-fg); }
 .lims-input[data-disabled], .lims-input:disabled { background: var(--lims-neutral-100); }
 .lims-select-trigger { display: flex; justify-content: space-between; align-items: center; text-align: start; cursor: pointer; }
@@ -69,7 +73,7 @@
 .lims-check-box, .lims-radio-dot { display: inline-grid; place-items: center; width: 16px; min-height: 16px; border: 1px solid var(--lims-neutral-500); border-radius: var(--lims-radius-sm); }
 .lims-radio-dot { border-radius: var(--lims-radius-full); }
 .lims-check[data-selected] .lims-check-box { background: var(--lims-accent); color: var(--lims-accent-fg); border-color: var(--lims-accent); }
-.lims-radio[data-selected] .lims-radio-dot { border: 5px solid var(--lims-accent); }
+.lims-radio[data-selected] .lims-radio-dot { border: 4px solid var(--lims-accent); }
 .lims-switch-track { display: inline-flex; width: 32px; min-height: 18px; padding: 2px; border-radius: var(--lims-radius-full); background: var(--lims-neutral-500); }
 .lims-switch-thumb { width: 14px; min-height: 14px; border-radius: var(--lims-radius-full); background: var(--lims-neutral-0); transition: transform var(--lims-motion-duration-fast) var(--lims-motion-easing); }
 .lims-switch[data-selected] .lims-switch-track { background: var(--lims-accent); }
@@ -78,7 +82,7 @@
 .lims-radio-options.lims-horizontal { flex-direction: row; flex-wrap: wrap; gap: var(--lims-space-4); }
 .lims-form { display: flex; flex-direction: column; gap: var(--lims-space-4); }
 .lims-error-summary { padding: var(--lims-space-3) var(--lims-space-4); border: 2px solid var(--lims-tone-danger-fg); border-radius: var(--lims-radius-md); background: var(--lims-tone-danger-bg); }
-.lims-error-summary-title { margin: 0 0 var(--lims-space-2); font-weight: var(--lims-font-weight-semibold); color: var(--lims-tone-danger-fg); }
+.lims-error-summary-title { margin: 0 0 var(--lims-space-2); font-weight: var(--lims-font-weight-medium); color: var(--lims-tone-danger-fg); }
 .lims-error-summary a { color: var(--lims-tone-danger-fg); }
 
 /* Overlays */
@@ -101,18 +105,18 @@
 .lims-dialog-footer { display: flex; justify-content: flex-end; gap: var(--lims-space-2); }
 .lims-drawer-section { display: flex; flex-direction: column; gap: var(--lims-space-3); padding-block: var(--lims-space-4); border-top: 1px solid var(--lims-neutral-200); }
 .lims-drawer-section-header { display: flex; justify-content: space-between; align-items: center; gap: var(--lims-space-2); }
-.lims-drawer-section-title { margin: 0; font-size: var(--lims-font-size-md-size); font-weight: var(--lims-font-weight-semibold); }
+.lims-drawer-section-title { margin: 0; font-size: var(--lims-font-size-md-size); font-weight: var(--lims-font-weight-medium); }
 
 /* Feedback */
 .lims-toast-region { position: fixed; inset-block-end: var(--lims-space-4); inset-inline-end: var(--lims-space-4); display: flex; flex-direction: column; gap: var(--lims-space-2); z-index: var(--lims-z-toast); }
 .lims-toast, .lims-banner { display: flex; align-items: flex-start; gap: var(--lims-space-3); padding: var(--lims-space-3); border: 1px solid; border-radius: var(--lims-radius-lg); }
 .lims-toast { min-width: 280px; box-shadow: var(--lims-elevation-2); }
 .lims-toast p, .lims-banner p { margin: 0; }
-.lims-toast-title, .lims-banner-title { font-weight: var(--lims-font-weight-semibold); }
+.lims-toast-title, .lims-banner-title { font-weight: var(--lims-font-weight-medium); }
 .lims-toast-text, .lims-banner-text { flex: 1; }
 .lims-state { display: flex; flex-direction: column; align-items: center; gap: var(--lims-space-2); padding: var(--lims-space-8); text-align: center; }
 .lims-state p { margin: 0; }
-.lims-state-title { font-weight: var(--lims-font-weight-semibold); font-size: var(--lims-font-size-md-size); }
+.lims-state-title { font-weight: var(--lims-font-weight-medium); font-size: var(--lims-font-size-md-size); }
 .lims-skeleton { display: flex; flex-direction: column; gap: var(--lims-space-2); }
 .lims-skeleton-row { min-height: 16px; border-radius: var(--lims-radius-sm); background: var(--lims-neutral-200); }
 
@@ -138,12 +142,12 @@
 .lims-breadcrumbs ol { display: flex; flex-wrap: wrap; gap: var(--lims-space-2); margin: 0; padding: 0; list-style: none; font-size: var(--lims-font-size-sm-size); }
 .lims-breadcrumbs li + li::before { content: '/'; margin-inline-end: var(--lims-space-2); color: var(--lims-neutral-500); }
 .lims-page-header-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--lims-space-3); }
-.lims-page-title { margin: 0; font-size: var(--lims-font-size-2xl-size); line-height: var(--lims-font-size-2xl-line-height); }
+.lims-page-title { margin: 0; font-size: var(--lims-font-size-3xl-size); line-height: var(--lims-font-size-3xl-line-height); font-weight: var(--lims-font-weight-semibold); letter-spacing: -0.02em; color: var(--lims-accent-hover); }
 .lims-page-actions { margin-inline-start: auto; display: flex; gap: var(--lims-space-2); }
-.lims-tablist { display: flex; gap: var(--lims-space-1); border-bottom: 1px solid var(--lims-neutral-200); }
-.lims-tab { display: inline-flex; align-items: center; gap: var(--lims-space-2); min-height: 40px; padding: 0 var(--lims-space-3); border-bottom: 2px solid transparent; cursor: pointer; outline: none; }
+.lims-tablist { display: flex; flex-wrap: wrap; gap: var(--lims-space-1); }
+.lims-tab { display: inline-flex; align-items: center; gap: var(--lims-space-2); min-height: 40px; padding: 0 var(--lims-space-4); border: 1px solid transparent; border-radius: var(--lims-radius-full); cursor: pointer; outline: none; }
 .lims-tab:hover, .lims-tab[data-hovered] { background: var(--lims-neutral-100); }
-.lims-tab[data-selected] { border-bottom-color: var(--lims-accent); font-weight: var(--lims-font-weight-semibold); }
+.lims-tab[data-selected] { background: var(--lims-accent-subtle); border-color: var(--lims-accent); color: var(--lims-accent-hover); font-weight: var(--lims-font-weight-medium); }
 .lims-tab-badge { padding: 0 var(--lims-space-1); border-radius: var(--lims-radius-full); background: var(--lims-neutral-100); font-size: var(--lims-font-size-xs-size); font-variant-numeric: tabular-nums; }
 .lims-tabpanel { outline: none; padding-top: var(--lims-space-4); }
 
@@ -151,6 +155,9 @@
 .lims-chip { display: inline-flex; align-items: center; gap: var(--lims-space-1); min-height: 24px; padding: 0 var(--lims-space-2); border: 1px solid; border-radius: var(--lims-radius-full); font-size: var(--lims-font-size-sm-size); font-weight: var(--lims-font-weight-medium); white-space: nowrap; }
 .lims-chip-sm { min-height: 20px; font-size: var(--lims-font-size-xs-size); }
 .lims-result, .lims-money { font-variant-numeric: tabular-nums; }
+/* 13 s2.2: aligned digits in tables, results, money and ids. Poppins 5.3.0 digit widths differ (measured in
+   assets/fonts/__tests__/poppins.test.ts), so .num switches to the bundled Noto Sans, whose digits are tabular. */
+.num { font-family: 'Noto Sans', var(--lims-font-family-sans); font-variant-numeric: tabular-nums; }
 .lims-result-abnormal .lims-result-value { font-weight: var(--lims-font-weight-bold); }
 .lims-result-unit { color: var(--lims-neutral-600); }
 .lims-id { display: inline-flex; align-items: center; gap: var(--lims-space-1); }
@@ -170,8 +177,12 @@
 /* QueueBoard/TokenSlip radius lives here, not in their tsx (T0D-UI-R03, LD-140, 10-DESIGN-SYSTEM s2.3, s8). */
 .lims-queueboard__row, .lims-queueboard__banner, .lims-tokenslip { border-radius: var(--lims-radius-md); }
 @media print { .lims-tokenslip { border-radius: 0; } }
-.lims-card { padding: var(--lims-space-4); border: 1px solid var(--lims-neutral-200); border-radius: var(--lims-radius-lg); background: var(--lims-neutral-0); }
-.lims-card-title { margin: 0 0 var(--lims-space-3); font-size: var(--lims-font-size-md-size); }
+.lims-card { padding: var(--lims-space-6); border: 0; border-radius: var(--lims-radius-xl); background: var(--lims-neutral-0); box-shadow: none; }
+.lims-card-title { margin: 0 0 var(--lims-space-3); font-size: var(--lims-font-size-md-size); font-weight: var(--lims-font-weight-medium); }
+/* T0D-UIKIT-2 (LD-436 Card title row): h2 left, one short caption right, on one baseline. */
+.lims-card-head { display: flex; justify-content: space-between; align-items: baseline; gap: var(--lims-space-2); margin: 0 0 var(--lims-space-3); }
+.lims-card-head .lims-card-title { margin: 0; }
+.lims-card-caption { color: var(--lims-neutral-500); font-size: var(--lims-font-size-xs-size); font-weight: var(--lims-font-weight-regular); white-space: nowrap; }
 .lims-divider { border: 0; border-top: 1px solid var(--lims-neutral-200); margin: var(--lims-space-4) 0; }
 
 /* T0D-12b Phase-1 components */
@@ -193,6 +204,26 @@
 .lims-step[data-tone='info'] { color: var(--lims-tone-info-fg); }
 .lims-step[data-tone='danger'] { color: var(--lims-tone-danger-fg); }
 .lims-step[aria-current='step'] .lims-step-label { font-weight: var(--lims-font-weight-medium); }
+/* T0D-UIKIT-2 (LD-436 pipeline): completed stages in accent, later stages outlined, ONE lime marker (ring by outline: ui-r03 bars a box-shadow ring). */
+.lims-step.lims-step-done { color: var(--lims-accent); }
+.lims-step.lims-step-upcoming .lims-icon { border: 1px solid var(--lims-neutral-300); border-radius: var(--lims-radius-full); color: var(--lims-neutral-300); }
+.lims-step-marker { display: inline-block; width: var(--lims-space-3); height: var(--lims-space-3); border-radius: var(--lims-radius-full); background: var(--lims-accent-highlight); border: 0; outline: var(--lims-space-1) solid var(--lims-accent-subtle); box-shadow: none; }
+.lims-step-waiting { color: var(--lims-accent); font-size: var(--lims-font-size-xs-size); font-weight: var(--lims-font-weight-medium); }
+/* T0D-UIKIT-2 (LD-436 R16): the drawn state illustration. */
+.lims-state-art { display: block; flex: none; }
+/* T0D-UIKIT-2 (LD-436 "Needs you"): ActionList rows. 150 ms token motion, nothing loops, reduced motion honoured. */
+.lims-action-list { list-style: none; margin: 0; padding: 0; }
+.lims-action-item { border-bottom: 1px solid var(--lims-neutral-200); }
+.lims-action-row { display: flex; align-items: center; gap: var(--lims-space-3); width: 100%; padding: var(--lims-space-2) var(--lims-space-4); border: 0; background: var(--lims-neutral-0); color: inherit; font: inherit; text-align: start; text-decoration: none; cursor: pointer; transition: background-color var(--lims-motion-duration-fast) var(--lims-motion-easing); }
+.lims-action-row:hover { background: var(--lims-neutral-50); }
+.lims-action-row:focus-visible { outline: 2px solid var(--lims-focus-ring); outline-offset: -2px; }
+.lims-action-chip { display: inline-flex; align-items: center; justify-content: center; flex: none; width: calc(var(--lims-space-6) + var(--lims-space-1)); height: calc(var(--lims-space-6) + var(--lims-space-1)); border-radius: var(--lims-radius-sm); }
+.lims-action-text { display: flex; flex: 1; flex-direction: column; min-width: 0; }
+.lims-action-title { font-weight: var(--lims-font-weight-medium); }
+.lims-action-detail { color: var(--lims-neutral-500); font-size: var(--lims-font-size-xs-size); }
+.lims-action-row .lims-chip { font-variant-numeric: tabular-nums; }
+.lims-action-chevron { flex: none; color: var(--lims-neutral-500); }
+@media (prefers-reduced-motion: reduce) { .lims-action-row { transition-duration: 0; } }
 .lims-thumbs { display: grid; grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr)); gap: var(--lims-space-3); list-style: none; padding: 0; }
 .lims-thumb { display: flex; flex-direction: column; gap: var(--lims-space-1); }
 .lims-thumb-img { max-width: 100%; aspect-ratio: 1; object-fit: cover; }
@@ -231,8 +262,12 @@
 .lims-table-comfortable tr { height: 48px; min-height: 48px; }
 .lims-row:hover, .lims-row[data-hovered] { background: var(--lims-neutral-50); }
 .lims-row[data-selected] { background: var(--lims-accent-subtle); }
+/* T0D-EMPTYTBL-1 (LD-310): an empty table keeps its height with four faint, inert rows under the message row. */
+.lims-row-placeholder { pointer-events: none; user-select: none; }
+.lims-row-placeholder > td { border-bottom: 1px solid var(--lims-neutral-100); }
+div.lims-row-placeholder { min-height: 32px; border-bottom: 1px solid var(--lims-neutral-100); }
 .lims-bulk-bar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--lims-space-2); padding: var(--lims-space-2) var(--lims-space-3); margin-bottom: var(--lims-space-2); border-radius: var(--lims-radius-md); background: var(--lims-accent-subtle); }
-.lims-bulk-count { font-weight: var(--lims-font-weight-semibold); font-variant-numeric: tabular-nums; margin-inline-end: auto; }
+.lims-bulk-count { font-weight: var(--lims-font-weight-medium); font-variant-numeric: tabular-nums; margin-inline-end: auto; }
 .lims-align-end { text-align: end; }
 .lims-align-center { text-align: center; }
 .lims-data-table [role='gridcell']:focus, .lims-data-table [role='rowheader']:focus, .lims-data-table [role='row']:focus { outline: 2px solid var(--lims-focus-ring); outline-offset: -2px; }
@@ -258,3 +293,107 @@
 .lims-scan-infected { color: var(--lims-tone-danger-fg); font-weight: var(--lims-font-weight-medium); }
 .lims-shortcuts-row { display: flex; gap: var(--lims-space-3); }
 .lims-shortcuts dd { margin: 0; }
+
+/* T0D-DENSITY-1 (LD-310, founder 2026-11-17 04:49 / 05:03 NPT): compact density, the default of every staff screen (the shell sets
+   data-density). The 35 percent applies to space and control size, not letters: controls 30, table rows 28, text 13 (captions 12).
+   REPLACES the 13-M-SERIES s2.3 rule "dense fields stay at 40". 30 and the 24 px sm button meet WCAG 2.2 AA 2.5.8 (24 px). */
+/* :not(html): the shell also sets data-density on <html> so portaled dialogs/popovers follow it (review T0D-DENSITY-1 item 1); 13 px on the root would shrink every rem, so <html> passes it on through body */
+[data-density='compact']:not(html), [data-density='compact'] body, [data-density='compact'] .lims-root, [data-density='compact'] .lims-shell, [data-density='compact'] .lims-form { font-size: var(--lims-font-size-sm-size); line-height: var(--lims-font-size-base-line-height); }
+[data-density='compact'] .lims-input { min-height: 30px; padding-inline: var(--lims-space-3); }
+[data-density='compact'] .lims-btn { min-height: 30px; padding-inline: var(--lims-space-3); }
+[data-density='compact'] .lims-btn-sm { min-height: 24px; padding-inline: var(--lims-space-2); }
+[data-density='compact'] .lims-icon-btn { min-width: 30px; padding: 0; justify-content: center; }
+[data-density='compact'] .lims-tab { min-height: 30px; padding-inline: var(--lims-space-3); }
+[data-density='compact'] .lims-menuitem, [data-density='compact'] .lims-option { min-height: 28px; }
+[data-density='compact'] .lims-table td, [data-density='compact'] .lims-table th { padding: var(--lims-space-1) var(--lims-space-2); }
+[data-density='compact'] .lims-table tr { height: 28px; min-height: 28px; }
+[data-density='compact'] div.lims-row-placeholder { min-height: 28px; }
+/* gaps about 35 percent below regular: 16 -> 10, 24 -> 16, 12 -> 8 */
+[data-density='compact'] .lims-form { gap: 10px; }
+[data-density='compact'] .lims-card { padding: var(--lims-space-4); }
+[data-density='compact'] .lims-shell-main { padding: var(--lims-space-4); }
+[data-density='compact'] .lims-page-header { gap: var(--lims-space-1); margin-bottom: var(--lims-space-3); }
+[data-density='compact'] .lims-dialog-body { gap: 10px; padding: var(--lims-space-4); }
+[data-density='compact'] .lims-drawer-section { gap: var(--lims-space-2); padding-block: 10px; }
+[data-density='compact'] .lims-filter-bar, [data-density='compact'] .lims-dl { gap: var(--lims-space-2); }
+[data-density='compact'] .lims-tabpanel { padding-top: var(--lims-space-2); }
+[data-density='compact'] .lims-state { padding: var(--lims-space-4); }
+/* Form labelPlacement="start" (any density): label at the start side, the control and its helper / error text beside it */
+.lims-form[data-label-placement='start'] .lims-field { flex-direction: row; flex-wrap: wrap; align-items: center; column-gap: var(--lims-space-3); }
+.lims-form[data-label-placement='start'] .lims-field > .lims-label { flex: 0 0 9rem; }
+.lims-form[data-label-placement='start'] .lims-field > :not(.lims-label) { flex: 1 1 calc(100% - 9rem - var(--lims-space-3)); }
+.lims-form[data-label-placement='start'] .lims-field > :not(.lims-label) ~ :not(.lims-label) { flex-basis: 100%; padding-inline-start: calc(9rem + var(--lims-space-3)); }
+
+/* T0D-UIKIT-1 (LD-353 rules and six templates; founder 2026-11-17 23:05 / 23:47 NPT). Additive, tokens only: no px, hex, rgb, url or @import; media in rem. */
+/* Template 1 FilterBar (rule 2): one row, label above at 12px, a search is a short control with its button next to it; two rows only under 64rem. */
+.lims-filter-bar { flex-wrap: nowrap; align-items: flex-end; min-width: 0; }
+.lims-filter-bar > * { min-width: 0; }
+.lims-filter-bar .lims-field { flex-direction: column; gap: var(--lims-space-1); }
+.lims-filter-bar .lims-label { font-size: var(--lims-font-size-xs-size); }
+@media (max-width: 64rem) { .lims-filter-bar { flex-wrap: wrap; } }
+.lims-filter-search { display: flex; align-items: flex-end; gap: var(--lims-space-2); max-width: 24rem; min-width: 0; }
+.lims-filter-search > .lims-field { flex: 1; min-width: 0; }
+/* DataTable (rule 5): scrolls inside its own box, never the page; numbers right and tabular; cut off cells clip with an ellipsis. */
+.lims-data-table { min-width: 0; }
+.lims-table-scroll { overflow-x: auto; min-width: 0; }
+.lims-cell { overflow: hidden; text-overflow: ellipsis; }
+.lims-cell-titles .lims-cell { white-space: nowrap; max-width: 24rem; }
+.lims-num { font-variant-numeric: tabular-nums; }
+.lims-sticky-first { position: sticky; inset-inline-start: 0; z-index: var(--lims-z-sticky); background: var(--lims-neutral-0); }
+.lims-table-sticky thead th.lims-sticky-first { z-index: calc(var(--lims-z-sticky) + 1); }
+.lims-row[data-selected] .lims-sticky-first { background: var(--lims-accent-subtle); }
+.lims-colchooser { position: relative; display: flex; justify-content: flex-end; margin-bottom: var(--lims-space-2); }
+.lims-colchooser-list { position: absolute; inset-block-start: 100%; inset-inline-end: 0; display: flex; flex-direction: column; gap: var(--lims-space-1); padding: var(--lims-space-2) var(--lims-space-3); max-height: 20rem; overflow-y: auto; }
+/* StatTileRow (templates 1 and 5): equal tiles in one row; with data-lead the first is twice as wide. */
+.lims-stat-row { display: grid; grid-template-columns: minmax(0, 1fr); grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); align-items: stretch; gap: var(--lims-space-3); min-width: 0; }
+.lims-stat-row[data-lead='true'] { grid-template-columns: minmax(0, 2fr); }
+.lims-stat-row > .lims-stat { min-width: 0; }
+@media (max-width: 64rem) { .lims-stat-row, .lims-stat-row[data-lead='true'] { grid-auto-flow: row; grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+/* ChartCard (rule 10): the frame always draws; "No data yet" sits inside it; one note line; no fills, glows or gradients (rule 4). Card radius 12 (rule 7). */
+.lims-chart-card { display: flex; flex-direction: column; gap: var(--lims-space-2); min-width: 0; padding: var(--lims-space-4); border: 0.0625rem solid var(--lims-neutral-200); border-radius: var(--lims-radius-md); background: var(--lims-neutral-0); }
+.lims-chart-card-header { display: flex; align-items: center; gap: var(--lims-space-3); min-width: 0; }
+.lims-chart-card-title { margin: 0; font-size: var(--lims-font-size-md-size); font-weight: var(--lims-font-weight-medium); }
+.lims-chart-period { margin-inline-start: auto; }
+.lims-chart-frame { position: relative; min-width: 0; }
+.lims-chart-empty { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; color: var(--lims-neutral-600); pointer-events: none; }
+.lims-chart-note { margin: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; color: var(--lims-neutral-600); font-size: var(--lims-font-size-xs-size); }
+/* SplitConsole (template 2): list 40 / detail 60, each scrolls by itself, sticky action bar; one column under 64rem. */
+.lims-console { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); gap: var(--lims-space-4); min-width: 0; block-size: calc(100dvh - 10rem); min-block-size: 20rem; }
+.lims-console-list { overflow-y: auto; min-height: 0; min-width: 0; border: 0.0625rem solid var(--lims-neutral-200); border-radius: var(--lims-radius-md); background: var(--lims-neutral-0); }
+.lims-console-detail { display: flex; flex-direction: column; min-height: 0; min-width: 0; border: 0.0625rem solid var(--lims-neutral-200); border-radius: var(--lims-radius-md); background: var(--lims-neutral-0); }
+.lims-console-body { flex: 1; overflow-y: auto; min-height: 0; padding: var(--lims-space-4); }
+.lims-console-actions { position: sticky; bottom: 0; display: flex; justify-content: flex-end; gap: var(--lims-space-2); padding: var(--lims-space-2) var(--lims-space-4); border-top: 0.0625rem solid var(--lims-neutral-200); background: var(--lims-neutral-0); }
+@media (max-width: 64rem) { .lims-console { grid-template-columns: minmax(0, 1fr); block-size: auto; } }
+/* ScanPanel (template 3): input at most 28rem with a light focus ring, then the last result card, then the queue. */
+.lims-scan-panel { display: flex; flex-direction: column; gap: var(--lims-space-4); min-width: 0; }
+.lims-scan-input { max-width: 28rem; }
+.lims-scan-input .lims-input:focus, .lims-scan-input .lims-input:focus-visible { outline: 0.0625rem solid var(--lims-focus-ring); outline-offset: 0.0625rem; }
+.lims-scan-result { min-width: 0; padding: var(--lims-space-3) var(--lims-space-4); border: 0.0625rem solid var(--lims-neutral-200); border-radius: var(--lims-radius-md); background: var(--lims-neutral-0); overflow-wrap: anywhere; }
+.lims-scan-queue { min-width: 0; }
+/* SettingsForm (template 4): a column at most 32rem; two columns from 64rem; switches start aligned; sticky Save bar. */
+.lims-settings { display: flex; flex-direction: column; gap: var(--lims-space-4); min-width: 0; }
+.lims-settings-form { display: flex; flex-direction: column; gap: var(--lims-space-4); max-width: 32rem; }
+.lims-settings-fields { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--lims-space-4) var(--lims-space-6); }
+@media (min-width: 64rem) { .lims-settings-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.lims-settings .lims-switch { justify-self: start; }
+.lims-settings-dirty { align-self: center; color: var(--lims-neutral-600); }
+.lims-settings-section { display: contents; }
+.lims-settings-section[hidden] { display: none; }
+.lims-settings-fields h2, .lims-settings-fields h3 { grid-column: 1 / -1; margin: 0; }
+.lims-settings-bar { position: sticky; bottom: 0; display: flex; justify-content: flex-start; gap: var(--lims-space-2); padding-block: var(--lims-space-3); border-top: 0.0625rem solid var(--lims-neutral-200); background: var(--lims-neutral-0); }
+/* LD-344 (founder 2026-11-17 22:20 NPT): table headers are medium, not the browser bold (every table showed 700) */
+.lims-table th, .lims-egrid-table th { font-weight: var(--lims-font-weight-medium); }
+/* LD-344: the selected radio (5 px ring on a content-box) was 26 px against 18 px unselected; one box size for both */
+.lims-check-box, .lims-radio-dot { box-sizing: border-box; }
+/* T0D-UIDASH-2 (LD-436 look, LD-437 mock): additive kit props. PageHeader caption line under the title; StatusStepper count + toned note;
+   BarChart current category in accent; DataTable pager total. Tokens only. */
+.lims-page-heading { display: flex; flex-direction: column; gap: var(--lims-space-0-5); min-width: 0; }
+.lims-page-caption { margin: 0; color: var(--lims-neutral-500); font-size: var(--lims-font-size-xs-size); font-weight: var(--lims-font-weight-regular); }
+.lims-step-figures { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--lims-space-2); flex-basis: 100%; }
+.lims-step-count { color: var(--lims-neutral-900); font-size: var(--lims-font-size-lg-size); font-weight: var(--lims-font-weight-semibold); font-variant-numeric: tabular-nums; }
+.lims-step-note { font-size: var(--lims-font-size-xs-size); font-weight: var(--lims-font-weight-medium); background: transparent; }
+.lims-step-note[data-tone='danger'] { color: var(--lims-tone-danger-fg); }
+.lims-chart-svg:has([data-current='true']) .lims-chart-bar { color: var(--lims-neutral-300); }
+.lims-chart-svg .lims-chart-bar[data-current='true'] { color: var(--lims-accent); }
+.lims-pager { align-items: center; }
+.lims-pager-total { margin-inline-end: auto; color: var(--lims-neutral-700); font-size: var(--lims-font-size-sm-size); font-variant-numeric: tabular-nums; }

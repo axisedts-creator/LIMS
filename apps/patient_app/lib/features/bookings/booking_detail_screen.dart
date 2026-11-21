@@ -7,6 +7,7 @@ import 'package:lims_shared/lims_shared.dart';
 import 'package:lims_ui/lims_ui.dart';
 
 import '../orders/orders_format.dart';
+import '../orders/status_look.dart';
 import 'booking_wizard_screen.dart';
 import 'bookings_api.dart';
 import 'bookings_format.dart';
@@ -132,14 +133,14 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
 
   Widget _body(BuildContext context) {
     if (_gone)
-      return const Center(
-        child: LimsEmptyState(title: 'This booking is no longer available'),
+      return const StateCard(
+        LimsEmptyState(title: 'This booking is no longer available'),
       );
     final b = _booking;
     if (b == null) {
       if (_failed)
-        return Center(
-          child: LimsErrorState(
+        return StateCard(
+          LimsErrorState(
             title: 'Something went wrong',
             message: 'We could not load this booking.',
             onRetry: () {
@@ -155,65 +156,88 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
     final until = b['cancellable_until'];
     final open = b['status'] == 'confirmed' && until is String;
     final t = Theme.of(context).textTheme;
+    const gap = SizedBox(height: LimsTokens.space3);
     return SingleChildScrollView(
       padding: const EdgeInsets.all(LimsTokens.space4),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (_notice != null) ...[
-            BookingBanner(text: _notice!),
-            const SizedBox(height: LimsTokens.space3),
-          ],
-          Align(
-            alignment: Alignment.centerLeft,
-            child: LimsStatusChip(
-              kind: 'generic',
-              status: '${b['status']}',
-              tone: bookingLook(b['status']).$1,
-              label: bookingLook(b['status']).$2,
+          if (_notice != null) ...[BookingBanner(text: _notice!), gap],
+          LimsCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ToneChip(
+                  LimsStatusChip(
+                    kind: 'generic',
+                    status: '${b['status']}',
+                    tone: bookingLook(b['status']).$1,
+                    label: bookingLook(b['status']).$2,
+                  ),
+                ),
+                const SizedBox(height: LimsTokens.space2),
+                Text('Booking ${b['booking_no']}', style: t.titleMedium),
+                const SizedBox(height: LimsTokens.space2),
+                Text(dateTimeText(b['slot_start'])),
+                Text(placeText(b)),
+                if (b['booking_kind'] == 'home_collection' &&
+                    _homeAddress != null)
+                  Text(_homeAddress!),
+              ],
             ),
           ),
-          const SizedBox(height: LimsTokens.space2),
-          Text('Booking ${b['booking_no']}', style: t.titleMedium),
-          const SizedBox(height: LimsTokens.space2),
-          Text(dateTimeText(b['slot_start'])),
-          Text(placeText(b)),
-          if (b['booking_kind'] == 'home_collection' && _homeAddress != null)
-            Text(_homeAddress!),
-          const SizedBox(height: LimsTokens.space4),
-          Text('Tests', style: t.titleMedium),
-          for (final i in items)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: LimsTokens.space1),
-              child: Row(
-                children: [
-                  Expanded(child: Text('${i['display_name']}')),
-                  Text(priceText(i)),
-                ],
-              ),
+          gap,
+          LimsCard(
+            title: 'Tests',
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                for (final i in items)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: LimsTokens.space1,
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(child: Text('${i['display_name']}')),
+                        Text(priceText(i)),
+                      ],
+                    ),
+                  ),
+                if (total != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: LimsTokens.space2),
+                    child: Text('Indicative total: ${rupees(total)}'),
+                  ),
+                const Padding(
+                  padding: EdgeInsets.only(top: LimsTokens.space1),
+                  child: Text('Final price is confirmed at the lab.'),
+                ),
+              ],
             ),
-          if (total != null)
-            Padding(
-              padding: const EdgeInsets.only(top: LimsTokens.space2),
-              child: Text('Indicative total: ${rupees(total)}'),
-            ),
-          const Padding(
-            padding: EdgeInsets.only(top: LimsTokens.space1),
-            child: Text('Final price is confirmed at the lab.'),
           ),
           if (open) ...[
-            const SizedBox(height: LimsTokens.space4),
-            Text('You can cancel in the app until ${dateTimeText(until)}'),
-            const SizedBox(height: LimsTokens.space3),
-            LimsButton(
-              label: 'Reschedule',
-              onPressed: _cancelling ? null : _reschedule,
-            ),
-            const SizedBox(height: LimsTokens.space2),
-            LimsButton(
-              label: 'Cancel booking',
-              secondary: true,
-              onPressed: _cancelling ? null : _cancel,
+            gap,
+            LimsCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    'You can cancel in the app until ${dateTimeText(until)}',
+                  ),
+                  const SizedBox(height: LimsTokens.space3),
+                  LimsButton(
+                    label: 'Reschedule',
+                    onPressed: _cancelling ? null : _reschedule,
+                  ),
+                  const SizedBox(height: LimsTokens.space2),
+                  LimsButton(
+                    label: 'Cancel booking',
+                    secondary: true,
+                    onPressed: _cancelling ? null : _cancel,
+                  ),
+                ],
+              ),
             ),
           ],
         ],

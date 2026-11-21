@@ -14,7 +14,7 @@ export type ResultType = 'numeric' | 'ordinal' | 'coded' | 'text' | 'narrative';
 
 export interface FieldError { path?: string; code?: string; message: string }
 /** Server-action result: ApiError cannot cross the action boundary (Next strips messages), so the code travels as data. */
-export type ActionResult<T> = { ok: true; data: T } | { ok: false; status: number; code: string; errors?: FieldError[] };
+export type ActionResult<T> = { ok: true; data: T } | { ok: false; status: number; code: string; errors?: FieldError[]; detail?: string };
 
 export interface TestDto {
   id: string; code: string; name: string; department_id: string; workflow_type: string;
@@ -89,6 +89,8 @@ export interface DoctorSummary { id: string; doctor_code: string; display_name: 
 export interface Doctor extends Base {
   doctor_code: string; display_name: string; qualification?: string; registration_council?: string; registration_no?: string;
   phone_e164?: string; email?: string; notes?: string; is_verified: boolean; source: 'back_office' | 'quick_add' | 'import'; merged_into_id?: string; price_list_id?: string;
+  /** T0C-PARTYSET-1: speciality, hospital and the National ID number (masked by the API; the full value only through revealPartyIdNumber). */
+  speciality?: string; hospital?: string; national_id_number?: string;
 }
 export type DoctorCreated = Doctor & { possible_duplicate_of: DoctorSummary[] };
 export type PartyKind = 'hospital' | 'company' | 'clinic' | 'partner_lab' | 'insurer' | 'other';
@@ -150,7 +152,7 @@ export type PriceOwnerKind = 'default' | 'credit_party' | 'referrer' | 'centre';
 export interface Money { amount_paisa: number; currency: 'NPR' }
 export interface PriceListVersionRef { id: string; version_no: number; effective_from: string }
 export interface PriceList {
-  id: string; code: string; name: string; owner_kind: PriceOwnerKind; falls_through: boolean; assignments: { owner_id: string }[];
+  id: string; code: string; name: string; owner_kind: PriceOwnerKind; falls_through: boolean; assignments: { owner_id: string; effective_from?: string; effective_to?: string }[];
   current_version?: PriceListVersionRef; scheduled_version?: PriceListVersionRef; draft_version_id?: string; is_active: boolean; version: number;
 }
 export interface PriceListVersion {

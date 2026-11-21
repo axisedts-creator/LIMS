@@ -1,6 +1,6 @@
 // C3.T-35 test helper (ruling C3.T-35-ruling.md #4): environment-independent multipart parsing.
 // jsdom swaps global File/FormData, so undici `request.formData()` fails there; parse the raw body text instead.
-export type Part = { name: string; filename?: string; value: string };
+export type Part = { name: string; filename?: string | undefined; value: string };
 export type ParsedForm = { get(k: string): string | { name: string; text: string } | null; has(k: string): boolean; keys(): string[] };
 
 export const parseMultipart = (contentType: string, body: string): ParsedForm => {

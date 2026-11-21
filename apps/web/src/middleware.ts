@@ -2,18 +2,18 @@
 //  1. per-request CSP nonce + security headers (REQ-SEC-089, 08 A18.1) — img-src 'self' data: only;
 //  2. Origin / Sec-Fetch-Site check on every non-safe method → 403 auth.csrf_failed (REQ-SEC-091);
 //  3. session: __Host-lims_sid → C2 resolveSession (touch:false on X-Lims-Background, 08 A25 D-206);
-//     C2's 401 auth.session_expired is relayed (sign-in page for documents, problem+json otherwise).
+//     C2's 401 auth.session_expired is relayed (307 to /auth/login or /auth/session-expired for documents (LD-200), problem+json otherwise).
 // (auth) and (display) routes are excluded from the staff-session requirement (01-CHUNK-MAP §3).
 import { NextResponse, type NextRequest } from 'next/server';
 import { readSessionId } from './core/session/cookie';
 import { getSessionResolver } from './core/session/provider';
 import { BACKGROUND_HEADER, encodeSession, H_ACCESS_TOKEN, H_NONCE, H_PATHNAME, H_SESSION, INTERNAL_HEADERS } from './core/session/request';
 import { problem, type Problem } from './core/session/types';
-import { signInPageHtml } from './core/shell/sign-in-page';
 
 export const config = {
   runtime: 'nodejs',
-  matcher: ['/((?!_next/|__nextjs|favicon.ico).*)'],
+  // T0D-FAVICON-1 (LD-310): icon + manifest files are public static assets; without this the login tab gets a 307 instead of the icon.
+  matcher: ['/((?!_next/|__nextjs|favicon.ico|icon\\.png|apple-icon\\.png|icon-512\\.png|manifest\\.webmanifest).*)'],
 };
 
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
@@ -48,6 +48,9 @@ function secure(res: NextResponse, csp: string): NextResponse {
   res.headers.set(CSP_HEADER, csp);
   res.headers.set('x-content-type-options', 'nosniff');
   res.headers.set('referrer-policy', 'same-origin');
+  res.headers.set('x-frame-options', 'DENY'); // SEC-HDR-1 (LD-238): matches CSP frame-ancestors 'none'
+  // SEC-HDR-1 (LD-238): camera=(self) only because apps/web/src/features/frontdesk/components/NewPatientForm.tsx captures a photo; the rest unused.
+  res.headers.set('permissions-policy', 'camera=(self), microphone=(), geolocation=(), payment=()');
   res.headers.set('cache-control', 'no-store');
   return res;
 }
@@ -89,15 +92,24 @@ export async function middleware(req: NextRequest) {
   const path = req.nextUrl.pathname;
   if (!SESSION_EXEMPT.some((re) => re.test(path))) {
     const sid = readSessionId(req.headers.get('cookie'));
+    // LD-200 (2026-11-15, CR-C1-WEB-STYLE-1 option 3): documents go to the real sign-in screen; JSON keeps problem+json 401.
+    // LD-203 (2026-11-15, WEB-AUTH-REDIRECT-2): reproduced on `next start`: a relative Location makes Next throw
+    // "TypeError: Invalid URL" → 500. Location is an absolute URL: fixed literal path (never request data → no open
+    // redirect) on the request's own origin.
     const unauth = (p: Problem, reason: 'expired' | 'missing') =>
       wantsJson(req)
         ? problemResponse(p, 401, csp)
-        : secure(new NextResponse(signInPageHtml(reason), { status: 401, headers: { 'content-type': 'text/html; charset=utf-8' } }), csp);
+        : secure(
+            NextResponse.redirect(new URL(reason === 'expired' ? '/auth/session-expired' : '/auth/login', req.nextUrl.origin), 307),
+            csp,
+          );
 
     if (!sid) return unauth(problem('auth.unauthenticated', 'Authentication required', 401), 'missing');
     const r = await (await getSessionResolver()).resolve(sid, { touch: !req.headers.has(BACKGROUND_HEADER) });
     if (!r.ok) {
       if (r.status === 401) return unauth(r.problem, r.problem.code === 'auth.session_expired' ? 'expired' : 'missing');
+      // T0D-WAKE-1 (LD-277, RS-07): no answer from the API -> documents see the waking state in place (URL kept, so a refresh retries).
+      if (r.waking && !wantsJson(req)) return secure(NextResponse.rewrite(new URL('/auth/waking', req.nextUrl.origin), { request: { headers: fwd } }), csp);
       return problemResponse(r.problem, r.status, csp);
     }
     fwd.set(H_SESSION, encodeSession(r.session));

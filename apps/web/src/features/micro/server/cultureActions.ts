@@ -81,7 +81,7 @@ export async function withdrawIsolateAction(isolateId: string, v: number, input:
 }
 
 // ---- reads for the dialogs (GET /v1/micro/coded-sets/{set}); the set name and the search text are validated before they reach the URL.
-const SET = ['organisms', 'media', 'specimen_sites', 'growth_codes', 'isolate_withdraw_reasons'] as const;
+const SET = ['organisms', 'media', 'specimen_sites', 'growth_codes', 'isolate_withdraw_reasons', 'ast_interpretations', 'record_ignore_reasons'] as const; // ast_interpretations: T-21 grid categories; record_ignore_reasons: T-23 ignore dialog
 /** Prefix search (organisms) — 1..40 characters, as the contract says. */
 export async function searchCodedSetAction(set: string, q: string): Promise<ActionResult<MicroCodeDto[]>> {
   return run(async () => {

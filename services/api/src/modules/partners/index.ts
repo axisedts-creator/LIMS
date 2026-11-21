@@ -16,6 +16,7 @@ import { getManifestPrintView } from './handlers/getManifestPrintView.js';
 import { getPartner } from './handlers/getPartner.js';
 import { getInboundManifest } from './handlers/getInboundManifest.js';
 import { getPartnerContext } from './handlers/getPartnerContext.js';
+import { getPartnerDashboard } from './handlers/getPartnerDashboard.js';
 import { getPartnerStatement } from './handlers/getPartnerStatement.js';
 import { listPartnerPriceList } from './handlers/listPartnerPriceList.js';
 import { listPartnerStatements } from './handlers/listPartnerStatements.js';
@@ -28,8 +29,12 @@ import { listPartners } from './handlers/listPartners.js';
 import * as partnerUserHandlers from './handlers/partnerUsers.js';
 import * as orderHandlers from './handlers/orders.js';
 import * as pickupHandlers from './handlers/pickups.js';
+import * as accessSlipHandlers from './handlers/accessSlips.js';
 import * as reportHandlers from './handlers/reports.js';
 import * as referrerHandlers from './handlers/referrers.js';
+import * as partysetHandlers from './handlers/partyset.js';
+import * as salesHandlers from './handlers/sales.js';
+import * as ticketHandlers from './handlers/tickets.js';
 import { reactivatePartner } from './handlers/reactivatePartner.js';
 import { replaceManifestLine } from './handlers/replaceManifestLine.js';
 import { resyncPartnerProjections } from './handlers/resyncPartnerProjections.js';
@@ -52,23 +57,39 @@ const stub = (operationId: string): Handler => async () => {
 };
 
 const implemented: Readonly<Record<string, Handler>> = {
+  ...ticketHandlers, // T0B-MSGDESK-1 (LD-321): the 10 ticket operations of T0C-MSGDESK-1 (were the T01 stub)
   getPartnerContext, // T03
+  getPartnerDashboard, // T18 A2
   ...partnerUserHandlers, // T06 U1-U6, SA8-SA10
   listPartners, createPartner, getPartner, updatePartner, suspendPartner, reactivatePartner, resyncPartnerProjections, // T07 SA1–SA7
   listPartnerPriceList, listPartnerStatements, getPartnerStatement, // T17 P1, S1, S2
   ...referrerHandlers, // T11 F1–F5, SR1–SR3
   ...pickupHandlers, // T15 K1–K4, SP1–SP4
   ...orderHandlers, ...reportHandlers, // T13 O1–O3, R1–R3
+  ...accessSlipHandlers, // T14 R4–R6
   createManifest, listManifests, getManifest, updateManifest, addManifestLine, replaceManifestLine, deleteManifestLine, discardManifest, searchPartnerOrderables, // T08 M1–M7, M10, P2
   submitManifest, withdrawManifest, getManifestPrintView, // T09 M8, M9, M11
   listInboundManifests, getInboundManifest, receiveManifest, retryManifestLineConversion, markManifestLineNotReceived, // T10 SI1-SI5
+  ...salesHandlers, // T0B-SALES-1 (LD-321): the 15 sales hierarchy operations of T0C-SALES-1
+  ...partysetHandlers, // T0B-PARTYSET-1 (LD-321): the 13 party settings / onboarding / penalty / ID reveal operations of T0C-PARTYSET-1
 };
+
+/**
+ * LD-325(b): operations of partners.yaml without a handler yet (answer 501 operation_pending).
+ * T0B-SALES-1 implemented the 15 sales ids of T0C-SALES-1.
+ * T0C-MSGDESK-1 (LD-321): the partner ticket ids were removed by T0B-MSGDESK-1 with their handlers.
+ * T0C-PARTYSET-1 (LD-321): the 13 party settings ids were removed by T0B-PARTYSET-1 with their handlers.
+ */
+const PENDING_OPERATIONS: readonly string[] = Object.freeze([]);
 
 export const manifest: ModuleManifest = Object.freeze({
   name: 'partners',
   openapi: OPENAPI,
+  // pending ids get no stub: core/openapi.ts mounts its 501 operation_pending handler for them (a stub here would win over it)
   handlers: Object.freeze(Object.fromEntries(operationIds(loadSpec(join(REPO_ROOT, OPENAPI)))
+    .filter((op) => Object.hasOwn(implemented, op) || !PENDING_OPERATIONS.includes(op))
     .map((op) => [op, Object.hasOwn(implemented, op) ? implemented[op]! : stub(op)]))),
+  pendingOperations: PENDING_OPERATIONS,
   produces: [],
   systemPermissions: PARTNERS_SYSTEM_PERMISSIONS,
 });

@@ -26,9 +26,9 @@ if (typeof HTMLElement !== 'undefined') (HTMLElement.prototype as any).scrollInt
 export const user = () => userEvent.setup();
 
 // ---------------------------------------------------------------- mocks
-export const router = { push: vi.fn(), replace: vi.fn(), refresh: vi.fn(), back: vi.fn(), prefetch: vi.fn() };
+export const router: Record<'push' | 'replace' | 'refresh' | 'back' | 'prefetch', ReturnType<typeof vi.fn>> = { push: vi.fn(), replace: vi.fn(), refresh: vi.fn(), back: vi.fn(), prefetch: vi.fn() };
 export const nav = { pathname: '/lab/worklist' };
-export const navigationMock = {
+export const navigationMock: { useRouter: () => typeof router; usePathname: () => string; useSearchParams: () => URLSearchParams; notFound: () => never; redirect: (to: string) => never } = {
   useRouter: () => router,
   usePathname: () => nav.pathname,
   useSearchParams: () => new URLSearchParams(),
@@ -50,7 +50,7 @@ export const actionsMock = { keepAlive: async () => ({ ok: true }) };
 type E = { id: string; label: string; permission: string; group: string; order: number; path: string; routeId: string; module: string; icon?: string };
 const e = (module: string, id: string, label: string, permission: string, group: string, order: number, path: string): E =>
   ({ id: `${module}.${id}`, label, permission, group, order, path, routeId: `staff.${module}.${id}`, module });
-// Deliberately NOT in rail order: platform first. The shell must group + order by the 8 rail groups, not by input order.
+// Deliberately NOT in group order: platform first. The shell must group + order by the NavGroups (13 for a staff session), not by input order.
 export const ENTRIES: E[] = [
   e('platform', 'tenants', 'Tenants', 'p.plat.read', 'platform', 10, '/platform/tenants'),
   e('frontdesk', 'register', 'Register', 'p.fd.register', 'front_desk', 10, '/frontdesk/register'),
@@ -68,16 +68,15 @@ export const generatedMock = {
   navEntries: ENTRIES,
   staffRoutes: ENTRIES.map((x) => ({ id: x.routeId, path: x.path, permission: x.permission })),
 };
-/** Rail order the user must see: group label -> entry labels. */
+/** Sidebar order the user must see (T0D-MSERIES-2: the 14 NavGroups of 13-M-SERIES s3, labels of m2.harness GROUP_LABELS); a staff session never sees the platform group. */
 export const EXPECTED_RAIL: [string, string[]][] = [
   ['Front desk', ['Register', 'Accession']],
-  ['Lab', ['Worklist', 'Results']],
-  ['Reports', ['Report queue']],
-  ['Accounts', ['Daily cash']],
+  ['Laboratory', ['Worklist', 'Results']],
+  ['Reporting', ['Report queue']],
+  ['Billing', ['Daily cash']],
   ['Catalog', ['Test catalogue']],
   ['Instruments', ['Agents']],
-  ['People & access', ['Users']],
-  ['Settings', ['Tenants']],
+  ['Admin', ['Users']],
 ];
 
 export const FUTURE = new Date(Date.now() + 6 * 3600_000).toISOString();

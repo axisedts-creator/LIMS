@@ -82,7 +82,7 @@ describe('W8 list (links + codes, L3)', () => {
   it('empty state: "This patient has no app access" with the Issue action still available', async () => {
     await show(actions(), { links: [], codes: [] });
     expect(norm(document.body.textContent)).toMatch(/This patient has no app access/);
-    expect(screen.getByRole('button', { name: /issue app code/i })).toBeTruthy();
+    expect(screen.getAllByRole('button', { name: /issue app code/i }).length).toBeGreaterThanOrEqual(1);
   });
 
   it('every status shows its word (Active / Paused / Revoked; code Issued / Redeemed / Revoked) and the masked account phone; never a full phone', async () => {

@@ -1355,7 +1355,7 @@ export interface operations {
               received_at: string;
               observed_at_basis: "instrument" | "server";
               source: "instrument" | "manual";
-              status: "assigned" | "unmapped_analyte" | "non_numeric" | "no_plan" | "unmapped_control" | "level_not_in_plan" | "lot_expired" | "no_target" | "unit_mismatch" | "late_unassigned";
+              status: "assigned" | "unmapped_analyte" | "non_numeric" | "no_plan" | "unmapped_control" | "level_not_in_plan" | "lot_expired" | "no_target" | "unit_mismatch" | "late_unassigned" | "excluded";
               qc_run_id?: string;
               z?: string;
               target_id?: string;
@@ -4828,7 +4828,7 @@ export interface operations {
               received_at: string;
               observed_at_basis: "instrument" | "server";
               source: "instrument" | "manual";
-              status: "assigned" | "unmapped_analyte" | "non_numeric" | "no_plan" | "unmapped_control" | "level_not_in_plan" | "lot_expired" | "no_target" | "unit_mismatch" | "late_unassigned";
+              status: "assigned" | "unmapped_analyte" | "non_numeric" | "no_plan" | "unmapped_control" | "level_not_in_plan" | "lot_expired" | "no_target" | "unit_mismatch" | "late_unassigned" | "excluded";
               qc_run_id?: string;
               z?: string;
               target_id?: string;
@@ -5104,7 +5104,7 @@ export interface operations {
             received_at: string;
             observed_at_basis: "instrument" | "server";
             source: "instrument" | "manual";
-            status: "assigned" | "unmapped_analyte" | "non_numeric" | "no_plan" | "unmapped_control" | "level_not_in_plan" | "lot_expired" | "no_target" | "unit_mismatch" | "late_unassigned";
+            status: "assigned" | "unmapped_analyte" | "non_numeric" | "no_plan" | "unmapped_control" | "level_not_in_plan" | "lot_expired" | "no_target" | "unit_mismatch" | "late_unassigned" | "excluded";
             qc_run_id?: string;
             z?: string;
             target_id?: string;
@@ -6633,7 +6633,7 @@ export interface operations {
               received_at: string;
               observed_at_basis: "instrument" | "server";
               source: "instrument" | "manual";
-              status: "assigned" | "unmapped_analyte" | "non_numeric" | "no_plan" | "unmapped_control" | "level_not_in_plan" | "lot_expired" | "no_target" | "unit_mismatch" | "late_unassigned";
+              status: "assigned" | "unmapped_analyte" | "non_numeric" | "no_plan" | "unmapped_control" | "level_not_in_plan" | "lot_expired" | "no_target" | "unit_mismatch" | "late_unassigned" | "excluded";
               qc_run_id?: string;
               z?: string;
               target_id?: string;
@@ -8121,7 +8121,7 @@ export interface operations {
               received_at: string;
               observed_at_basis: "instrument" | "server";
               source: "instrument" | "manual";
-              status: "assigned" | "unmapped_analyte" | "non_numeric" | "no_plan" | "unmapped_control" | "level_not_in_plan" | "lot_expired" | "no_target" | "unit_mismatch" | "late_unassigned";
+              status: "assigned" | "unmapped_analyte" | "non_numeric" | "no_plan" | "unmapped_control" | "level_not_in_plan" | "lot_expired" | "no_target" | "unit_mismatch" | "late_unassigned" | "excluded";
               qc_run_id?: string;
               z?: string;
               target_id?: string;

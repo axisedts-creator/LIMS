@@ -23,17 +23,28 @@ import { manifest } from '../index.js';
 import { PARTNERS_PERMISSIONS } from '../permissions.js';
 
 const SPEC = loadSpec(join(REPO_ROOT, 'contracts', 'openapi', 'partners.yaml'));
-const OPS = operationIds(SPEC);
+// T0C-SALES-1 (LD-321, LD-325(b)): 15 sales hierarchy operations are added after the 68 TRD operations; they are pending until T0B-SALES-1 and are pinned by
+// contract/sales1.pending.test.ts. This file keeps testing exactly the 68 original operations.
+const SALES1 = ['listSalesDesignations', 'createSalesDesignation', 'updateSalesDesignation', 'listSalesRepresentatives', 'createSalesRepresentative', 'updateSalesRepresentative',
+  'deactivateSalesRepresentative', 'getSalesTree', 'assignPartyToRepresentative', 'unassignPartyFromRepresentative', 'listRepresentativeClients', 'listServiceAreas', 'createServiceArea',
+  'updateServiceArea', 'deactivateServiceArea'];
+// T0C-PARTYSET-1 (LD-321, LD-325(b)): 13 party settings operations, pending until T0B-PARTYSET-1 and pinned by contract/partyset1.pending.test.ts.
+const PARTYSET1 = ['getPartyCommercialSetting', 'setPartyCommercialSetting', 'listPartyOnboarding', 'decidePartyOnboarding', 'listNonCompliancePenalties', 'createNonCompliancePenalty',
+  'updateNonCompliancePenalty', 'deactivateNonCompliancePenalty', 'listNonComplianceEvents', 'raiseNonComplianceEvent', 'waiveNonComplianceEvent', 'chargeNonComplianceEvent', 'revealPartyIdNumber'];
+const NEW_LD321 = [...SALES1, ...PARTYSET1];
+const OPS = operationIds(SPEC).filter((id) => !NEW_LD321.includes(id));
 const PERMS = ['partners.manifest.receive', 'partners.manifest.submit', 'partners.order.read', 'partners.partner.manage',
   'partners.partner.read', 'partners.partner_user.manage', 'partners.pickup.manage', 'partners.pickup.request',
   'partners.price_list.read', 'partners.referrer.manage', 'partners.referrer.map', 'partners.referrer.read',
-  'partners.report.read', 'partners.statement.read'];
+  'partners.report.read', 'partners.sales.manage', 'partners.sales.read', 'partners.statement.read', 'partners.ticket.manage', 'partners.ticket.read',
+  'partners.onboarding.decide', 'partners.party_id_number.read', 'partners.party_setting.manage', 'partners.party_setting.read', 'partners.penalty.manage'].sort(); // + the 2 sales codes of T0C-SALES-1 (LD-321) + the 2 ticket codes of T0C-MSGDESK-1 (LD-321) + the 5 party settings codes of T0C-PARTYSET-1 (LD-321)
 /** Codes held only by partner actors (02-TRD §9.2): never valid on a staff `/v1/partners/admin/...` operation. */
 const PARTNER_ONLY = ['partners.order.read', 'partners.manifest.submit', 'partners.report.read', 'partners.statement.read',
   'partners.price_list.read', 'partners.pickup.request', 'partners.referrer.read', 'partners.referrer.manage'];
 /** operationIds whose stub a later task has replaced; that task moves its ids here (tester-owned list). */
 const IMPLEMENTED: readonly string[] = [
   'getPartnerContext', // T03 (A1)
+  'getPartnerDashboard', // T18 (A2)
   'listPartnerUsers', 'invitePartnerUser', 'changePartnerUserRole', 'deactivatePartnerUser', 'reactivatePartnerUser', 'resendPartnerInvitation', // T06 U1-U6
   'listPartnerUsersForPartner', 'invitePartnerUserByStaff', 'changePartnerUserRoleByStaff', 'deactivatePartnerUserByStaff', 'reactivatePartnerUserByStaff', // T06 SA8-SA10
   'listPartners', 'createPartner', 'getPartner', 'updatePartner', 'suspendPartner', 'reactivatePartner', 'resyncPartnerProjections', // T07 (SA1-SA7)
@@ -46,13 +57,17 @@ const IMPLEMENTED: readonly string[] = [
   'submitManifest', 'withdrawManifest', 'getManifestPrintView', // T09 (M8, M9, M11)
   'listInboundManifests', 'getInboundManifest', 'receiveManifest', 'retryManifestLineConversion', 'markManifestLineNotReceived', // T10 (SI1-SI5)
   'listPartnerOrders', 'searchPartnerOrders', 'getPartnerOrder', 'listPartnerReports', 'markPartnerReportsSeen', 'downloadPartnerReport', // T13 (O1-O3, R1-R3)
+  'issuePatientAccessSlip', 'getPatientAccessSlip', 'downloadPatientAccessSlip', // T14 (R4-R6)
+  // T0B-MSGDESK-1 (LD-321)
+  'listPartnerTickets', 'createPartnerTicket', 'getPartnerTicket', 'replyPartnerTicket', 'closePartnerTicket', 'reopenPartnerTicket',
+  'listMyPartnerTickets', 'createMyPartnerTicket', 'getMyPartnerTicket', 'replyMyPartnerTicket',
 ];
 
 const FAKE_REQ = { params: {}, query: {}, headers: {}, body: {} };
 const noop = () => undefined;
 const fakeCtx = (operationId: string) => ({ operationId, clientIp: '127.0.0.1', log: { info: noop, warn: noop, error: noop } }) as any;
 const allOps = () => Object.entries<any>(SPEC.paths).flatMap(([path, item]) =>
-  Object.entries<any>(item).filter(([, op]) => op?.operationId).map(([method, op]) => ({ path, method, op })));
+  Object.entries<any>(item).filter(([, op]) => op?.operationId && !NEW_LD321.includes(op.operationId)).map(([method, op]) => ({ path, method, op })));
 
 describe('T01 manifest', () => {
   it('is module partners bound to contracts/openapi/partners.yaml and passes the core manifest validation', () => {
@@ -85,13 +100,13 @@ describe('T01 manifest', () => {
 });
 
 describe('T01 handler map (68 operationIds of partners.yaml)', () => {
-  it('the spec has 68 unique operationIds', () => {
-    expect(OPS.length).toBe(68);
-    expect(new Set(OPS).size).toBe(68);
+  it('the spec has 78 unique operationIds', () => {
+    expect(OPS.length).toBe(78);
+    expect(new Set(OPS).size).toBe(78);
   });
 
   it('binds every operationId of partners.yaml to a function, and nothing else (AC-0D-1.2)', () => {
-    expect(Object.keys(manifest.handlers).sort()).toEqual([...OPS].sort());
+    expect(Object.keys(manifest.handlers).filter((id) => !NEW_LD321.includes(id)).sort()).toEqual([...OPS].sort());
     for (const op of OPS) expect(typeof manifest.handlers[op], op).toBe('function');
   });
 
@@ -130,7 +145,7 @@ describe('T01 handler map (68 operationIds of partners.yaml)', () => {
 describe('T01 permissions', () => {
   const codes = PERMISSION_CODES.filter((c) => c.startsWith('partners.'));
 
-  it('PARTNERS_PERMISSIONS = the 14 partners.* codes of contracts/permissions.yaml (no invented code, none missing), frozen', () => {
+  it('PARTNERS_PERMISSIONS = the 23 partners.* codes (14 + partners.sales.read / partners.sales.manage of T0C-SALES-1 + partners.ticket.read / partners.ticket.manage of T0C-MSGDESK-1 + the 5 party settings codes of T0C-PARTYSET-1) of contracts/permissions.yaml (no invented code, none missing), frozen', () => {
     expect([...codes].sort()).toEqual(PERMS);
     expect([...PARTNERS_PERMISSIONS].sort()).toEqual(PERMS);
     expect(new Set(PARTNERS_PERMISSIONS).size).toBe(PARTNERS_PERMISSIONS.length);
@@ -216,13 +231,13 @@ describe('T01 boot against the real repo (default modulesDir, real partners.yaml
   // version_no is an integer path param (partners.yaml:1800), period_month is YYYY-MM (partners.yaml:7879); a UUID there would 400 before auth.
   const toUrl = (path: string) => path.replace(/\{version_no\}/g, '1').replace(/\{period_month\}/g, '2026-01').replace(/\{[^}]+\}/g, '01940e00-0000-7000-8000-c13000000001');
 
-  it('boots and mounts every partners operation at its spec path and method (68 of 68)', async () => {
+  it('boots and mounts every partners operation at its spec path and method (78 of 78)', async () => {
     const app = await boot();
     const unmounted: string[] = [];
     for (const { path, method } of allOps()) {
       if (!app.hasRoute({ method: method.toUpperCase() as any, url: path.replace(/\{([^}]+)\}/g, ':$1') })) unmounted.push(`${method.toUpperCase()} ${path}`);
     }
-    expect(allOps().length).toBe(68);
+    expect(allOps().length).toBe(78);
     expect(unmounted).toEqual([]);
   }, 600_000); // LD-152: 12 lanes share one machine; boot of all 15 modules exceeded 300 s
 

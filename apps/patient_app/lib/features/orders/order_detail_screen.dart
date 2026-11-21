@@ -14,6 +14,7 @@ import '../../core/session/session_controller.dart';
 import 'orders_api.dart';
 import 'orders_format.dart';
 import 'orders_providers.dart';
+import 'status_look.dart';
 
 class OrderDetailScreen extends ConsumerStatefulWidget {
   const OrderDetailScreen({super.key, required this.orderId});
@@ -129,27 +130,30 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
       );
 
   Widget _body(BuildContext context) {
-    if (_gone) return const LimsEmptyState(title: 'This order is no longer available');
+    if (_gone) return const StateCard(LimsEmptyState(title: 'This order is no longer available'));
     final o = _order;
     if (o == null) {
       if (_ended) return const SizedBox.shrink();
-      if (_failed) return LimsErrorState(title: 'Something went wrong', message: 'We could not load this order.', onRetry: _fetch);
+      if (_failed) return StateCard(LimsErrorState(title: 'Something went wrong', message: 'We could not load this order.', onRetry: _fetch));
       return const Center(child: CircularProgressIndicator());
     }
     final (tone, label) = stageLook(o['stage']);
     final checked = _checkedAt;
+    final steps = _steps(o['stage']);
     return ListView(padding: const EdgeInsets.all(LimsTokens.space4), children: [
-      Text(dateTimeText(o['registered_at']), style: Theme.of(context).textTheme.titleMedium),
-      if (o['centre_display_name'] is String) Text(o['centre_display_name']! as String),
-      const SizedBox(height: LimsTokens.space2),
-      Align(alignment: Alignment.centerLeft, child: LimsStatusChip(kind: 'generic', status: o['stage'] is String ? o['stage']! as String : 'unknown', tone: tone, label: label)),
-      const SizedBox(height: LimsTokens.space4),
-      LimsStageTimeline(steps: _steps(o['stage'])),
-      if (o['payment_due'] == true) ...[const SizedBox(height: LimsTokens.space4), _PaymentDue(balance: asMap(o['balance_due']))],
-      const SizedBox(height: LimsTokens.space4),
+      LimsCard(
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(dateTimeText(o['registered_at']), style: Theme.of(context).textTheme.titleMedium),
+          if (o['centre_display_name'] is String) Text(o['centre_display_name']! as String),
+          const SizedBox(height: LimsTokens.space2),
+          ToneChip(LimsStatusChip(kind: 'generic', status: o['stage'] is String ? o['stage']! as String : 'unknown', tone: tone, label: label)),
+        ]),
+      ),
+      if (steps.isNotEmpty) LimsCard(child: LimsStageTimeline(steps: steps)),
+      if (o['payment_due'] == true) LimsCard(child: _PaymentDue(balance: asMap(o['balance_due']))),
       ..._samples(context, o),
       ..._reports(context, o),
-      const SizedBox(height: LimsTokens.space4),
+      const SizedBox(height: LimsTokens.space2),
       if (checked != null) Text(updatedText(checked), style: Theme.of(context).textTheme.bodySmall),
       if (_failed) Text('Could not refresh. Showing the last update.', style: Theme.of(context).textTheme.bodySmall),
     ]);
@@ -174,13 +178,16 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
     final list = mapList(o['specimens']);
     if (list.isEmpty) return const [];
     return [
-      Text('Samples', style: Theme.of(context).textTheme.titleMedium),
-      for (final s in list)
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: LimsTokens.space1),
-          child: Text(_sampleLine(s)), // no specimen type names, no rejection reasons (PRD US-EN-07.4)
-        ),
-      const SizedBox(height: LimsTokens.space4),
+      LimsCard(
+        title: 'Samples',
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          for (final s in list)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: LimsTokens.space1),
+              child: Text(_sampleLine(s)), // no specimen type names, no rejection reasons (PRD US-EN-07.4)
+            ),
+        ]),
+      ),
     ];
   }
 
@@ -196,12 +203,16 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
     if (list.isEmpty) return const [];
     const kinds = {'final': 'Final report', 'partial': 'Partial report', 'preliminary': 'Preliminary report', 'amended': 'Amended report', 'addendum': 'Addendum'};
     return [
-      Text('Reports', style: Theme.of(context).textTheme.titleMedium),
-      for (final r in list)
-        LimsListTile(
-          title: kinds[r['kind']] ?? 'Report', // an unknown kind is passed through as "Report" (x-extensible)
-          subtitle: [if (r['panel_names'] is List) (r['panel_names']! as List).whereType<String>().join(', '), dateText(r['released_at'])].where((e) => e.isNotEmpty).join(' · '),
-        ),
+      LimsCard(
+        title: 'Reports',
+        child: Column(children: [
+          for (final r in list)
+            LimsListTile(
+              title: kinds[r['kind']] ?? 'Report', // an unknown kind is passed through as "Report" (x-extensible)
+              subtitle: [if (r['panel_names'] is List) (r['panel_names']! as List).whereType<String>().join(', '), dateText(r['released_at'])].where((e) => e.isNotEmpty).join(' · '),
+            ),
+        ]),
+      ),
     ];
   }
 }
@@ -215,15 +226,10 @@ class _PaymentDue extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = limsTone('warning');
     final amount = balance == null ? '' : ' ${rupees(balance!['amount_paisa'])}';
-    return Container(
-      width: double.infinity,
-      color: c.bg,
-      padding: const EdgeInsets.all(LimsTokens.space3),
-      child: Row(children: [
-        Icon(Icons.payments_outlined, color: c.fg),
-        const SizedBox(width: LimsTokens.space2),
-        Expanded(child: Text('Payment due$amount — your report will be released after payment', style: TextStyle(color: c.fg))),
-      ]),
-    );
+    return Row(children: [
+      Icon(Icons.payments_outlined, color: c.fg),
+      const SizedBox(width: LimsTokens.space2),
+      Expanded(child: Text('Payment due$amount — your report will be released after payment', style: TextStyle(color: c.fg))),
+    ]);
   }
 }

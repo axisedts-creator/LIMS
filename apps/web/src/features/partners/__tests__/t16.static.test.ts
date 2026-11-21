@@ -107,11 +107,32 @@ describe('privacy + safety (07-SECURITY, REQ-SEC-088/098)', () => {
     expect(src).not.toMatch(/patients\/search\?|doctors\/search\?/);
   });
 
-  it('copy rules (04-UI-UX §6): never "commission"; partner-facing "invoice" words do not appear on these screens; no IRD-approval claims', () => {
+  // T0D-PARTYSET-1 ruling (A39-3 (iii), 08-CR-REGISTER.md:3147; A39-8 narrows L19): the word "commission" is allowed ONLY in the party settings files
+  // that carry commission_bp / tds_bp. Exact path allow list (like A39-6 (f)); every other partners file still bans it.
+  const COMMISSION_OK = [
+    'features/partners/components/CommercialSettings.tsx',
+    'features/partners/server/partyset.server.ts',
+    'features/partners/server/partysetActions.ts',
+  ];
+  const rel = (f: string) => f.replace(/\\/g, '/').replace(/^.*\/src\//, '');
+  const exempt = (f: string) => COMMISSION_OK.some((p) => rel(f).endsWith(p));
+
+  it('copy rules (04-UI-UX §6): never "commission" outside the party settings files; no IRD-approval claims anywhere', () => {
     for (const f of own()) {
       const s = readFileSync(f, 'utf8');
-      expect(s, f).not.toMatch(/commission/i);
+      if (!exempt(f)) expect(s, f).not.toMatch(/commission/i);
       expect(s, f).not.toMatch(/IRD[ -]approved|IRD certified|approved by IRD/i);
+    }
+  });
+
+  it('in the party settings files "commission" appears only as commission_bp, the two catalogue keys, or the Commission and TDS label; never next to a payout word (A39-1)', () => {
+    const files = own().filter(exempt);
+    expect(files.length).toBeGreaterThan(0);
+    for (const f of files) {
+      const s = readFileSync(f, 'utf8');
+      const rest = s.replace(/commission_bp|partners\.partyset\.(?:group|field)\.commission|Commission and TDS|Commission \(%\)/gi, '');
+      expect(rest, f).not.toMatch(/commission/i);
+      expect(s, f).not.toMatch(/(?:pay|payable|payout)\w*\W{0,40}commission|commission\w*\W{0,40}(?:pay|payable|payout)/i);
     }
   });
 

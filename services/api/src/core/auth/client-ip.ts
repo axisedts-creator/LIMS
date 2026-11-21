@@ -1,5 +1,5 @@
-// ctx.clientIp / app.client_ip (02-TRD §6.4, 08 A25 P-61, AB-26). X-Forwarded-For (single hop, nginx overwrites it) is used
-// only with a verified X-Lims-Bff-Key or from a TCP peer inside LIMS_CORE_TRUSTED_PROXY_CIDRS; otherwise the peer address.
+// ctx.clientIp / app.client_ip (02-TRD §6.4, 08 A25 P-61, AB-26, LD-296). X-Forwarded-For is used only with a verified
+// X-Lims-Bff-Key (leftmost entry) or from a TCP peer inside LIMS_CORE_TRUSTED_PROXY_CIDRS (single literal); otherwise the peer address.
 import { BlockList, isIP } from 'node:net';
 import type { BffKind } from './bff-key.js';
 
@@ -33,7 +33,9 @@ export function createClientIpResolver(trustedProxyCidrs: readonly string[]): Cl
   };
   return ({ peer, forwardedFor, bffKind }) => {
     if (forwardedFor === undefined || !(bffKind || isTrusted(peer))) return peer;
-    const xff = forwardedFor.trim();
+    // LD-296: a hosting proxy (Render) APPENDS its peer, so with a verified BFF key the LEFTMOST entry is the one the web wrote
+    // (Vercel overwrites the header it hands to the web). The trusted-CIDR path without a key keeps the single literal rule.
+    const xff = (bffKind ? forwardedFor.split(',', 1)[0]! : forwardedFor).trim();
     // Only a bare IP literal reaches app.client_ip (inet cast, log forging); lists/junk fall back to the peer [CONV].
     return family(xff) && !xff.includes('%') ? xff : peer;
   };

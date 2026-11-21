@@ -1,0 +1,6 @@
+# AUTH-BFF-1 tests (tester)
+- NEW `services/api/src/core/pipeline/__tests__/bff-key.test.ts`: (1) pipeline.run({bffKey}) -> ctx.bffKey own key, passed through, frozen, not read from req/claims; (2) REAL onRequest hook (installRouteHooks + mountSpec + bootPipeline, fake key files): staff_web/partner/portal keys, no/empty/wrong/near-miss/Authorization/cookie/query/body -> undefined, empty key file fails closed, no cross-request leak; (3) REAL loginStaff, no ctx wrapper, fake pg + fake GoTrue: staff_web header reaches signIn, no/partner/portal/wrong/empty header -> auth.login_failed and signIn never called.
+- EDITED (authorised): `MEMBERS` in stage08-handler-context.test.ts and pipeline.integration.test.ts now include 'bffKey'.
+- Run: `.orchestra\notes\AUTH-BFF-1-verify.cmd` (whole pipeline __tests__ dir: new + existing identity-actor/stage tests; pipeline.integration skips without LIMS_TEST_DATABASE_URL).
+- Now: 25 of 47 tests in bff-key + stage08 fail, all because ctx.bffKey is missing/undefined (own key absent, value not passed). Fail-closed cases (no header -> login_failed, empty key file) pass already, as they should.
+- Not covered here: web BFF side (LIMS_WEB_BFF_KEY on Vercel = Render lims-bff.key); pipeline.integration MEMBERS change needs the DB run (skipped locally).

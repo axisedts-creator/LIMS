@@ -68,7 +68,8 @@ class _ReportLinkScreenState extends ConsumerState<ReportLinkScreen> {
         title: 'Report message',
         body: SingleChildScrollView(
           padding: const EdgeInsets.all(LimsTokens.space4),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          child: LimsCard(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
             Text(
               "Paste the report link from the SMS or WhatsApp message the lab sent to this phone. You'll see reports from that one onwards. For older reports, ask the lab for an app code.",
               style: Theme.of(context).textTheme.bodyLarge,
@@ -88,7 +89,8 @@ class _ReportLinkScreenState extends ConsumerState<ReportLinkScreen> {
             const SizedBox(height: LimsTokens.space4),
             if (_busy) const LimsLoading(label: 'Checking link'),
             LimsButton(label: 'Add profile', onPressed: _busy || !_valid ? null : _submit),
-          ]),
+            ]),
+          ),
         ),
       ),
     );

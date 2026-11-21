@@ -8,7 +8,7 @@ import { orForbidden } from '@/features/catalog/server/shared';
 
 export default async function UnitsPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const [session] = await Promise.all([getShellSession(), searchParams]);
-  const r = await orForbidden(() => Promise.all([listUnits({ isActive: 'all' }), listValueSets({ isActive: 'all' })]));
+  const r = await orForbidden(() => Promise.all([listUnits({ isActive: 'all' }), listValueSets() /* T0D-CATUNITS-1: value-sets takes only scope */]));
   if (!r) return <CatalogForbidden />;
   return <UnitsScreen units={r[0].data} valueSets={r[1].data} permissions={session?.actor.permissions ?? []} />;
 }

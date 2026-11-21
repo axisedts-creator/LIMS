@@ -51,7 +51,7 @@ const server = setupServer(
   http.post(`${MAPS}/bulk-upsert`, async ({ request }) => { await rec(request); return HttpResponse.json({ results: [{ direction: 'both', instrument_code: 'HGB', outcome: 'created' }] }); }),
   http.get(OBS, async ({ request }) => { await rec(request); return HttpResponse.json({ data: [], page: { limit: 50 } }); }),
 );
-beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => server.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { server.resetHandlers(); seen.length = 0; session.permissions = MANAGE; });
 afterAll(() => server.close());
 

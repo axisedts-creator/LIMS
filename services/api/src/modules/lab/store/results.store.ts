@@ -164,7 +164,9 @@ export function resultsStore(ctx?: StoreCtx) {
     },
 
     /** R6: status approved + immutable result_versions v1 (a copy of the row's value / evaluation columns) + lab.approvals (approval, aal2). */
-    async approve(tx: unknown, t: string, a: { resultId: string; expectedRowVersion: number; membershipId: string; occurredAt: string }): Promise<ResultRow> {
+    // T0B-VERLEVEL-1 (LD-316): approvalRow false = the final sign-off was a verifyResult under a policy without a pathologist; lab.approvals records aal2 pathologist approvals
+    // only (approvals__aal__ck), so that path writes no approvals row; the lab.result_signoff chain is its evidence.
+    async approve(tx: unknown, t: string, a: { resultId: string; expectedRowVersion: number; membershipId: string; occurredAt: string; approvalRow?: boolean }): Promise<ResultRow> {
       const rc = await rcOf(tx, t);
       const row = await one(tx, t, `UPDATE lab.results SET status = 'approved', approved_at = $4::timestamptz, approved_by_membership_id = $5, current_version_no = 1, version = version + 1,
           updated_at = now(), updated_by = $6 WHERE tenant_id = $1 AND id = $2 AND version = $3 RETURNING *`, [a.resultId, a.expectedRowVersion, a.occurredAt, a.membershipId, rc.actorId]);
@@ -177,7 +179,7 @@ export function resultsStore(ctx?: StoreCtx) {
             r.ref_low, r.ref_high, r.ref_text, r.range_unavailable_age_unknown, r.is_critical, r.delta_status, r.delta_rule_id, r.delta_rule_version, r.delta_prev_result_id, r.delta_prev_value,
             r.delta_prev_at, r.delta_abs, r.delta_pct, r.critical_event_id, r.comment_codes, r.comment_lib_versions, r.comment_text, r.formula_provenance, $4::timestamptz, $5, $6, $6
           FROM lab.results r WHERE r.tenant_id = $1 AND r.id = $2`, [a.resultId, uuidv7(), a.occurredAt, a.membershipId, rc.actorId]);
-      await sql(tx, t, `INSERT INTO lab.approvals (id, tenant_id, centre_id, processing_centre_id, result_id, version_no, kind, membership_id, aal, occurred_at, created_by)
+      if (a.approvalRow !== false) await sql(tx, t, `INSERT INTO lab.approvals (id, tenant_id, centre_id, processing_centre_id, result_id, version_no, kind, membership_id, aal, occurred_at, created_by)
           VALUES ($2, $1, $3, $4, $5, 1, 'approval', $6, 'aal2', $7::timestamptz, $8)`, [uuidv7(), row['centre_id'], row['processing_centre_id'], a.resultId, a.membershipId, a.occurredAt, rc.actorId]);
       return (await current(tx, t, [a.resultId]))[0] ?? row;
     },
@@ -208,13 +210,17 @@ export function resultsStore(ctx?: StoreCtx) {
     async amendResult(tx: unknown, t: string, a: { resultId: string; expectedRowVersion: number; previousVersionNo: number; newVersionNo: number; value: { numeric?: string; text?: string; ordinalCode?: string };
       evaluation: any; commentCodes?: readonly string[]; commentText?: string; reasonCode: string; reasonText?: string; membershipId: string; occurredAt: string }): Promise<ResultRow> {
       const rc = await rcOf(tx, t);
-      const row = await one(tx, t, `UPDATE lab.results SET current_version_no = $4, version = version + 1, updated_at = now(), updated_by = $5
+      // T0B-VERLEVEL-1 (LD-316): the new version starts a new sign-off chain (counter 0; the version 1 chain rows stay as they are, append only)
+      const row = await one(tx, t, `UPDATE lab.results SET current_version_no = $4, signoff_count = 0, version = version + 1, updated_at = now(), updated_by = $5
           WHERE tenant_id = $1 AND id = $2 AND version = $3 RETURNING *`, [a.resultId, a.expectedRowVersion, a.newVersionNo, rc.actorId]);
       if (!row) throw new LimsError('common.version_conflict');
+      // comment_codes omitted: keep the previous version's codes (result_versions.comment_codes is NOT NULL; an explicit NULL failed with 23502)
+      const prevCodes = a.commentCodes !== undefined ? [...a.commentCodes]
+        : ((await one(tx, t, 'SELECT comment_codes FROM lab.result_versions WHERE tenant_id = $1 AND result_id = $2 AND version_no = $3', [a.resultId, a.previousVersionNo]))?.['comment_codes'] ?? []);
       const cols: Obj = {
         id: uuidv7(), centre_id: row['centre_id'], processing_centre_id: row['processing_centre_id'], result_id: a.resultId, version_no: a.newVersionNo, origin: row['origin'],
         value_numeric: a.value.numeric ?? null, value_text: a.value.text ?? null, ordinal_code: a.value.ordinalCode ?? null, unit_code: row['unit_code'],
-        comment_codes: a.commentCodes === undefined ? null : [...a.commentCodes], comment_text: a.commentText ?? null, approved_at: a.occurredAt, approved_by_membership_id: a.membershipId,
+        comment_codes: prevCodes, comment_text: a.commentText ?? null, approved_at: a.occurredAt, approved_by_membership_id: a.membershipId,
         previous_version_no: a.previousVersionNo, amendment_reason_code: a.reasonCode, amendment_reason_text: a.reasonText ?? null, created_by: rc.actorId, updated_by: rc.actorId,
       };
       const e = evaluationColumns(a.evaluation, 'R7');

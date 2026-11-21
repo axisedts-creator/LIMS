@@ -6,6 +6,11 @@ export const ENGAGEMENT_PERMISSIONS = Object.freeze([
   'engagement.booking.create',
   'engagement.booking.manage',
   'engagement.booking.read',
+  'engagement.broadcast.approve', // T0C-MSGDESK-1 (LD-321)
+  'engagement.broadcast.manage',
+  'engagement.broadcast.read',
+  'engagement.content.manage', // T0C-CONTENT-1 (LD-313 c)
+  'engagement.content.read',
   'engagement.enquiry.create',
   'engagement.enquiry.read',
   'engagement.enquiry.respond',

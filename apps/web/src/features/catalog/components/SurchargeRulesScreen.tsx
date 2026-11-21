@@ -4,8 +4,10 @@
 import { useState } from 'react';
 import { Button } from '@lims/ui/components/Button';
 import { Combobox } from '@lims/ui/components/Combobox';
+import { EmptyRow, PlaceholderRows } from '@lims/ui/components/DataTable';
 import { DateTimePicker } from '@lims/ui/components/DateTimePicker';
 import { EmptyState } from '@lims/ui/components/EmptyState';
+import { FilterBar, type FilterValue } from '@lims/ui/components/FilterBar';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { RadioGroup } from '@lims/ui/components/RadioGroup';
 import { Select } from '@lims/ui/components/Select';
@@ -16,6 +18,7 @@ import { createSurchargeRuleAction, endSurchargeRuleAction } from '../server/pri
 import { formatNpr, parseNpr, parsePercentBp, type Department, type OrderableSummary, type PriceList, type SurchargeRule } from '../server/types';
 import { errAt, fmtDateTime } from './shared';
 import { ActionDialog, canManagePrices, npr, useWhen } from './pricing-ui';
+import { t } from '@/core/i18n/messages';
 
 type Scope = SurchargeRule['scope'];
 type Kind = SurchargeRule['amount_kind'];
@@ -42,14 +45,25 @@ export function SurchargeRulesScreen({ rules, departments, orderables, priceList
   const appliesTo = (r: SurchargeRule) => (r.scope === 'all' ? 'All tests' : r.scope === 'department' ? `Department ${dept(r.department_id)}` : `Orderable ${ord(r.orderable_id)}`);
   const list = (id?: string) => { const p = priceLists.find((x) => x.id === id); return id ? (p ? p.name : id) : 'All'; };
   const now = Date.now();
+  // T0D-UILIST-3, LD-353 template 1: one FilterBar row, client side over the loaded rules [CONV].
+  const [f, setF] = useState<FilterValue>({});
+  const shown = rules.filter((r) => (!f.scope || r.scope === f.scope) && (!f.status || statusOf(r, now) === f.status));
   return (
     <section aria-label="Urgent surcharge rules">
-      <PageHeader title="Urgent surcharge rules" helpKey="catalog.surcharges" breadcrumbs={[{ label: 'Pricing' }, { label: 'Urgent surcharge' }]} actions={open ? <Button variant="primary" onPress={open}>New rule</Button> : null} />
+      <PageHeader title={t('catalog.nav.surcharges')} helpKey="catalog.surcharges" actions={open ? <Button variant="primary" onPress={open}>New rule</Button> : null} />
       <p>{HELP}</p>
-      {rules.length === 0 ? (
-        <EmptyState title="No urgent surcharge rules. Urgent tests are charged at the normal price." />
-      ) : (
-        <table className="lims-table lims-table-regular">
+      <FilterBar
+        filters={[
+          { id: 'scope', kind: 'select', label: 'Applies to', options: [{ value: 'all', label: 'All tests' }, { value: 'department', label: 'Department' }, { value: 'orderable', label: 'Orderable' }] },
+          { id: 'status', kind: 'select', label: 'Status', options: [{ value: 'Active', label: 'Active' }, { value: 'Scheduled', label: 'Scheduled' }, { value: 'Ended', label: 'Ended' }] },
+        ]}
+        value={f}
+        onChange={setF}
+        onReset={() => setF({})}
+      />
+      <div className="lims-table-scroll">
+      {/* T0D-EMPTYTBL-2 (LD-310, LD-336): the table is always drawn; the empty message (and New rule for a manager) is its one body row. */}
+      <table className="lims-table lims-table-regular">
           <caption className="lims-visually-hidden">Urgent surcharge rules</caption>
           <thead>
             <tr>
@@ -58,10 +72,15 @@ export function SurchargeRulesScreen({ rules, departments, orderables, priceList
             </tr>
           </thead>
           <tbody>
-            {rules.map((r) => (
+            {rules.length === 0 ? (
+              <EmptyRow colSpan={manage ? 7 : 6}><EmptyState title="No urgent surcharge rules. Urgent tests are charged at the normal price." {...(open ? { action: { label: 'New rule', onPress: open } } : {})} /></EmptyRow>
+            ) : shown.length === 0 ? (
+              <EmptyRow colSpan={manage ? 7 : 6}><EmptyState title="No rules match the filters." /></EmptyRow>
+            ) : null}
+            {shown.map((r) => (
               <tr key={r.id} className="lims-row">
-                <td className="lims-cell">{appliesTo(r)}</td>
-                <td className="lims-cell">{list(r.price_list_id)}</td>
+                <td className="lims-cell" title={appliesTo(r)}>{appliesTo(r)}</td>
+                <td className="lims-cell" title={list(r.price_list_id)}>{list(r.price_list_id)}</td>
                 <td className="lims-cell">{r.amount_kind === 'flat' && r.amount ? npr(r.amount.amount_paisa) : r.percent_bp !== undefined ? `${r.percent_bp / 100} %` : '—'}</td>
                 <td className="lims-cell">{fmtDateTime(r.effective_from)}</td>
                 <td className="lims-cell">{fmtDateTime(r.effective_to) || '—'}</td>
@@ -74,8 +93,9 @@ export function SurchargeRulesScreen({ rules, departments, orderables, priceList
               </tr>
             ))}
           </tbody>
+          {shown.length === 0 ? <PlaceholderRows colSpan={manage ? 7 : 6} /> : null}
         </table>
-      )}
+      </div>
       {creating ? <NewRuleDialog departments={departments} priceLists={priceLists} onClose={() => setCreating(false)} /> : null}
       {ending ? <EndRuleDialog rule={ending} onClose={() => setEnding(undefined)} /> : null}
     </section>
@@ -118,12 +138,12 @@ function NewRuleDialog({ departments, priceLists, onClose }: { departments: read
           <RadioGroup<Scope> label="Applies to" name="scope" isRequired options={[{ value: 'all', label: 'All tests' }, { value: 'department', label: 'Department' }, { value: 'orderable', label: 'Orderable' }]} {...(scope ? { value: scope } : {})} onChange={(v) => { setScope(v); setScopeError(undefined); }} />
           {scope === 'department' ? <Select label="Department" name="department_id" isRequired options={departments.map((d) => ({ value: d.id, label: d.name }))} {...(deptId ? { value: deptId } : {})} onChange={setDeptId} {...(scopeError ? { error: scopeError } : {})} /> : null}
           {scope === 'orderable' ? (
-            <Combobox<OrderableSummary> label="Test or panel" name="orderable_id" isRequired {...(orderable ? { value: orderable } : {})} onChange={setOrderable} loadOptions={searchOrderablesAction} getKey={(o) => o.id} renderOption={(o) => `${o.code} — ${o.name}`} renderValue={(o) => `${o.code} — ${o.name}`} {...(scopeError ? { error: scopeError } : {})} />
+            <Combobox<OrderableSummary> label="Test or panel" name="orderable_id" isRequired {...(orderable ? { value: orderable } : {})} onChange={setOrderable} loadOptions={(q) => searchOrderablesAction(q)} getKey={(o) => o.id} renderOption={(o) => `${o.code} — ${o.name}`} renderValue={(o) => `${o.code} — ${o.name}`} {...(scopeError ? { error: scopeError } : {})} />
           ) : null}
           <Select label="Price list" name="price_list_id" value={list} onChange={setList} options={[{ value: ALL_LISTS, label: 'All price lists' }, ...priceLists.map((p) => ({ value: p.id, label: `${p.code} — ${p.name}` }))]} />
           <RadioGroup<Kind> label="Surcharge type" name="amount_kind" isRequired orientation="horizontal" options={[{ value: 'flat', label: 'Flat' }, { value: 'percent', label: 'Percent' }]} {...(kind ? { value: kind } : {})} onChange={(v) => { setKind(v); setValueError(undefined); }} />
-          {kind === 'flat' ? <TextField label="Amount (NPR)" name="amount" inputMode="decimal" isRequired value={amount} onChange={(v) => { setAmount(v); setValueError(undefined); }} {...(valueError ? { error: valueError } : {})} /> : null}
-          {kind === 'percent' ? <TextField label="Percent" name="percent_bp" inputMode="decimal" isRequired description="0.01 to 1000 %" value={percent} onChange={(v) => { setPercent(v); setValueError(undefined); }} {...(valueError ? { error: valueError } : {})} /> : null}
+          {kind === 'flat' ? <TextField label="Amount (NPR)" name="amount" inputMode="decimal" maxLength={10} isRequired value={amount} onChange={(v) => { setAmount(v); setValueError(undefined); }} {...(valueError ? { error: valueError } : {})} /> : null}
+          {kind === 'percent' ? <TextField label="Percent" name="percent_bp" inputMode="decimal" maxLength={7} isRequired description="0.01 to 1000 %" value={percent} onChange={(v) => { setPercent(v); setValueError(undefined); }} {...(valueError ? { error: valueError } : {})} /> : null}
           <DateTimePicker label="Effective from" name="effective_from" value={when.value} onChange={when.onChange} {...(errAt(fail, '/effective_from') ? { error: errAt(fail, '/effective_from')! } : {})} />
         </>
       )}

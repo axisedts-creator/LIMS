@@ -3,12 +3,12 @@
 // Max images per case (IntegerField 1-200), Max images per report (IntegerField 0-24). One [Save] for the section: PUT with If-Match = the settings version and no Idempotency-Key.
 // The client ranges are hints (the kit Form blocks an out-of-range value; the API re-checks). AC-14.2: the API refuses a default stain that is not active and routine.
 // LD-140 (2026-11-13, binding): kit components only; [Save] is the page's one primary button.
-import { useRef, useState } from 'react';
+// T0D-UISETTINGS-1 (LD-353 template 4): the kit SettingsForm (tabs slot from ConfigScreen, sticky Save bar with the dirty note, one success toast).
+import { useRef, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button } from '@lims/ui/components/Button';
-import { Form } from '@lims/ui/components/Form';
 import { IntegerField } from '@lims/ui/components/IntegerField';
 import { Select } from '@lims/ui/components/Select';
+import { SettingsForm as KitSettingsForm } from '@lims/ui/components/SettingsForm';
 import { Switch } from '@lims/ui/components/Switch';
 import { useToast } from '@lims/ui/components/Toast';
 import { saveSettingsAction } from '../../server/actions.config';
@@ -16,7 +16,7 @@ import type { Settings, StainRecord } from '../../server/config.types';
 import { FailNotice } from '../common';
 import { cfgText, MfaDialog, type Fail } from './config-shared';
 
-export function SettingsTab({ settings, stains }: { settings: Settings; stains: readonly StainRecord[] }) {
+export function SettingsTab({ settings, stains, tabs }: { settings: Settings; stains: readonly StainRecord[]; tabs?: ReactNode }) {
   const router = useRouter();
   const toast = useToast();
   const version = useRef(settings.version); // the newest version, for If-Match of the next save
@@ -28,6 +28,7 @@ export function SettingsTab({ settings, stains }: { settings: Settings; stains: 
   const [fail, setFail] = useState<Fail>();
   const [mfa, setMfa] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [dirty, setDirty] = useState(false);
   const busy = useRef(false);
 
   const options = stains.filter((s) => s.kind === 'routine' && s.is_active).map((s) => ({ value: s.code, label: s.display }));
@@ -43,6 +44,7 @@ export function SettingsTab({ settings, stains }: { settings: Settings; stains: 
       });
       if (!r.ok) return r.code === 'auth.mfa_required' ? setMfa(true) : setFail(r);
       version.current = r.data.version;
+      setDirty(false);
       toast.show({ tone: 'success', title: 'Saved' });
       router.refresh();
     } finally {
@@ -51,19 +53,17 @@ export function SettingsTab({ settings, stains }: { settings: Settings; stains: 
     }
   };
 
+  const edit = <T,>(set: (v: T) => void) => (v: T) => { set(v); setDirty(true); };
   return (
     <>
       <FailNotice fail={fail} describe={cfgText} />
-      <Form onSubmit={save}>
-        <Switch label="Auto-accession on receipt" name="auto_accession_on_receipt" isSelected={auto} onChange={setAuto} />
-        <Switch label="Require complete gross before processing" name="require_gross_complete_for_processing" isSelected={gross} onChange={setGross} />
-        <Select label="Default routine stain" name="default_routine_stain_code" isRequired options={options} value={stain} onChange={setStain} />
-        <IntegerField label="Max images per case" name="max_images_per_case" isRequired min={1} max={200} description="1 to 200." {...(perCase !== undefined ? { value: perCase } : {})} onChange={setPerCase} />
-        <IntegerField label="Max images per report" name="max_report_images" isRequired min={0} max={24} description="0 to 24." {...(perReport !== undefined ? { value: perReport } : {})} onChange={setPerReport} />
-        <div>
-          <Button variant="primary" type="submit" isLoading={saving}>Save</Button>
-        </div>
-      </Form>
+      <KitSettingsForm tabs={tabs} onSave={save} isSaving={saving} isDirty={dirty}>
+        <Switch label="Auto-accession on receipt" name="auto_accession_on_receipt" isSelected={auto} onChange={edit(setAuto)} />
+        <Switch label="Require complete gross before processing" name="require_gross_complete_for_processing" isSelected={gross} onChange={edit(setGross)} />
+        <Select label="Default routine stain" name="default_routine_stain_code" isRequired options={options} value={stain} onChange={edit(setStain)} />
+        <IntegerField label="Max images per case" name="max_images_per_case" isRequired min={1} max={200} description="1 to 200." {...(perCase !== undefined ? { value: perCase } : {})} onChange={edit(setPerCase)} />
+        <IntegerField label="Max images per report" name="max_report_images" isRequired min={0} max={24} description="0 to 24." {...(perReport !== undefined ? { value: perReport } : {})} onChange={edit(setPerReport)} />
+      </KitSettingsForm>
       <MfaDialog isOpen={mfa} onClose={() => setMfa(false)} />
     </>
   );

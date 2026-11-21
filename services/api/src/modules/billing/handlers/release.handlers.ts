@@ -2,6 +2,7 @@
 // Idempotency-Key are enforced by the core pipeline from contracts/openapi/billing.yaml; these map request -> service and fail closed without an authenticated request context.
 // The body never carries tenant, membership or centre: the overrider is the calling membership.
 import type { Handler } from '../../../core/module.js';
+import { guarded } from './_guard.js';
 import { moneyOf } from '../domain/money/paisa.js';
 import { createReleaseService, type ReleaseService } from '../service/release.service.js';
 import { bind, obj } from './ledger.handlers.js';
@@ -9,7 +10,7 @@ import { bind, obj } from './ledger.handlers.js';
 let service: ReleaseService | undefined;
 const releaseService = () => (service ??= createReleaseService());
 
-export const releaseHandlers: Readonly<Record<string, Handler>> = Object.freeze({
+const releaseHandlersRaw: Readonly<Record<string, Handler>> = Object.freeze({
   createReleaseOverride: bind(async (ctx, req) => {
     const b = obj(req.body);
     const r = await releaseService().createOverride(ctx, {
@@ -28,4 +29,11 @@ export const releaseHandlers: Readonly<Record<string, Handler>> = Object.freeze(
       },
     };
   }),
+});
+
+// SEC-AUTHZ-6 (LD-189 AUTH-SENSITIVE, LD-261; SEC-AUTHZ-1.1): the contract x-permission is asked FIRST, before the wrapped handler reads or writes anything.
+export const releaseHandlers: Readonly<Record<string, Handler>> = Object.freeze({
+  ...releaseHandlersRaw,
+  createReleaseOverride: guarded('billing.release.override', releaseHandlersRaw['createReleaseOverride']!),
+  getReleaseEligibility: guarded('billing.invoice.read', releaseHandlersRaw['getReleaseEligibility']!),
 });

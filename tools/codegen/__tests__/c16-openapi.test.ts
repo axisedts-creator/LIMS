@@ -171,7 +171,7 @@ const ROWS = [...new Set(SPECS.map((s) => s.row))];
 // ---- §5.1 DTOs: "?" marks optional (TRD "field?")
 const DTO: Record<string, string[]> = {
   Account: ["id", "phone_masked", "status", "reminders_opt_out", "last_login_at?", "created_at", "version"],
-  Profile: ["profile_id", "display_name", "relationship", "method", "status", "history_from?", "patient_code?"],
+  Profile: ["profile_id", "display_name", "relationship", "method", "status", "history_from?", "patient_code?", "version"],
   SelfRegistration: ["id", "relationship", "status", "failure_code?", "profile_id?"],
   PatientOrder: ["order_id", "profile_id", "registered_at", "stage", "payment_due", "balance_due?", "specimen_count", "report_count", "centre_display_name?", "booking_id?"],
   PatientReport: ["report_id", "version_no", "order_id", "profile_id", "kind", "status", "released_at", "panel_names", "smart_summary_available", "supersedes_version_no?"],
@@ -216,7 +216,8 @@ describe("engagement.yaml (T0C-10.C16)", () => {
   const doc: any = text ? parse(text) : { paths: {}, components: {} };
   const ops: Record<string, { method: string; path: string; op: any }> = {};
   for (const [path, item] of Object.entries<any>(doc.paths ?? {}))
-    for (const m of METHODS) if (item?.[m]) ops[item[m].operationId] = { method: m.toUpperCase(), path, op: item[m] };
+    // T0C-MSGDESK-1 (LD-321) adds 11 additive operations pinned in msgdesk1-openapi.test.ts; T0C-CONTENT-1 (LD-313a) adds 9 more pinned in content1-openapi.test.ts; this file keeps pinning the original TRD table only
+    for (const m of METHODS) if (item?.[m] && !["listBroadcastTemplates", "createBroadcastTemplate", "updateBroadcastTemplate", "deactivateBroadcastTemplate", "createBroadcast", "previewBroadcastAudience", "requestBroadcastApproval", "approveBroadcast", "cancelBroadcast", "listBroadcasts", "listBroadcastRecipients", "listPortalContent", "createPortalContent", "updatePortalContent", "deactivatePortalContent", "reorderPortalContent", "listMyPortalContent", "listProfileImages", "setProfileImage", "clearProfileImage"].includes(item[m].operationId)) ops[item[m].operationId] = { method: m.toUpperCase(), path, op: item[m] };
 
   const deref = (n: any): any => {
     if (!n?.$ref) return n;

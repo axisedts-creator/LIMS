@@ -83,8 +83,13 @@ SELECT is(roles::text, '{lims_owner}', policyname || ' TO lims_owner only')
     'roles__select__owner_only','membership_roles__select__owner_only');
 SELECT is((SELECT count(*)::int FROM pg_policies WHERE schemaname = 'core' AND policyname IN ('memberships__select__owner_only','users__select__owner_only',
   'tenants__select__owner_only','roles__select__owner_only','membership_roles__select__owner_only')), 5, 'all five GUC-bound core owner SELECT policies exist');
-SELECT is_empty($$SELECT policyname FROM pg_policies WHERE (coalesce(qual,'') || coalesce(with_check,'')) ~ 'app\.pre_|app\.maintenance' AND roles::text <> '{lims_owner}'$$,
-  'schema test 17: every policy mentioning app.pre_ / app.maintenance is TO lims_owner only');
+SELECT is_empty($$SELECT policyname FROM pg_policies WHERE (coalesce(qual,'') || coalesce(with_check,'')) ~ 'app\.pre_|app\.maintenance' AND roles::text <> '{lims_owner}'
+  -- STALE fix T0B-GREEN-3 (08-CR-REGISTER C6-002 role row, A10.5, D-30; same exemption as T0B-GREEN-2 db/tests/policy): the C6 pre-tenant lookup policies are TO lims_reporting_lookup, schema reporting only
+  AND NOT (schemaname = 'reporting' AND roles = ARRAY['lims_reporting_lookup']::name[])$$,
+  'schema test 17: every policy mentioning app.pre_ / app.maintenance is TO lims_owner only (reporting lookup policies: TO lims_reporting_lookup only)');
+SELECT is_empty($$SELECT schemaname || '.' || policyname FROM pg_policies WHERE roles && ARRAY['lims_reporting_lookup']::name[]
+  AND NOT (schemaname = 'reporting' AND roles = ARRAY['lims_reporting_lookup']::name[])$$,
+  'STALE fix T0B-GREEN-3: lims_reporting_lookup is named only by schema reporting policies, never next to another role');
 SELECT is_empty($$SELECT policyname FROM pg_policies WHERE schemaname IN ('core','audit') AND policyname ~ '__(tenant|tenant_centre)$'
   AND ((cmd IN ('SELECT','UPDATE','DELETE') AND qual !~ 'is_staff_or_system') OR (cmd IN ('INSERT','UPDATE') AND with_check !~ 'is_staff_or_system'))$$,
   'schema test 24: every __tenant policy carries the staff guard in USING and WITH CHECK');

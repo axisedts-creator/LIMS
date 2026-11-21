@@ -1,8 +1,13 @@
 import { Icon } from '../Icon/Icon';
+import type { Tone } from '../_shared/messages';
 
 export interface StatusStep {
   id: string;
   label: string;
+  /** T0D-UIDASH-2 (LD-436 pipeline): the count under the label (already formatted); absent = no number. */
+  count?: string;
+  /** T0D-UIDASH-2: one short line beside the count in a tone, e.g. "6 overdue" in danger. */
+  note?: { text: string; tone: Tone };
 }
 
 export interface StatusStepperProps {
@@ -10,6 +15,8 @@ export interface StatusStepperProps {
   currentId: string;
   /** Terminal failure/cancellation at the current step. */
   outcome?: { kind: 'failed' | 'cancelled'; label: string };
+  /** T0D-UIKIT-2 (LD-436 pipeline): the ONE stage the page names as having the most waiting; gets the lime marker and the words. */
+  mostWaitingId?: string;
   'data-testid'?: string;
 }
 
@@ -18,7 +25,7 @@ const ICON = { done: 'success', current: 'current', upcoming: 'neutral', failed:
 const STATE = { done: 'Complete', current: 'Current', upcoming: 'Upcoming', failed: 'Failed', cancelled: 'Cancelled' } as const;
 
 /** Linear progress (C3 import batches). Each step's state is text (04 §5.4). Unknown currentId -> all upcoming. */
-export function StatusStepper({ steps, currentId, outcome, ...rest }: StatusStepperProps) {
+export function StatusStepper({ steps, currentId, outcome, mostWaitingId, ...rest }: StatusStepperProps) {
   const cur = steps.findIndex((s) => s.id === currentId);
   return (
     <div className="lims-stepper" {...rest}>
@@ -30,6 +37,20 @@ export function StatusStepper({ steps, currentId, outcome, ...rest }: StatusStep
             <li key={s.id} className={`lims-step lims-step-${state}`} data-tone={tone} {...(i === cur ? { 'aria-current': 'step' as const } : {})}>
               <Icon name={ICON[state]} size={14} />
               <span className="lims-step-label">{s.label}</span> <span className="lims-step-state">({STATE[state]})</span>
+              {s.id === mostWaitingId ? (
+                <>
+                  {' '}
+                  <span className="lims-step-marker" aria-hidden="true" />
+                  <span className="lims-step-waiting">Most waiting</span>
+                </>
+              ) : null}
+              {s.count !== undefined || s.note ? ' ' : null}
+              {s.count !== undefined || s.note ? (
+                <span className="lims-step-figures">
+                  {s.count !== undefined ? <span className="lims-step-count">{s.count}</span> : null}
+                  {s.note ? <> <span className={`lims-step-note lims-tone-${s.note.tone}`} data-tone={s.note.tone}>{s.note.text}</span></> : null}
+                </span>
+              ) : null}
             </li>
           );
         })}

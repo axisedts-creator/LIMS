@@ -3,8 +3,9 @@
 // __Host-lims_sid cookie; every call goes server-to-server to /v1/identity/auth/* with X-Lims-Bff-Key (REQ-SEC-068).
 // CSRF (Origin / Sec-Fetch-Site) is enforced by core middleware on the server-action POST itself.
 import 'server-only';
-import { readFileSync } from 'node:fs';
-import { cookies, headers } from 'next/headers';
+import { readBffKey } from '@/core/session/bff-key';
+import { cookies } from 'next/headers';
+import { clientContextHeaders } from '@/core/api/client-context';
 import { redirect } from 'next/navigation';
 import { SESSION_COOKIE, sessionCookieOptions } from '@/core/session/cookie';
 import { matchStaffRoute } from '@/core/permissions/routes';
@@ -16,7 +17,7 @@ const CODE_RE = /^[0-9]{6}$/;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+$/;
 
-type Fail = { ok: false; code: string; retryAfterSeconds?: number };
+type Fail = { ok: false; code: string; retryAfterSeconds?: number; waking?: true };
 type ApiReply = { ok: true; body: any } | Fail;
 interface SessionStateBody { state?: string; absolute_expires_at?: string }
 
@@ -29,16 +30,7 @@ const str = (fd: FormData, k: string) => {
 let cachedKey: string | undefined;
 function bffKey(): string {
   if (cachedKey) return cachedKey;
-  const file = process.env.LIMS_WEB_BFF_KEY_FILE;
-  if (!file) throw new Error('LIMS_WEB_BFF_KEY_FILE is not set');
-  const key = readFileSync(file, 'utf8').trim();
-  if (!key) throw new Error('LIMS_WEB_BFF_KEY_FILE is empty');
-  return (cachedKey = key);
-}
-
-async function clientIp(): Promise<string | undefined> {
-  const h = await headers();
-  return h.get('x-forwarded-for')?.split(',')[0]?.trim() || h.get('x-real-ip')?.trim() || undefined;
+  return (cachedKey = readBffKey()); // LD-174
 }
 
 async function readSid(): Promise<string | undefined> {
@@ -50,9 +42,8 @@ async function readSid(): Promise<string | undefined> {
 async function call(path: string, body: unknown, sid?: string): Promise<ApiReply> {
   const origin = process.env.LIMS_ORIGIN_API;
   if (!origin) throw new Error('LIMS_ORIGIN_API is not set');
-  const h: Record<string, string> = { 'content-type': 'application/json', accept: 'application/json', 'X-Lims-Bff-Key': bffKey() };
-  const ip = await clientIp();
-  if (ip) h['x-forwarded-for'] = ip;
+  // LD-296: real client address (bare literal only) + browser user agent (replaces node's); missing values are not sent.
+  const h: Record<string, string> = { ...(await clientContextHeaders()), 'content-type': 'application/json', accept: 'application/json', 'X-Lims-Bff-Key': bffKey() };
   if (sid) h.cookie = `${SESSION_COOKIE}=${encodeURIComponent(sid)}`;
   let res: Response;
   try {
@@ -60,7 +51,8 @@ async function call(path: string, body: unknown, sid?: string): Promise<ApiReply
       method: 'POST', headers: h, body: JSON.stringify(body ?? {}), cache: 'no-store', redirect: 'error', signal: AbortSignal.timeout(TIMEOUT_MS),
     });
   } catch {
-    return { ok: false, code: 'common.dependency_unavailable' };
+    // T0D-WAKE-1 (LD-277, RS-07): no answer (timeout / connection failure) = the API is likely waking up; HTTP answers never carry it.
+    return { ok: false, code: 'common.dependency_unavailable', waking: true };
   }
   const json = (await res.json().catch(() => undefined)) as any;
   if (res.ok) return { ok: true, body: json };
@@ -139,6 +131,14 @@ export async function startMfaEnrolmentAction(
   if (!UUID_RE.test(s('factor_id')) || !s('secret_base32')) return { ok: false, code: 'common.dependency_unavailable' };
   const qr = s('qr_svg_base64'); // optional per 02-TRD §5.1; the key is the fallback
   return { ok: true, factor_id: s('factor_id'), otpauth_uri: s('otpauth_uri'), ...(qr ? { qr_svg_base64: qr } : {}), secret_base32: s('secret_base32') };
+}
+
+/** AUTH-MFA-PERSIST-1 (LD-248): after a 409 on enrolment start, re-read the session state. Returns only the state, never the token. */
+export async function refreshSessionStateAction(): Promise<{ ok: true; state: string } | Fail> {
+  const r = await sessionCall('session/resolve', { touch: false });
+  if (!r.ok) return { ok: false, code: r.code };
+  const state = (r.body as { session?: SessionStateBody } | undefined)?.session?.state;
+  return typeof state === 'string' && state ? { ok: true, state } : { ok: false, code: 'common.dependency_unavailable' };
 }
 
 export async function completeMfaEnrolmentAction(fd: FormData): Promise<ActionResult> {

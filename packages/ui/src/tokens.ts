@@ -3,51 +3,52 @@ export const tokens = {
   "color": {
     "neutral": {
       "0": "#FFFFFF",
-      "50": "#F3F7F4",
+      "50": "#F3F3F3",
       "100": "#EEF3EF",
-      "200": "#DCE8E0",
+      "200": "#ECECEC",
       "300": "#7A9185",
-      "500": "#5C7167",
+      "500": "#5C6A66",
       "600": "#4D6359",
       "700": "#2F463C",
-      "900": "#13241D"
+      "900": "#0A1A17"
     },
     "accent": {
-      "default": "#0E4B3B",
-      "hover": "#0A3328",
+      "default": "#005A52",
+      "hover": "#014D3C",
       "fg": "#FFFFFF",
-      "subtle": "#E6F2EA",
-      "highlight": "#D9EE8C",
-      "brand": "#9DBE2E"
+      "subtle": "#ECF3D7",
+      "highlight": "#A0C032",
+      "brand": "#A0C032",
+      "pop": "#E4F239"
     },
     "focus": {
-      "ring": "#0E4B3B"
+      "ring": "#005A52"
     },
     "tone": {
       "neutral": {
-        "fg": "#3A4F45",
-        "bg": "#EEF3EF",
-        "border": "#CFDDD4"
+        "fg": "#46524E",
+        "bg": "#EEF0EC",
+        "border": "#CFD6CF"
       },
       "info": {
-        "fg": "#1B566F",
-        "bg": "#E5F1F6",
-        "border": "#BBD7E4"
+        "fg": "#1A4F8B",
+        "bg": "#E3EEFB",
+        "border": "#B9D1EE"
       },
       "success": {
-        "fg": "#14633F",
-        "bg": "#E3F3E8",
-        "border": "#B9DEC6"
+        "fg": "#14612F",
+        "bg": "#E4F4DE",
+        "border": "#BCDEB0"
       },
       "warning": {
-        "fg": "#7A4300",
-        "bg": "#FFF4E5",
+        "fg": "#7A4B00",
+        "bg": "#FFF1D0",
         "border": "#F2D6A8"
       },
       "danger": {
-        "fg": "#8A2E2E",
-        "bg": "#FBEAEA",
-        "border": "#EBBFBF"
+        "fg": "#9C1C12",
+        "bg": "#FDE7E4",
+        "border": "#F1BDB5"
       },
       "critical": {
         "fg": "#B42318",
@@ -59,7 +60,7 @@ export const tokens = {
   },
   "font": {
     "family": {
-      "sans": "\"Plus Jakarta Sans\", \"Noto Sans Devanagari\", system-ui, sans-serif",
+      "sans": "\"Poppins\", \"Noto Sans Devanagari\", system-ui, sans-serif",
       "mono": "\"Noto Sans Mono\", monospace"
     },
     "size": {
@@ -121,21 +122,21 @@ export const tokens = {
     "sm": 8,
     "md": 12,
     "lg": 16,
-    "xl": 20,
+    "xl": 24,
     "full": 9999
   },
   "elevation": {
     "0": "none",
-    "1": "0 1px 2px rgb(14 75 59 / 0.06)",
-    "2": "0 4px 12px rgb(14 75 59 / 0.10)",
-    "3": "0 12px 32px rgb(14 75 59 / 0.18)"
+    "1": "0 1px 2px rgb(0 90 82 / 0.06)",
+    "2": "0 4px 12px rgb(0 90 82 / 0.10)",
+    "3": "0 12px 32px rgb(0 90 82 / 0.18)"
   },
   "motion": {
     "duration": {
       "fast": 150,
-      "normal": 250
+      "normal": 450
     },
-    "easing": "cubic-bezier(0.2, 0, 0, 1)"
+    "easing": "cubic-bezier(0.2, 0.7, 0.2, 1)"
   },
   "breakpoint": {
     "sm": 640,
@@ -154,7 +155,7 @@ export const tokens = {
     "toast": 60
   },
   "touchTarget": {
-    "web": 44,
+    "web": 48,
     "flutter": 48
   }
 } as const;

@@ -17,7 +17,7 @@ import userEvent from '@testing-library/user-event';
 import axe from 'axe-core';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
-import type { ReactNode } from 'react';
+import type { ComponentProps, ReactNode } from 'react';
 import { ToastProvider } from '@lims/ui/components/Toast';
 
 const push = vi.fn();
@@ -73,7 +73,7 @@ const api = setupServer(
   http.patch(`${IM}/:id`, async ({ request }) => { await rec(request); return HttpResponse.json(full({ version: 5 })); }),
   http.post(`${IM}/:id/:action`, async ({ request }) => { await rec(request); return HttpResponse.json(full({ version: 5 })); }),
 );
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { cleanup(); api.resetHandlers(); calls.length = 0; listSeen.length = 0; push.mockReset(); replace.mockReset(); refresh.mockReset(); vi.useRealTimers(); localStorage.clear(); sessionStorage.clear(); session.permissions = MANAGE; });
 afterAll(() => api.close());
 beforeEach(() => { Object.assign(navigator, { clipboard: { writeText: vi.fn(async () => {}) } }); });
@@ -106,21 +106,23 @@ describe('SCR-05 InstrumentsList', () => {
     summary({ id: '01a1a98a-ac40-7000-8000-0000000e0004', instrument_code: 'SIM-OLD-1', display_name: 'Old one', state: 'retired', unmapped_code_count: 0 }),
     summary({ id: '01a1a98a-ac40-7000-8000-0000000e0005', instrument_code: 'SIM-SUS-1', display_name: 'Paused', state: 'suspended', unmapped_code_count: 0 }),
   ];
-  const props = (o: Record<string, unknown> = {}) => ({ instruments: rows, permissions: READ, centres, agents, drivers: DRIVERS, ...o }) as never;
+  // LD-424: `as never` cannot be spread (TS2698); typed as the component props instead. Types only, same runtime value.
+  const props = (o: Record<string, unknown> = {}) => ({ instruments: rows, permissions: READ, centres, agents, drivers: DRIVERS, ...o }) as unknown as ComponentProps<Awaited<ReturnType<typeof load>>>;
 
-  it('renders the 04-UI-UX columns; instrument code is a row header linking to SCR-07', async () => {
+  // RS-C7 ruling (A5): the done_when "instrument list as link cards" and LD-140 override the 04-UI-UX column layout; contract is rs-c7.behaviour A1.
+  it('renders one link card per instrument (no columns); the instrument code links to SCR-07 and the card carries the old column data', async () => {
     const InstrumentsList = await load();
     wrap(<InstrumentsList {...props()} />);
-    // anchored: "State chip" and "Link state" are both headers (04-UI-UX.md:122), see WEB-T02-ruling item 2.
-    // Ruling r2: spec col is "Vendor/Model" and "Unmapped codes" (04-UI-UX.md:122); other headers stay anchored.
-    const cols: RegExp[] = [...['Code', 'Name', 'Protocol', 'Agent', 'Driver', 'State', 'Link state', 'Last message'].map((h) => new RegExp(`^${h}$`, 'i')), /^Vendor\s*\/\s*Model$/i, /^Unmapped( codes)?$/i];
-    for (const re of cols) expect(screen.getByRole('columnheader', { name: re }), String(re)).toBeTruthy();
-    const link = screen.getByRole('link', { name: 'SIM-CHEM-1' });
+    expect(screen.queryAllByRole('columnheader')).toHaveLength(0);
+    const link = screen.getByRole('link', { name: /^SIM-CHEM-1/ });
     expect(link.getAttribute('href')).toBe(`/instruments/instruments/${INST}`);
-    expect(link.closest('[role="rowheader"], th')).toBeTruthy();
-    expect(bodyHas('Synthetic Vendor')).toBe(true);
-    expect(bodyHas('SV-100')).toBe(true);
-    expect(bodyHas('SYN-AGENT-1')).toBe(true);
+    const card = link.closest('li, article');
+    expect(card).toBeTruthy();
+    const t = card!.textContent ?? '';
+    for (const s of ['Sim chem', 'Synthetic Vendor', 'SV-100', 'SYN-AGENT-1', 'Generic', 'Link state']) expect(t, s).toContain(s);
+    expect(t).toMatch(/ASTM/);
+    expect(t).toMatch(/Last message/i);
+    expect(t).toMatch(/draft/i);
   });
 
   it('driver status badges always carry text: Generic / Verified / "Sketch — not for live use"; state chips carry text', async () => {
@@ -190,7 +192,7 @@ describe('SCR-05 InstrumentsList', () => {
     const keys = help.shortcuts.map((s: { keys: string }) => s.keys);
     expect(keys).toContain('Alt+I');
     expect(keys).not.toContain('Alt+N');
-    expect(help.shortcuts.find((s: { keys: string }) => s.keys === 'Alt+I').action).toBe('New instrument');
+    expect(help.shortcuts.find((s: { keys: string }) => s.keys === 'Alt+I')!.action).toBe('New instrument');
   });
 
   it('SECURITY: display names are rendered as text, never HTML', async () => {

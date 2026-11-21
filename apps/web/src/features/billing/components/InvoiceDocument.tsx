@@ -3,10 +3,13 @@
 import { DataUriImage } from '@lims/ui/components/DataUriImage';
 import type { InvoicePrintDocument } from '../server/types';
 import { Ad, BsAd, amountInWords, npr } from './format';
+import './billing.css';
 
-export function InvoiceDocument({ document: d }: { document: InvoicePrintDocument }) {
+/** `plain` (T0D-PRINTCFG-1, LD-316): the plain black and white tax bill: no logo, no phone line, no footer text; lab name, address, seller PAN,
+ * bill number and date stay. The server also prints plain_bw this way; the client strips again so a stale document never prints a logo. */
+export function InvoiceDocument({ document: d, plain = false }: { document: InvoicePrintDocument; plain?: boolean }) {
   const title = d.invoice_kind === 'abbreviated' ? 'ABBREVIATED TAX INVOICE' : 'TAX INVOICE';
-  const b = d.branding;
+  const b = d.branding && plain ? { ...d.branding, images: [], phones: [] } : d.branding;
   const showCopy = (d.print_no ?? 0) >= 2 && d.copy_mark;
   const totals: [string, string][] = [
     ['Gross', npr(d.totals.gross)],
@@ -18,7 +21,7 @@ export function InvoiceDocument({ document: d }: { document: InvoicePrintDocumen
     ['Net', npr(d.totals.net)],
   ];
   return (
-    <article className="lims-invoice-doc" aria-label={`${title} ${d.invoice_no}`}>
+    <article className="lims-invoice-doc"{...(plain ? { 'data-plain': 'true' } : {})} aria-label={`${title} ${d.invoice_no}`}>
       {b ? (
         <header className="lims-invoice-branding">
           {b.images?.filter((i) => i.kind === 'logo').map((i, n) => <DataUriImage key={n} src={i.data_uri} alt="Logo" />)}
@@ -29,7 +32,7 @@ export function InvoiceDocument({ document: d }: { document: InvoicePrintDocumen
       ) : null}
       <h2>{title}</h2>
       {showCopy ? <p className="lims-copy-mark"><strong>{d.copy_mark}</strong></p> : null}
-      {d.cancelled_banner ? <p className="lims-cancelled-banner" style={{ border: '2px solid var(--lims-danger, #b00020)', padding: 8 }}><strong>{d.cancelled_banner}</strong></p> : null}
+      {d.cancelled_banner ? <p className="lims-cancelled-banner"><strong>{d.cancelled_banner}</strong></p> : null}
       <dl className="lims-invoice-meta">
         <dt>Seller PAN</dt><dd>{d.seller.pan ?? '—'}</dd>
         <dt>Invoice no</dt><dd>{d.invoice_no}</dd>
@@ -69,7 +72,7 @@ export function InvoiceDocument({ document: d }: { document: InvoicePrintDocumen
         </section>
       ) : null}
       {d.printed_by_display && d.printed_at ? <p>Printed by {d.printed_by_display} on <Ad value={d.printed_at} withTime /></p> : null}
-      {d.footer_note ? <p>{d.footer_note}</p> : null}
+      {d.footer_note && !plain ? <p>{d.footer_note}</p> : null}
     </article>
   );
 }

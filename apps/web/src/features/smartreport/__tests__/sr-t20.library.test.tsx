@@ -29,7 +29,7 @@ const APPROVED_ONLY = [summaryDto(), summaryDto({ id: VER_RETIRED, version_no: 1
 const WITH_DRAFT = [summaryDto({ id: VER_DRAFT, version_no: 3, status: 'draft', language: 'en', version: 4, approved_at: undefined, approved_by_display_name: undefined, approved_by_membership_id: undefined }), ...APPROVED_ONLY];
 const list = (data: unknown[]) => json({ data, page: { limit: 50 } });
 
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 beforeEach(() => { resetApi(MANAGE); routes[`GET ${SR}`] = list(APPROVED_ONLY); });
 afterEach(() => { cleanup(); api.resetHandlers(); });
 afterAll(() => api.close());

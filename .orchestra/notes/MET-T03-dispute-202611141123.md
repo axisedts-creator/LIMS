@@ -1,0 +1,3 @@
+# MET-T03 dispute (debugger)
+Test file `hostQuery.getein_metis.test.ts` (line 30 `fixture()`) reads golden files that do not exist in the repo: testdata/{qry-found,qry-found.qck,qry-found.dsr,qry-not-found.qck,qry-no-mapped-test.qck,qry-sample-range.qck,qry-time-range.qck,ack-q03-mismatched-id}.hl7 (+ inputs). Task brief `tests` requires these golden files; spec 09-ADDENDUM-GETEIN-METIS s5/s6 defines their content.
+Test side is incomplete, not contradicting spec. Implementation is not at fault; editing/adding fixtures is outside my role. Action: tester commits the goldens, then re-run MET-T03-verify.cmd.

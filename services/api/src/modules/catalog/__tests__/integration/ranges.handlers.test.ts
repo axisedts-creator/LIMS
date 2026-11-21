@@ -79,7 +79,8 @@ describe('contract: the fourteen operations exist with the TRD permissions / ide
       const s = spec.components.schemas[n];
       expect(s.additionalProperties, n).toBe(false);
       if (n === 'AgeBound') continue;
-      for (const k of SERVER) expect(Object.keys(s.properties), `${n}.${k}`).not.toContain(k);
+      // T0B-TESTMGMT-1 (LD-318): RangeBand.method_id is a band field since T0C-TESTMGMT-1 (ElabAssist range Method); every other schema still forbids it
+      for (const k of SERVER.filter((x) => !(n === 'RangeBand' && x === 'method_id'))) expect(Object.keys(s.properties), `${n}.${k}`).not.toContain(k);
     }
     expect(Object.keys(spec.components.schemas['PublishRequest'].properties)).not.toContain('effective_to');
     expect(Object.keys(spec.components.schemas['RetireRequest'].properties)).toEqual(expect.arrayContaining(['change_reason', 'effective_at']));
@@ -216,7 +217,7 @@ describe.each(FAMILIES)('$name permission matrix (S-4, AB-8, AB-21, AC-05.9, AC-
 
   it.each([['publish', f.publish, 'D2'], ['retire', f.retire, 'P1']] as const)('%s fails closed without an IdentityPort in the context (auth.unauthenticated), zero data access', { timeout: T }, async (_n, id, which) => {
     const e = world(f);
-    const x = await rejection(e.db.run((ctx) => H[id]!(req({ params: { set_id: which === 'D2' ? D2(f).id : P1(f).id }, headers: { ...IFM, ...IDEM }, body: id === f.publish ? pBody() : rBody() }), ctx)));
+    const x = await rejection(e.db.run((ctx) => H[id]!(req({ params: { set_id: which === 'D2' ? D2(f).id : P1(f).id }, headers: { ...IFM, ...IDEM }, body: id === f.publish ? pBody() : rBody() }), { ...ctx, ports: {} })));
     expect(isLimsError(x, 'auth.unauthenticated')).toBe(true); untouched(e);
   });
 

@@ -1,0 +1,1128 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Metro brand phlebotomist app</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap">
+<style>
+:root{--lime:#A0C032;--lime-soft:#ECF3D7;--green:#005A52;--forest:#014D3C;--ink:#0A1A17;--muted:#5C6A66;--bg:#F3F3F3;--line:#ECECEC}
+body{margin:0;font-family:'Poppins',system-ui,sans-serif;color:var(--ink);background:var(--bg)}
+button{font:inherit;cursor:pointer;color:inherit}
+textarea{font:inherit}
+@keyframes m5In{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes m5Push{from{opacity:0;transform:translateX(28px)}to{opacity:1;transform:none}}
+@keyframes m5Up{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}
+@keyframes m5Pop{0%{opacity:0;transform:scale(.6)}70%{opacity:1;transform:scale(1.06)}100%{transform:scale(1)}}
+@keyframes m5Scan{0%{transform:translateY(0);opacity:.25}50%{opacity:1}100%{transform:translateY(256px);opacity:.25}}
+@keyframes m5Tick{from{stroke-dashoffset:30}to{stroke-dashoffset:0}}
+@keyframes m5Logo{from{opacity:0;transform:translateY(8px) scale(.97)}to{opacity:1;transform:none}}
+.tap{transition:transform .12s ease}
+.tap:active{transform:scale(.97)}
+.scr{animation:m5In .22s ease both}
+.push{animation:m5Push .26s cubic-bezier(.2,.8,.2,1) both}
+.sheet{animation:m5Up .3s cubic-bezier(.2,.8,.2,1) both}
+.pop{animation:m5Pop .55s cubic-bezier(.2,.9,.3,1.2) both}
+.logoIn{animation:m5Logo .6s cubic-bezier(.2,.8,.2,1) both}
+.scanline{animation:m5Scan 1.8s cubic-bezier(.3,0,.3,1) infinite}
+.tick{stroke-dasharray:30;stroke-dashoffset:30;animation:m5Tick .4s ease-out .1s forwards}
+.noscroll::-webkit-scrollbar{display:none}
+.card{background:#fff;border-radius:20px;padding:16px;box-sizing:border-box}
+.eyebrow{font-size:12px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:5px 12px;border-radius:999px;white-space:nowrap;flex:none}
+.chip.ok{background:#E4F4DE;color:#14612F}
+.chip.trial{background:#E3EEFB;color:#1A4F8B}
+.chip.warn{background:#FFF1D0;color:#7A4B00}
+.chip.bad{background:#FDE7E4;color:#9C1C12}
+.chip.neutral{background:#EEF0EC;color:#46524E}
+.tchip{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:4px 11px 4px 8px;border-radius:999px;white-space:nowrap;flex:none}
+.tdot{width:10px;height:10px;border-radius:50%;flex:none;box-sizing:border-box;border:1px solid rgba(0,0,0,.2)}
+.btn{min-height:52px;border:0;border-radius:999px;background:var(--lime);color:#00362F;font:600 15px 'Poppins',system-ui,sans-serif;padding:0 24px;width:100%;box-sizing:border-box;display:flex;align-items:center;justify-content:center;gap:8px}
+.btnOff{min-height:52px;border-radius:999px;background:#EEF0EC;color:#6F7B77;font:600 15px 'Poppins',system-ui,sans-serif;width:100%;box-sizing:border-box;display:flex;align-items:center;justify-content:center;gap:8px}
+.btnLine{min-height:52px;border-radius:999px;border:1.5px solid #D3D8D0;background:#fff;color:var(--ink);font:600 15px 'Poppins',system-ui,sans-serif;padding:0 22px;width:100%;box-sizing:border-box;display:flex;align-items:center;justify-content:center;gap:8px}
+.btnBad{min-height:48px;border:0;background:transparent;color:#9C1C12;font:600 14px 'Poppins',system-ui,sans-serif;width:100%;display:flex;align-items:center;justify-content:center;gap:8px}
+.ib{width:48px;height:48px;border:0;background:transparent;display:grid;place-items:center;color:#fff;border-radius:50%;flex:none}
+.ibd{width:48px;height:48px;border:1.5px solid #D3D8D0;background:#fff;display:grid;place-items:center;color:var(--green);border-radius:50%;flex:none}
+.tile{width:42px;height:42px;border-radius:13px;background:var(--lime-soft);display:grid;place-items:center;flex:none}
+.rowbtn{width:100%;border:0;background:transparent;text-align:left;display:flex;align-items:center;gap:12px;min-height:64px;padding:10px 14px;box-sizing:border-box}
+.cb{width:28px;height:28px;border-radius:9px;border-style:solid;border-width:2px;display:grid;place-items:center;flex:none;box-sizing:border-box}
+.tabbtn{flex:1;min-height:58px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:12px;font-weight:600;color:var(--muted);background:transparent;border:0}
+.tabbtn.on{color:var(--ink);font-weight:700}
+.tabico{position:relative;width:56px;height:30px;border-radius:999px;display:grid;place-items:center}
+.tabbtn.on .tabico{background:var(--lime-soft);color:var(--forest)}
+.tabbtn:not(.on) .tabico{color:var(--green)}
+.badge{position:absolute;top:-5px;right:4px;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:var(--forest);color:#fff;font-size:11px;font-weight:700;display:grid;place-items:center;box-sizing:border-box;border:2px solid #fff}
+.avatar{border-radius:50%;background:var(--lime-soft);color:var(--forest);display:grid;place-items:center;font-weight:700;flex:none}
+.foot{flex:none;background:#fff;border-top:1px solid var(--line);padding:12px 16px 16px;display:flex;flex-direction:column;gap:6px;box-sizing:border-box}
+.fld{height:52px;border-radius:14px;border:1.5px solid #D3D8D0;background:#fff;display:flex;align-items:center;gap:10px;padding:0 16px;box-sizing:border-box}
+.sw{position:relative;width:52px;height:32px;border-radius:999px;flex:none;display:block}
+.swk{position:absolute;top:3px;left:3px;width:26px;height:26px;border-radius:50%;background:#fff;transition:transform .18s ease;box-shadow:0 1px 3px rgba(0,0,0,.25)}
+.bars{background-image:repeating-linear-gradient(90deg,#0A1A17 0 2px,#fff 2px 3px,#0A1A17 3px 4px,#fff 4px 7px,#0A1A17 7px 10px,#fff 10px 11px,#0A1A17 11px 12px,#fff 12px 15px)}
+.btn:focus-visible,.btnOff:focus-visible,.btnLine:focus-visible,.btnBad:focus-visible,.tabbtn:focus-visible,.ib:focus-visible,.ibd:focus-visible,.rowbtn:focus-visible{outline:3px solid #005A52;outline-offset:2px}
+@media (prefers-reduced-motion:reduce){.scr,.push,.sheet,.pop,.scanline,.logoIn{animation:none}.tick{animation:none;stroke-dashoffset:0}.tap,.sw,.swk{transition:none}}
+</style>
+</helmet>
+<div style="width:390px;height:844px;box-sizing:border-box;background:var(--bg);display:flex;flex-direction:column;overflow:hidden;position:relative">
+
+  <!-- ===================== SPLASH / SIGN-IN ===================== -->
+  <sc-if value="{{v.inSplash}}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute;inset:0;z-index:30;display:flex;flex-direction:column;background-image:linear-gradient(165deg,#014D3C 0%,#005A52 58%,#2F7D46 100%);overflow:hidden">
+      <svg width="390" height="440" viewBox="0 0 390 440" fill="none" aria-hidden="true" style="position:absolute;top:0;left:0">
+        <circle cx="195" cy="210" r="92" stroke="#fff" stroke-opacity=".10" stroke-width="1.5"/>
+        <circle cx="195" cy="210" r="156" stroke="#fff" stroke-opacity=".08" stroke-width="1.5"/>
+        <circle cx="195" cy="210" r="220" stroke="#fff" stroke-opacity=".06" stroke-width="1.5"/>
+        <circle cx="195" cy="210" r="284" stroke="#fff" stroke-opacity=".05" stroke-width="1.5"/>
+        <circle cx="344" cy="52" r="5" fill="#A0C032"/>
+        <circle cx="62" cy="318" r="4" fill="#A0C032" fill-opacity=".7"/>
+        <circle cx="336" cy="292" r="3" fill="#fff" fill-opacity=".5"/>
+      </svg>
+      <div style="flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;padding:0 28px;text-align:center;position:relative">
+        <img class="logoIn" src="/_blob/85cade1dfb098820c95d56491befdc07" alt="Metro Labs" style="height:46px;width:auto;display:block">
+        <span style="display:inline-flex;align-items:center;gap:8px;height:28px;padding:0 14px;border-radius:999px;background:rgba(255,255,255,.12);color:#DDEBA8;font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase">Field collection</span>
+        <span style="font-size:26px;line-height:1.25;font-weight:700;color:#fff;letter-spacing:-.015em">Right patient.<br>Right tube.<br>On time.</span>
+      </div>
+      <div class="sheet" style="flex:none;background:#fff;border-radius:28px 28px 0 0;padding:26px 20px 18px;display:flex;flex-direction:column;gap:14px;position:relative;box-sizing:border-box">
+        <div style="display:flex;flex-direction:column;gap:3px">
+          <span style="font-size:22px;font-weight:700;letter-spacing:-.01em">Sign in</span>
+          <span style="font-size:13px;color:var(--muted);line-height:1.45">Staff ID and PIN. Your sign-in works offline for 12 hours.</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <span style="font-size:12px;font-weight:600;color:var(--muted)">Staff ID</span>
+          <div class="fld"><span style="flex:1;font-size:15px;font-weight:600">{{p.empId}}</span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#14612F" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5l10-10"/></svg></div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <span style="font-size:12px;font-weight:600;color:var(--muted)">4-digit PIN</span>
+          <div class="fld" style="gap:12px"><span style="width:11px;height:11px;border-radius:50%;background:var(--forest)"></span><span style="width:11px;height:11px;border-radius:50%;background:var(--forest)"></span><span style="width:11px;height:11px;border-radius:50%;background:var(--forest)"></span><span style="width:11px;height:11px;border-radius:50%;background:var(--forest)"></span></div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px;margin-top:2px">
+          <button class="tap btn" onClick="{{signIn}}">Sign in</button>
+          <button class="tap btnLine" onClick="{{signIn}}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 10a2 2 0 0 0-2 2c0 1.02-.1 2.51-.26 4"/><path d="M14 13.12c0 2.38 0 6.38-1 8.88"/><path d="M17.29 21.02c.12-.6.43-2.3.5-3.02"/><path d="M2 12a10 10 0 0 1 18-6"/><path d="M2 16h.01"/><path d="M21.8 16c.2-2 .131-5.354 0-6"/><path d="M5 19.5C5.5 18 6 15 6 12a6 6 0 0 1 .34-2"/><path d="M8.65 22c.21-.66.45-1.32.57-2"/><path d="M9 6.8a6 6 0 0 1 9 5.2v2"/></svg>Use fingerprint</button>
+        </div>
+        <span style="font-size:12px;color:var(--muted);text-align:center">Kathmandu Central Lab · Field app v2.4</span>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- ===================== HEADERS ===================== -->
+  <sc-if value="{{v.hasStack}}" hint-placeholder-val="{{ false }}">
+    <header style="background:var(--forest);min-height:62px;flex:none;display:flex;align-items:center;gap:2px;padding:0 8px 0 6px;box-sizing:border-box">
+      <button class="tap ib" aria-label="Back" onClick="{{back}}"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+      <span style="flex:1;min-width:0;color:#fff;font-weight:600;font-size:17px;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{v.title}}</span>
+      <button class="tap" aria-label="{{v.netLabel}}" onClick="{{toggleNet}}" style="min-height:48px;border:0;background:transparent;padding:0 2px;display:flex;align-items:center;flex:none">
+        <span style="display:inline-flex;align-items:center;gap:7px;height:32px;padding:0 12px;border-radius:999px;font-size:12px;font-weight:600;background:{{v.netBg}};color:{{v.netFg}}">
+          <sc-if value="{{v.online}}" hint-placeholder-val="{{ false }}"><span style="width:8px;height:8px;border-radius:50%;background:#A0C032"></span></sc-if>
+          <sc-if value="{{v.offline}}" hint-placeholder-val="{{ true }}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m2 2 20 20"/><path d="M5.782 5.782A7 7 0 0 0 9 19h8.5a4.5 4.5 0 0 0 1.307-.193"/><path d="M21.532 16.5A4.5 4.5 0 0 0 17.5 10h-1.79A7.008 7.008 0 0 0 10 5.07"/></svg></sc-if>
+          {{v.netText}}
+        </span>
+      </button>
+    </header>
+  </sc-if>
+  <sc-if value="{{v.noStack}}" hint-placeholder-val="{{ true }}">
+    <header style="background:var(--forest);min-height:62px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 8px 0 16px;box-sizing:border-box">
+      <div style="display:flex;align-items:center;gap:10px">
+        <img src="/_blob/fc5dceab92f2145d47d609e2807f0f99" alt="Metro Labs" width="34" height="34" style="flex:none;display:block;width:34px;height:34px">
+        <div style="display:flex;flex-direction:column;line-height:1.2">
+          <span style="color:#fff;font-weight:700;font-size:16px;letter-spacing:-.01em">Metro Field</span>
+          <span style="color:#BFE0D6;font-size:12px;font-weight:500">{{v.tabLabel}}</span>
+        </div>
+      </div>
+      <button class="tap" aria-label="{{v.netLabel}}" onClick="{{toggleNet}}" style="min-height:48px;border:0;background:transparent;padding:0 2px;display:flex;align-items:center;flex:none">
+        <span style="display:inline-flex;align-items:center;gap:7px;height:32px;padding:0 12px;border-radius:999px;font-size:12px;font-weight:600;background:{{v.netBg}};color:{{v.netFg}}">
+          <sc-if value="{{v.online}}" hint-placeholder-val="{{ false }}"><span style="width:8px;height:8px;border-radius:50%;background:#A0C032"></span></sc-if>
+          <sc-if value="{{v.offline}}" hint-placeholder-val="{{ true }}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m2 2 20 20"/><path d="M5.782 5.782A7 7 0 0 0 9 19h8.5a4.5 4.5 0 0 0 1.307-.193"/><path d="M21.532 16.5A4.5 4.5 0 0 0 17.5 10h-1.79A7.008 7.008 0 0 0 10 5.07"/></svg></sc-if>
+          {{v.netText}}
+        </span>
+      </button>
+    </header>
+  </sc-if>
+
+  <sc-if value="{{v.showBanner}}" hint-placeholder-val="{{ true }}">
+    <div role="status" style="flex:none;background:#FFF1D0;color:#7A4B00;padding:10px 16px;display:flex;align-items:flex-start;gap:10px;font-size:13px;font-weight:600;line-height:1.35;border-bottom:1px solid #F0DAA2;box-sizing:border-box">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7A4B00" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none;margin-top:1px"><path d="m2 2 20 20"/><path d="M5.782 5.782A7 7 0 0 0 9 19h8.5a4.5 4.5 0 0 0 1.307-.193"/><path d="M21.532 16.5A4.5 4.5 0 0 0 17.5 10h-1.79A7.008 7.008 0 0 0 10 5.07"/></svg>
+      <span>{{v.bannerText}}</span>
+    </div>
+  </sc-if>
+
+  <div class="noscroll m5scroll" style="flex:1;min-height:0;overflow-y:auto;position:relative">
+
+    <!-- ===================== QUEUE (home tab) ===================== -->
+    <sc-if value="{{sc.queue}}" hint-placeholder-val="{{ true }}">
+      <div class="scr" style="padding:16px 16px 24px;display:flex;flex-direction:column;gap:16px">
+
+        <section style="border-radius:24px;background-image:linear-gradient(135deg,#014D3C 0%,#005A52 55%,#2F7D46 100%);color:#fff;padding:18px;display:flex;flex-direction:column;gap:16px;box-sizing:border-box">
+          <div style="display:flex;align-items:center;gap:16px">
+            <div style="position:relative;width:68px;height:68px;flex:none">
+              <svg width="68" height="68" viewBox="0 0 68 68" aria-hidden="true" style="transform:rotate(-90deg);display:block"><circle cx="34" cy="34" r="28" fill="none" stroke="rgba(255,255,255,.2)" stroke-width="7"/><circle cx="34" cy="34" r="28" fill="none" stroke="#A0C032" stroke-width="7" stroke-linecap="round" stroke-dasharray="{{v.ringDash}} 176"/></svg>
+              <span style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:700">{{v.ringLabel}}</span>
+            </div>
+            <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+              <span style="font-size:19px;font-weight:700;letter-spacing:-.01em">{{v.doneCount}} of {{v.totalCount}} collected</span>
+              <span style="font-size:13px;color:#BFE0D6">{{v.progressSub}}</span>
+            </div>
+          </div>
+          <div aria-hidden="true" style="display:flex;gap:4px">
+            <sc-for list="{{segs}}" as="g" hint-placeholder-count="6"><span style="flex:1;height:6px;border-radius:3px;background:{{g.bg}}"></span></sc-for>
+          </div>
+          <div style="display:flex;justify-content:space-between;gap:8px;font-size:12px;color:#BFE0D6;font-weight:500"><span>{{v.routeSpan}}</span><span>{{v.kmText}}</span></div>
+        </section>
+
+        <sc-if value="{{v.hasNext}}" hint-placeholder-val="{{ true }}">
+          <section class="card" style="border:1.5px solid #CFE0A0;display:flex;flex-direction:column;gap:12px;padding:16px 16px 16px">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+              <span class="eyebrow" style="color:var(--green)">Next stop · {{next.time}}</span>
+              <span class="chip {{next.chipCls}}">{{next.statusLabel}}</span>
+            </div>
+            <button class="tap" aria-label="Open details for {{next.name}}" onClick="{{next.open}}" style="border:0;background:transparent;padding:0;text-align:left;display:flex;align-items:center;gap:12px;min-height:56px;width:100%">
+              <span class="avatar" style="width:52px;height:52px;font-size:17px">{{next.initial}}</span>
+              <span style="display:flex;flex-direction:column;gap:2px;min-width:0;flex:1">
+                <span style="font-size:19px;font-weight:700;letter-spacing:-.01em">{{next.name}}</span>
+                <span style="font-size:13px;color:var(--muted)">{{next.ageSex}} · {{next.locality}}</span>
+                <span style="font-size:13px;color:var(--muted)">{{next.distanceKm}} km · about {{next.etaMin}} min away</span>
+              </span>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5C6A66" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none"><path d="m9 6 6 6-6 6"/></svg>
+            </button>
+            <div style="display:flex;flex-wrap:wrap;gap:6px">
+              <sc-for list="{{next.chips}}" as="k" hint-placeholder-count="3"><span class="tchip" style="background:{{k.soft}};color:{{k.ink}}"><span class="tdot" style="background:{{k.hex}}"></span>{{k.label}}</span></sc-for>
+              <sc-if value="{{next.fasting}}" hint-placeholder-val="{{ true }}"><span class="chip warn" style="padding:4px 11px">Fasting sample</span></sc-if>
+            </div>
+            <button class="tap btn" onClick="{{next.cta}}">{{next.ctaLabel}}</button>
+          </section>
+        </sc-if>
+        <sc-if value="{{v.noNext}}" hint-placeholder-val="{{ false }}">
+          <section class="card" style="display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;padding:30px 20px">
+            <div class="pop" style="width:56px;height:56px;border-radius:50%;background:var(--lime-soft);display:grid;place-items:center"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--forest)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5l10-10"/></svg></div>
+            <span style="font-size:17px;font-weight:700">All stops done for today</span>
+            <span style="font-size:13px;color:var(--muted);line-height:1.5">{{v.doneSummary}}</span>
+          </section>
+        </sc-if>
+
+        <sc-if value="{{v.hasUp}}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;align-items:baseline;justify-content:space-between;padding:0 4px"><span style="font-size:15px;font-weight:700">Up next</span><span style="font-size:12px;font-weight:600;color:var(--muted)">{{v.upCount}}</span></div>
+            <section class="card" style="padding:0;overflow:hidden">
+              <sc-for list="{{up}}" as="r" hint-placeholder-count="3">
+                <button class="tap rowbtn" onClick="{{r.open}}" style="border-top:1px solid var(--line);min-height:78px">
+                  <span style="width:50px;flex:none;display:flex;flex-direction:column;gap:1px"><span style="font-size:16px;font-weight:700;line-height:1.15">{{r.t1}}</span><span style="font-size:12px;font-weight:600;color:var(--muted)">{{r.t2}}</span></span>
+                  <span style="display:flex;flex-direction:column;gap:3px;flex:1;min-width:0">
+                    <span style="font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{r.name}}</span>
+                    <span style="font-size:12px;color:var(--muted)">{{r.locality}} · {{r.distanceKm}} km</span>
+                    <span style="display:flex;align-items:center;gap:5px">
+                      <sc-for list="{{r.dots}}" as="o" hint-placeholder-count="2"><span class="tdot" style="background:{{o.hex}}"></span></sc-for>
+                      <span style="font-size:12px;color:var(--muted);margin-left:2px">{{r.tubeText}}</span>
+                      <sc-if value="{{r.fasting}}" hint-placeholder-val="{{ false }}"><span style="font-size:11px;font-weight:700;color:#7A4B00;background:#FFF1D0;border-radius:999px;padding:1px 8px;margin-left:2px">Fasting</span></sc-if>
+                    </span>
+                  </span>
+                  <sc-if value="{{r.showChip}}" hint-placeholder-val="{{ false }}"><span class="chip {{r.chipCls}}">{{r.statusLabel}}</span></sc-if>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5C6A66" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none"><path d="m9 6 6 6-6 6"/></svg>
+                </button>
+              </sc-for>
+            </section>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{v.hasDone}}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;align-items:baseline;justify-content:space-between;padding:0 4px"><span style="font-size:15px;font-weight:700">Completed</span><span style="font-size:12px;font-weight:600;color:var(--muted)">{{v.doneListCount}}</span></div>
+            <section class="card" style="padding:0;overflow:hidden">
+              <sc-for list="{{done}}" as="r" hint-placeholder-count="3">
+                <button class="tap rowbtn" onClick="{{r.open}}" style="border-top:1px solid var(--line);min-height:68px">
+                  <span style="width:36px;height:36px;border-radius:50%;background:{{r.iconBg}};display:grid;place-items:center;flex:none">
+                    <sc-if value="{{r.isOk}}" hint-placeholder-val="{{ true }}"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#14612F" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5l10-10"/></svg></sc-if>
+                    <sc-if value="{{r.isBad}}" hint-placeholder-val="{{ false }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9C1C12" stroke-width="2.8" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></sc-if>
+                  </span>
+                  <span style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0">
+                    <span style="font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{r.name}}</span>
+                    <span style="font-size:12px;color:var(--muted)">{{r.sub}}</span>
+                  </span>
+                  <span style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex:none">
+                    <span class="chip {{r.chipCls}}" style="padding:3px 10px">{{r.statusLabel}}</span>
+                    <span style="display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:600;color:{{r.noteColor}}">
+                      <sc-if value="{{r.showSyncIcon}}" hint-placeholder-val="{{ false }}"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m2 2 20 20"/><path d="M5.782 5.782A7 7 0 0 0 9 19h8.5a4.5 4.5 0 0 0 1.307-.193"/><path d="M21.532 16.5A4.5 4.5 0 0 0 17.5 10h-1.79A7.008 7.008 0 0 0 10 5.07"/></svg></sc-if>
+                      <sc-if value="{{r.showSyncedIcon}}" hint-placeholder-val="{{ false }}"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5l10-10"/></svg></sc-if>
+                      {{r.note}}
+                    </span>
+                  </span>
+                </button>
+              </sc-for>
+            </section>
+          </div>
+        </sc-if>
+      </div>
+    </sc-if>
+
+    <!-- ===================== COLLECTION DETAIL ===================== -->
+    <sc-if value="{{sc.detail}}" hint-placeholder-val="{{ false }}">
+      <div class="push" style="padding:16px 16px 24px;display:flex;flex-direction:column;gap:14px">
+
+        <section class="card" style="display:flex;flex-direction:column;gap:14px">
+          <div style="display:flex;align-items:center;gap:12px">
+            <span class="avatar" style="width:56px;height:56px;font-size:19px">{{d.initial}}</span>
+            <div style="display:flex;flex-direction:column;gap:1px;flex:1;min-width:0">
+              <span style="font-size:19px;font-weight:700;letter-spacing:-.01em">{{d.name}}</span>
+              <span style="font-size:14px;font-weight:600;color:var(--forest)">{{d.ageSex}}</span>
+              <span style="font-size:13px;color:var(--muted)">{{d.phone}}</span>
+            </div>
+            <button class="tap ibd" aria-label="Call patient" onClick="{{callToast}}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg></button>
+            <button class="tap ibd" aria-label="Message patient" onClick="{{msgToast}}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-8.4 8.4A8.6 8.6 0 0 1 8 18.8L4 20l1.3-3.8A8.4 8.4 0 1 1 21 11.5z"/></svg></button>
+          </div>
+          <div style="display:flex;align-items:center;flex-wrap:wrap;gap:8px">
+            <span class="chip {{d.chipCls}}">{{d.statusLabel}}</span>
+            <span class="chip neutral">{{d.slot}}</span>
+            <span style="font-size:12px;color:var(--muted);font-weight:500">Order {{d.orderId}}</span>
+          </div>
+        </section>
+
+        <section class="card" style="display:flex;flex-direction:column;gap:12px">
+          <span class="eyebrow">Address</span>
+          <span style="font-size:15px;line-height:1.5;font-weight:500">{{d.address}}</span>
+          <div style="display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:14px;background:var(--lime-soft);box-sizing:border-box">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--forest)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none;margin-top:2px"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>
+            <span style="font-size:13px;color:var(--forest);font-weight:600;line-height:1.45">{{d.landmark}}</span>
+          </div>
+          <sc-if value="{{d.isActive}}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex;flex-direction:column;gap:12px">
+          <div aria-hidden="true" style="position:relative;height:120px;border-radius:14px;overflow:hidden;background:#E4EDD0">
+            <svg width="100%" height="120" viewBox="0 0 326 120" preserveAspectRatio="xMidYMid slice" fill="none" style="display:block">
+              <path d="M-10 92 L110 76 L214 96 L340 64" stroke="#fff" stroke-width="10"/>
+              <path d="M92 -10 L112 130" stroke="#fff" stroke-width="7"/>
+              <path d="M236 -10 L218 130" stroke="#fff" stroke-width="6"/>
+              <path d="M-10 30 L340 40" stroke="#fff" stroke-width="5"/>
+              <path d="M150 -10 L166 130" stroke="#F5F9EA" stroke-width="3"/>
+              <path d="M22 108 C64 96 112 84 158 64 S 218 52 244 42" stroke="#005A52" stroke-width="3.5" stroke-dasharray="1 7" stroke-linecap="round"/>
+              <circle cx="22" cy="108" r="6.5" fill="#005A52" stroke="#fff" stroke-width="2.5"/>
+              <g transform="translate(230 8) scale(1.3)"><path d="M17.66 16.66l-4.24 4.24a2 2 0 0 1-2.83 0l-4.25-4.24a8 8 0 1 1 11.32 0z" fill="#014D3C" stroke="#fff" stroke-width="1.2"/><circle cx="12" cy="11" r="3" fill="#A0C032"/></g>
+            </svg>
+            <span style="position:absolute;left:10px;top:10px;background:#fff;border-radius:999px;padding:4px 12px;font-size:12px;font-weight:600;color:var(--forest)">{{d.distanceKm}} km · about {{d.etaMin}} min</span>
+          </div>
+          <button class="tap btnLine" onClick="{{navToast}}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l18-7-7 18-2-8-9-3z"/></svg>Navigate</button>
+          </div>
+          </sc-if>
+        </section>
+
+        <section class="card" style="display:flex;flex-direction:column;gap:6px;padding-bottom:10px">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px">
+            <span class="eyebrow">Tests ordered</span>
+            <span style="font-size:12px;font-weight:600;color:var(--muted)">{{d.testCount}} tests · {{d.tubeCount}} tubes</span>
+          </div>
+          <sc-if value="{{d.hasFasting}}" hint-placeholder-val="{{ true }}">
+            <div style="display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:14px;background:#FFF1D0;color:#7A4B00;box-sizing:border-box;margin-bottom:4px">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#7A4B00" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none;margin-top:2px"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+              <span style="font-size:13px;font-weight:600;line-height:1.45">Fasting sample. Confirm the patient has had nothing but water for 10–12 hours.</span>
+            </div>
+          </sc-if>
+          <sc-for list="{{d.tests}}" as="t" hint-placeholder-count="4">
+            <div style="display:flex;align-items:center;gap:10px;min-height:52px;border-top:1px solid var(--line)">
+              <span style="flex:1;min-width:0;display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span style="font-size:15px;font-weight:600">{{t.name}}</span><sc-if value="{{t.fasting}}" hint-placeholder-val="{{ false }}"><span style="font-size:11px;font-weight:700;color:#7A4B00;background:#FFF1D0;border-radius:999px;padding:1px 8px">Fasting</span></sc-if></span>
+              <span class="tchip" style="background:{{t.soft}};color:{{t.ink}}"><span class="tdot" style="background:{{t.hex}}"></span>{{t.tube}}</span>
+            </div>
+          </sc-for>
+        </section>
+
+        <sc-if value="{{d.isCollected}}" hint-placeholder-val="{{ false }}">
+          <section class="card" style="display:flex;flex-direction:column;gap:10px">
+            <div style="display:flex;align-items:center;gap:8px;color:#14612F;font-weight:700;font-size:14px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#14612F" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none"><path d="M5 12l5 5l10-10"/></svg>{{d.collectedNote}}</div>
+            <sc-for list="{{d.samples}}" as="m" hint-placeholder-count="3">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:40px;border-top:1px solid var(--line)">
+                <span class="tchip" style="background:{{m.soft}};color:{{m.ink}}"><span class="tdot" style="background:{{m.hex}}"></span>{{m.short}}</span>
+                <span style="font-size:13px;font-weight:600;letter-spacing:.02em">{{m.sample}}</span>
+              </div>
+            </sc-for>
+            <span style="font-size:12px;font-weight:600;color:{{d.syncColor}}">{{d.syncText}}</span>
+          </section>
+        </sc-if>
+        <sc-if value="{{d.isMissed}}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;align-items:flex-start;gap:10px;padding:14px 16px;border-radius:16px;background:#FDE7E4;color:#9C1C12;font-weight:600;font-size:13.5px;line-height:1.45;box-sizing:border-box"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9C1C12" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none;margin-top:1px"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>{{d.missedNote}}</div>
+        </sc-if>
+        <sc-if value="{{d.isActive}}" hint-placeholder-val="{{ true }}">
+          <button class="tap btnBad" onClick="{{d.openMissed}}">Can't collect? Mark as missed</button>
+        </sc-if>
+      </div>
+    </sc-if>
+
+    <!-- ===================== VERIFY PATIENT ===================== -->
+    <sc-if value="{{sc.verify}}" hint-placeholder-val="{{ false }}">
+      <div class="push" style="padding:16px 16px 24px;display:flex;flex-direction:column;gap:16px">
+        <div style="display:flex;padding:2px 4px 0">
+          <sc-for list="{{steps}}" as="st" hint-placeholder-count="3">
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;position:relative">
+              <span style="position:absolute;top:12px;left:calc(-50% + 20px);right:calc(50% + 20px);height:2px;border-radius:1px;background:{{st.lineBg}};display:{{st.lineDisp}}"></span>
+              <span style="position:relative;width:26px;height:26px;border-radius:50%;box-sizing:border-box;display:grid;place-items:center;font-size:12px;font-weight:700;border:2px solid {{st.bd}};background:{{st.bg}};color:{{st.fg}}">
+                <sc-if value="{{st.done}}" hint-placeholder-val="{{ false }}"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5l10-10"/></svg></sc-if>
+                <sc-if value="{{st.notDone}}" hint-placeholder-val="{{ true }}">{{st.n}}</sc-if>
+              </span>
+              <span style="font-size:12px;font-weight:{{st.fw}};color:{{st.lc}}">{{st.label}}</span>
+            </div>
+          </sc-for>
+        </div>
+
+        <section class="card" style="display:flex;flex-direction:column;gap:14px;border:1.5px solid #CFE0A0">
+          <span class="eyebrow" style="color:var(--green)">Order for</span>
+          <div style="display:flex;align-items:center;gap:14px">
+            <span class="avatar" style="width:60px;height:60px;font-size:21px">{{d.initial}}</span>
+            <div style="display:flex;flex-direction:column;gap:2px;min-width:0;flex:1">
+              <span style="font-size:23px;font-weight:700;letter-spacing:-.015em;line-height:1.2">{{d.name}}</span>
+              <span style="font-size:17px;font-weight:600;color:var(--forest)">{{d.ageSex}}</span>
+            </div>
+          </div>
+          <span style="font-size:12px;color:var(--muted);font-weight:500">Order {{d.orderId}} · {{d.testCount}} tests · {{d.tubeCount}} tubes</span>
+        </section>
+
+        <section class="card" style="padding:0;overflow:hidden">
+          <div style="padding:16px 16px 12px;display:flex;flex-direction:column;gap:4px">
+            <span style="font-size:15px;font-weight:700">Ask the patient to say it</span>
+            <span style="font-size:13px;color:var(--muted);line-height:1.5">“Please tell me your full name and your age.” Don't read the details out to them. Tick each one only when it matches.</span>
+          </div>
+          <sc-for list="{{idRows}}" as="k" hint-placeholder-count="2">
+            <button class="tap rowbtn" onClick="{{k.toggle}}" aria-pressed="{{k.pressed}}" style="border-top:1px solid var(--line);min-height:68px;background:{{k.bg}}">
+              <span class="cb" style="border-color:{{k.boxBd}};background:{{k.boxBg}}">
+                <sc-if value="{{k.checked}}" hint-placeholder-val="{{ false }}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5l10-10"/></svg></sc-if>
+              </span>
+              <span style="display:flex;flex-direction:column;gap:1px;flex:1;min-width:0"><span style="font-size:15px;font-weight:600">{{k.title}}</span><span style="font-size:12px;color:var(--muted)">{{k.sub}}</span></span>
+            </button>
+          </sc-for>
+        </section>
+      </div>
+    </sc-if>
+
+    <!-- ===================== CHECKLIST ===================== -->
+    <sc-if value="{{sc.checklist}}" hint-placeholder-val="{{ false }}">
+      <div class="push" style="padding:16px 16px 24px;display:flex;flex-direction:column;gap:14px">
+        <div style="display:flex;padding:2px 4px 0">
+          <sc-for list="{{steps}}" as="st" hint-placeholder-count="3">
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;position:relative">
+              <span style="position:absolute;top:12px;left:calc(-50% + 20px);right:calc(50% + 20px);height:2px;border-radius:1px;background:{{st.lineBg}};display:{{st.lineDisp}}"></span>
+              <span style="position:relative;width:26px;height:26px;border-radius:50%;box-sizing:border-box;display:grid;place-items:center;font-size:12px;font-weight:700;border:2px solid {{st.bd}};background:{{st.bg}};color:{{st.fg}}">
+                <sc-if value="{{st.done}}" hint-placeholder-val="{{ false }}"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5l10-10"/></svg></sc-if>
+                <sc-if value="{{st.notDone}}" hint-placeholder-val="{{ true }}">{{st.n}}</sc-if>
+              </span>
+              <span style="font-size:12px;font-weight:{{st.fw}};color:{{st.lc}}">{{st.label}}</span>
+            </div>
+          </sc-for>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:14px;background:#E4F4DE;color:#14612F;font-size:13px;font-weight:600;box-sizing:border-box"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#14612F" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none"><path d="M12 3l8 3v6c0 4.5-3.2 8-8 9-4.8-1-8-4.5-8-9V6z"/><path d="m9 12 2 2 4-4"/></svg><span>Identity confirmed · {{c.name}}, {{c.ageShort}}</span></div>
+
+        <sc-if value="{{c.needsFast}}" hint-placeholder-val="{{ true }}">
+          <section class="card" style="display:flex;align-items:center;gap:12px;border:1.5px solid {{c.fastBd}}">
+            <div style="display:flex;flex-direction:column;gap:3px;flex:1;min-width:0">
+              <span style="font-size:15px;font-weight:700">Fasting confirmed</span>
+              <span style="font-size:12px;color:var(--muted);line-height:1.45">{{c.fastSub}}</span>
+            </div>
+            <button class="tap" role="switch" aria-checked="{{c.fastAria}}" aria-label="Fasting confirmed" onClick="{{c.toggleFast}}" style="min-width:56px;min-height:48px;border:0;background:transparent;padding:0;display:grid;place-items:center;flex:none">
+              <span class="sw" style="background:{{c.fastTrack}}"><span class="swk" style="transform:translateX({{c.fastX}}px)"></span></span>
+            </button>
+          </section>
+        </sc-if>
+
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;align-items:baseline;justify-content:space-between;padding:0 4px"><span style="font-size:15px;font-weight:700">Tubes</span><span style="font-size:12px;font-weight:600;color:var(--muted)">{{c.progress}}</span></div>
+          <section class="card" style="padding:0;overflow:hidden">
+            <sc-for list="{{c.rows}}" as="t" hint-placeholder-count="3">
+              <button class="tap rowbtn" onClick="{{t.toggle}}" aria-pressed="{{t.pressed}}" style="border-top:1px solid var(--line);min-height:80px;background:{{t.rowBg}}">
+                <span class="cb" style="border-color:{{t.boxBd}};background:{{t.boxBg}}">
+                  <sc-if value="{{t.checked}}" hint-placeholder-val="{{ false }}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5l10-10"/></svg></sc-if>
+                </span>
+                <svg width="22" height="46" viewBox="0 0 20 44" aria-hidden="true" style="flex:none"><rect x="1.5" y="0.5" width="17" height="10" rx="3" fill="{{t.hex}}" stroke="rgba(0,0,0,.25)"/><path d="M3 11h14v24a7 7 0 0 1-14 0z" fill="#fff" stroke="#9AA5A1" stroke-width="1.5"/><path d="M3.8 26h12.4v9a6.2 6.2 0 0 1-12.4 0z" fill="{{t.hex}}" fill-opacity=".45"/></svg>
+                <span style="display:flex;flex-direction:column;gap:4px;flex:1;min-width:0">
+                  <span><span class="tchip" style="background:{{t.soft}};color:{{t.ink}}">{{t.label}}</span></span>
+                  <span style="font-size:13px;font-weight:600;line-height:1.35">{{t.testsText}}</span>
+                  <span style="font-size:12px;color:var(--muted)">{{t.vol}} · {{t.stateLabel}}</span>
+                </span>
+              </button>
+            </sc-for>
+          </section>
+        </div>
+
+        <section class="card" style="display:flex;align-items:center;gap:14px;border:1.5px solid {{c.scanBd}};background:{{c.scanBg}}">
+          <span style="width:46px;height:46px;border-radius:14px;background:{{c.scanTile}};display:grid;place-items:center;flex:none">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="{{c.scanIcon}}" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 5v14M8 5v14M11 5v14M15 5v14M18 5v14M21 5v14"/></svg>
+          </span>
+          <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0">
+            <span style="font-size:15px;font-weight:700">Scan &amp; label</span>
+            <span style="font-size:12px;color:var(--muted);line-height:1.4">{{c.scanSub}}</span>
+          </div>
+          <sc-if value="{{c.scanDone}}" hint-placeholder-val="{{ false }}"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#14612F" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none"><path d="M5 12l5 5l10-10"/></svg></sc-if>
+          <sc-if value="{{c.scanReady}}" hint-placeholder-val="{{ true }}"><button class="tap" onClick="{{c.scan}}" style="border:0;background:var(--lime);color:#00362F;border-radius:999px;padding:0 20px;min-height:48px;font:700 14px 'Poppins',system-ui,sans-serif;flex:none">Scan</button></sc-if>
+          <sc-if value="{{c.scanLocked}}" hint-placeholder-val="{{ false }}"><span style="min-height:48px;display:inline-flex;align-items:center;padding:0 18px;border-radius:999px;background:#EEF0EC;color:#6F7B77;font:700 14px 'Poppins',system-ui,sans-serif;flex:none">Scan</span></sc-if>
+        </section>
+      </div>
+    </sc-if>
+
+    <!-- ===================== SCAN & MATCH ===================== -->
+    <sc-if value="{{sc.scan}}" hint-placeholder-val="{{ false }}">
+      <div class="push" style="padding:20px 16px 24px;display:flex;flex-direction:column;gap:16px">
+        <sc-if value="{{sc2.scanning}}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex;flex-direction:column;gap:16px">
+            <div style="display:flex;flex-direction:column;gap:3px">
+              <span style="font-size:19px;font-weight:700;letter-spacing:-.01em">Scan the label sheet</span>
+              <span style="font-size:13px;color:var(--muted);line-height:1.5">Hold the printed labels for {{sc2.name}} inside the frame. It scans on its own.</span>
+            </div>
+            <div aria-hidden="true" style="width:100%;height:340px;border-radius:24px;background:#0A1A17;position:relative;overflow:hidden;box-sizing:border-box">
+              <div class="bars" style="position:absolute;left:58px;right:58px;top:128px;height:84px;opacity:.12;border-radius:6px"></div>
+              <span style="position:absolute;top:22px;left:22px;width:34px;height:34px;border-top:4px solid #A0C032;border-left:4px solid #A0C032;border-radius:10px 0 0 0"></span>
+              <span style="position:absolute;top:22px;right:22px;width:34px;height:34px;border-top:4px solid #A0C032;border-right:4px solid #A0C032;border-radius:0 10px 0 0"></span>
+              <span style="position:absolute;bottom:22px;left:22px;width:34px;height:34px;border-bottom:4px solid #A0C032;border-left:4px solid #A0C032;border-radius:0 0 0 10px"></span>
+              <span style="position:absolute;bottom:22px;right:22px;width:34px;height:34px;border-bottom:4px solid #A0C032;border-right:4px solid #A0C032;border-radius:0 0 10px 0"></span>
+              <span class="scanline" style="position:absolute;left:30px;right:30px;top:40px;height:3px;border-radius:2px;background-image:linear-gradient(90deg,rgba(160,192,50,0),#A0C032 18%,#A0C032 82%,rgba(160,192,50,0))"></span>
+              <span style="position:absolute;left:50%;bottom:30px;transform:translateX(-50%);background:rgba(255,255,255,.14);color:#fff;border-radius:999px;padding:5px 14px;font-size:12px;font-weight:600;white-space:nowrap">Order {{sc2.orderId}}</span>
+            </div>
+            <div style="display:flex;gap:10px;align-items:flex-start;padding:0 4px"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none;margin-top:1px"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01"/><path d="M11 12h1v4h1"/></svg><span style="font-size:12.5px;color:var(--muted);line-height:1.5">Hold the phone 15–20 cm from the labels. If a barcode is smudged, enter the code printed under it.</span></div>
+            <button class="tap btnLine" onClick="{{sc2.manual}}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="18" height="12" rx="2.5"/><path d="M7 10h.01M11 10h.01M15 10h.01M7 14h10"/></svg>Enter code manually</button>
+          </div>
+        </sc-if>
+        <sc-if value="{{sc2.matched}}" hint-placeholder-val="{{ false }}">
+          <div class="scr" style="display:flex;flex-direction:column;gap:16px">
+            <div style="display:flex;align-items:center;gap:14px">
+              <div class="pop" style="width:56px;height:56px;border-radius:50%;background:var(--forest);display:grid;place-items:center;flex:none"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#A0C032" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path class="tick" d="M5 12l5 5l10-10"/></svg></div>
+              <div style="display:flex;flex-direction:column;gap:1px;min-width:0">
+                <span style="font-size:19px;font-weight:700;letter-spacing:-.01em">Sample matched</span>
+                <span style="font-size:13px;color:var(--muted)">{{sc2.name}} · {{sc2.ageSex}}</span>
+              </div>
+            </div>
+            <section style="border-radius:20px;background-image:linear-gradient(135deg,#014D3C 0%,#005A52 100%);color:#fff;padding:16px 18px;display:flex;flex-direction:column;gap:2px;box-sizing:border-box">
+              <span style="font-size:12px;font-weight:600;color:#BFE0D6;letter-spacing:.07em;text-transform:uppercase">Sample ID</span>
+              <span style="font-size:26px;font-weight:700;letter-spacing:.02em">{{sc2.sid}}</span>
+              <span style="font-size:12px;color:#BFE0D6">{{sc2.tubeCount}} tubes · collected {{sc2.time}}</span>
+            </section>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <span style="font-size:15px;font-weight:700;padding:0 4px">Labels to stick on tubes</span>
+              <sc-for list="{{sc2.labels}}" as="l" hint-placeholder-count="3">
+                <div style="display:flex;background:#fff;border-radius:14px;border:1.5px dashed #BFC8C4;overflow:hidden;box-sizing:border-box">
+                  <span style="width:10px;flex:none;background:{{l.hex}}"></span>
+                  <div style="flex:1;min-width:0;padding:10px 12px 10px;display:flex;flex-direction:column;gap:5px">
+                    <div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px"><span style="font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{l.name}}</span><span style="font-size:12px;font-weight:600;color:var(--muted);white-space:nowrap">{{l.ageSex}}</span></div>
+                    <div class="bars" style="height:26px;border-radius:2px"></div>
+                    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><span style="font-size:12px;font-weight:700;letter-spacing:.02em">{{l.sample}}</span><span style="font-size:12px;font-weight:600;color:{{l.ink}}">{{l.short}}</span></div>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </sc-if>
+      </div>
+    </sc-if>
+
+    <!-- ===================== COLLECTION COMPLETE ===================== -->
+    <sc-if value="{{sc.complete}}" hint-placeholder-val="{{ false }}">
+      <div class="push" style="padding:20px 16px 24px;display:flex;flex-direction:column;gap:16px">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center">
+          <div class="pop" style="width:64px;height:64px;border-radius:50%;background:var(--forest);display:grid;place-items:center;margin-bottom:6px"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#A0C032" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5l10-10"/></svg></div>
+          <span style="font-size:21px;font-weight:700;letter-spacing:-.01em">Collection complete</span>
+          <span style="font-size:14px;color:var(--muted)">{{comp.name}} · {{comp.ageSex}}</span>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px">
+          <div class="card" style="display:flex;flex-direction:column;gap:2px;padding:14px 16px">
+            <span style="font-size:12px;font-weight:600;color:var(--muted)">Tubes collected</span>
+            <span style="font-size:24px;font-weight:700;color:var(--forest)">{{comp.tubeCount}}</span>
+          </div>
+          <div class="card" style="display:flex;flex-direction:column;gap:2px;padding:14px 16px">
+            <span style="font-size:12px;font-weight:600;color:var(--muted)">Time collected</span>
+            <span style="font-size:24px;font-weight:700;color:var(--forest);white-space:nowrap">{{comp.time}}</span>
+          </div>
+        </div>
+
+        <section class="card" style="padding:0 16px;display:flex;flex-direction:column;overflow:hidden">
+          <sc-for list="{{comp.samples}}" as="m" hint-placeholder-count="3">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:52px;border-top:1px solid var(--line)">
+              <span class="tchip" style="background:{{m.soft}};color:{{m.ink}}"><span class="tdot" style="background:{{m.hex}}"></span>{{m.label}}</span>
+              <span style="font-size:14px;font-weight:700;letter-spacing:.02em">{{m.sample}}</span>
+            </div>
+          </sc-for>
+          <sc-if value="{{comp.needsFast}}" hint-placeholder-val="{{ true }}">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:52px;border-top:1px solid var(--line)">
+              <span style="font-size:14px;font-weight:600">Fasting</span>
+              <span class="chip {{comp.fastCls}}">{{comp.fastText}}</span>
+            </div>
+          </sc-if>
+        </section>
+
+        <div style="display:flex;gap:12px;align-items:flex-start;padding:14px 16px;border-radius:16px;background:{{comp.handBg}};box-sizing:border-box">
+          <span style="width:34px;height:34px;border-radius:50%;background:{{comp.handIconBg}};display:grid;place-items:center;flex:none">
+            <sc-if value="{{comp.handOnline}}" hint-placeholder-val="{{ false }}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7l9-4 9 4-9 4z"/><path d="M3 7v10l9 4 9-4V7"/><path d="M12 11v10"/></svg></sc-if>
+            <sc-if value="{{comp.handOffline}}" hint-placeholder-val="{{ true }}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m2 2 20 20"/><path d="M5.782 5.782A7 7 0 0 0 9 19h8.5a4.5 4.5 0 0 0 1.307-.193"/><path d="M21.532 16.5A4.5 4.5 0 0 0 17.5 10h-1.79A7.008 7.008 0 0 0 10 5.07"/></svg></sc-if>
+          </span>
+          <div style="display:flex;flex-direction:column;gap:2px;min-width:0;flex:1">
+            <span style="font-size:14px;font-weight:700;color:{{comp.handFg}}">{{comp.handTitle}}</span>
+            <span style="font-size:12.5px;line-height:1.5;color:{{comp.handFg}}">{{comp.handSub}}</span>
+          </div>
+        </div>
+
+        <label style="display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600;color:var(--muted)">Note for the lab (optional)
+          <textarea value="{{comp.note}}" onChange="{{comp.onNote}}" placeholder="e.g. Difficult vein, left arm used" rows="2" style="border-radius:14px;border:1.5px solid #D3D8D0;padding:12px 14px;font-size:14px;color:var(--ink);resize:none;font-family:inherit;box-sizing:border-box;background:#fff"></textarea>
+        </label>
+
+      </div>
+    </sc-if>
+
+    <!-- ===================== MARK MISSED ===================== -->
+    <sc-if value="{{sc.missed}}" hint-placeholder-val="{{ false }}">
+      <div class="push" style="padding:20px 16px 24px;display:flex;flex-direction:column;gap:16px">
+        <div style="display:flex;flex-direction:column;gap:2px">
+          <span style="font-size:13px;color:var(--muted);font-weight:600">Can't collect from</span>
+          <span style="font-size:21px;font-weight:700;letter-spacing:-.01em">{{ms.name}}</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <span style="font-size:13px;font-weight:600;color:var(--muted)">Reason</span>
+          <sc-for list="{{ms.reasons}}" as="r" hint-placeholder-count="5">
+            <button class="tap" aria-pressed="{{r.pressed}}" onClick="{{r.pick}}" style="width:100%;min-height:54px;border-radius:16px;border:1.5px solid {{r.bd}};background:{{r.bg}};color:var(--ink);font-size:14px;font-weight:600;text-align:left;padding:8px 16px;display:flex;align-items:center;gap:12px;box-sizing:border-box">
+              <span style="width:22px;height:22px;border-radius:50%;border:2px solid {{r.ringBd}};display:grid;place-items:center;flex:none;box-sizing:border-box"><span style="width:10px;height:10px;border-radius:50%;background:{{r.dot}}"></span></span>
+              {{r.label}}
+            </button>
+          </sc-for>
+        </div>
+        <label style="display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600;color:var(--muted)">Note for dispatch (optional)
+          <textarea value="{{ms.note}}" onChange="{{ms.onNote}}" placeholder="e.g. Called twice, no answer" rows="2" style="border-radius:14px;border:1.5px solid #D3D8D0;padding:12px 14px;font-size:14px;color:var(--ink);resize:none;font-family:inherit;box-sizing:border-box;background:#fff"></textarea>
+        </label>
+      </div>
+    </sc-if>
+
+    <!-- ===================== HISTORY (tab) ===================== -->
+    <sc-if value="{{sc.history}}" hint-placeholder-val="{{ false }}">
+      <div class="scr" style="padding:16px 16px 24px;display:flex;flex-direction:column;gap:14px">
+        <section class="card" style="display:flex;flex-direction:column;gap:12px;padding:16px 8px 14px">
+          <span class="eyebrow" style="padding-left:10px">Last 4 working days</span>
+          <div style="display:flex">
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px"><span style="font-size:24px;font-weight:700;color:var(--forest)">{{hs.collected}}</span><span style="font-size:12px;font-weight:600;color:var(--muted)">Collected</span></div>
+          <div style="width:1px;background:var(--line)"></div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px"><span style="font-size:24px;font-weight:700;color:#9C1C12">{{hs.missed}}</span><span style="font-size:12px;font-weight:600;color:var(--muted)">Missed</span></div>
+          <div style="width:1px;background:var(--line)"></div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px"><span style="font-size:24px;font-weight:700;color:var(--forest)">{{hs.pct}}%</span><span style="font-size:12px;font-weight:600;color:var(--muted)">Success rate</span></div>
+          </div>
+        </section>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <span style="font-size:15px;font-weight:700;padding:0 4px">Past working days</span>
+          <section class="card" style="padding:0;overflow:hidden">
+            <sc-for list="{{histDays}}" as="h" hint-placeholder-count="4">
+              <button class="tap rowbtn" onClick="{{h.open}}" style="border-top:1px solid var(--line);min-height:82px;gap:14px">
+                <span style="width:48px;height:52px;border-radius:14px;background:var(--lime-soft);display:flex;flex-direction:column;align-items:center;justify-content:center;flex:none;color:var(--forest)"><span style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;line-height:1.2">{{h.dow}}</span><span style="font-size:18px;font-weight:700;line-height:1.15">{{h.dom}}</span></span>
+                <span style="display:flex;flex-direction:column;gap:6px;flex:1;min-width:0">
+                  <span style="font-size:15px;font-weight:600">{{h.collected}} collected · {{h.missed}} missed</span>
+                  <span aria-hidden="true" style="display:flex;gap:3px;height:5px"><span style="flex:{{h.collected}};background:var(--lime);border-radius:3px"></span><span style="flex:{{h.missedFlex}};background:#E8A59E;border-radius:3px"></span></span>
+                </span>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5C6A66" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none"><path d="m9 6 6 6-6 6"/></svg>
+              </button>
+            </sc-for>
+          </section>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- ===================== HISTORY DAY DETAIL ===================== -->
+    <sc-if value="{{sc.historyDay}}" hint-placeholder-val="{{ false }}">
+      <div class="push" style="padding:16px 16px 24px;display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <span class="chip ok">{{hd.collected}} collected</span>
+          <span class="chip {{hd.missedCls}}">{{hd.missed}} missed</span>
+          <span class="chip neutral">All synced</span>
+        </div>
+        <section class="card" style="padding:0;overflow:hidden">
+          <sc-for list="{{hd.rows}}" as="r" hint-placeholder-count="4">
+            <div style="display:flex;align-items:center;gap:12px;min-height:72px;padding:10px 14px;border-top:1px solid var(--line);box-sizing:border-box">
+              <span class="avatar" style="width:42px;height:42px;font-size:14px">{{r.initial}}</span>
+              <span style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0">
+                <span style="font-size:15px;font-weight:600">{{r.name}}</span>
+                <span style="font-size:12px;color:var(--muted);line-height:1.4">{{r.time}} · {{r.locality}}</span>
+                <span style="font-size:12px;color:var(--muted);line-height:1.4">{{r.summary}}</span>
+              </span>
+              <span class="chip {{r.chipCls}}">{{r.statusLabel}}</span>
+            </div>
+          </sc-for>
+        </section>
+      </div>
+    </sc-if>
+
+    <!-- ===================== PROFILE (tab) ===================== -->
+    <sc-if value="{{sc.profile}}" hint-placeholder-val="{{ false }}">
+      <div class="scr" style="padding:20px 16px 24px;display:flex;flex-direction:column;gap:16px">
+        <div style="display:flex;align-items:center;gap:14px">
+          <span style="width:64px;height:64px;border-radius:50%;background:var(--forest);color:#fff;font-size:22px;font-weight:700;display:grid;place-items:center;flex:none">{{p.initial}}</span>
+          <div style="display:flex;flex-direction:column;gap:1px">
+            <span style="font-size:19px;font-weight:700;letter-spacing:-.01em">{{p.name}}</span>
+            <span style="font-size:13px;color:var(--muted)">Phlebotomist · {{p.empId}}</span>
+            <span style="font-size:13px;color:var(--muted)">{{p.lab}}</span>
+          </div>
+        </div>
+
+        <section class="card" style="display:flex;align-items:center;gap:12px;border:1.5px solid {{p.syncBd}};background:{{p.syncBg}}">
+          <span style="width:42px;height:42px;border-radius:13px;background:{{p.syncTile}};display:grid;place-items:center;flex:none">
+            <sc-if value="{{v.online}}" hint-placeholder-val="{{ false }}"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#14612F" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9z"/><path d="m9 13 2.2 2.2L15 11.5"/></svg></sc-if>
+            <sc-if value="{{v.offline}}" hint-placeholder-val="{{ true }}"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#7A4B00" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m2 2 20 20"/><path d="M5.782 5.782A7 7 0 0 0 9 19h8.5a4.5 4.5 0 0 0 1.307-.193"/><path d="M21.532 16.5A4.5 4.5 0 0 0 17.5 10h-1.79A7.008 7.008 0 0 0 10 5.07"/></svg></sc-if>
+          </span>
+          <div style="display:flex;flex-direction:column;gap:1px;flex:1;min-width:0">
+            <span style="font-size:15px;font-weight:700">{{p.syncTitle}}</span>
+            <span style="font-size:12px;color:var(--muted);line-height:1.4">{{p.syncSub}}</span>
+          </div>
+          <button class="tap" onClick="{{syncNow}}" style="border:1.5px solid #D3D8D0;background:#fff;color:var(--ink);border-radius:999px;padding:0 16px;min-height:48px;font:700 13px 'Poppins',system-ui,sans-serif;flex:none">Sync now</button>
+        </section>
+
+        <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px">
+          <div class="card" style="display:flex;flex-direction:column;gap:4px;align-items:center;padding:16px 6px">
+            <span style="font-size:22px;font-weight:700;color:var(--forest)">{{p.weekCount}}</span>
+            <span style="font-size:12px;color:var(--muted);font-weight:600;text-align:center;line-height:1.3">Collections this week</span>
+          </div>
+          <div class="card" style="display:flex;flex-direction:column;gap:4px;align-items:center;padding:16px 6px">
+            <span style="font-size:22px;font-weight:700;color:var(--forest)">{{p.onTimePct}}%</span>
+            <span style="font-size:12px;color:var(--muted);font-weight:600;text-align:center;line-height:1.3">On-time rate</span>
+          </div>
+          <div class="card" style="display:flex;flex-direction:column;gap:4px;align-items:center;padding:16px 6px">
+            <span style="font-size:22px;font-weight:700;color:var(--forest)">{{p.rejected}}</span>
+            <span style="font-size:12px;color:var(--muted);font-weight:600;text-align:center;line-height:1.3">Rejected samples</span>
+          </div>
+        </div>
+
+        <section style="display:flex;flex-direction:column;gap:8px">
+          <span class="eyebrow" style="padding-left:4px">Settings</span>
+          <div class="card" style="padding:0;overflow:hidden">
+            <button class="tap rowbtn" onClick="{{toastNotif}}" style="min-height:68px">
+              <span class="tile"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M9.5 21a2.5 2.5 0 0 0 5 0"/></svg></span>
+              <span style="flex:1;font-size:15px;font-weight:600">Notification preferences</span>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5C6A66" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
+            </button>
+            <button class="tap rowbtn" onClick="{{toastPrinter}}" style="border-top:1px solid var(--line);min-height:68px">
+              <span class="tile"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 9V3h10v6"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M7 14h10v7H7z"/></svg></span>
+              <span style="flex:1;display:flex;flex-direction:column;gap:1px"><span style="font-size:15px;font-weight:600">Label printer</span><span style="font-size:12px;color:var(--muted)">Bluetooth · connected</span></span>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5C6A66" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
+            </button>
+            <button class="tap rowbtn" onClick="{{toastHelp}}" style="border-top:1px solid var(--line);min-height:68px">
+              <span class="tile"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 17v.01M12 14c0-2 2-2 2-4a2 2 0 1 0-4 0"/></svg></span>
+              <span style="flex:1;font-size:15px;font-weight:600">Help &amp; support</span>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5C6A66" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
+            </button>
+            <button class="tap rowbtn" onClick="{{signOut}}" style="border-top:1px solid var(--line);min-height:68px">
+              <span class="tile" style="background:#FDE7E4"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9C1C12" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg></span>
+              <span style="flex:1;font-size:15px;font-weight:600;color:#9C1C12">Log out</span>
+            </button>
+          </div>
+        </section>
+      </div>
+    </sc-if>
+
+  </div>
+
+  <!-- ===================== STICKY FOOTERS ===================== -->
+  <sc-if value="{{v.footDetail}}" hint-placeholder-val="{{ false }}">
+    <div class="foot">
+      <div style="display:flex;gap:10px">
+        <sc-if value="{{d.showOnWay}}" hint-placeholder-val="{{ true }}"><button class="tap btnLine" onClick="{{d.enroute}}" style="flex:1;padding:0 12px">On my way</button></sc-if>
+        <button class="tap btn" onClick="{{d.primary}}" style="flex:1.5;padding:0 12px">{{d.primaryLabel}}</button>
+      </div>
+    </div>
+  </sc-if>
+  <sc-if value="{{v.footVerify}}" hint-placeholder-val="{{ false }}">
+    <div class="foot">
+      <sc-if value="{{c.idReady}}" hint-placeholder-val="{{ false }}"><button class="tap btn" onClick="{{c.idContinue}}">Confirm &amp; start collection</button></sc-if>
+      <sc-if value="{{c.idNotReady}}" hint-placeholder-val="{{ true }}"><div class="btnOff">Confirm &amp; start collection</div></sc-if>
+      <button class="tap btnBad" onClick="{{c.idMismatch}}">Details don't match</button>
+    </div>
+  </sc-if>
+  <sc-if value="{{v.footChecklist}}" hint-placeholder-val="{{ false }}">
+    <div class="foot">
+      <sc-if value="{{c.fCollect}}" hint-placeholder-val="{{ true }}"><div class="btnOff">{{c.leftLabel}}</div></sc-if>
+      <sc-if value="{{c.fScan}}" hint-placeholder-val="{{ false }}"><button class="tap btn" onClick="{{c.scan}}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#00362F" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 5v14M8 5v14M11 5v14M15 5v14M18 5v14M21 5v14"/></svg>Scan &amp; label tubes</button></sc-if>
+      <sc-if value="{{c.fFinish}}" hint-placeholder-val="{{ false }}"><button class="tap btn" onClick="{{c.finish}}">Mark collection complete</button></sc-if>
+    </div>
+  </sc-if>
+  <sc-if value="{{v.footScan}}" hint-placeholder-val="{{ false }}">
+    <div class="foot">
+      <div style="display:flex;gap:10px">
+        <button class="tap btnLine" onClick="{{sc2.print}}" style="flex:1;padding:0 12px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 9V3h10v6"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M7 14h10v7H7z"/></svg>Print</button>
+        <button class="tap btn" onClick="{{back}}" style="flex:1.6;padding:0 12px">Back to checklist</button>
+      </div>
+    </div>
+  </sc-if>
+  <sc-if value="{{v.footComplete}}" hint-placeholder-val="{{ false }}">
+    <div class="foot"><button class="tap btn" onClick="{{comp.submit}}">{{comp.submitLabel}}</button></div>
+  </sc-if>
+  <sc-if value="{{v.footMissed}}" hint-placeholder-val="{{ false }}">
+    <div class="foot">
+      <sc-if value="{{ms.ready}}" hint-placeholder-val="{{ false }}"><button class="tap btn" onClick="{{ms.confirm}}">Confirm missed visit</button></sc-if>
+      <sc-if value="{{ms.notReady}}" hint-placeholder-val="{{ true }}"><div class="btnOff">Choose a reason to continue</div></sc-if>
+    </div>
+  </sc-if>
+
+  <!-- ===================== BOTTOM NAV ===================== -->
+  <sc-if value="{{v.noStack}}" hint-placeholder-val="{{ true }}">
+    <nav aria-label="Main" style="flex:none;display:flex;background:#fff;border-top:1px solid var(--line);padding:8px 8px 12px;box-sizing:border-box">
+      <button class="tap tabbtn {{tabs.queueCls}}" onClick="{{goQueue}}" aria-current="{{tabs.queueCur}}">
+        <span class="tabico"><svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h7"/></svg><sc-if value="{{v.showBadge}}" hint-placeholder-val="{{ true }}"><span class="badge">{{v.remainingCount}}</span></sc-if></span>
+        Queue
+      </button>
+      <button class="tap tabbtn {{tabs.historyCls}}" onClick="{{goHistory}}" aria-current="{{tabs.historyCur}}">
+        <span class="tabico"><svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 2"/></svg></span>
+        History
+      </button>
+      <button class="tap tabbtn {{tabs.profileCls}}" onClick="{{goProfile}}" aria-current="{{tabs.profileCur}}">
+        <span class="tabico"><svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
+        Profile
+      </button>
+    </nav>
+  </sc-if>
+
+  <sc-if value="{{v.hasToast}}" hint-placeholder-val="{{ false }}">
+    <div role="status" class="sheet" style="position:absolute;left:16px;right:16px;top:{{v.toastTop}}px;background:var(--ink);color:#fff;border-radius:16px;padding:13px 16px;font-size:13px;font-weight:600;line-height:1.4;display:flex;align-items:center;gap:10px;box-shadow:0 8px 20px rgba(0,0,0,.22);z-index:20;box-sizing:border-box">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#A0C032" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01"/><path d="M11 12h1v4h1"/></svg>
+      <span>{{v.toast}}</span>
+    </div>
+  </sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+const TUBES = {
+  purple: { label: 'Purple · EDTA', short: 'EDTA', hex: '#7B4FB8', soft: '#EFE7F8', ink: '#4A2A82', vol: '3 mL' },
+  red: { label: 'Red · Plain', short: 'Plain', hex: '#D64541', soft: '#FCE8E6', ink: '#8F1F1B', vol: '5 mL' },
+  gold: { label: 'Gold · SST gel', short: 'SST gel', hex: '#D9A21B', soft: '#FBF0D2', ink: '#6B4A00', vol: '5 mL' },
+  grey: { label: 'Grey · Fluoride', short: 'Fluoride', hex: '#7A8581', soft: '#ECEEED', ink: '#3A4642', vol: '2 mL' },
+  urine: { label: 'Urine cup', short: 'Urine cup', hex: '#E3C23C', soft: '#FBF5D5', ink: '#5E4D00', vol: '30 mL' }
+};
+const REASONS = ['Patient not home', 'Patient declined', 'Identity not confirmed', 'Address or access issue', 'Other'];
+const fmt = (mins) => {
+  let h = Math.floor(mins / 60) % 24; const m = mins % 60;
+  const ap = h >= 12 ? 'PM' : 'AM'; h = h % 12; if (h === 0) h = 12;
+  return h + ':' + (m < 10 ? '0' : '') + m + ' ' + ap;
+};
+const fmtSlot = (mins) => {
+  const a = fmt(mins), b = fmt(mins + 30);
+  return a.slice(-2) === b.slice(-2) ? a.slice(0, -3) + ' – ' + b : a + ' – ' + b;
+};
+const initialOf = (name) => name.split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase();
+const plural = (n, w) => n + ' ' + w + (n === 1 ? '' : 's');
+
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    const STOPS = [
+      { id: 's1', name: 'Sunita Khadka', age: 46, sex: 'F', phone: '+977 98410 22314', locality: 'Baneshwor', address: 'House 12, Mid Baneshwor, Kathmandu', landmark: 'Near Baneshwor Chowk. White gate, ground floor.', sid: 'MLB-1115-0401', timeSort: 480, distanceKm: 1.2, etaMin: 6, status: 'collected', synced: false, missedReason: '', missedNote: '',
+        fasting: ['Lipid Profile', 'Fasting Glucose'], tubes: [ { k: 'purple', tests: ['CBC'] }, { k: 'red', tests: ['Lipid Profile'] }, { k: 'grey', tests: ['Fasting Glucose'] } ] },
+      { id: 's2', name: 'Ramesh Gurung', age: 58, sex: 'M', phone: '+977 98510 44210', locality: 'Koteshwor', address: 'Araniko Highway, Koteshwor, Kathmandu', landmark: 'Beside the Koteshwor flyover. Blue shutter, 1st floor.', sid: 'MLB-1115-0402', timeSort: 520, distanceKm: 2.1, etaMin: 11, status: 'collected', synced: false, missedReason: '', missedNote: '',
+        fasting: ['Fasting Glucose'], tubes: [ { k: 'purple', tests: ['HbA1c'] }, { k: 'grey', tests: ['Fasting Glucose'] } ] },
+      { id: 's3', name: 'Anita Sharma', age: 29, sex: 'F', phone: '+977 98023 19087', locality: 'Battisputali', address: 'Battisputali Chowk, Kathmandu', landmark: 'Behind the Battisputali bus stop. Red gate.', sid: 'MLB-1115-0403', timeSort: 555, distanceKm: 1.8, etaMin: 9, status: 'missed', synced: true, missedReason: 'Patient not home', missedNote: 'Called twice, no answer.',
+        fasting: [], tubes: [ { k: 'purple', tests: ['CBC'] }, { k: 'red', tests: ['TFT'] } ] },
+      { id: 's4', name: 'Sabina Rai', age: 34, sex: 'F', phone: '+977 98412 77563', locality: 'Maharajgunj', address: 'Ring Road, Maharajgunj, Kathmandu', landmark: 'Beside the Teaching Hospital gate. Cream building, 2nd floor.', sid: 'MLB-1115-0407', timeSort: 600, distanceKm: 2.4, etaMin: 12, status: 'upcoming', synced: true, missedReason: '', missedNote: '',
+        fasting: ['Lipid Profile', 'Fasting Glucose'], tubes: [ { k: 'red', tests: ['Lipid Profile', 'LFT', 'KFT'] }, { k: 'gold', tests: ['Electrolytes'] }, { k: 'grey', tests: ['Fasting Glucose'] } ] },
+      { id: 's5', name: 'Prakash Adhikari', age: 52, sex: 'M', phone: '+977 98601 55829', locality: 'Dillibazar', address: 'Dillibazar Road, Kathmandu', landmark: 'Opposite Dillibazar pharmacy. Green gate, 3rd floor.', sid: 'MLB-1115-0408', timeSort: 645, distanceKm: 1.6, etaMin: 8, status: 'upcoming', synced: true, missedReason: '', missedNote: '',
+        fasting: [], tubes: [ { k: 'urine', tests: ['Urine R/E'] }, { k: 'red', tests: ['Dengue NS1'] } ] },
+      { id: 's6', name: 'Bikash Thapa', age: 41, sex: 'M', phone: '+977 98411 90276', locality: 'Kalanki', address: 'Kalanki Chowk, Kathmandu', landmark: 'Above the Kalanki sweet shop. Stairs on the left.', sid: 'MLB-1115-0409', timeSort: 690, distanceKm: 2.9, etaMin: 15, status: 'upcoming', synced: true, missedReason: '', missedNote: '',
+        fasting: ['Iron Profile'], tubes: [ { k: 'gold', tests: ['Vitamin D', 'Vitamin B12', 'Iron Profile'] } ] }
+    ];
+    this.HISTORY = [
+      { id: 'h1', dow: 'Fri', dom: '13', label: 'Friday, 13 Nov', collected: 5, missed: 1, rows: [
+        { name: 'Nabin Shrestha', locality: 'Baneshwor', time: '8:10 AM', summary: 'CBC, LFT', status: 'collected' },
+        { name: 'Kamana Lama', locality: 'Koteshwor', time: '8:50 AM', summary: 'HbA1c', status: 'collected' },
+        { name: 'Suresh Karki', locality: 'Battisputali', time: '9:30 AM', summary: 'TFT, CBC. Patient not home', status: 'missed' },
+        { name: 'Rita Basnet', locality: 'Maharajgunj', time: '10:15 AM', summary: 'Lipid Profile, Fasting Glucose', status: 'collected' },
+        { name: 'Dipesh Magar', locality: 'Dillibazar', time: '11:00 AM', summary: 'Urine R/E', status: 'collected' },
+        { name: 'Sarita Joshi', locality: 'Kalanki', time: '11:40 AM', summary: 'Vitamin D, Vitamin B12', status: 'collected' }
+      ] },
+      { id: 'h2', dow: 'Thu', dom: '12', label: 'Thursday, 12 Nov', collected: 4, missed: 0, rows: [
+        { name: 'Mina Tamang', locality: 'Baneshwor', time: '8:05 AM', summary: 'CBC', status: 'collected' },
+        { name: 'Gopal Rana', locality: 'Koteshwor', time: '8:45 AM', summary: 'Lipid Profile', status: 'collected' },
+        { name: 'Puja Shahi', locality: 'Battisputali', time: '9:25 AM', summary: 'TFT, HbA1c', status: 'collected' },
+        { name: 'Keshav Bista', locality: 'Maharajgunj', time: '10:05 AM', summary: 'KFT, LFT', status: 'collected' }
+      ] },
+      { id: 'h3', dow: 'Wed', dom: '11', label: 'Wednesday, 11 Nov', collected: 4, missed: 1, rows: [
+        { name: 'Alina Thapa', locality: 'Baneshwor', time: '8:00 AM', summary: 'CBC, Lipid Profile', status: 'collected' },
+        { name: 'Birendra Khatri', locality: 'Koteshwor', time: '8:40 AM', summary: 'HbA1c, Fasting Glucose', status: 'collected' },
+        { name: 'Sunil Pandey', locality: 'Battisputali', time: '9:20 AM', summary: 'TFT. Patient declined', status: 'missed' },
+        { name: 'Laxmi Devkota', locality: 'Maharajgunj', time: '10:00 AM', summary: 'KFT, Electrolytes', status: 'collected' },
+        { name: 'Hari Oli', locality: 'Dillibazar', time: '10:50 AM', summary: 'Urine R/E, Dengue NS1', status: 'collected' }
+      ] },
+      { id: 'h4', dow: 'Tue', dom: '10', label: 'Tuesday, 10 Nov', collected: 3, missed: 0, rows: [
+        { name: 'Deepa Rimal', locality: 'Baneshwor', time: '8:15 AM', summary: 'CBC', status: 'collected' },
+        { name: 'Ganesh Bhattarai', locality: 'Koteshwor', time: '9:00 AM', summary: 'Lipid Profile, LFT', status: 'collected' },
+        { name: 'Shanti Neupane', locality: 'Battisputali', time: '9:45 AM', summary: 'TFT, HbA1c', status: 'collected' }
+      ] }
+    ];
+    this.PROFILE = { initial: 'ST', name: 'Sunil Tamang', empId: 'MLB-PHL-014', lab: 'Kathmandu Central Lab', weekCount: 34, onTimePct: 92, rejected: 0 };
+    this.state = {
+      screen: 'splash', tab: 'queue', stack: [],
+      curStopId: null, curHistoryDayId: null, offline: true,
+      stops: STOPS.map((s) => {
+        const done = s.status === 'collected';
+        return Object.assign({}, s, {
+          fasted: done, idName: done, idAge: done, scanMatched: done, note: '',
+          checklist: s.tubes.map((t, i) => ({ id: 't' + i, k: t.k, tests: t.tests, checked: done }))
+        });
+      }),
+      toast: ''
+    };
+  }
+  componentWillUnmount() { clearTimeout(this.scanTimer); clearTimeout(this.tt); }
+  scroller() { return document.querySelector('.m5scroll'); }
+  resetScroll(y) { setTimeout(() => requestAnimationFrame(() => { const el = this.scroller(); if (el) el.scrollTop = y; }), 0); }
+  signIn() { this.mem = []; this.setState({ screen: 'app', tab: 'queue', stack: [] }); this.resetScroll(0); }
+  signOut() { clearTimeout(this.scanTimer); this.mem = []; this.setState({ screen: 'splash', tab: 'queue', stack: [], toast: '' }); }
+  go(tab) { clearTimeout(this.scanTimer); this.mem = []; this.setState({ tab: tab, stack: [] }); this.resetScroll(0); }
+  push(scr, extra) { const el = this.scroller(); (this.mem = this.mem || []).push(el ? el.scrollTop : 0); this.setState((s) => Object.assign({}, extra || {}, { stack: s.stack.concat([scr]) })); this.resetScroll(0); }
+  replaceTop(scr) { this.setState((s) => ({ stack: s.stack.slice(0, -1).concat([scr]) })); this.resetScroll(0); }
+  back() { clearTimeout(this.scanTimer); const y = (this.mem || []).pop() || 0; this.setState((s) => ({ stack: s.stack.slice(0, -1) })); this.resetScroll(y); }
+  toast(m) {
+    clearTimeout(this.tt);
+    this.setState({ toast: m });
+    this.tt = setTimeout(() => this.setState({ toast: '' }), 2600);
+  }
+  updateStop(id, patch) {
+    this.setState((s) => ({ stops: s.stops.map((x) => (x.id === id ? Object.assign({}, x, patch) : x)) }));
+  }
+  toggleTube(stopId, tubeId) {
+    this.setState((s) => ({
+      stops: s.stops.map((x) => (x.id !== stopId ? x : Object.assign({}, x, {
+        checklist: x.checklist.map((c) => (c.id === tubeId ? Object.assign({}, c, { checked: !c.checked }) : c))
+      })))
+    }));
+  }
+  toggleNet() {
+    const s = this.state;
+    if (s.offline) {
+      const n = s.stops.filter((x) => x.status === 'collected' && !x.synced).length;
+      this.setState((st) => ({ offline: false, stops: st.stops.map((x) => (x.status === 'collected' ? Object.assign({}, x, { synced: true }) : x)) }));
+      this.toast(n ? 'Back online. ' + plural(n, 'collection') + ' synced to the lab' : 'Back online');
+    } else {
+      this.setState({ offline: true });
+      this.toast('You are offline. Keep collecting, it syncs later');
+    }
+  }
+  startScan(stopId) {
+    this.push('scan', { curStopId: stopId });
+    clearTimeout(this.scanTimer);
+    this.scanTimer = setTimeout(() => this.updateStop(stopId, { scanMatched: true }), 1600);
+  }
+  submitComplete(stop) {
+    const online = !this.state.offline;
+    const n = this.state.stops.filter((x) => x.status === 'collected' && !x.synced).length + 1;
+    this.updateStop(stop.id, { status: 'collected', synced: online });
+    this.go('queue');
+    if (online) this.toast('Logged for ' + stop.name + '. Lab Registration notified');
+    else this.toast('Saved on this phone. ' + plural(n, 'collection') + ' will sync when you reconnect');
+  }
+  confirmMissed(stop) {
+    if (!stop.missedReason) { this.toast('Choose a reason first'); return; }
+    this.updateStop(stop.id, { status: 'missed' });
+    this.go('queue');
+    this.toast('Marked missed. Dispatch will reschedule');
+  }
+  renderVals() {
+    const s = this.state;
+    const inApp = s.screen === 'app';
+    const cur = s.stack.length ? s.stack[s.stack.length - 1] : s.tab;
+    const sc = {};
+    ['queue', 'history', 'profile', 'detail', 'verify', 'checklist', 'scan', 'complete', 'missed', 'historyDay'].forEach((k) => { sc[k] = inApp && cur === k; });
+    const hasStack = s.stack.length > 0;
+    const offline = s.offline;
+
+    const chipFor = (status) => ({
+      upcoming: { cls: 'neutral', label: 'Upcoming' },
+      enroute: { cls: 'trial', label: 'En route' },
+      arrived: { cls: 'warn', label: 'Arrived' },
+      collected: { cls: 'ok', label: 'Collected' },
+      missed: { cls: 'bad', label: 'Missed' }
+    }[status] || { cls: 'neutral', label: status });
+    const sexLabel = (x) => (x.sex === 'F' ? 'Female' : 'Male');
+    const ageSex = (x) => x.age + ' yrs · ' + sexLabel(x);
+    const tubeView = (t) => { const T = TUBES[t.k]; return { hex: T.hex, soft: T.soft, ink: T.ink, label: T.label, short: T.short, vol: T.vol }; };
+    const testsOf = (x) => [].concat.apply([], x.tubes.map((t) => t.tests));
+    const summaryOf = (x) => { const t = testsOf(x); return t.slice(0, 2).join(', ') + (t.length > 2 ? ' +' + (t.length - 2) + ' more' : ''); };
+    const sampleId = (x, i) => x.sid + '-' + 'ABCDEF'[i];
+    const collectedMin = (x) => x.timeSort + 12;
+    const hasFasting = (x) => x.fasting.length > 0;
+
+    const sorted = s.stops.slice().sort((a, b) => a.timeSort - b.timeSort);
+    const doneCount = s.stops.filter((x) => x.status === 'collected').length;
+    const missedCount = s.stops.filter((x) => x.status === 'missed').length;
+    const totalCount = s.stops.length;
+    const activeStops = sorted.filter((x) => x.status !== 'collected' && x.status !== 'missed');
+    const remainingKm = activeStops.reduce((a, x) => a + x.distanceKm, 0).toFixed(1);
+    const nextStop = activeStops.length ? activeStops[0] : null;
+    const upStops = activeStops.slice(1);
+    const doneStops = sorted.filter((x) => x.status === 'collected' || x.status === 'missed');
+    const pending = s.stops.filter((x) => x.status === 'collected' && !x.synced).length;
+
+    const segs = sorted.map((x) => ({ bg: x.status === 'collected' ? '#A0C032' : x.status === 'missed' ? '#F0A59C' : (nextStop && x.id === nextStop.id ? '#fff' : 'rgba(255,255,255,.25)') }));
+    const progressSub = (missedCount ? plural(missedCount, 'missed visit') + ' · ' : '') + (activeStops.length ? plural(activeStops.length, 'stop') + ' to go' : 'Day complete');
+    const tubeTotal = s.stops.filter((x) => x.status === 'collected').reduce((a, x) => a + x.tubes.length, 0);
+
+    const next = nextStop ? (() => {
+      const ch = chipFor(nextStop.status);
+      const x = nextStop;
+      return { name: x.name, ageSex: ageSex(x), locality: x.locality, distanceKm: x.distanceKm, etaMin: x.etaMin, time: fmt(x.timeSort), initial: initialOf(x.name), chipCls: ch.cls, statusLabel: ch.label,
+        chips: x.tubes.map(tubeView), fasting: hasFasting(x),
+        ctaLabel: x.status === 'arrived' ? 'Start collection' : 'Mark arrived',
+        cta: x.status === 'arrived' ? (() => this.push(x.idName && x.idAge ? 'checklist' : 'verify', { curStopId: x.id })) : (() => { this.updateStop(x.id, { status: 'arrived' }); this.toast('Arrival logged. ' + x.name.split(' ')[0] + ' is notified'); }),
+        open: () => this.push('detail', { curStopId: x.id }) };
+    })() : null;
+
+    const up = upStops.map((x) => {
+      const ch = chipFor(x.status); const t = fmt(x.timeSort).split(' ');
+      const uniq = []; x.tubes.forEach((tb) => { if (uniq.indexOf(tb.k) < 0) uniq.push(tb.k); });
+      return { name: x.name, t1: t[0], t2: t[1], locality: x.locality, distanceKm: x.distanceKm, dots: uniq.map((k) => ({ hex: TUBES[k].hex })), tubeText: plural(x.tubes.length, 'tube'), fasting: hasFasting(x), showChip: x.status !== 'upcoming', chipCls: ch.cls, statusLabel: ch.label, open: () => this.push('detail', { curStopId: x.id }) };
+    });
+    const done = doneStops.map((x) => {
+      const ok = x.status === 'collected'; const ch = chipFor(x.status);
+      let note, noteColor, showSyncIcon = false, showSyncedIcon = false;
+      if (ok && !x.synced) { note = 'Sync pending'; noteColor = '#7A4B00'; showSyncIcon = true; }
+      else if (ok) { note = 'Synced'; noteColor = '#5C6A66'; showSyncedIcon = true; }
+      else { note = 'Slot ' + fmt(x.timeSort); noteColor = '#5C6A66'; }
+      return { name: x.name, sub: ok ? ('Done ' + fmt(collectedMin(x)) + ' · ' + plural(x.tubes.length, 'tube')) : (x.missedReason || 'No reason given'), isOk: ok, isBad: !ok, iconBg: ok ? '#E4F4DE' : '#FDE7E4', chipCls: ch.cls, statusLabel: ch.label, note: note, noteColor: noteColor, showSyncIcon: showSyncIcon, showSyncedIcon: showSyncedIcon, open: () => this.push('detail', { curStopId: x.id }) };
+    });
+
+    const stop = s.stops.find((x) => x.id === s.curStopId) || s.stops[0];
+    const ch = chipFor(stop.status);
+    const isActive = stop.status === 'upcoming' || stop.status === 'enroute' || stop.status === 'arrived';
+    const idOk = stop.idName && stop.idAge;
+    const tubesAll = stop.checklist.every((t) => t.checked);
+    const tubesDone = stop.checklist.filter((t) => t.checked).length;
+    const samples = stop.checklist.map((t, i) => Object.assign(tubeView(t), { sample: sampleId(stop, i) }));
+    const tests = [];
+    stop.tubes.forEach((tb) => tb.tests.forEach((name) => tests.push(Object.assign({ name: name, fasting: stop.fasting.indexOf(name) >= 0, tube: TUBES[tb.k].label }, tubeView(tb)))));
+
+    const d = {
+      name: stop.name, phone: stop.phone, initial: initialOf(stop.name), ageSex: ageSex(stop), address: stop.address, landmark: stop.landmark, slot: fmtSlot(stop.timeSort), orderId: stop.sid,
+      distanceKm: stop.distanceKm, etaMin: stop.etaMin,
+      chipCls: ch.cls, statusLabel: ch.label, tests: tests, testCount: tests.length, tubeCount: stop.tubes.length, hasFasting: hasFasting(stop) && isActive,
+      isActive: isActive, isCollected: stop.status === 'collected', isMissed: stop.status === 'missed',
+      showOnWay: stop.status === 'upcoming',
+      primaryLabel: stop.status === 'arrived' ? 'Start collection' : 'Mark arrived',
+      primary: stop.status === 'arrived' ? (() => this.push(idOk ? 'checklist' : 'verify', { curStopId: stop.id })) : (() => { this.updateStop(stop.id, { status: 'arrived' }); this.toast('Arrival logged. ' + stop.name.split(' ')[0] + ' is notified'); }),
+      enroute: () => { this.updateStop(stop.id, { status: 'enroute' }); this.toast('Heading out. ' + stop.name.split(' ')[0] + ' is notified'); },
+      openMissed: () => this.push('missed', { curStopId: stop.id }),
+      samples: samples,
+      collectedNote: 'Collected at ' + fmt(collectedMin(stop)) + ' · ' + plural(stop.tubes.length, 'tube'),
+      syncText: stop.synced ? 'Synced to lab' : 'Saved on this phone. Syncs when you reconnect',
+      syncColor: stop.synced ? '#14612F' : '#7A4B00',
+      missedNote: 'Marked missed. ' + (stop.missedReason || 'No reason given') + (stop.missedNote ? ('. ' + stop.missedNote) : '')
+    };
+
+    const mkCheck = (on, title, sub, fn) => ({ title: title, sub: sub, checked: on, pressed: on ? 'true' : 'false', bg: on ? '#F6FAEC' : '#fff', boxBd: on ? 'var(--green)' : '#B9C3BF', boxBg: on ? 'var(--green)' : '#fff', toggle: fn });
+    const idRows = [
+      mkCheck(stop.idName, 'Name matches', 'Patient said “' + stop.name + '”', () => this.updateStop(stop.id, { idName: !stop.idName })),
+      mkCheck(stop.idAge, 'Age matches', 'Patient said ' + stop.age + ' years', () => this.updateStop(stop.id, { idAge: !stop.idAge }))
+    ];
+
+    const stage = sc.verify ? 0 : (!tubesAll ? 1 : (!stop.scanMatched ? 2 : 3));
+    const steps = ['Verify', 'Collect', 'Scan'].map((label, i) => {
+      const dn = i < stage; const now = i === stage;
+      return { n: i + 1, label: label, done: dn, notDone: !dn, lineDisp: i === 0 ? 'none' : 'block', lineBg: i <= stage ? '#014D3C' : '#D3D8D0',
+        bg: dn ? '#014D3C' : (now ? '#A0C032' : '#fff'), bd: dn ? '#014D3C' : (now ? '#A0C032' : '#D3D8D0'), fg: now ? '#00362F' : '#6F7B77',
+        lc: dn || now ? '#0A1A17' : '#6F7B77', fw: now ? 700 : 600 };
+    });
+
+    const rows = stop.checklist.map((t) => {
+      const v = tubeView(t);
+      return Object.assign({ id: t.id, checked: t.checked, pressed: t.checked ? 'true' : 'false', testsText: t.tests.join(', '),
+        rowBg: t.checked ? '#F6FAEC' : '#fff', boxBd: t.checked ? 'var(--green)' : '#B9C3BF', boxBg: t.checked ? 'var(--green)' : '#fff',
+        stateLabel: t.checked ? 'Collected' : 'To collect', toggle: () => this.toggleTube(stop.id, t.id) }, v);
+    });
+    const needsFast = hasFasting(stop);
+    const canScan = tubesAll && !stop.scanMatched;
+    const canFinish = tubesAll && !!stop.scanMatched;
+    const left = stop.checklist.length - tubesDone;
+    const c = {
+      name: stop.name, ageSex: ageSex(stop), ageShort: stop.age + ' ' + stop.sex, rows: rows, progress: tubesDone + ' of ' + stop.checklist.length + ' collected',
+      needsFast: needsFast, fastBd: stop.fasted ? '#CDE3B0' : '#F0DAA2', fastAria: stop.fasted ? 'true' : 'false', fastTrack: stop.fasted ? '#005A52' : '#B9C3BF', fastX: stop.fasted ? 20 : 0,
+      fastSub: stop.fasted ? 'Patient confirmed a 10–\u206012\u00A0h fast. Recorded with the sample.' : (stop.fasting.join(' and ') + ' need a 10–\u206012\u00A0h fast. Leave off if not fasted; the lab will flag it.'),
+      toggleFast: () => this.updateStop(stop.id, { fasted: !stop.fasted }),
+      scanDone: !!stop.scanMatched, scanReady: canScan, scanLocked: !tubesAll && !stop.scanMatched,
+      scanBd: stop.scanMatched ? '#CDE3B0' : (canScan ? '#A0C032' : '#ECECEC'), scanBg: stop.scanMatched ? '#F6FAEC' : '#fff',
+      scanTile: stop.scanMatched ? '#E4F4DE' : (canScan ? '#014D3C' : '#EEF0EC'), scanIcon: stop.scanMatched ? '#14612F' : (canScan ? '#A0C032' : '#8A9690'),
+      scanSub: stop.scanMatched ? ('Matched. Sample ' + stop.sid) : (canScan ? 'Scan the label sheet to match it to this patient.' : 'Collect all tubes first, then label them.'),
+      scan: () => this.startScan(stop.id),
+      fCollect: !tubesAll, fScan: canScan, fFinish: canFinish, leftLabel: 'Collect ' + plural(left, 'more tube'),
+      finish: () => this.push('complete', { curStopId: stop.id }),
+      idReady: idOk, idNotReady: !idOk,
+      idContinue: () => this.replaceTop('checklist'),
+      idMismatch: () => { this.updateStop(stop.id, { missedReason: 'Identity not confirmed' }); this.push('missed', { curStopId: stop.id }); }
+    };
+
+    const sc2 = {
+      scanning: !stop.scanMatched, matched: !!stop.scanMatched, name: stop.name, ageSex: stop.age + ' yrs · ' + stop.sex, orderId: stop.sid, sid: stop.sid, tubeCount: stop.tubes.length, time: fmt(collectedMin(stop)),
+      manual: () => { clearTimeout(this.scanTimer); this.updateStop(stop.id, { scanMatched: true }); },
+      print: () => this.toast('Labels sent to the portable printer'),
+      labels: samples.map((m) => ({ hex: m.hex, ink: m.ink, short: m.short, name: stop.name, ageSex: stop.age + 'Y / ' + stop.sex, sample: m.sample }))
+    };
+
+    const comp = {
+      name: stop.name, ageSex: ageSex(stop), tubeCount: stop.tubes.length, time: fmt(collectedMin(stop)), samples: samples,
+      needsFast: needsFast, fastText: stop.fasted ? 'Confirmed' : 'Not confirmed. Lab will flag it', fastCls: stop.fasted ? 'ok' : 'warn',
+      note: stop.note || '', onNote: (e) => this.updateStop(stop.id, { note: e.target.value }),
+      submit: () => this.submitComplete(stop),
+      submitLabel: offline ? 'Save & go to next stop' : 'Submit & go to next stop',
+      handOnline: !offline, handOffline: offline,
+      handBg: offline ? '#FFF1D0' : '#ECF3D7', handFg: offline ? '#7A4B00' : '#014D3C', handIconBg: offline ? '#B7791F' : '#014D3C',
+      handTitle: 'Handed to lab',
+      handSub: offline ? 'Sync pending, no signal. Registration is told when you reconnect. Keep the tubes cool and bring them to the lab.' : 'Submitting tells Registration these tubes are on their way to Kathmandu Central Lab.'
+    };
+
+    const ms = {
+      name: stop.name, ready: !!stop.missedReason, notReady: !stop.missedReason,
+      reasons: REASONS.map((r) => {
+        const on = stop.missedReason === r;
+        return { label: r, pressed: on ? 'true' : 'false', pick: () => this.updateStop(stop.id, { missedReason: r }), bd: on ? 'var(--forest)' : '#E2E6E3', bg: on ? 'var(--lime-soft)' : '#fff', ringBd: on ? 'var(--forest)' : '#B9C3BF', dot: on ? 'var(--forest)' : 'transparent' };
+      }),
+      note: stop.missedNote || '', onNote: (e) => this.updateStop(stop.id, { missedNote: e.target.value }),
+      confirm: () => this.confirmMissed(stop)
+    };
+
+    const histDays = this.HISTORY.map((h) => ({ dow: h.dow, dom: h.dom, collected: h.collected, missed: h.missed, missedFlex: h.missed, open: () => this.push('historyDay', { curHistoryDayId: h.id }) }));
+    const hcol = this.HISTORY.reduce((a, h) => a + h.collected, 0), hmis = this.HISTORY.reduce((a, h) => a + h.missed, 0);
+    const hs = { collected: hcol, missed: hmis, pct: Math.round((hcol / (hcol + hmis)) * 100) };
+    const hday = this.HISTORY.find((h) => h.id === s.curHistoryDayId) || this.HISTORY[0];
+    const hd = { collected: hday.collected, missed: hday.missed, missedCls: hday.missed ? 'bad' : 'neutral', rows: hday.rows.map((r) => { const rc = chipFor(r.status); return Object.assign({}, r, { initial: initialOf(r.name), chipCls: rc.cls, statusLabel: rc.label }); }) };
+
+    const title = { detail: 'Collection details', verify: 'Verify patient', checklist: 'Collect samples', scan: 'Scan & match', complete: 'Collection summary', missed: 'Mark missed', historyDay: hday.label }[cur] || '';
+    const tabLabel = { queue: 'Sunday, 15 Nov', history: 'History', profile: 'Profile' }[s.tab] || '';
+
+    const onTab = (name) => s.tab === name && !hasStack;
+    const tabs = {
+      queueCls: onTab('queue') ? 'on' : '', queueCur: onTab('queue') ? 'true' : 'false',
+      historyCls: onTab('history') ? 'on' : '', historyCur: onTab('history') ? 'true' : 'false',
+      profileCls: onTab('profile') ? 'on' : '', profileCur: onTab('profile') ? 'true' : 'false'
+    };
+
+    const bannerText = offline
+      ? (pending ? 'Offline — ' + plural(pending, 'collection') + ' will sync when you reconnect' : 'Offline — new collections save on this phone and sync later')
+      : '';
+    const showBanner = inApp && offline;
+    const p = Object.assign({}, this.PROFILE, {
+      syncTitle: offline ? (pending ? plural(pending, 'collection') + ' waiting to sync' : 'Offline') : 'All collections synced',
+      syncSub: offline ? 'Last sync 7:58 AM. Data stays safe on this phone.' : 'Connected. Last sync just now.',
+      syncBd: offline ? '#F0DAA2' : '#CDE3B0', syncBg: offline ? '#FFFAEC' : '#F6FAEC', syncTile: offline ? '#FFF1D0' : '#E4F4DE'
+    });
+    const toastTop = (hasStack ? 62 : 62) + (showBanner ? 42 : 0) + 12;
+
+    return {
+      sc: sc,
+      v: { inSplash: !inApp, hasStack: inApp && hasStack, noStack: inApp && !hasStack, title: title, tabLabel: tabLabel,
+        online: !offline, offline: offline, netText: offline ? 'Offline' : 'Online', netBg: offline ? '#FFF1D0' : 'rgba(255,255,255,.14)', netFg: offline ? '#7A4B00' : '#fff',
+        netLabel: offline ? 'Offline. Tap to simulate reconnecting' : 'Online. Tap to simulate losing signal',
+        showBanner: showBanner, bannerText: bannerText,
+        doneCount: doneCount, totalCount: totalCount, ringDash: (176 * doneCount / totalCount).toFixed(1), ringLabel: doneCount + '/' + totalCount, progressSub: progressSub,
+        routeSpan: fmt(sorted[0].timeSort) + ' to ' + fmt(sorted[sorted.length - 1].timeSort), remainingKm: remainingKm, kmText: activeStops.length ? remainingKm + ' km to go' : 'Route complete',
+        hasNext: !!next, noNext: !next, doneSummary: plural(tubeTotal, 'tube') + ' to hand over at Kathmandu Central Lab.',
+        hasUp: up.length > 0, upCount: plural(up.length, 'stop'), hasDone: done.length > 0, doneListCount: String(done.length),
+        showBadge: activeStops.length > 0, remainingCount: activeStops.length,
+        footDetail: sc.detail && isActive, footVerify: sc.verify, footChecklist: sc.checklist, footScan: sc.scan && !!stop.scanMatched, footComplete: sc.complete, footMissed: sc.missed,
+        hasToast: !!s.toast, toast: s.toast, toastTop: toastTop },
+      next: next || {}, up: up, done: done, segs: segs,
+      d: d, c: c, idRows: idRows, steps: steps, sc2: sc2, comp: comp, ms: ms,
+      histDays: histDays, hs: hs, hd: hd, p: p,
+      tabs: tabs,
+      back: () => this.back(),
+      signIn: () => this.signIn(), signOut: () => this.signOut(), toggleNet: () => this.toggleNet(),
+      syncNow: () => (offline ? this.toast('Still offline. We retry automatically') : this.toast('Everything is already synced')),
+      goQueue: () => this.go('queue'), goHistory: () => this.go('history'), goProfile: () => this.go('profile'),
+      callToast: () => this.toast('Opens the phone dialer for ' + stop.name),
+      msgToast: () => this.toast('Opens a text message to ' + stop.name),
+      navToast: () => this.toast('Opens turn-by-turn directions in Maps'),
+      toastNotif: () => this.toast('Opens alert settings for new stops and schedule changes'), toastPrinter: () => this.toast('Opens Bluetooth printer pairing'), toastHelp: () => this.toast('Opens help and the dispatch hotline')
+    };
+  }
+}
+</script>
+</body>
+</html>

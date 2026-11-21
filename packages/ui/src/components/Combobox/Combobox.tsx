@@ -1,3 +1,4 @@
+'use client';
 // 04-UI-UX §2.2 Combobox: async options (debounced, aborting stale requests), optional create entry.
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { ComboBox, Input, Label, ListBox, ListBoxItem, Popover, Text, type Key } from 'react-aria-components';

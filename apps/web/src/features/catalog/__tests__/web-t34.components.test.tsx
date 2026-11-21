@@ -68,7 +68,7 @@ const DETAIL = {
 };
 const OWNER_LABELS = { [ID(90)]: 'Synthetic General Hospital', [ID(91)]: 'Synthetic Affiliate Clinic', [ID(92)]: 'Dr Synthetic Alpha' };
 const DEPTS = [{ id: ID(1), code: 'HAEM', name: 'Hematology', report_order: 10, is_active: true, version: 1 }, { id: ID(2), code: 'BIOC', name: 'Biochemistry', report_order: 20, is_active: true, version: 1 }];
-const ord = (n: number, o: Record<string, unknown>) => ({ id: ID(n), kind: 'test', is_orderable: true, is_active: true, revision: 1, department_id: ID(1), ...o });
+const ord = (n: number, o: Record<string, unknown>): Record<string, unknown> => ({ id: ID(n), kind: 'test', is_orderable: true, is_active: true, revision: 1, department_id: ID(1), ...o });
 const CBC = ord(101, { code: 'CBC', name: 'Complete blood count' });
 const HB = ord(102, { code: 'HB', name: 'Hemoglobin' });
 const FBS = ord(103, { code: 'FBS', name: 'Fasting blood sugar', department_id: ID(2) });
@@ -92,7 +92,7 @@ const api = setupServer(
   http.put(`${ORIGIN}/v1/catalog/*`, async ({ request }) => { await rec(request); return HttpResponse.json({ id: ID(500), version: 7 }); }),
   http.get(`${ORIGIN}/v1/*`, async ({ request }) => { await rec(request); return HttpResponse.json({ data: [], page: { limit: 50 } }); }),
 );
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { cleanup(); api.resetHandlers(); calls.length = 0; push.mockReset(); replace.mockReset(); refresh.mockReset(); localStorage.clear(); sessionStorage.clear(); session.permissions = MANAGE; });
 afterAll(() => api.close());
 beforeEach(() => { document.body.innerHTML = ''; });
@@ -105,7 +105,7 @@ const noAxeViolations = async () => {
 };
 const rowOf = (text: string | RegExp) => screen.getByRole('row', { name: typeof text === 'string' ? new RegExp(`\\b${text}\\b`) : text });
 const dialog = () => screen.getByRole('dialog');
-const press = async (name: RegExp, root: HTMLElement = document.body) => userEvent.click(within(root).getByRole('button', { name }));
+const press = async (name: RegExp, root: HTMLElement = document.body) => userEvent.click(within(root).getAllByRole('button', { name })[0]!);
 const choose = async (root: HTMLElement, label: RegExp, option: string | RegExp) => { await userEvent.click(within(root).getByLabelText(label)); await userEvent.click(await screen.findByRole('option', { name: option })); };
 const pick = async (root: HTMLElement, label: RegExp, query: string, option: string | RegExp) => { await userEvent.type(within(root).getByLabelText(label), query); await userEvent.click(await screen.findByRole('option', { name: option })); };
 // ruling C3.T-34 D2: pick fields by role, not label (a label starting with "Department"/"Percent" also matches the radio of the same name; kit DateTimePicker adds "Open calendar for Effective from").
@@ -136,7 +136,7 @@ describe('SCR-13 PriceListsList (AC-13.6 default list; 03-APP-FLOW §5)', () => 
 
   it('empty: "No price list yet — create the default list first."; only default: "Only the default price list exists."', async () => {
     const a = await show([]);
-    expect(screen.getByText('No price list yet — create the default list first.')).toBeTruthy();
+    expect(screen.getByText('No rate master yet — create the default price list first.')).toBeTruthy();
     a.unmount();
     await show([LISTS[0]]);
     expect(screen.getByText('Only the default price list exists.')).toBeTruthy();
@@ -150,7 +150,8 @@ describe('SCR-13 PriceListsList (AC-13.6 default list; 03-APP-FLOW §5)', () => 
 
   it('New price list: "Applies to" is create-only choice; POST carries Idempotency-Key and code is sent as typed-upper', async () => {
     await show([]);
-    await press(/new price list/i);
+    // T0D-EMPTYTBL-1 / LD-310: empty list shows the create action in the header AND in the message row; click the header one.
+    await userEvent.click(screen.getAllByRole('button', { name: /new price list/i })[0]!);
     const d = dialog();
     await userEvent.type(within(d).getByLabelText(/^code/i), 'dr_y');
     await userEvent.type(within(d).getByLabelText(/^name/i), 'Dr Y list');

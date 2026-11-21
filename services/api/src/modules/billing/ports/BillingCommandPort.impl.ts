@@ -19,7 +19,9 @@ import { DEFAULT_TZ, localDate } from '../service/ledgerDto.js';
 import { computeQuote } from '../service/quote.service.js';
 
 type Ctx = BalanceCtx & { readonly ports?: Record<string, any> };
-interface Counter { allocate(tx: never, input: any): Promise<{ lastNo: number; allocatedAt: string }> }
+/** T0B-PARTYSET-1: the warning answer of the credit check (CR: not in the BillingCommandPort contract yet, which says Promise<void>) */
+type CreditCheck = { warnings: Array<{ code: string; days_overdue: number }> };
+interface Counter { allocate(tx: never, input: any): Promise<{ lastNo: number; allocatedAt: string }>; peek?(tx: never, input: any): Promise<number> }
 
 const CONTROL = /[\u0000-\u001f\u007f]/;
 const CAUSES = ['order_cancelled', 'item_removed'] as const;
@@ -55,25 +57,56 @@ export function createBillingCommandPort(deps: { repo?: BillingRepo; counter: Co
   const ledger = createLedgerService({ repo, counter: deps.counter as never, events: deps.events });
 
   /** Locked account, C3 inactive or allowsCredit = false -> credit_party_locked; account limit vs. open exposure + additional -> credit_limit_exceeded. */
-  async function checkCredit(ctx: Ctx, party: { allowsCredit: boolean; isActive: boolean }, creditPartyId: string, additional: number): Promise<void> {
-    const { tenantId, tx } = session(ctx);
+  async function checkCredit(ctx: Ctx, party: { allowsCredit: boolean; isActive: boolean }, creditPartyId: string, additional: number): Promise<CreditCheck | undefined> {
+    const { tenantId, actorId, tx } = session(ctx);
     if (!party.allowsCredit || !party.isActive) throw new LimsError('billing.credit_party_locked');
     const account = await repo.getCreditAccount(tx, { tenantId, creditPartyId });
     if (account?.['is_locked'] === true) throw new LimsError('billing.credit_party_locked');
+    const warnings = await overdueRule(ctx, tenantId, actorId, tx, creditPartyId, account !== undefined);
     const limit = account?.['credit_limit_paisa'];
-    if (limit === null || limit === undefined) return;                                   // no limit set: nothing to compare
-    const open = toPaisa(await repo.sumOpenCreditExposure(tx, { tenantId, creditPartyId }));
-    if (open + additional > toPaisa(limit)) throw new LimsError('billing.credit_limit_exceeded');
+    if (limit !== null && limit !== undefined) {                                           // no limit set: nothing to compare
+      const open = toPaisa(await repo.sumOpenCreditExposure(tx, { tenantId, creditPartyId }));
+      if (open + additional > toPaisa(limit)) throw new LimsError('billing.credit_limit_exceeded');
+    }
+    return warnings;
+  }
+
+  /**
+   * T0B-PARTYSET-1 (LD-321) done_when (3), party commercial settings: with auto_block_overdue on, an unpaid issued periodic credit invoice
+   * invoice_blocking_days or more past its due date blocks new credit billing through the EXISTING block flag (credit_accounts.is_locked, reason
+   * credit_days_exceeded, kept although the request fails: ctx.commitOnError); invoice_warning_days or more past due answers a warning (the check passes).
+   * No setting row saved = no rule (default off, additive). Interest per day is never posted here (statement line only).
+   */
+  async function overdueRule(ctx: Ctx, tenantId: string, actorId: string, tx: never, creditPartyId: string, hasAccount: boolean): Promise<CreditCheck | undefined> {
+    const facts = (repo as Partial<BillingRepo>).overdueFacts;
+    if (typeof facts !== 'function') return undefined;                                     // injected repos without the rule (unit fakes)
+    const idp = ctx.ports?.['IdentityPort'];
+    const s = idp ? await idp.getTenantSettings(ctx, { keys: ['timezone'] }) : undefined;
+    const tz = typeof s?.timezone === 'string' && s.timezone !== '' ? s.timezone : DEFAULT_TZ;
+    const f = await facts(tx, { tenantId, creditPartyId, today: localDate(ctx.now(), tz), timezone: tz });
+    if (!f.setting || f.invoices.length === 0) return undefined;
+    const days = Math.max(...f.invoices.map((i) => i.daysOverdue));
+    if (f.setting.autoBlock && days >= f.setting.blockingDays) {
+      if (hasAccount) {
+        await (repo as Partial<BillingRepo>).lockOverdue?.(tx, { tenantId, creditPartyId, userId: actorId });
+        (ctx as { commitOnError?: () => void }).commitOnError?.();                       // the block stays set although this request is refused
+      }
+      throw new LimsError('billing.credit_party_locked');
+    }
+    // [CONV] warning code (no registry entry yet, CR .orchestra/cr/T0B-PARTYSET-1.md): invoice_overdue with the days overdue of the oldest unpaid invoice
+    if (days >= f.setting.warningDays) return { warnings: [{ code: 'invoice_overdue', days_overdue: days }] };
+    return undefined;
   }
   const getParty = (ctx: Ctx, creditPartyId: string) =>
     port<{ getCreditParty(c: Ctx, i: { creditPartyId: string; purpose: 'billing' }): Promise<any> }>(ctx, 'CatalogPort').getCreditParty(ctx, { creditPartyId, purpose: 'billing' });
 
-  async function assertCreditAllowed(ctx: Ctx, input: { creditPartyId: string; additional: { amountPaisa: number; currency: string } }): Promise<void> {
+  /** resolves undefined (the existing void contract) or, T0B-PARTYSET-1, { warnings } when an unpaid invoice is past the party's warning days */
+  async function assertCreditAllowed(ctx: Ctx, input: { creditPartyId: string; additional: { amountPaisa: number; currency: string } }): Promise<CreditCheck | undefined> {
     session(ctx);
     if (!isRec(input) || !uuid(input.creditPartyId)) throw invalid('/creditPartyId');
     const add = input.additional;
     if (!isRec(add) || add['currency'] !== 'NPR' || !Number.isSafeInteger(add['amountPaisa']) || add['amountPaisa'] < 0) throw invalid('/additional');
-    await checkCredit(ctx, await getParty(ctx, input.creditPartyId), input.creditPartyId, add['amountPaisa']);
+    return checkCredit(ctx, await getParty(ctx, input.creditPartyId), input.creditPartyId, add['amountPaisa']);
   }
 
   async function recordCreditCharges(ctx: Ctx, input: any) {
@@ -175,7 +208,7 @@ export function createBillingCommandPort(deps: { repo?: BillingRepo; counter: Co
     const totals = await repo.readOrderTotals(tx, { tenantId, orderId });
     const bal = await repo.getOrderBalance(tx, { tenantId, orderId });
     const invoiced = totals ? toPaisa(totals.invoiced_paisa) : 0, paid = totals ? toPaisa(totals.paid_paisa) : 0, credited = totals ? toPaisa(totals.credited_paisa) : 0;
-    const balance: OrderBalance = { orderId, invoiced: npr(invoiced), paid: npr(paid), credited: npr(credited), balanceDue: npr(invoiced - credited - paid),
+    const balance: OrderBalance = { orderId: orderId as OrderBalance['orderId'], invoiced: npr(invoiced), paid: npr(paid), credited: npr(credited), balanceDue: npr(invoiced - credited - paid),
       balanceVersion: bal ? Number(bal['balance_version']) : 0, asOf: (bal?.['updated_at'] ? iso(bal['updated_at']) : ctx.now()) as OrderBalance['asOf'] };
     return {
       invoiceIds: invs.map((i) => String(i['id'])), hasIssuedInvoice: invs.some((i) => i['status'] === 'issued'),
@@ -191,15 +224,22 @@ export function createBillingCommandPort(deps: { repo?: BillingRepo; counter: Co
       return invoices.issue(ctx as never, input);
     },
     recordCreditCharges: recordCreditCharges as BillingCommandPortV1['recordCreditCharges'],
-    voidCreditCharges: voidCreditCharges as BillingCommandPortV1['voidCreditCharges'],
+    voidCreditCharges: voidCreditCharges as unknown as BillingCommandPortV1['voidCreditCharges'],   // VERIFY-GREEN-3: ids are plain strings in the impl, Uuidv7 in the port type; same runtime value
     async recordPayment(ctx, input) {
       await assertOrder(ctx as Ctx, (input as any)?.orderId);
       const { entry: _entry, ...result } = await ledger.recordPayment(ctx as never, input);   // `entry` is B8's DTO, not part of the port result
       void _entry;
       return result as Awaited<ReturnType<BillingCommandPortV1['recordPayment']>>;
     },
-    raiseCreditNoteRequirement: raiseCreditNoteRequirement as BillingCommandPortV1['raiseCreditNoteRequirement'],
-    getOrderBillingSummary: getOrderBillingSummary as BillingCommandPortV1['getOrderBillingSummary'],
+    raiseCreditNoteRequirement: raiseCreditNoteRequirement as unknown as BillingCommandPortV1['raiseCreditNoteRequirement'],
+    getOrderBillingSummary: getOrderBillingSummary as unknown as BillingCommandPortV1['getOrderBillingSummary'],
+    async previewInvoiceNo(ctx) {                                                         // LD-323 (a): plain read, nothing reserved
+      session(ctx as Ctx);
+      // read only call reachable from app ctx whose now() returns a Date (frontdesk preview): accept both, hand the service an ISO instant
+      const at = (ctx.now as () => unknown)();
+      const c = at instanceof Date ? Object.assign(Object.create(ctx as object), { now: () => at.toISOString() }) : ctx;
+      return invoices.previewNo(c as never);
+    },
   };
 }
 
@@ -215,4 +255,5 @@ export const billingCommandPort: BillingCommandPortV1 = {
   recordPayment: (c, i) => real().recordPayment(c, i),
   raiseCreditNoteRequirement: (c, i) => real().raiseCreditNoteRequirement(c, i),
   getOrderBillingSummary: (c, i) => real().getOrderBillingSummary(c, i),
+  previewInvoiceNo: (c, i) => real().previewInvoiceNo(c, i),
 };

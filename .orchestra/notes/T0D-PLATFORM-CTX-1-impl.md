@@ -1,0 +1,7 @@
+# T0D-PLATFORM-CTX-1 impl (writer)
+Files: services/api/src/core/pipeline/index.ts (buildCtx spreads platformRole + aal from claims for a platform session only); services/api/src/core/module.ts (HandlerContext: optional platformRole, aal). claims.ts untouched (DbClaims already carries platform_role, aal; no allowlist drops them). No contract/migration/policy/spec change; contracts/ports RequestContext is structural, no CR needed.
+Rule: claims.scope === 'platform' && platform_role is a string starting with 'platform_' -> ctx.platformRole; ctx.aal only when the claim is a string (never defaulted). Otherwise neither key exists on ctx.
+[CONV] platform session also requires actor_type 'user' and no tenant_id (identity claims resolver shape); a patient claim set with stray scope=platform + platform_role got the fields otherwise (test "patient with stray platform_role + scope").
+Tests: the two T0D-PLATFORM-CTX-1 files 197/197 pass (before: 106 fail).
+pnpm -s verify: RED, @lims/api typecheck 38 errors, none in the changed files and none mention platformRole/aal (contracts/ports relative imports without .js TS2835, shared-ts .ts imports TS5097, identity handler Hctx log/bffKey TS2430, quality TS2379). Looks pre-existing; a baseline compare at HEAD was not run (git revert blocked in this session). Lint node tests did not run (turbo failed first).
+Open (tester GAP, not this task): platformStaffId, platformSessionId, db.withTenantScope missing on ctx; stage 9 assertRole for platform handlers -> expect 401/500 on staging next. Suggest follow-up task.

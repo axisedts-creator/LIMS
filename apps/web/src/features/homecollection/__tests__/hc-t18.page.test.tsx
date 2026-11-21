@@ -44,7 +44,7 @@ const api = setupServer(
   http.get(`${API}/reasons`, async ({ request }) => { await rec(request); return HttpResponse.json({ data: CODES[new URL(request.url).searchParams.get('set') as keyof typeof CODES] ?? [] }); }),
   http.get(`${ORIGIN}/v1/identity/centres`, async ({ request }) => { await rec(request); return centres(); }),
 );
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 beforeEach(() => { vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(new Date('2026-11-13T19:00:00Z')); }); // 14/11/2026 00:45 in Kathmandu
 afterEach(() => { vi.useRealTimers(); cleanup(); api.resetHandlers(); calls.length = 0; captured.props = undefined; perms.current = []; reset(); });
 afterAll(() => api.close());

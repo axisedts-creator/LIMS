@@ -384,7 +384,7 @@ export function makeMastersDb(seed: MastersSeed = {}) {
     requestId: REQ_ID,
     tx: tx.facade,
     now: () => '2026-11-07T12:00:00.000Z',
-    ports: {},
+    ports: { IdentityPort: { assertRole: async () => undefined } }, // SEC-AUTHZ-5: handlers now ask assertRole first (fail closed without a port); tests that check denials pass their own port
     operationId: 'fake',
     clientIp: '203.0.113.9',
     log: { info() {}, warn() {}, error() {} },

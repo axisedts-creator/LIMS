@@ -5,6 +5,7 @@
 import { LimsError } from '../../../core/errors.js';
 // [CONV] relative import until @lims/shared-ts is a services/api dependency (same as role.service).
 import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';
+import { DEFAULT_REGISTRY, isAssignable } from '../domain/permission-set.js';
 import { loadRolePacks } from '../role-packs/loader.js';
 import type { RoleCtx } from './role.service.js';
 
@@ -14,6 +15,10 @@ export interface RolePackRepo {
   insertRole(tx: unknown, tenantId: string, r: { id: string; code: string; name: string; mfaRequired: boolean; permissionCodes: string[]; actorId: string }): Promise<void>;
   addPermissions(tx: unknown, tenantId: string, roleId: string, codes: string[], actorId: string): Promise<void>;
 }
+
+/** LD-265 (ADMINPACK-4, LD-189): a refusal carries ONE reason from this closed set (+ the pack role it concerns), so the CLI can say why. Never data from the lab. */
+export type RefusalReason = 'args' | 'role_not_in_pack' | 'role_missing_in_lab' | 'role_is_system_default' | 'unassignable_code' | 'privileged_without_mfa';
+const refuse = (reason: RefusalReason, roleCode?: string) => Object.assign(new LimsError('common.validation_failed'), roleCode === undefined ? { reason } : { reason, role_code: roleCode });
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 type Tx = { query(sql: string, params?: unknown[]): Promise<{ rows: any[] }> };
@@ -43,13 +48,47 @@ export function createRolePackService(deps: { repo?: RolePackRepo; newId?: () =>
   const newId = deps.newId ?? uuidv7;
   const packs = loadRolePacks();   // validated against contracts/permissions.yaml (RM-T01); throws at startup if the data file is bad
   return {
-    async applyRolePack(ctx: RoleCtx, input: { packCode?: unknown }) {
+    async applyRolePack(ctx: RoleCtx, input: { packCode?: unknown }, addMissing?: { roles?: unknown; yes?: unknown }) {
       if (typeof ctx?.tenantId !== 'string' || !UUID.test(ctx.tenantId) || typeof ctx.actor?.id !== 'string' || !ctx.tx) throw new LimsError('auth.unauthenticated');
       if (typeof ctx.audit?.access !== 'function') throw new LimsError('common.internal');   // fail closed: no access log, no write
       const code = input?.packCode;
       const pack = typeof code === 'string' ? packs.packs.find((p) => p.code === code) : undefined;
-      if (!pack) throw new LimsError('common.validation_failed');
+      if (!pack) throw refuse('args');
       const t = ctx.tenantId, actorId = ctx.actor.id;
+      if (addMissing !== undefined) {
+        // LD-262 (ADMINPACK-3, LD-254, LD-189): explicit, per named role, ADDITIVE ONLY. Names a role the lab already has and gives it the
+        // permissions the pack gained. Never creates a role, never removes a permission, never changes mfa_required or any other column.
+        const { roles, yes } = addMissing ?? {};
+        if (!Array.isArray(roles) || roles.length === 0 || new Set(roles).size !== roles.length || typeof yes !== 'boolean') throw refuse('args');
+        const labRoles = await repo.listRoles(ctx.tx, t);
+        // Plan everything first: any refusal happens before the first write, so a multi-role request is all-or-nothing.
+        const plan = (roles as unknown[]).map((rc) => {
+          const pr = typeof rc === 'string' ? pack.roles.find((r) => r.code === rc) : undefined;
+          if (!pr) { if (typeof rc !== 'string') throw refuse('args'); throw refuse('role_not_in_pack', rc); }
+          const lr = labRoles.find((r) => r.code === pr.code);
+          if (!lr) throw refuse('role_missing_in_lab', pr.code);
+          if (lr.is_system_default) throw refuse('role_is_system_default', pr.code);
+          const want = [...new Set(pr.permissions)].sort();
+          if (!want.every((c) => isAssignable(c))) throw refuse('unassignable_code', pr.code);   // not in contracts/permissions.yaml; the code is not echoed
+          const has = new Set(lr.permission_codes);
+          const missing = want.filter((c) => !has.has(c));
+          const extra = [...has].filter((c) => !want.includes(c)).sort();
+          // A privileged code needs mfa_required (AC-B2.1); this flag never flips mfa_required, so refuse instead.
+          if (missing.some((c) => DEFAULT_REGISTRY.find((e) => e.code === c)?.privileged) && !lr.mfa_required) throw refuse('privileged_without_mfa', pr.code);
+          return { role_code: pr.code, id: lr.id, missing, extra, added: yes ? missing : [] as string[] };
+        });
+        const updated: string[] = [];
+        if (yes) for (const p of plan) {
+          if (p.missing.length === 0) continue;   // idempotent: nothing missing, nothing written or audited
+          await repo.addPermissions(ctx.tx, t, p.id, p.missing, actorId);
+          await ctx.audit.access({ action: 'role.change', entityType: 'role', entityId: p.id, outcome: 'allowed' });
+          updated.push(p.role_code);
+        }
+        return { status: 200 as const, body: {
+          pack_code: pack.code, created: [] as string[], updated, unchanged: plan.map((p) => p.role_code).filter((c) => !updated.includes(c)),
+          add_missing: plan.map(({ id: _id, ...p }) => ({ ...p, added: updated.includes(p.role_code) ? p.missing : [] })),
+        } };
+      }
       const existing = new Set((await repo.listRoles(ctx.tx, t)).map((r) => r.code));
       const created: string[] = [], unchanged: string[] = [];
       for (const r of pack.roles) {

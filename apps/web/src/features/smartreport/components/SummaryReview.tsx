@@ -3,6 +3,7 @@
 // smartreport.summary.approve and aal2. Text nodes only (REQ-SEC-088). LD-140: kit components and tokens only.
 // [CONV] "Approve & next" approves, then opens the queue (SR-01). "Rebuild with active library" and "Rephrase with AI" belong to other tasks (T29 / Phase 3).
 import { useEffect, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { Banner } from '@lims/ui/components/Banner';
 import { Button } from '@lims/ui/components/Button';
@@ -19,9 +20,12 @@ import { Stack } from '@lims/ui/components/Stack';
 import { StatusChip } from '@lims/ui/components/StatusChip';
 import { TextArea } from '@lims/ui/components/TextArea';
 import { Timeline } from '@lims/ui/components/Timeline';
-import { TimeSeriesChart } from '@lims/ui/components/TimeSeriesChart';
+import { LoadingSkeleton } from '@lims/ui/components/LoadingSkeleton';
 import { approveSummaryAction, rejectSummaryAction } from '../server/summary-actions';
 import { STATUS, type InputRow, type SummaryVM } from '../summary-review';
+
+// T0D-BUNDLE-1 (LD-310 / LD-312): the trend chart is drawn only when a summary has trends, so its code loads on demand.
+const TimeSeriesChart = dynamic(() => import('@lims/ui/components/TimeSeriesChart').then((m) => m.TimeSeriesChart), { loading: () => <LoadingSkeleton variant="detail" rows={3} /> });
 
 const QUEUE = '/smartreport/summaries';
 const ATTESTATION = 'I have read every sentence and confirm it is appropriate for this patient.';
@@ -112,7 +116,6 @@ export function SummaryReview({ vm }: { vm: SummaryVM }) {
     <div>
       <PageHeader
         title="Smart summary" helpKey="smartreport.summary"
-        breadcrumbs={[{ label: 'Smart summaries', href: QUEUE }, { label: 'Smart summary' }]}
         status={<StatusChip kind="generic" status={status} label={statusLabel} tone={statusTone} />}
         actions={canAct ? (
           <>

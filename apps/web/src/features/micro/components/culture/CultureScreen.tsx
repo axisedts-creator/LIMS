@@ -3,12 +3,16 @@
 // AC-03.* / AC-04.* / AC-05.* UI side. LD-140 (2026-11-13): kit components only (no hex colours, pixel radii or inline style objects); one primary button per page;
 // every status shows tone, icon and word. The screen never decides culture state: it opens dialogs, the dialogs post, the server moves the culture and the page refreshes.
 // Buttons that the state or the permission does not allow are not rendered (03-APP-FLOW §4.2). Page shortcuts are registered once under 'micro.culture' (04-UI-UX §3).
-// Preliminary / Final report, Cancel and Reopen are wired by T-22 (their buttons exist here, disabled); the AST grid and "Choose AST panel" are T-21.
+// T-22: Preliminary / Final report open the report drawer (Alt+P / Alt+F), "Reopen for amendment" its dialog, and the Reports tab lists the versions (components/reports).
+// T-23: the "Instrument data" tab lists this culture's instrument records (components/instrument-records); a final_submitted culture with open records shows the AC-08.9 banner.
+// Cancel stays disabled here (its own task). T-21: the AST grid and "Choose AST panel" live in the Isolates & AST tab;
+// leaving that tab with unsaved AST values asks "Discard unsaved AST changes?" (03-APP-FLOW §6); Alt+A focuses the grid of the selected isolate.
 import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useRouter } from 'next/navigation';
 import { shortcuts } from '@/core/shortcuts/registry';
 import { Banner } from '@lims/ui/components/Banner';
 import { Button } from '@lims/ui/components/Button';
-import { EmptyState } from '@lims/ui/components/EmptyState';
+import { ConfirmDialog } from '@lims/ui/components/ConfirmDialog';
 import { Inline } from '@lims/ui/components/Inline';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { Stack } from '@lims/ui/components/Stack';
@@ -21,6 +25,14 @@ import { ScanDialog } from '../../forms/ScanDialog';
 import { SetupCultureDialog } from '../../forms/SetupCultureDialog';
 import { WithdrawIsolateDialog } from '../../forms/WithdrawIsolateDialog';
 import type { CultureDetailDto, IsolateDto, ObservationDto, ObservationKind, PatientLite, PlateDto, SpecimenLite } from '../../server/types';
+import { AssignPanelDialog } from '../ast/AssignPanelDialog';
+import { AstPane, showsGrid } from '../ast/AstPane';
+import { focusFirstAstInput } from '../ast/AstGrid';
+import { useTenantStandard } from '../ast/useTenantStandard';
+import { InstrumentRecordsTab } from '../instrument-records/InstrumentRecordsTab';
+import { ReopenDialog } from '../reports/ReopenDialog';
+import { ReportDrawer } from '../reports/ReportDrawer';
+import { ReportsTab } from '../reports/ReportsTab';
 import { CultureStatusChip } from '../worklist/CultureStatusChip';
 import { IdentityCard } from './IdentityCard';
 import { IsolatesTab, type IsolateAction } from './IsolatesTab';
@@ -37,6 +49,9 @@ type Dlg =
   | { k: 'isolate'; mode: IsolateMode }
   | { k: 'discard'; plate: PlateDto }
   | { k: 'withdraw'; isolate: IsolateDto }
+  | { k: 'panel'; isolate: IsolateDto }
+  | { k: 'report'; phase: 'preliminary' | 'final' }
+  | { k: 'reopen' }
   | { k: 'scan' };
 
 /** What each button needs (03-APP-FLOW §4.2). */
@@ -64,7 +79,22 @@ export function CultureScreen({ culture, patient, specimen, permissions }: Cultu
   const [tab, setTab] = useState('setup');
   const [dlg, setDlg] = useState<Dlg>();
   const [selected, setSelected] = useState<string>();
+  const [astDirty, setAstDirty] = useState(false);
+  const [leaving, setLeaving] = useState<string>(); // the tab the user wants while the AST grid has unsaved values
+  const [, setFocusTick] = useState(0);
+  const router = useRouter();
+  const root = useRef<HTMLElement>(null);
+  const focusAst = useRef(false);
   const can = (k: keyof typeof ALLOWED) => permissions.includes(WORK) && (ALLOWED[k] as readonly string[]).includes(culture.status);
+  const selectedIsolate = culture.isolates.find((i) => i.id === selected);
+  const tenant = useTenantStandard(tab === 'isolates' && showsGrid(selectedIsolate));
+  const goTab = (id: string) => (tab === 'isolates' && id !== 'isolates' && astDirty ? setLeaving(id) : setTab(id));
+
+  // Alt+A: open the tab, then focus the first Raw value of the selected isolate's grid (the grid itself takes the request when it is still loading).
+  useEffect(() => {
+    if (!focusAst.current || tab !== 'isolates') return;
+    if (focusFirstAstInput(root.current) || !showsGrid(selectedIsolate)) focusAst.current = false;
+  });
 
   // Shortcuts call the latest handlers (state and permissions change after registration).
   const act = useRef<Record<string, () => void>>({});
@@ -73,8 +103,9 @@ export function CultureScreen({ culture, patient, specimen, permissions }: Cultu
     read: () => can('read') && setDlg({ k: 'obs', kind: 'plate_read' }),
     gram: () => can('stain') && setDlg({ k: 'obs', kind: 'gram_stain' }),
     isolate: () => can('isolate') && setDlg({ k: 'isolate', mode: { kind: 'add' } }),
-    ast: () => setTab('isolates'),
-    reports: () => setTab('reports'),
+    ast: () => { focusAst.current = true; setTab('isolates'); setFocusTick((n) => n + 1); },
+    prelim: () => can('prelim') && setDlg({ k: 'report', phase: 'preliminary' }),
+    final: () => can('final') && setDlg({ k: 'report', phase: 'final' }),
     scan: () => setDlg({ k: 'scan' }),
   };
   useEffect(
@@ -86,8 +117,8 @@ export function CultureScreen({ culture, patient, specimen, permissions }: Cultu
         { key: 'Alt+G', description: 'Record Gram stain', run: () => act.current['gram']!() },
         { key: 'Alt+I', description: 'Add isolate', run: () => act.current['isolate']!() },
         { key: 'Alt+A', description: 'Focus the AST grid of the selected isolate', run: () => act.current['ast']!() },
-        { key: 'Alt+P', description: 'Preliminary report', run: () => act.current['reports']!() },
-        { key: 'Alt+F', description: 'Final report', run: () => act.current['reports']!() },
+        { key: 'Alt+P', description: 'Preliminary report', run: () => act.current['prelim']!() },
+        { key: 'Alt+F', description: 'Final report', run: () => act.current['final']!() },
         { key: 'Alt+B', description: 'Scan a specimen barcode', run: () => act.current['scan']!() },
       ),
     [],
@@ -109,10 +140,10 @@ export function CultureScreen({ culture, patient, specimen, permissions }: Cultu
       {action('stain', 'Record stain / microscopy', () => setDlg({ k: 'obs', kind: 'gram_stain' }))}
       {action('plate', 'Add plate', () => setDlg({ k: 'plate' }))}
       {action('isolate', 'Add isolate', () => setDlg({ k: 'isolate', mode: { kind: 'add' } }))}
-      {action('prelim', 'Preliminary report')}
-      {action('final', 'Final report')}
+      {action('prelim', 'Preliminary report', () => setDlg({ k: 'report', phase: 'preliminary' }))}
+      {action('final', 'Final report', () => setDlg({ k: 'report', phase: 'final' }))}
       {action('cancel', 'Cancel culture')}
-      {action('reopen', 'Reopen for amendment')}
+      {action('reopen', 'Reopen for amendment', () => setDlg({ k: 'reopen' }))}
     </Inline>
   );
 
@@ -120,17 +151,14 @@ export function CultureScreen({ culture, patient, specimen, permissions }: Cultu
     if (a === 'identify') setDlg({ k: 'isolate', mode: { kind: 'identify', isolate: i } });
     else if (a === 'describe') setDlg({ k: 'isolate', mode: { kind: 'describe', isolate: i } });
     else if (a === 'withdraw') setDlg({ k: 'withdraw', isolate: i });
-    else {
-      setSelected(i.id); // T-21 shows the panel chooser / AST grid of the selected isolate
-    }
+    else setDlg({ k: 'panel', isolate: i });
   };
 
   return (
-    <section aria-label="Culture">
+    <section aria-label="Culture" ref={root}>
       <Stack gap={3}>
         <PageHeader
           title={culture.test_name}
-          breadcrumbs={[{ label: 'Microbiology', href: '/micro/worklist' }, { label: 'Culture' }]}
           status={<CultureStatusChip status={culture.status} />}
           actions={actions}
           helpKey="micro.culture"
@@ -138,6 +166,7 @@ export function CultureScreen({ culture, patient, specimen, permissions }: Cultu
         <IdentityCard culture={culture} patient={patient} specimen={specimen} />
         {culture.chain_cancelled ? <Banner tone="warning" title="This test was cancelled in the lab after a report was submitted." /> : null}
         {culture.status === 'amending' ? <Banner tone="warning" title={`Amendment in progress: ${culture.amendment_reason_text ?? ''}`.trim()} /> : null}
+        {culture.status === 'final_submitted' && culture.open_instrument_record_count > 0 ? <Banner tone="warning" title="Instrument data arrived after the final report" /> : null}
         <Tabs
           aria-label="Culture sections"
           items={[
@@ -148,13 +177,22 @@ export function CultureScreen({ culture, patient, specimen, permissions }: Cultu
             { id: 'instrument', label: culture.open_instrument_record_count > 0 ? `Instrument data (${culture.open_instrument_record_count})` : 'Instrument data' },
           ]}
           selectedId={tab}
-          onChange={setTab}
+          onChange={goTab}
         >
           {tab === 'setup' ? <SetupPlatesTab culture={culture} canDiscard={can('plate')} onDiscard={(p) => setDlg({ k: 'discard', plate: p })} /> : null}
           {tab === 'reads' ? <ReadsTab culture={culture} canCorrect={can('stain')} onCorrect={(o) => setDlg({ k: 'obs', kind: o.kind, correcting: o })} /> : null}
-          {tab === 'isolates' ? <IsolatesTab culture={culture} canWork={can('isolate')} selectedId={selected} onSelect={setSelected} onAction={onIsolate} /> : null}
-          {tab === 'reports' ? <EmptyState title="No reports to show here yet." /> : null}
-          {tab === 'instrument' ? <EmptyState title="No instrument data to show here yet." /> : null}
+          {tab === 'isolates' ? (
+            <IsolatesTab
+              culture={culture}
+              canWork={can('isolate')}
+              selectedId={selected}
+              onSelect={setSelected}
+              onAction={onIsolate}
+              pane={<AstPane isolate={selectedIsolate} canWork={can('isolate')} tenant={tenant} focusRequest={focusAst} onChoosePanel={(i) => setDlg({ k: 'panel', isolate: i })} onSaved={() => router.refresh()} onDirtyChange={setAstDirty} />}
+            />
+          ) : null}
+          {tab === 'reports' ? <ReportsTab culture={culture} /> : null}
+          {tab === 'instrument' ? <InstrumentRecordsTab cultureId={culture.id} canWork={permissions.includes(WORK)} /> : null}
         </Tabs>
       </Stack>
       {dlg?.k === 'setup' ? <SetupCultureDialog culture={culture} onClose={close} /> : null}
@@ -163,7 +201,25 @@ export function CultureScreen({ culture, patient, specimen, permissions }: Cultu
       {dlg?.k === 'isolate' ? <IsolateDialog culture={culture} mode={dlg.mode} onClose={close} /> : null}
       {dlg?.k === 'discard' ? <DiscardPlateDialog cultureId={culture.id} plate={dlg.plate} onClose={close} /> : null}
       {dlg?.k === 'withdraw' ? <WithdrawIsolateDialog isolate={dlg.isolate} onClose={close} /> : null}
+      {dlg?.k === 'panel' ? <AssignPanelDialog isolate={dlg.isolate} onClose={close} /> : null}
+      {dlg?.k === 'report' ? <ReportDrawer culture={culture} phase={dlg.phase} onClose={close} onSent={() => setTab('reports')} /> : null}
+      {dlg?.k === 'reopen' ? <ReopenDialog culture={culture} onClose={close} /> : null}
       {dlg?.k === 'scan' ? <ScanDialog currentCultureId={culture.id} onClose={close} /> : null}
+      {leaving ? (
+        <ConfirmDialog
+          title="Discard unsaved AST changes?"
+          confirmLabel="Discard"
+          isOpen
+          body={<p>The values typed in the AST grid have not been saved.</p>}
+          onCancel={() => setLeaving(undefined)}
+          onConfirm={() => {
+            setAstDirty(false);
+            setSelected(undefined); // the grid is gone; a later selection starts from the stored values
+            setTab(leaving);
+            setLeaving(undefined);
+          }}
+        />
+      ) : null}
     </section>
   );
 }

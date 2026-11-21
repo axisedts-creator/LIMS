@@ -8,7 +8,6 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@lims/ui/components/Button';
 import { Checkbox } from '@lims/ui/components/Checkbox';
 import { DataTable } from '@lims/ui/components/DataTable';
-import { EmptyState } from '@lims/ui/components/EmptyState';
 import { Select } from '@lims/ui/components/Select';
 import { Switch } from '@lims/ui/components/Switch';
 import { useToast } from '@lims/ui/components/Toast';
@@ -35,15 +34,13 @@ export function TestProfilesTab({ profiles, tests, stains, templates }: { profil
   const yes = (b: boolean) => (b ? 'Yes' : 'No');
   return (
     <>
-      {rows.length === 0 ? (
-        <EmptyState title="No anatomic or molecular tests yet." body="Add tests with workflow type anatomic or molecular in the test catalog." />
-      ) : (
-        <DataTable
+      {/* T0D-EMPTYTBL-2 (LD-310, LD-336): the table is always drawn; the empty message sits in its body (no create action on this tab). */}
+      <DataTable
           caption="Test profiles"
           density="compact"
           rows={rows}
           getRowId={(r) => r.test_id}
-          emptyState={{ title: 'No tests' }}
+          emptyState={{ title: 'No anatomic or molecular tests yet.', body: 'Add tests with workflow type anatomic or molecular in the test catalog.' }}
           columns={[
             { id: 'test', header: 'Test', isRowHeader: true, cell: (r) => r.name },
             { id: 'kind', header: 'Case kind', cell: (r) => (r.profile ? KIND_LABEL[r.profile.case_kind] : 'Not configured') },
@@ -55,7 +52,6 @@ export function TestProfilesTab({ profiles, tests, stains, templates }: { profil
             { id: 'edit', header: 'Actions', cell: (r) => <Button size="sm" variant="ghost" onPress={() => setEditing(r)}>{r.profile ? `Edit ${r.name}` : `Set up ${r.name}`}</Button> },
           ]}
         />
-      )}
       {editing ? <ProfileDrawer row={editing} stains={stains} templates={templates} onClose={() => setEditing(undefined)} onMfa={() => { setEditing(undefined); setMfa(true); }} /> : null}
       <MfaDialog isOpen={mfa} onClose={() => setMfa(false)} />
     </>

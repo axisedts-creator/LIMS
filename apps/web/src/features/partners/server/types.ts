@@ -17,6 +17,8 @@ export interface PartnerSummary {
 export interface Partner extends PartnerSummary {
   receiving_branch_id: string; conversion_mode: string; contact_email?: string; contact_phone_e164?: string; address_text?: string;
   created_at: string; version: number; suspend_reason_code?: string;
+  /** PAN and National ID number, masked by the API (T0C-PARTYSET-1); the full value only through revealPartyIdNumber. */
+  tax_number?: string; national_id_number?: string;
   projection_status?: { price_list_synced_at?: string; statements_synced_at?: string };
 }
 export interface PartnerUser {

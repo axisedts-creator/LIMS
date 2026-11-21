@@ -1,6 +1,6 @@
 # 10 — Design system "Metro Green": palette, type, layout, screens
 
-Status: ACTIVE (supersedes the slate/blue theme in `packages/ui/tokens/tokens.json` and every colour/radius statement in the chunk `04-UI-UX.md` files) · Date: 2026-11-13 · Owner: C0-0D (tokens, kit, shell); each chunk owns the layout of its own screens
+Status: ACTIVE, AMENDED 2026-11-16 by `13-M-SERIES.md` (founder: "ui part is M series my pick"): the M series changes the token VALUES, the font, the shape and the shell; where the two files differ, 13 wins. (supersedes the slate/blue theme in `packages/ui/tokens/tokens.json` and every colour/radius statement in the chunk `04-UI-UX.md` files) · Date: 2026-11-13 · Owner: C0-0D (tokens, kit, shell); each chunk owns the layout of its own screens
 Sources: the client's "My Health Now" interactive prototype (`Main.dc.html`: colours, radii, shadows, type, tap behaviour) and palette screenshot; the reference lab software capture (`ElabAssist_UI_Documentation.md`: what staff do all day, and what slows them); Watermelon UI healthcare-dashboard patterns (layout ideas only, no code copied). The Mobbin connector refused every call ("requires a paid plan"), so no Mobbin references were used.
 
 ## 1. Direction in three sentences

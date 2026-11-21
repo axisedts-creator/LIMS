@@ -1,5 +1,5 @@
 // contracts/ports/IdentityPort.ts
-import type { RequestContext, Uuidv7, Uuid, Actor, IsoUtc, Code } from './common';
+import type { RequestContext, Uuidv7, Uuid, Actor, IsoUtc, Code } from './common.js';
 export const IDENTITY_PORT_VERSION = 1 as const;
 
 export type RoleCode = string;          // tenant-configurable; defaults in contracts/permissions.yaml (§11)

@@ -3,7 +3,7 @@
 // Ctx shape is ASSUMED (spec names no frontdesk ctx): tenantId, tx, requestId, now(), centreId, actor, audit.access, ports.IdentityPort{assertRole,getActor,getTenantSettings}.
 import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';
 import { LimsError, type FieldError } from '../../../core/errors.js';
-import { estimatedBirthOn, isDuplicateSuspect, normaliseName } from '../domain/patient.js';
+import { estimatedBirthOn, isDuplicateSuspect, isIsoCountry, isNpPostalCode, normaliseName } from '../domain/patient.js';
 import { formatNumber } from '../domain/numbering.js';
 import { consentRecordDto, dateOnly, decodeCursor, encodeCursor, orderSummaryDto, patientDto, patientSummaryDto } from '../mappers/patient.dto.js';
 import { nextCounterValue } from '../repository/counters.repo.js';
@@ -11,11 +11,13 @@ import { insertConsent, listConsentsByPatient } from '../repository/consents.rep
 import { deriveOrderStatus, type ItemProcessingStatus, type OrderStatus } from '../domain/order.state.js';
 import { activeItemIdsByOrders } from '../repository/orderItems.repo.js';
 import { lastOrderAt, openOrdersOfPatient, pageOrdersByPatient } from '../repository/orders.repo.js';
-import { anonymisePatientRow, duplicateCandidates, findDedupePool, findPatientsByCode, findPatientsByPhone, findPatientsByRegistrationNo, getPatientById, insertPatient,
+import { EXTERNAL_ID_UQ, anonymisePatientRow, duplicateCandidates, findDedupePool, findPatientsByCode, findPatientsByPhone, findPatientsByRegistrationNo, getPatientById, insertPatient,
   pageDuplicatePatients, searchPatientsByNameRanked, updatePatientRow } from '../repository/patients.repo.js';
 import { getSettings } from '../repository/settings.repo.js';
-import { deactivateTrfByPatient } from '../repository/trf.repo.js';
+import { deactivateTrfByPatient, getTrfAttachmentById } from '../repository/trf.repo.js';
 import type { Tx } from '../repository/shared.repo.js';
+import { activeFieldDefinitions } from '../repository/parity.repo.js';
+import { checkCustomFields } from './parity.service.js';
 import { FRONTDESK_PERMISSIONS as P } from '../permissions.js';
 
 export interface PatientCtx {
@@ -172,6 +174,76 @@ const optionalFields = (b: Obj) => ({
   email: b['email'] === undefined ? undefined : text(b['email'], '/email', 254, { min: 1 }),
   address_text: b['address_text'] === undefined ? undefined : text(b['address_text'], '/address_text', 300, { min: 1 }),
 });
+// ---- T0B-REGAPI-1 (LD-310): the 13 T0C-REGPARITY-1 fields. Values are never echoed, logged or put in access-log detail (column names only). ----
+const TITLES = ['mr', 'mrs', 'miss', 'ms', 'master', 'baby', 'baby_of', 'dr', 'prof', 'capt', 'col', 'major', 'sri', 'smt', 'kumari', 'late', 'sister', 'reverend', 'other'];
+const GOV_ID_TYPES = ['citizenship', 'national_id', 'passport', 'driving_licence', 'voter_id', 'other'];
+const CF_CODE = /^[A-Za-z0-9][A-Za-z0-9_.:-]{0,99}$/;   // _common.yaml Code
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const PHOTO_MAX_BYTES = 2 * 1024 * 1024;   // LD-310: at most 2 MB (2 MiB)
+const PHOTO_MIME = ['image/jpeg', 'image/png'];
+export const PARITY_FIELDS = ['title', 'external_patient_id', 'nationality', 'government_id_type', 'government_id_number', 'address_province', 'address_district',
+  'address_municipality', 'address_ward', 'address_tole', 'address_postal_code', 'profile_photo_attachment_id', 'custom_fields'] as const;
+/** As typed (no trim: "stored as typed"), 1..max code points like the column CHECKs, no NUL. */
+function asTyped(v: unknown, path: string, max: number): string {
+  if (typeof v !== 'string' || !noNul(v) || v.length === 0 || [...v].length > max) throw bad(path);
+  return v;
+}
+const LIMITS: Readonly<Record<string, number>> = { external_patient_id: 64, government_id_number: 64, address_province: 100, address_district: 100,
+  address_municipality: 150, address_ward: 20, address_tole: 150, address_postal_code: 20 };
+function customFields(v: unknown): Obj {
+  if (!Array.isArray(v) || v.length > 50) throw bad('/custom_fields');
+  const out: Obj = {};
+  v.forEach((it, i) => {
+    const f = strict(it, ['code', 'value'], `/custom_fields/${i}`);
+    if (typeof f['code'] !== 'string' || !CF_CODE.test(f['code']) || Object.hasOwn(out, f['code'])) throw bad(`/custom_fields/${i}/code`);
+    if (typeof f['value'] !== 'string' || !noNul(f['value']) || [...f['value']].length > 500) throw bad(`/custom_fields/${i}/value`);
+    out[f['code']] = f['value'];
+  });
+  return out;   // jsonb object {code: value} (T0C-REGPARITY-1 ruling)
+}
+/** Single-field checks; the cross-field rules (id type + number, NP postal code, photo) run on the resulting state in checkParity. */
+function parityFields(b: Obj): Obj {
+  const o: Obj = {};
+  for (const k of PARITY_FIELDS) {
+    const v = b[k];
+    if (v === undefined) continue;
+    const path = `/${k}`;
+    if (k === 'title') { if (!TITLES.includes(v)) throw bad(path); o[k] = v; }
+    else if (k === 'nationality') { if (!isIsoCountry(v)) throw bad(path); o[k] = v; }
+    else if (k === 'government_id_type') { if (!GOV_ID_TYPES.includes(v)) throw bad(path); o[k] = v; }
+    else if (k === 'profile_photo_attachment_id') { if (typeof v !== 'string' || !UUID.test(v)) throw bad(path); o[k] = v.toLowerCase(); }
+    else if (k === 'custom_fields') o[k] = customFields(v);
+    else o[k] = asTyped(v, path, LIMITS[k]!);
+  }
+  return o;
+}
+/** `s` = the row as it will be stored (current row merged with the change). `photoChanged` = check the attachment only when it is (re)set. */
+async function checkParity(c: PatientCtx, s: Obj, photoChanged: boolean, fieldsChanged = false): Promise<void> {
+  // T0B-REGAPI-2 (LD-310): custom_fields against the ACTIVE definitions of the tenant, checked when the request sets them [CONV: a required field is enforced
+  // on the request that carries custom_fields, so patients saved before a definition existed stay editable]
+  if (fieldsChanged && isObj(s['custom_fields'])) checkCustomFields(s['custom_fields'], await activeFieldDefinitions(c.tx, c.tenantId));
+  const hasType = s['government_id_type'] != null; const hasNo = s['government_id_number'] != null;
+  if (hasType && !hasNo) throw bad('/government_id_number');   // type and number together or neither
+  if (hasNo && !hasType) throw bad('/government_id_type');
+  if (s['nationality'] === 'NP' && s['address_postal_code'] != null && !isNpPostalCode(s['address_postal_code'])) throw bad('/address_postal_code');
+  if (photoChanged && s['profile_photo_attachment_id'] != null) {
+    // same tenant (explicit filter + RLS), active, not quarantined / failed, png or jpeg, <= 2 MiB. Missing and other-tenant ids get the same answer.
+    const a = await getTrfAttachmentById(c.tx, c.tenantId, s['profile_photo_attachment_id']);
+    if (!a || a['is_active'] !== true || ['quarantined', 'failed'].includes(a['scan_state']) || !PHOTO_MIME.includes(a['mime_type'])
+      || !(Number(a['size_bytes']) > 0 && Number(a['size_bytes']) <= PHOTO_MAX_BYTES)) throw bad('/profile_photo_attachment_id');
+  }
+}
+/** external_patient_id is unique per tenant (index EXTERNAL_ID_UQ): the DB decides, so two concurrent saves cannot both win. The pg error text
+ *  (it holds the value) is dropped. Code: interim, see .orchestra/cr/T0B-REGAPI-1.md (errors.yaml has no frontdesk code for it). */
+async function uniqueExternalId<T>(p: Promise<T>): Promise<T> {
+  try { return await p; } catch (e) {
+    if ((e as Obj)?.['code'] === '23505' && (e as Obj)?.['constraint'] === EXTERNAL_ID_UQ) {
+      throw new LimsError('identity.code_duplicate', undefined, [{ path: '/external_patient_id', code: 'common.field_invalid', message: 'Already used in this tenant' }]);
+    }
+    throw e;
+  }
+}
+
 function demographics(b: Obj, today: string): { birth_on?: string; is_birth_on_estimated?: boolean } {
   if (b['birth_on'] !== undefined && b['age'] !== undefined) throw bad('/birth_on', '/age');
   if (b['birth_on'] !== undefined) return { birth_on: calendarDate(b['birth_on'], '/birth_on', today), is_birth_on_estimated: false };
@@ -182,13 +254,14 @@ function demographics(b: Obj, today: string): { birth_on?: string; is_birth_on_e
 export async function createPatient(hctx: unknown, body: unknown): Promise<Result> {
   const c = patientCtx(hctx);
   await role(c, P.registrationCreate);
-  const b = strict(body, ['full_name', 'sex', 'birth_on', 'age', 'phone_e164', 'email', 'address_text', 'consents', 'duplicate_override']);
+  const b = strict(body, ['full_name', 'sex', 'birth_on', 'age', 'phone_e164', 'email', 'address_text', ...PARITY_FIELDS, 'consents', 'duplicate_override']);
   const fullName = text(b['full_name'], '/full_name', 200, { min: 1 });
   if (!SEX.includes(b['sex'])) throw bad('/sex');
   const { today, numbering } = await tenantInfo(c);
   const demo = demographics(b, today);
   if (demo.birth_on === undefined) throw bad('/birth_on', '/age');   // birth_on xor age (server-validated)
   const opt = optionalFields(b);
+  const parity = parityFields(b);
   const consents = consentsIn(b['consents'], '/consents');
   let overrideCode: string | undefined;
   if (b['duplicate_override'] !== undefined) {
@@ -197,6 +270,7 @@ export async function createPatient(hctx: unknown, body: unknown): Promise<Resul
     overrideCode = o['reason_code'];   // ponytail: format only; membership of frontdesk.duplicate_override_reasons is not checked (no coded-set reader in C4 yet)
   }
   await checkConsents(c, consents);
+  await checkParity(c, parity, true, parity['custom_fields'] !== undefined);
 
   // US-FD-02.2: same normalised name + birth year +-1 + same phone (when both present). Candidates come back masked.
   const nameSearch = normaliseName(fullName);
@@ -215,10 +289,10 @@ export async function createPatient(hctx: unknown, body: unknown): Promise<Resul
   const pattern = numbering['patientCodePattern'];
   if (typeof pattern !== 'string') throw new LimsError('common.internal');
   const seq = await nextCounterValue(c.tx, c.tenantId, 'patient_code', '', c.actor.id);
-  const row = await insertPatient(c.tx, c.tenantId, {
-    id: uuidv7(), patient_code: formatNumber(pattern, { seq }), full_name: fullName, name_search: nameSearch, sex: b['sex'], ...demo, ...opt,
+  const row = await uniqueExternalId(insertPatient(c.tx, c.tenantId, {
+    id: uuidv7(), patient_code: formatNumber(pattern, { seq }), full_name: fullName, name_search: nameSearch, sex: b['sex'], ...demo, ...opt, ...parity,
     source: 'front_desk', registered_centre_id: centreId, duplicate_override_reason_code: overrideCode,
-  });
+  }));
   const consent = await insertConsent(c.tx, c.tenantId, { id: uuidv7(), patient_id: row.id, ...consents, source: 'front_desk', captured_at: c.now() });
   return { status: 201, body: patientDto(row, consent, today, true) };
 }
@@ -230,7 +304,7 @@ export async function getPatient(hctx: unknown, params: unknown): Promise<Result
   const row = await loadPatient(c, isObj(params) ? params['patient_id'] : undefined);
   const { today } = await tenantInfo(c);
   await c.audit.access({ action: 'patient.view', entityType: 'patient', entityId: row['id'], outcome: 'allowed' });
-  return { status: 200, body: patientDto(row, await consentOf(c, row['id']), today, await canSeePii(c)) };
+  return { status: 200, body: patientDto(row, await consentOf(c, row['id']), today, await canSeePii(c), true) };   // LD-310: the one reply with the full government_id_number
 }
 
 // ---- F4 updatePatient ----
@@ -242,13 +316,13 @@ export function expectedVersion(headers: unknown): number {
   if (!m || Number(m[1]) > 2147483647) throw bad('/headers/if-match');
   return Number(m[1]);
 }
-const UNSETTABLE = ['birth_on', 'phone_e164', 'email', 'address_text'];
+const UNSETTABLE: readonly string[] = ['birth_on', 'phone_e164', 'email', 'address_text', ...PARITY_FIELDS];
 
 export async function updatePatient(hctx: unknown, params: unknown, headers: unknown, body: unknown): Promise<Result> {
   const c = patientCtx(hctx);
   await role(c, P.registrationCreate);
   const version = expectedVersion(headers);
-  const b = strict(body, ['full_name', 'sex', 'birth_on', 'age', 'phone_e164', 'email', 'address_text', 'unset']);
+  const b = strict(body, ['full_name', 'sex', 'birth_on', 'age', 'phone_e164', 'email', 'address_text', ...PARITY_FIELDS, 'unset']);
   const { today } = await tenantInfo(c);
   const set: Obj = {};
   const changed = new Set<string>();
@@ -256,9 +330,9 @@ export async function updatePatient(hctx: unknown, params: unknown, headers: unk
   if (b['sex'] !== undefined) { if (!SEX.includes(b['sex'])) throw bad('/sex'); set['sex'] = b['sex']; changed.add('sex'); }
   const demo = demographics(b, today);
   if (demo.birth_on !== undefined) { Object.assign(set, demo); changed.add('birth_on'); }
-  for (const [k, v] of Object.entries(optionalFields(b))) if (v !== undefined) { set[k] = v; changed.add(k); }
+  for (const [k, v] of Object.entries({ ...optionalFields(b), ...parityFields(b) })) if (v !== undefined) { set[k] = v; changed.add(k); }
   if (b['unset'] !== undefined) {
-    if (!Array.isArray(b['unset']) || b['unset'].length > 4) throw bad('/unset');
+    if (!Array.isArray(b['unset']) || b['unset'].length > UNSETTABLE.length) throw bad('/unset');
     for (const f of b['unset']) {
       if (!UNSETTABLE.includes(f) || changed.has(f)) throw bad('/unset');
       set[f] = null; changed.add(f);
@@ -270,7 +344,8 @@ export async function updatePatient(hctx: unknown, params: unknown, headers: unk
   const cur = await loadPatient(c, isObj(params) ? params['patient_id'] : undefined);
   if (cur['anonymised_at'] != null) throw new LimsError('common.not_found');
   if (Number(cur['version']) !== version) throw new LimsError('common.version_conflict');
-  const row = await updatePatientRow(c.tx, c.tenantId, cur['id'], version, set);
+  await checkParity(c, { ...cur, ...set }, changed.has('profile_photo_attachment_id'), set['custom_fields'] != null);
+  const row = await uniqueExternalId(updatePatientRow(c.tx, c.tenantId, cur['id'], version, set));
   if (!row) throw new LimsError('common.version_conflict');   // lost a race on the row lock: the version moved under us
   // A13 D-27a compensating control: column names only, never values.
   await c.audit.access({ action: 'patient.update', entityType: 'patient', entityId: row['id'], outcome: 'allowed', detail: { changed_fields: [...changed].join(',') } });

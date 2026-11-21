@@ -2026,6 +2026,9 @@ export interface BillingCommandPortV1 {
     cause: 'order_cancelled' | 'item_removed'; reasonCode: Code }): Promise<{ required: boolean; taskIds: readonly Uuidv7[] }>;
   getOrderBillingSummary(ctx: RequestContext, input: { orderId: Uuidv7 }): Promise<{
     invoiceIds: readonly Uuidv7[]; hasIssuedInvoice: boolean; creditChargeIds: readonly Uuidv7[]; balance: OrderBalance }>;
+  /** Read only preview of the next invoice number (INV series, current BS fiscal year): last_no + 1, or the first number of the year when no counter row exists.
+   *  No write, no nextval, no lock, no counter consumed; two callers may see the same value; the real number is assigned when saved (LD-323). */
+  previewInvoiceNo(ctx: RequestContext, input: Record<string, never>): Promise<{ invoiceNo: string }>;
 }
 export type BillingCommandPort = BillingCommandPortV1;
 ```
@@ -2323,6 +2326,7 @@ routes:
   - { id: staff.admin.users,             origin: staff_web, path: /admin/users,                  owner: C2,  permission: identity.user.read }
   - { id: staff.admin.user_new,          origin: staff_web, path: /admin/users/new,              owner: C2,  permission: identity.user.manage }
   - { id: staff.admin.roles,             origin: staff_web, path: /admin/roles,                  owner: C2,  permission: identity.user.read }
+  - { id: staff.admin.role_packs,        origin: staff_web, path: /admin/roles/packs,            owner: C2,  permission: identity.role.manage }
   - { id: staff.admin.branches,          origin: staff_web, path: /admin/branches,               owner: C2,  permission: identity.user.read }
   - { id: staff.admin.centres,           origin: staff_web, path: /admin/centres,                owner: C2,  permission: identity.centre.read }
   - { id: staff.admin.settings,          origin: staff_web, path: /admin/settings,               owner: C2,  permission: identity.settings.manage }
@@ -2473,6 +2477,36 @@ routes:
   - { id: staff.homecollection.settings, origin: staff_web, path: /homecollection/settings, owner: C17, permission: homecollection.settings.manage }
   - { id: staff.catalog.imports, origin: staff_web, path: /catalog/imports, owner: C3, permission: catalog.test.read }
   - { id: staff.catalog.import, origin: staff_web, path: "/catalog/imports/{import_id}", owner: C3, permission: catalog.test.read }
+  - { id: staff.frontdesk.worklist, origin: staff_web, path: /frontdesk/worklist, owner: C4, permission: frontdesk.order.read }
+  - { id: staff.frontdesk.discount_approvals, origin: staff_web, path: /frontdesk/discount-approvals, owner: C4, permission: frontdesk.discount.approve }
+  - { id: staff.frontdesk.settings, origin: staff_web, path: /frontdesk/settings, owner: C4, permission: frontdesk.settings.manage }
+  - { id: staff.billing.invoices, origin: staff_web, path: /billing/invoices, owner: C4, permission: billing.invoice.read }
+  - { id: staff.billing.dues, origin: staff_web, path: /billing/dues, owner: C4, permission: billing.invoice.read }
+  - { id: staff.billing.credit_parties, origin: staff_web, path: /billing/credit-parties, owner: C4, permission: billing.credit_party.read }
+  - { id: staff.billing.registers, origin: staff_web, path: /billing/registers, owner: C4, permission: billing.invoice.read }
+  - { id: staff.billing.audit_trail, origin: staff_web, path: /billing/audit-trail, owner: C4, permission: billing.data.export }
+  - { id: staff.billing.cbms, origin: staff_web, path: /billing/cbms, owner: C4, permission: billing.invoice.read }
+  - { id: staff.billing.worklist, origin: staff_web, path: /billing/worklist, owner: C4, permission: billing.invoice.read }
+  - { id: staff.billing.settings, origin: staff_web, path: /billing/settings, owner: C4, permission: billing.settings.manage }
+  - { id: staff.billing.account_entries, origin: staff_web, path: /billing/accounts/entries, owner: C4, permission: billing.account.read }   # T0D-ACCT-1 (LD-313)
+  - { id: staff.billing.account_ledger, origin: staff_web, path: /billing/accounts/ledger, owner: C4, permission: billing.account.read }
+  - { id: staff.billing.pocket_ledger, origin: staff_web, path: /billing/accounts/pocket, owner: C4, permission: billing.account.read }
+  - { id: staff.billing.account_summary, origin: staff_web, path: /billing/accounts/summary, owner: C4, permission: billing.account.read }
+  - { id: staff.billing.account_masters, origin: staff_web, path: /billing/accounts/masters, owner: C4, permission: billing.account.read }
+  - { id: staff.billing.expenses, origin: staff_web, path: /billing/expenses, owner: C4, permission: billing.account.read }   # T0D-ACCT-2 (LD-313; added to IC section 7 by the lead 2026-11-18, CR-C0-T0C-SYNC-2)
+  - { id: staff.billing.expense_types, origin: staff_web, path: /billing/expenses/types, owner: C4, permission: billing.account.read }
+  - { id: staff.billing.cash_transfers, origin: staff_web, path: /billing/cash-transfers, owner: C4, permission: billing.account.read }
+  - { id: staff.lab.collect, origin: staff_web, path: /lab/collect, owner: C5, permission: lab.specimen.collect }
+  - { id: staff.lab.receive, origin: staff_web, path: /lab/receive, owner: C5, permission: lab.specimen.receive }
+  - { id: staff.lab.worklists, origin: staff_web, path: /lab/worklists, owner: C5, permission: lab.worklist.read }
+  - { id: staff.lab.critical_values, origin: staff_web, path: /lab/critical-values, owner: C5, permission: lab.critical_value.read }
+  - { id: staff.lab.pending, origin: staff_web, path: /lab/pending, owner: C5, permission: lab.worklist.read }
+  - { id: staff.lab.verification, origin: staff_web, path: /lab/verification, owner: C5, permission: lab.result.verify }
+  - { id: staff.lab.approval, origin: staff_web, path: /lab/approval, owner: C5, permission: lab.result.approve }
+  - { id: staff.lab.worksheets, origin: staff_web, path: /lab/worksheets, owner: C5, permission: lab.worklist.read }
+  - { id: staff.lab.qc, origin: staff_web, path: /lab/qc, owner: C5, permission: lab.qc.capture }
+  - { id: staff.lab.settings, origin: staff_web, path: /lab/settings, owner: C5, permission: lab.config.manage }
+  - { id: staff.catalog.tests, origin: staff_web, path: /catalog/tests, owner: C3, permission: catalog.test.read }
 ```
 
 API operations recorded in the final sweep (2026-11-06). They are HTTP operations, not app routes, so they have no entry above; C0-0C transcribes them into `contracts/openapi/<domain>.yaml` from the owner TRD:
@@ -3306,6 +3340,9 @@ Existing C0 seed kept. Additions (code — display — requested by). Strict YAM
 - patient.anonymise                 # 08 Addendum A2.9
 - credit_note.print                 # 08 Addendum A2.9
 - receipt.print                     # 08 Addendum A2.9
+# C0 / LD-313 lab accounting (CR-C0-ACCT-1, LD-324)
+- account_entry.create              # "Account ledger entry posted"
+- account_entry.reverse             # "Account ledger entry reversed"
 # C5 (triage batch 1) — 08 A13 D-11
 - specimen_label.print              # per specimen, #14
 - lab_result.view                   # order results grid

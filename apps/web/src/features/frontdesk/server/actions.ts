@@ -5,12 +5,19 @@
 import 'server-only';
 import { ApiError } from '@/core/api/server-fetch';
 import { printInvoice } from '@/features/billing/server/write.server';
-import { getDiscountApproval, listDiscountReasons, listPaymentMethods, searchCreditParties, searchDoctors, searchOrderables, searchPatients } from './read.server';
 import {
-  approveDiscount, cancelOrder, changeOrderItems, createRegistration, quoteOrderItemsChange, quoteRegistration, recordPatientConsent, recordPayment,
-  rejectDiscount, requestDiscountApproval, requestLabelPrints, resolveOrderFlag, updatePatient, uploadTrf,
+  getDiscountApproval, getMyDiscountPolicy, getPatient, getPatientRewards, getRegistrationDraft, listCatalogOptions, listCustomFieldDefinitions, listDiscountReasons, listFavouriteTests, listIcdCodes,
+  listPaymentMethods, listRegistrationDrafts, previewRegistrationNumbers, searchCreditParties, searchDoctors, searchOrderables, searchPatients,
+} from './read.server';
+import {
+  addFavouriteTest, approveDiscount, cancelOrder, changeOrderItems, createRegistration, createRegistrationDraft, deleteRegistrationDraft, quoteOrderItemsChange, quoteRegistration,
+  recordPatientConsent, recordPayment, rejectDiscount, removeFavouriteTest, requestDiscountApproval, requestLabelPrints, resolveOrderFlag, updatePatient, uploadTrf,
 } from './write.server';
-import type { ActionResult, CodedSetEntry, Consents, CreditPartySummary, DiscountApprovalIn, DoctorSummary, InvoicePrintDoc, LabelReadiness, OrderableSummary, PatientSummary, Quote, RegisterBody, RegistrationDraft, RegistrationResult } from './types';
+import type { MyDiscountPolicy } from './read.server';
+import type {
+  ActionResult, CodedSetEntry, Consents, CreditPartySummary, CustomFieldDefinition, DiscountApprovalIn, DoctorSummary, DraftRecord, DraftRecordSummary, IcdCode, InvoicePrintDoc,
+  LabelReadiness, NumberPreview, OrderableSummary, PatientRewards, PatientSummary, Quote, RegisterBody, RegistrationDraft, RegistrationResult,
+} from './types';
 
 async function run<T>(f: () => Promise<T>): Promise<ActionResult<T>> {
   try {
@@ -36,6 +43,8 @@ export async function requestDiscountApprovalAction(b: DiscountApprovalIn, key: 
 export async function printInvoiceAction(invoiceId: string, reasonCode: string, key: string): Promise<ActionResult<InvoicePrintDoc>> { return run(() => printInvoice(invoiceId, reasonCode, key)); }
 export async function requestLabelPrintsAction(orderId: string): Promise<ActionResult<LabelReadiness>> { return run(() => requestLabelPrints(orderId)); }
 export async function listDiscountReasonsAction(): Promise<ActionResult<CodedSetEntry[]>> { return run(() => listDiscountReasons()); }
+/** T0D-FINCTRL-1 (LD-321): requester limit, authority and tenant reasons for the discount form. */
+export async function getMyDiscountPolicyAction(): Promise<ActionResult<MyDiscountPolicy>> { return run(() => getMyDiscountPolicy()); }
 export async function getDiscountApprovalAction(id: string): Promise<ActionResult<{ id: string; status?: string; state?: string }>> { return run(() => getDiscountApproval(id)); }
 
 export async function cancelOrderAction(orderId: string, version: number, r: { reason_code: string; reason_text?: string }, key: string): Promise<ActionResult<true>> {
@@ -58,6 +67,34 @@ export async function uploadTrfAction(centreId: string, orderId: string, form: F
   if (!(file instanceof File)) return { ok: false, status: 400, code: 'common.validation_failed' };
   return run(async () => (await uploadTrf(centreId, orderId, file, key), true as const));
 }
+/** LD-310 / T0D-REGSCREEN-1: TRF on the registration screen, before the order exists; the returned id rides in F9 `trf_attachment_ids`. */
+export async function uploadRegistrationTrfAction(centreId: string, form: FormData, key: string): Promise<ActionResult<{ id: string }>> {
+  const file = form.get('file');
+  if (!(file instanceof File)) return { ok: false, status: 400, code: 'common.validation_failed' };
+  return run(async () => ({ id: (await uploadTrf(centreId, undefined, file, key)).id }));
+}
+// LD-310 / T0D-REGSCREEN-2 (T0B-REGAPI-1/2): registration screen extras.
+export async function listIcdCodesAction(): Promise<ActionResult<IcdCode[]>> { return run(() => listIcdCodes()); }
+export async function listCustomFieldDefinitionsAction(): Promise<ActionResult<CustomFieldDefinition[]>> { return run(() => listCustomFieldDefinitions()); }
+export async function previewNumbersAction(centreId: string): Promise<ActionResult<NumberPreview>> { return run(() => previewRegistrationNumbers(centreId)); }
+export async function getPatientRewardsAction(patientId: string): Promise<ActionResult<PatientRewards>> { return run(() => getPatientRewards(patientId)); }
+export async function getPatientSummaryAction(patientId: string): Promise<ActionResult<PatientSummary>> {
+  return run(async () => { const p = await getPatient(patientId); return { id: p.id, patient_code: p.patient_code, full_name: p.full_name, sex: p.sex, age_display: p.age_display, ...(p.phone_masked ? { phone_masked: p.phone_masked } : {}) }; });
+}
+export async function listDraftsAction(): Promise<ActionResult<DraftRecordSummary[]>> { return run(() => listRegistrationDrafts()); }
+export async function getDraftAction(draftId: string): Promise<ActionResult<DraftRecord>> { return run(() => getRegistrationDraft(draftId)); }
+export async function createDraftAction(centreId: string, payload: string, key: string): Promise<ActionResult<true>> { return run(async () => (await createRegistrationDraft(centreId, payload, key), true as const)); }
+export async function deleteDraftAction(draftId: string): Promise<ActionResult<true>> { return run(async () => (await deleteRegistrationDraft(draftId), true as const)); }
+export async function listFavouritesAction(): Promise<ActionResult<string[]>> { return run(() => listFavouriteTests()); }
+export async function addFavouriteAction(orderableId: string, key: string): Promise<ActionResult<true>> { return run(async () => (await addFavouriteTest(orderableId, key), true as const)); }
+export async function removeFavouriteAction(orderableId: string): Promise<ActionResult<true>> { return run(async () => (await removeFavouriteTest(orderableId), true as const)); }
+/** Names for favourites: FavouriteTest carries only the id and searchOrderables needs `q`, so the C3 tests and panels lists are the id -> name
+ * source (ruling T0D-REGSCREEN-2 point 4). Best effort: a failed list is "no names" for that kind. */
+export async function listTestNamesAction(): Promise<OrderableSummary[]> {
+  const get = (k: 'tests' | 'panels', kind: 'test' | 'panel') => listCatalogOptions(k).then((l) => l.map((o) => ({ ...o, kind })), () => []);
+  return (await Promise.all([get('tests', 'test'), get('panels', 'panel')])).flat();
+}
+
 export async function updatePatientAction(patientId: string, version: number, changes: Record<string, string>): Promise<ActionResult<true>> {
   return run(async () => (await updatePatient(patientId, version, changes), true as const));
 }

@@ -1,0 +1,6 @@
+# RS-C2 dispute (writer, 2026-11-14)
+Conflict between two test files I may not edit. With the drawer split into two kit `DrawerSection`s (each with its own "Save <title>"), as `rs-c2.screens.test.tsx` and `rs-c2.static.test.ts` require (>= 2 sections, one Save each), 6 chunk tests in `t20.roles-org.test.tsx` fail (AD-6 + AD-7: lines 240, 257, 261, 279). They use `within(dlg).getByRole('button', { name: /^save/i })` / `/^(save|create)/i`, which throws when the drawer has more than one Save button.
+Both cannot pass: RS-C2 wants >= 2 Save buttons in the dialog, t20 wants exactly 1.
+Proposed fix (tester): in t20.roles-org lines 240/257/261/279, take the Save of the section that holds Name, e.g. `within(within(dlg).getByLabelText(/^name/i).closest('section')!).getByRole('button', { name: /^save/i })`, or `getAllByRole(...)[0]`. Assertions (PATCH body, If-Match, POST body, inline error) stay the same; every section Save runs the same save().
+State: everything else is done and green (rs-c2: 69/75, only the 6 snapshot tests left, recorded last once t20 is settled). Not committed.
+Separate, not caused by RS-C2: `t12.actions.test.ts` fails to load: "Cannot find module '../nav/generated'" (src/core/nav/generated is not in the tree; tsc shows the same in core/shell).

@@ -14,8 +14,16 @@ CREATE FUNCTION pg_temp.uid(n int) RETURNS uuid LANGUAGE sql IMMUTABLE AS $$ SEL
 CREATE FUNCTION pg_temp.h32(s text) RETURNS text LANGUAGE sql IMMUTABLE AS $$ SELECT '\x' || encode(sha256(convert_to(s, 'UTF8')), 'hex') $$;
 CREATE FUNCTION pg_temp.sysclaims() RETURNS jsonb LANGUAGE sql AS $$ SELECT jsonb_build_object('sub', pg_temp.sys(), 'actor_type', 'system') $$;
 CREATE FUNCTION pg_temp.ins(p_tbl regclass, p_row jsonb) RETURNS void LANGUAGE plpgsql AS $f$
-DECLARE cols text := (SELECT string_agg(quote_ident(k), ',') FROM jsonb_object_keys(p_row) k);
-BEGIN EXECUTE format('INSERT INTO %1$s (%2$s) SELECT %2$s FROM jsonb_populate_record(NULL::%1$s, %3$L::jsonb)', p_tbl, cols, p_row::text); END $f$;
+DECLARE cols text := (SELECT string_agg(quote_ident(k), ',') FROM jsonb_object_keys(p_row) k); saved text := current_setting('request.jwt.claims', true);
+BEGIN
+  -- LD-230 (4): a tenant row is row-audited; app.tg_row_audit needs a claims sub (else audit_context_missing) and audit_log__insert__owner_only
+  -- needs the claims tenant = the row tenant, so the fixture writes each tenant row under its own tenant system claims (as db/seeds/010 does)
+  IF nullif(p_row ->> 'tenant_id', '') IS NOT NULL THEN
+    PERFORM set_config('request.jwt.claims', (pg_temp.sysclaims() || jsonb_build_object('tenant_id', p_row ->> 'tenant_id'))::text, true);
+  END IF;
+  EXECUTE format('INSERT INTO %1$s (%2$s) SELECT %2$s FROM jsonb_populate_record(NULL::%1$s, %3$L::jsonb)', p_tbl, cols, p_row::text);
+  PERFORM set_config('request.jwt.claims', coalesce(saved, ''), true);
+END $f$;
 -- first column of the first row of p_sql, run as p_role with p_claims ('<none>' when no row, 'E<sqlstate>:<message>' on error)
 CREATE FUNCTION pg_temp.v(p_role text, p_claims jsonb, p_sql text) RETURNS text LANGUAGE plpgsql AS $f$
 DECLARE r text; saved text := current_setting('request.jwt.claims', true);
@@ -159,6 +167,11 @@ SELECT is(pg_temp.ist(3), (SELECT s FROM before_inv WHERE n = 3), 'A38: the refu
 SELECT ok(pg_temp.v('lims_api', pg_temp.sysclaims(), format($q$SELECT set_config('app.pre_user_id', %L, true) || '|' || (SELECT count(*) FROM identity.sessions)::text$q$, pg_temp.uid(101))) ~ '\|0$',
           'A38: lims_api setting app.pre_user_id itself still sees 0 identity.sessions rows (the owner policies are TO lims_owner)');
 SELECT is(pg_temp.st(1), (SELECT s FROM before WHERE n = 1), 'A38: session 1 still password_setup at the end');
+
+-- T0B-DBINV-1 (LD-230 item 10): both functions are inventoried with touches on these tables; the inventory rule (T0B-08.suites) wants the contract
+-- test to run with FORCE RLS on. Added assertion; none removed or changed.
+SELECT is((SELECT count(*) FROM pg_class c WHERE c.oid IN (to_regclass('identity.sessions'), to_regclass('identity.invitations')) AND c.relforcerowsecurity),
+          2::bigint, 'A38: identity.sessions and identity.invitations have relforcerowsecurity = true (the DEFINERs run under FORCE RLS)');
 
 SELECT * FROM finish();
 ROLLBACK;

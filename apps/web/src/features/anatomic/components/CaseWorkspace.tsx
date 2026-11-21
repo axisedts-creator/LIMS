@@ -10,7 +10,6 @@ import { Button } from '@lims/ui/components/Button';
 import { ConfirmDialog } from '@lims/ui/components/ConfirmDialog';
 import { Dialog } from '@lims/ui/components/Dialog';
 import { DescriptionList } from '@lims/ui/components/DescriptionList';
-import { EmptyState } from '@lims/ui/components/EmptyState';
 import { IdText } from '@lims/ui/components/IdText';
 import { Menu } from '@lims/ui/components/Menu';
 import { PageHeader } from '@lims/ui/components/PageHeader';
@@ -25,6 +24,8 @@ import { BlocksSlidesTab } from './material/BlocksSlidesTab';
 import { MolecularTab } from './molecular/MolecularTab';
 import { StainsTab } from './material/StainsTab';
 import { PartsTab } from './PartsTab';
+import { ReportTab } from './report/ReportTab';
+import type { ReportApi } from './report/ReportEditor';
 import { Chip, FailNotice, KIND_LABEL, STATUS, StatusLabel, UrgentChip, newKey, usePageShortcuts, When, type Fail, type Tone } from './common';
 
 const PAGE_ID = 'staff.anatomic.case';
@@ -32,14 +33,14 @@ const PAGE_ID = 'staff.anatomic.case';
 const SAVE_FORMS = 'form[data-testid^="part-form-"], form[data-testid="molecular-form"]';
 type TabId = 'overview' | 'parts' | 'blocks' | 'stains' | 'images' | 'molecular' | 'report';
 
-/** allowed_actions → menu label. `work` = also needs anatomic.case.work in the browser (defence in depth; the API decides). `later` = dialog lands with a later task. */
+/** allowed_actions → menu label. `work` = also needs anatomic.case.work in the browser (defence in depth; the API decides). The three report actions open the Report tab (T-21), whose buttons check anatomic.case.signout. */
 const ACTIONS = [
   { op: 'accessionAnatomicCase', label: 'Accession', work: true },
   { op: 'startAnatomicProcessing', label: 'Start processing', work: true },
   { op: 'markAnatomicCaseReady', label: 'Mark ready', work: true },
-  { op: 'signOutAnatomicCase', label: 'Sign out', later: true },
-  { op: 'startAnatomicCaseChange', label: 'Revise/Amend', later: true },
-  { op: 'createAnatomicAddendum', label: 'Add addendum', later: true },
+  { op: 'signOutAnatomicCase', label: 'Sign out' },
+  { op: 'startAnatomicCaseChange', label: 'Revise/Amend' },
+  { op: 'createAnatomicAddendum', label: 'Add addendum' },
   { op: 'cancelAnatomicCase', label: 'Cancel case', work: true, danger: true },
 ] as const;
 const LAB_TONE: Record<NonNullable<CaseItem['lab_status']>, Tone> = { pending: 'neutral', resulted: 'warning', verified: 'warning', approved: 'success', cancelled: 'neutral' };
@@ -121,10 +122,24 @@ export function CaseWorkspace({ detail, permissions, templates = [] }: { detail:
   const router = useRouter();
   const toast = useToast();
   const canWork = permissions.includes('anatomic.case.work');
+  const canSign = permissions.includes('anatomic.case.signout');
   const allowed = ACTIONS.filter((a) => detail.allowed_actions.includes(a.op) && (!('work' in a) || !a.work || canWork));
   const can = (op: string) => allowed.some((a) => a.op === op);
 
   const [tab, setTab] = useState<TabId>('overview');
+  const [signing, setSigning] = useState(false);
+  const [leaving, setLeaving] = useState<TabId>();
+  const reportApi = useRef<ReportApi | null>(null);
+  /** Tab change; leaving the Report tab with unsaved edits asks first (04-UI-UX §2). */
+  // The shortcut registry keeps the closures of the render that registered them, so the current tab is read from a ref, not from state.
+  const tabRef = useRef<TabId>(tab);
+  tabRef.current = tab;
+  const go = (id: TabId) => {
+    if (id === tabRef.current) return;
+    if (tabRef.current === 'report' && reportApi.current?.isDirty()) return setLeaving(id);
+    setSigning(false);
+    setTab(id);
+  };
   const [fail, setFail] = useState<Fail>();
   const [mfa, setMfa] = useState(false);
   const [accessioning, setAccessioning] = useState(false);
@@ -140,16 +155,17 @@ export function CaseWorkspace({ detail, permissions, templates = [] }: { detail:
   usePageShortcuts(
     PAGE_ID,
     [
-      { key: 'Alt+O', description: 'Overview tab', run: () => setTab('overview') },
-      { key: 'Alt+G', description: 'Parts & gross tab', run: () => setTab('parts') },
-      { key: 'Alt+B', description: 'Blocks & slides tab', run: () => setTab('blocks') },
-      { key: 'Alt+T', description: 'Stains tab', run: () => setTab('stains') },
-      { key: 'Alt+I', description: 'Images tab', run: () => setTab('images') },
-      { key: 'Alt+R', description: 'Report tab', run: () => setTab('report') },
+      { key: 'Alt+O', description: 'Overview tab', run: () => go('overview') },
+      { key: 'Alt+G', description: 'Parts & gross tab', run: () => go('parts') },
+      { key: 'Alt+B', description: 'Blocks & slides tab', run: () => go('blocks') },
+      { key: 'Alt+T', description: 'Stains tab', run: () => go('stains') },
+      { key: 'Alt+I', description: 'Images tab', run: () => go('images') },
+      { key: 'Alt+R', description: 'Report tab', run: () => go('report') },
       {
         key: 'Alt+S',
         description: 'Save the form you are working in',
         run: () => {
+          if (tabRef.current === 'report' && reportApi.current) return reportApi.current.save(); // the report draft (T-21)
           const forms = document.querySelectorAll<HTMLFormElement>(SAVE_FORMS);
           const mine = (document.activeElement as HTMLElement | null)?.closest?.(SAVE_FORMS) as HTMLFormElement | null;
           (mine ?? (forms.length === 1 ? forms[0] : null))?.requestSubmit();
@@ -157,8 +173,9 @@ export function CaseWorkspace({ detail, permissions, templates = [] }: { detail:
       },
       ...(can('accessionAnatomicCase') ? [{ key: 'Alt+A', description: 'Open the Accession dialog', run: () => setAccessioning(true) }] : []),
       ...(canWork ? [{ key: 'Alt+L', description: 'Open the labels page (blocks)', run: () => router.push(`/anatomic/cases/${detail.id}/labels?kind=blocks`) }] : []),
+      ...(canSign ? [{ key: 'Alt+U', description: 'Open the Sign out dialog', run: () => { go('report'); setSigning(true); } }] : []),
     ],
-    [can('accessionAnatomicCase'), canWork, detail.id],
+    [can('accessionAnatomicCase'), canWork, canSign, detail.id],
   );
 
   useEffect(() => {
@@ -202,6 +219,10 @@ export function CaseWorkspace({ detail, permissions, templates = [] }: { detail:
     else if (op === 'startAnatomicProcessing') void transition('start-processing');
     else if (op === 'markAnatomicCaseReady') void transition('mark-ready');
     else if (op === 'cancelAnatomicCase') setCancelling(true);
+    else if (op === 'signOutAnatomicCase') {
+      go('report');
+      setSigning(true);
+    } else if (op === 'startAnatomicCaseChange' || op === 'createAnatomicAddendum') go('report'); // the buttons of the Report tab do the rest
   };
 
   const stage = can('accessionAnatomicCase')
@@ -224,14 +245,13 @@ export function CaseWorkspace({ detail, permissions, templates = [] }: { detail:
       <PageHeader
         title={accession ?? 'Not accessioned'}
         helpKey="anatomic.case"
-        breadcrumbs={[{ label: 'Pathology cases', href: '/anatomic' }, { label: accession ?? 'Case' }]}
         status={<StatusLabel status={detail.status} />}
         actions={
           <>
             {allowed.length ? (
               <Menu
                 trigger={<Button>Actions</Button>}
-                items={allowed.map((a) => ({ id: a.op, label: a.label, ...('danger' in a ? { isDanger: true } : {}), ...('later' in a ? { isDisabled: true } : {}) }))}
+                items={allowed.map((a) => ({ id: a.op, label: a.label, ...('danger' in a ? { isDanger: true } : {}) }))}
                 onAction={onAction}
               />
             ) : null}
@@ -242,15 +262,29 @@ export function CaseWorkspace({ detail, permissions, templates = [] }: { detail:
       <Banners detail={detail} />
       <FailNotice fail={fail} status={detail.status} />
       <Details detail={detail} />
-      <Tabs aria-label="Case sections" items={tabs} selectedId={tab} onChange={(id) => setTab(id as TabId)}>
+      <Tabs aria-label="Case sections" items={tabs} selectedId={tab} onChange={(id) => go(id as TabId)}>
         {tab === 'overview' ? <Overview detail={detail} /> : null}
         {tab === 'parts' ? <PartsTab detail={detail} canWork={canWork} templates={templates} onFail={report} onMfa={() => setMfa(true)} /> : null}
         {tab === 'blocks' ? <BlocksSlidesTab detail={detail} canWork={canWork} onFail={report} onMfa={() => setMfa(true)} /> : null}
         {tab === 'stains' ? <StainsTab detail={detail} canWork={canWork} onFail={report} onMfa={() => setMfa(true)} /> : null}
         {tab === 'images' ? <ImagesTab detail={detail} canWork={canWork} onFail={report} onMfa={() => setMfa(true)} /> : null}
         {tab === 'molecular' ? <MolecularTab detail={detail} canWork={canWork} onFail={report} onMfa={() => setMfa(true)} /> : null}
-        {tab === 'report' ? <EmptyState title="Nothing to show here yet" body="This section is not available in this version of the workspace." /> : null}
+        {tab === 'report' ? <ReportTab detail={detail} canWork={canWork} canSign={canSign} templates={templates} signing={signing} onSigning={setSigning} apiRef={reportApi} onMfa={() => setMfa(true)} /> : null}
       </Tabs>
+      <Dialog
+        title="Discard unsaved changes?"
+        size="sm"
+        isOpen={leaving !== undefined}
+        onClose={() => setLeaving(undefined)}
+        footer={
+          <>
+            <Button variant="ghost" onPress={() => setLeaving(undefined)}>Stay</Button>
+            <Button variant="danger" onPress={() => { setSigning(false); setTab(leaving!); setLeaving(undefined); }}>Discard</Button>
+          </>
+        }
+      >
+        <p>The report draft has changes that are not saved. Leaving the Report tab loses them.</p>
+      </Dialog>
 
       {can('accessionAnatomicCase') ? (
         <AccessionDialog key={detail.version} detail={detail} isOpen={accessioning} onClose={() => setAccessioning(false)} onMfa={() => setMfa(true)} onDone={() => { setAccessioning(false); refreshed(); }} />
@@ -266,7 +300,7 @@ export function CaseWorkspace({ detail, permissions, templates = [] }: { detail:
         onConfirm={confirmCancel}
       />
       <Dialog
-        title="Two-factor verification"
+        title="Verify your identity"
         size="sm"
         isOpen={mfa}
         onClose={() => setMfa(false)}

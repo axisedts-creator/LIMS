@@ -1,0 +1,5 @@
+APPROVE
+Round 3. The round 2 item is fixed in 7672ac081. `style` is no longer in InvoicePrint.required (billing.yaml:7226) or CreditNotePrint.required (:7567). The description says it is always returned once T0B-PRINTCFG-1 lands. The TS client and server types are now `style?:`. The test pin is inverted to `not.toContain("style")` (printcfg1-openapi.test.ts:394). Codegen --check is fresh.
+Prior items: 1 (probe rows) fixed in dfae927ec. 2 (permission gate) handled through CR .orchestra/cr/T0C-PRINTCFG-1.md.
+Checked OK, unchanged since round 2: names verbatim; RLS ENABLE+FORCE with tenant and staff/system policies (no array claim, so no cast needed); no DELETE grant; header/footer CHECKs; partial unique index for one active row; one signatory row per user; print_log.style NOT NULL DEFAULT 'full'; preview is synthetic-only; the 5 ids are in pendingOperations; owned paths only; no PHI and no secrets.
+Reviewer ran: tools/codegen `vitest run printcfg1-openapi.test.ts c6-openapi.test.ts`: 509/509 passed. Not run by the reviewer: the DB suites and the API pending test.

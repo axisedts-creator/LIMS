@@ -63,7 +63,7 @@ function createIndexes(sql) { return stmts(sql).filter((s) => /^CREATE\s+(UNIQUE
 const idxName = (s) => /INDEX\s+(?:IF\s+NOT\s+EXISTS\s+)?(\w+)/i.exec(s)[1];
 function policies(sql) {
   return stmts(sql).filter((s) => /^CREATE\s+POLICY\b/i.test(s)).map((s) => {
-    const m = /^CREATE\s+POLICY\s+(\w+)\s+ON\s+([\w.]+)\s+FOR\s+(SELECT|INSERT|UPDATE|DELETE|ALL)\s+TO\s+([\w, ]+?)\s+(?=USING|WITH)([\s\S]*)$/i.exec(ws(s));
+    const m = /^CREATE\s+POLICY\s+(\w+)\s+ON\s+([\w.]+)(?:\s+AS\s+(?:PERMISSIVE|RESTRICTIVE))?\s+FOR\s+(SELECT|INSERT|UPDATE|DELETE|ALL)\s+TO\s+([\w, ]+?)\s+(?=USING|WITH)([\s\S]*)$/i.exec(ws(s));
     assert.ok(m, `parsable policy: ${ws(s).slice(0, 110)}`);
     const rest = m[5], wi = rest.search(/\bWITH\s+CHECK\b/i);
     const using = /^USING/i.test(rest) ? (wi < 0 ? rest : rest.slice(0, wi)).replace(/^\s*USING\s*/i, '').trim() : '';
@@ -478,7 +478,8 @@ test('app.dl_resolve (schema test 11; 08 A6.4, A8.4, A10.1, A23.2): version guar
 // ================================================================ tenant list / cron / resolvers
 const MAINT = {
   platform_list_tenants: { gate: 'platform_list_tenants', to: ['lims_api'] },
-  cron_tenant_ids: { gate: 'cron_tenant_ids', to: ['lims_worker'] },
+  // LD-202: C18 05-SCHEMA.md:37-39 also grants EXECUTE to lims_migration (08 A19 D-134).
+  cron_tenant_ids: { gate: 'cron_tenant_ids', to: ['lims_migration', 'lims_worker'] },
   identity_tenants_for_email_hmacs: { gate: 'identity_tenants_for_email_hmacs', to: ['lims_worker'] },
 };
 for (const [fn, { gate, to }] of Object.entries(MAINT)) {
@@ -500,13 +501,13 @@ test('app.platform_list_tenants (schema test 16): signature, platform-actor fail
   assert.match(t, /ORDER BY t\.tenant_code/i); assert.match(t, /ORDER BY t\.created_at DESC, t\.id DESC/i); assert.match(t, /least\(greatest\(coalesce\(p_limit, 51\), 1\), 201\)/i);
   assert.doesNotMatch(t.slice(0, t.search(/\$\w*\$/i)), /status_reason|created_by|updated_by/i);
 });
-test('app.cron_tenant_ids (schema test 22): returns uuids of active+suspended tenants only; app.core_resolve_tenant_code (test 29): sets/reset app.pre_tenant_code, TABLE (tenant_id uuid, status text), lims_api only; email-hmac lookup: <=100 values guard', () => {
+test('app.cron_tenant_ids (schema test 22): returns uuids of active+suspended tenants only; app.core_resolve_tenant_code (test 29): sets/reset app.pre_tenant_code, TABLE (tenant_id uuid, status text), EXECUTE lims_api + lims_migration only; email-hmac lookup: <=100 values guard', () => {
   const all = allSql(), f = (n) => ws(fnText(all, `app.${n}`) ?? ''), c = f('cron_tenant_ids'), r = f('core_resolve_tenant_code'), e = f('identity_tenants_for_email_hmacs');
   assert.match(c, /RETURNS SETOF uuid/i); assert.match(c, /t\.status IN \('active', ?'suspended'\)/i);
   assert.match(r, /\(p_code text\) RETURNS TABLE \(tenant_id uuid, status text\)/i);
   assert.ok(r.indexOf(`set_config('app.pre_tenant_code', coalesce(p_code, ''), true)`) > 0, 'sets app.pre_tenant_code');
   assert.ok(r.lastIndexOf(`set_config('app.pre_tenant_code', '', true)`) > r.indexOf('RETURN QUERY'), 'resets app.pre_tenant_code');
-  assert.deepEqual([...(fnExecGrants(all).get('app.core_resolve_tenant_code') ?? [])], ['lims_api']);
+  assert.deepEqual([...(fnExecGrants(all).get('app.core_resolve_tenant_code') ?? [])].sort(), ['lims_api', 'lims_migration']); // LD-202: + lims_migration (C18 05-SCHEMA.md:37-39)
   assert.match(e, /\(p_hmacs bytea\[\]\) RETURNS SETOF uuid/i); assert.match(e, /cardinality\(p_hmacs\), 0\) > 100/i);
   assert.match(e, /MESSAGE = 'identity_tenants_for_email_hmacs_invalid_input'/); assert.match(e, /u\.email_hmac = ANY \(p_hmacs\)/i);
 });

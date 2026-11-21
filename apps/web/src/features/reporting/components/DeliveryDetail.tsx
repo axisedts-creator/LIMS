@@ -27,7 +27,6 @@ export function DeliveryDetail({ delivery, permissions }: { delivery: Delivery; 
     <section aria-label="Delivery">
       <PageHeader
         title="Delivery" helpKey="reporting.delivery" status={<Chip status={delivery.status} />}
-        breadcrumbs={[{ label: 'Delivery log', href: '/reporting/deliveries' }, { label: 'Delivery' }]}
         actions={canResend ? <Button onPress={() => void resend()}>Resend</Button> : null}
       />
       <p><a className="lims-link" href="/reporting/deliveries">Back to delivery log</a></p>
@@ -47,7 +46,7 @@ export function DeliveryDetail({ delivery, permissions }: { delivery: Delivery; 
           <ol className="lims-list" aria-label="Delivery attempts">
             {delivery.attempts!.map((a) => (
               <li key={a.attempt_no} className="lims-list-row">
-                <strong>{`Attempt ${a.attempt_no}`}</strong> · <When value={a.started_at} /> · {humanize(a.outcome)}
+                <strong>{`Attempt ${a.attempt_no}`}</strong> · <When value={a.started_at} /> · <Chip status={a.outcome} />
               </li>
             ))}
           </ol>

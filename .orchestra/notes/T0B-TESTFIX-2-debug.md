@@ -1,0 +1,5 @@
+# T0B-TESTFIX-2 debugger (verify log: 5 failed / 1672 passed, 2 files)
+Cause: probes/uploads.live.test.ts:48 (P-2 sweep) fires EVERY operation as FULL_A, incl. updateFrontdeskSettings with the kit body (kit.ts:214, if-match "1"). Settings are at version 1 then, so the PUT succeeds and leaves sms=false, autoprint=false, min_chars=4 in tenant A; the file never restores them. Later files read them: search.test (min 3 -> 4), registration.test (autoprint, registration SMS x2).
+Product code is correct (valid PUT at the current version must update). No implementation change fixes this; any product edit would be a workaround.
+Fix needed in tests (tester): restore baseline settings in uploads.live.test.ts (afterAll/finally via admin/helpers resetSettings) or give the sweep a stale if-match for updateFrontdeskSettings; brief done_when (3) already requires "restores the settings in a finally block". I did NOT edit tests. See T0B-TESTFIX-2-dispute.md.
+Not run: no re-run of the suite by me; cause from log values matching kit body exactly + code reading.

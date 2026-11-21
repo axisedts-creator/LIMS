@@ -178,6 +178,12 @@ export const ROUTES = {
     "path": "/admin/me",
     "permission": "identity.self.manage"
   },
+  "staff.admin.role_packs": {
+    "origin": "staff_web",
+    "owner": "C2",
+    "path": "/admin/roles/packs",
+    "permission": "identity.role.manage"
+  },
   "staff.admin.roles": {
     "origin": "staff_web",
     "owner": "C2",
@@ -310,6 +316,60 @@ export const ROUTES = {
     "path": "/anatomic",
     "permission": "anatomic.case.read"
   },
+  "staff.billing.account_entries": {
+    "origin": "staff_web",
+    "owner": "C4",
+    "path": "/billing/accounts/entries",
+    "permission": "billing.account.read"
+  },
+  "staff.billing.account_ledger": {
+    "origin": "staff_web",
+    "owner": "C4",
+    "path": "/billing/accounts/ledger",
+    "permission": "billing.account.read"
+  },
+  "staff.billing.account_masters": {
+    "origin": "staff_web",
+    "owner": "C4",
+    "path": "/billing/accounts/masters",
+    "permission": "billing.account.read"
+  },
+  "staff.billing.account_summary": {
+    "origin": "staff_web",
+    "owner": "C4",
+    "path": "/billing/accounts/summary",
+    "permission": "billing.account.read"
+  },
+  "staff.billing.audit_trail": {
+    "origin": "staff_web",
+    "owner": "C4",
+    "path": "/billing/audit-trail",
+    "permission": "billing.data.export"
+  },
+  "staff.billing.bill_of_the_day": {
+    "origin": "staff_web",
+    "owner": "C4",
+    "path": "/billing/bill-of-the-day",
+    "permission": "analytics.collections.read"
+  },
+  "staff.billing.cash_transfers": {
+    "origin": "staff_web",
+    "owner": "C4",
+    "path": "/billing/cash-transfers",
+    "permission": "billing.account.read"
+  },
+  "staff.billing.cbms": {
+    "origin": "staff_web",
+    "owner": "C4",
+    "path": "/billing/cbms",
+    "permission": "billing.invoice.read"
+  },
+  "staff.billing.credit_parties": {
+    "origin": "staff_web",
+    "owner": "C4",
+    "path": "/billing/credit-parties",
+    "permission": "billing.credit_party.read"
+  },
   "staff.billing.credit_party": {
     "origin": "staff_web",
     "owner": "C4",
@@ -322,10 +382,82 @@ export const ROUTES = {
     "path": "/billing/daily-cash",
     "permission": "billing.cash_report.read"
   },
+  "staff.billing.discount_authorities": {
+    "origin": "staff_web",
+    "owner": "C4",
+    "path": "/billing/discounts/authorities",
+    "permission": "billing.discount_policy.read"
+  },
+  "staff.billing.discount_limits": {
+    "origin": "staff_web",
+    "owner": "C4",
+    "path": "/billing/discounts/limits",
+    "permission": "billing.discount_policy.read"
+  },
+  "staff.billing.discount_reasons": {
+    "origin": "staff_web",
+    "owner": "C4",
+    "path": "/billing/discounts/reasons",
+    "permission": "billing.discount_policy.read"
+  },
+  "staff.billing.discount_slabs": {
+    "origin": "staff_web",
+    "owner": "C4",
+    "path": "/billing/discounts/slabs",
+    "permission": "billing.discount_policy.read"
+  },
+  "staff.billing.dues": {
+    "origin": "staff_web",
+    "owner": "C4",
+    "path": "/billing/dues",
+    "permission": "billing.invoice.read"
+  },
+  "staff.billing.expense_types": {
+    "origin": "staff_web",
+    "owner": "C4",
+    "path": "/billing/expenses/types",
+    "permission": "billing.account.read"
+  },
+  "staff.billing.expenses": {
+    "origin": "staff_web",
+    "owner": "C4",
+    "path": "/billing/expenses",
+    "permission": "billing.account.read"
+  },
   "staff.billing.invoice": {
     "origin": "staff_web",
     "owner": "C4",
     "path": "/billing/invoices/{invoice_id}",
+    "permission": "billing.invoice.read"
+  },
+  "staff.billing.invoices": {
+    "origin": "staff_web",
+    "owner": "C4",
+    "path": "/billing/invoices",
+    "permission": "billing.invoice.read"
+  },
+  "staff.billing.pocket_ledger": {
+    "origin": "staff_web",
+    "owner": "C4",
+    "path": "/billing/accounts/pocket",
+    "permission": "billing.account.read"
+  },
+  "staff.billing.registers": {
+    "origin": "staff_web",
+    "owner": "C4",
+    "path": "/billing/registers",
+    "permission": "billing.invoice.read"
+  },
+  "staff.billing.settings": {
+    "origin": "staff_web",
+    "owner": "C4",
+    "path": "/billing/settings",
+    "permission": "billing.settings.manage"
+  },
+  "staff.billing.worklist": {
+    "origin": "staff_web",
+    "owner": "C4",
+    "path": "/billing/worklist",
     "permission": "billing.invoice.read"
   },
   "staff.catalog.comment_codes": {
@@ -375,6 +507,12 @@ export const ROUTES = {
     "owner": "C3",
     "path": "/catalog",
     "permission": "catalog.test.read"
+  },
+  "staff.catalog.icd": {
+    "origin": "staff_web",
+    "owner": "C3",
+    "path": "/catalog/icd",
+    "permission": "catalog.icd.manage"
   },
   "staff.catalog.import": {
     "origin": "staff_web",
@@ -454,6 +592,12 @@ export const ROUTES = {
     "path": "/catalog/tests/{test_id}",
     "permission": "catalog.test.read"
   },
+  "staff.catalog.tests": {
+    "origin": "staff_web",
+    "owner": "C3",
+    "path": "/catalog/tests",
+    "permission": "catalog.test.read"
+  },
   "staff.catalog.units": {
     "origin": "staff_web",
     "owner": "C3",
@@ -484,6 +628,12 @@ export const ROUTES = {
     "path": "/engagement/bookings",
     "permission": "engagement.booking.read"
   },
+  "staff.engagement.content": {
+    "origin": "staff_web",
+    "owner": "C16",
+    "path": "/engagement/content",
+    "permission": "engagement.content.read"
+  },
   "staff.engagement.enquiries": {
     "origin": "staff_web",
     "owner": "C16",
@@ -495,6 +645,18 @@ export const ROUTES = {
     "owner": "C16",
     "path": "/engagement/memberships",
     "permission": "engagement.membership.read"
+  },
+  "staff.engagement.msg_broadcasts": {
+    "origin": "staff_web",
+    "owner": "C16",
+    "path": "/engagement/messages/broadcasts",
+    "permission": "engagement.broadcast.read"
+  },
+  "staff.engagement.msg_templates": {
+    "origin": "staff_web",
+    "owner": "C16",
+    "path": "/engagement/messages/templates",
+    "permission": "engagement.broadcast.read"
   },
   "staff.engagement.queue": {
     "origin": "staff_web",
@@ -533,6 +695,12 @@ export const ROUTES = {
     "path": "/engagement/slots",
     "permission": "engagement.slot.manage"
   },
+  "staff.frontdesk.discount_approvals": {
+    "origin": "staff_web",
+    "owner": "C4",
+    "path": "/frontdesk/discount-approvals",
+    "permission": "frontdesk.discount.approve"
+  },
   "staff.frontdesk.order": {
     "origin": "staff_web",
     "owner": "C4",
@@ -550,6 +718,18 @@ export const ROUTES = {
     "owner": "C4",
     "path": "/frontdesk/registrations/new",
     "permission": "frontdesk.registration.create"
+  },
+  "staff.frontdesk.settings": {
+    "origin": "staff_web",
+    "owner": "C4",
+    "path": "/frontdesk/settings",
+    "permission": "frontdesk.settings.manage"
+  },
+  "staff.frontdesk.worklist": {
+    "origin": "staff_web",
+    "owner": "C4",
+    "path": "/frontdesk/worklist",
+    "permission": "frontdesk.order.read"
   },
   "staff.homecollection.devices": {
     "origin": "staff_web",
@@ -749,10 +929,28 @@ export const ROUTES = {
     "path": "/inventory/unresolved",
     "permission": "inventory.item.read"
   },
+  "staff.lab.approval": {
+    "origin": "staff_web",
+    "owner": "C5",
+    "path": "/lab/approval",
+    "permission": "lab.result.approve"
+  },
+  "staff.lab.collect": {
+    "origin": "staff_web",
+    "owner": "C5",
+    "path": "/lab/collect",
+    "permission": "lab.specimen.collect"
+  },
   "staff.lab.critical_value": {
     "origin": "staff_web",
     "owner": "C5",
     "path": "/lab/critical-values/{critical_event_id}",
+    "permission": "lab.critical_value.read"
+  },
+  "staff.lab.critical_values": {
+    "origin": "staff_web",
+    "owner": "C5",
+    "path": "/lab/critical-values",
     "permission": "lab.critical_value.read"
   },
   "staff.lab.ingest_exception": {
@@ -779,6 +977,30 @@ export const ROUTES = {
     "path": "/lab/orders/{order_id}/results",
     "permission": "lab.result.read"
   },
+  "staff.lab.pending": {
+    "origin": "staff_web",
+    "owner": "C5",
+    "path": "/lab/pending",
+    "permission": "lab.worklist.read"
+  },
+  "staff.lab.qc": {
+    "origin": "staff_web",
+    "owner": "C5",
+    "path": "/lab/qc",
+    "permission": "lab.qc.capture"
+  },
+  "staff.lab.receive": {
+    "origin": "staff_web",
+    "owner": "C5",
+    "path": "/lab/receive",
+    "permission": "lab.specimen.receive"
+  },
+  "staff.lab.settings": {
+    "origin": "staff_web",
+    "owner": "C5",
+    "path": "/lab/settings",
+    "permission": "lab.config.manage"
+  },
   "staff.lab.specimen": {
     "origin": "staff_web",
     "owner": "C5",
@@ -791,10 +1013,28 @@ export const ROUTES = {
     "path": "/lab/status-board",
     "permission": "lab.status_board.read"
   },
+  "staff.lab.verification": {
+    "origin": "staff_web",
+    "owner": "C5",
+    "path": "/lab/verification",
+    "permission": "lab.result.verify"
+  },
   "staff.lab.worklist": {
     "origin": "staff_web",
     "owner": "C5",
     "path": "/lab/worklists/{department_id}",
+    "permission": "lab.worklist.read"
+  },
+  "staff.lab.worklists": {
+    "origin": "staff_web",
+    "owner": "C5",
+    "path": "/lab/worklists",
+    "permission": "lab.worklist.read"
+  },
+  "staff.lab.worksheets": {
+    "origin": "staff_web",
+    "owner": "C5",
+    "path": "/lab/worksheets",
     "permission": "lab.worklist.read"
   },
   "staff.micro.breakpoint_set": {
@@ -833,6 +1073,12 @@ export const ROUTES = {
     "path": "/micro/worklist",
     "permission": "micro.culture.read"
   },
+  "staff.offline": {
+    "origin": "staff_web",
+    "owner": "C0",
+    "path": "/offline",
+    "permission": "sync.use"
+  },
   "staff.partners.inbox": {
     "origin": "staff_web",
     "owner": "C13",
@@ -851,11 +1097,29 @@ export const ROUTES = {
     "path": "/partners/manifests/{manifest_id}",
     "permission": "partners.manifest.receive"
   },
+  "staff.partners.onboarding": {
+    "origin": "staff_web",
+    "owner": "C13",
+    "path": "/partners/onboarding",
+    "permission": "partners.onboarding.decide"
+  },
   "staff.partners.partner": {
     "origin": "staff_web",
     "owner": "C13",
     "path": "/partners/{partner_id}",
     "permission": "partners.partner.read"
+  },
+  "staff.partners.penalties": {
+    "origin": "staff_web",
+    "owner": "C13",
+    "path": "/partners/penalties",
+    "permission": "partners.penalty.manage"
+  },
+  "staff.partners.penalty_events": {
+    "origin": "staff_web",
+    "owner": "C13",
+    "path": "/partners/penalty-events",
+    "permission": "partners.penalty.manage"
   },
   "staff.partners.pickups": {
     "origin": "staff_web",
@@ -869,11 +1133,47 @@ export const ROUTES = {
     "path": "/partners/referrers",
     "permission": "partners.referrer.map"
   },
+  "staff.partners.sales_areas": {
+    "origin": "staff_web",
+    "owner": "C13",
+    "path": "/partners/sales/areas",
+    "permission": "partners.sales.read"
+  },
+  "staff.partners.sales_clients": {
+    "origin": "staff_web",
+    "owner": "C13",
+    "path": "/partners/sales/clients",
+    "permission": "partners.sales.read"
+  },
+  "staff.partners.sales_designations": {
+    "origin": "staff_web",
+    "owner": "C13",
+    "path": "/partners/sales/designations",
+    "permission": "partners.sales.read"
+  },
+  "staff.partners.sales_representatives": {
+    "origin": "staff_web",
+    "owner": "C13",
+    "path": "/partners/sales/representatives",
+    "permission": "partners.sales.read"
+  },
   "staff.partners.settings": {
     "origin": "staff_web",
     "owner": "C13",
     "path": "/partners/settings",
     "permission": "partners.partner.manage"
+  },
+  "staff.partners.ticket": {
+    "origin": "staff_web",
+    "owner": "C13",
+    "path": "/partners/tickets/{ticket_id}",
+    "permission": "partners.ticket.read"
+  },
+  "staff.partners.tickets": {
+    "origin": "staff_web",
+    "owner": "C13",
+    "path": "/partners/tickets",
+    "permission": "partners.ticket.read"
   },
   "staff.payments.intent": {
     "origin": "staff_web",

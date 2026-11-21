@@ -72,7 +72,7 @@ const createTriggers = (sql) => stmts(sql).filter((s) => /^CREATE\s+TRIGGER\b/i.
 const trgName = (s) => /TRIGGER\s+(\w+)/i.exec(s)[1];
 function policies(sql) {
   return stmts(sql).filter((s) => /^CREATE\s+POLICY\s+(?!%)/i.test(s)).map((s) => {   // "%I" = dynamic-SQL template inside a DO loop, not a policy
-    const m = /^CREATE\s+POLICY\s+(\w+)\s+ON\s+([\w.]+)\s+FOR\s+(SELECT|INSERT|UPDATE|DELETE|ALL)\s+TO\s+([\w, ]+?)\s+(?=USING|WITH)([\s\S]*)$/i.exec(ws(s));
+    const m = /^CREATE\s+POLICY\s+(\w+)\s+ON\s+([\w.]+)(?:\s+AS\s+(?:PERMISSIVE|RESTRICTIVE))?\s+FOR\s+(SELECT|INSERT|UPDATE|DELETE|ALL)\s+TO\s+([\w, ]+?)\s+(?=USING|WITH)([\s\S]*)$/i.exec(ws(s));
     assert.ok(m, `parsable policy: ${ws(s).slice(0, 110)}`);
     const rest = m[5], wi = rest.search(/\bWITH\s+CHECK\b/i);
     const using = /^USING/i.test(rest) ? (wi < 0 ? rest : rest.slice(0, wi)).replace(/^\s*USING\s*/i, '').trim() : '';
@@ -199,7 +199,7 @@ test('no ENUM types (CV §5.1); exactly the 43 §1 tables are created (no catalo
   const made = [...sql.matchAll(/CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?catalog\.(\w+)/gi)].map((m) => m[1]);
   assert.deepEqual(made.sort(), ALL43().sort());
   assert.doesNotMatch(sql, /catalog\.event_inbox/i);
-  assert.doesNotMatch(allSql(), /CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?(?!catalog\.|identity\.|core\.|audit\.|frontdesk\.|billing\.|lab\.|instruments\.|reporting\.|analytics\.|quality\.|micro\.|anatomic\.|inventory\.|partners\.|smartreport\.|payments\.|engagement\.|homecollection\.)\w+\./i);
+  assert.doesNotMatch(allSql(), /CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?(?!catalog\.|identity\.|core\.|audit\.|frontdesk\.|billing\.|lab\.|instruments\.|reporting\.|analytics\.|quality\.|micro\.|anatomic\.|inventory\.|partners\.|smartreport\.|payments\.|engagement\.|homecollection\.|migration_staging\.)\w+\./i);
   for (const t of ALL43()) for (const c of ['id', 'tenant_id']) {
     const def = createTable(catSql(), `catalog.${t}`)?.colMap.get(c);
     if (def) assert.doesNotMatch(def, /\bdefault\b/, `catalog.${t}.${c} must have no DEFAULT (UUIDv7 in app code, 04 D9)`);

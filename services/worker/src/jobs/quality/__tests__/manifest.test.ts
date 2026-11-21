@@ -9,18 +9,28 @@ import { setup } from '../../../core/__tests__/helpers.js';
 import { validateManifests } from '../../../core/manifest.js';
 import { manifest } from '../index.js';
 import { handle as qcReceived } from '../consumers/instruments.qc.received.v1.js';
+import { handle as resultReceived } from '../consumers/instruments.result.received.v1.js';
+import { handle as resultVerified } from '../consumers/lab.result.verified.v1.js';
 import { crontab } from '../cron.js';
+import { handle as specimenStatusChanged } from '../consumers/lab.specimen.status_changed.v1.js';
+import { handle as reportReleased } from '../consumers/reporting.report.released.v1.js';
+import { handle as closeStaleRuns } from '../tasks/close_stale_runs.js';
+import { handle as purgeTatItems } from '../tasks/purge_tat_items.js';
+import { handle as tatRefreshOrder } from '../tasks/tat_refresh_order.js';
+import { handle as tatSweep } from '../tasks/tat_sweep.js';
 
 const REPROCESS = 'quality.reprocess_pending_observations';
 /** T-01: exactly this task. Later tasks append their ids here. */
 const SYNC = 'quality.sync_qc_observations';
-const EXPECTED_TASKS = [REPROCESS, SYNC];   // + T-09
+const CLOSE_STALE = 'quality.close_stale_runs';
+const TAT_SWEEP = 'quality.tat_sweep', TAT_REFRESH = 'quality.tat_refresh_order', TAT_PURGE = 'quality.purge_tat_items';
+const EXPECTED_TASKS = [REPROCESS, SYNC, CLOSE_STALE, TAT_SWEEP, TAT_REFRESH, TAT_PURGE];   // + T-09, T-10, T-19 (all six of TRD §10.3)
 /** TRD §10.3 / manifest literal: the complete C9 task set (a T-01 task list may only be a subset). */
 const TRD_TASKS = ['quality.sync_qc_observations', 'quality.close_stale_runs', REPROCESS, 'quality.tat_sweep', 'quality.tat_refresh_order', 'quality.purge_tat_items'];
 const TRD_SUBSCRIPTIONS = ['instruments.qc.received.v1', 'instruments.result.received.v1', 'lab.result.verified.v1', 'lab.specimen.status_changed.v1', 'reporting.report.released.v1'];
 const TRD_CRON = { 'quality.sync_qc_observations': '* * * * *', 'quality.close_stale_runs': '* * * * *', 'quality.tat_sweep': '* * * * *', 'quality.purge_tat_items': '40 2 * * *' };
 
-const ctx = (tx: unknown = new Proxy({}, { get() { throw new Error('ctx.tx touched by the T-01 no-op'); } })) =>
+const ctx = (tx: unknown = new Proxy({}, { get() { throw new Error('ctx.tx touched before the T-11 guards'); } })) =>
   ({ tenantId: '01a1a98a-ac40-7000-8000-00000000c9a1', tx, attempt: 1, maxAttempts: 5, jobId: '1', requestId: '01a1a98a-ac40-7000-8000-000000090001',
     log: { info() {}, warn() {}, error() {} }, now: () => '2026-11-12T03:00:00.000Z' }) as any;
 
@@ -44,14 +54,11 @@ describe('C9 T-01 worker manifest (quality)', () => {
     for (const id of Object.keys(manifest.maxAttempts ?? {})) expect(Object.keys(manifest.tasks ?? {}), `maxAttempts for ${id}`).toContain(id);
   });
 
-  it('the registered handler is a no-op: resolves undefined for a valid and for an empty / hostile payload, never touches ctx.tx, never throws', async () => {
+  // T-11 (06 row T-11 'replaces the T-01 no-op'): the T-01 no-op test is superseded. The task now guards tenant + scope before it touches anything (full behaviour: reprocess_pending_observations.test.ts).
+  it('the registered handler is the real T-11 task, no longer a no-op: an empty / hostile / foreign-tenant payload rejects before ctx.tx is touched', async () => {
     const h = manifest.tasks![REPROCESS]!;
-    const payloads: any[] = [
-      { tenant_id: '01a1a98a-ac40-7000-8000-00000000c9a1', instrument_id: '01a1a98a-ac40-7000-8000-00000000c9a2' },
-      { tenant_id: '01a1a98a-ac40-7000-8000-00000000c9a1', plan_id: '01a1a98a-ac40-7000-8000-00000000c9a3' },
-      {}, { instrument_id: "x'; DROP TABLE quality.settings;--" }, { tenant_id: 42, plan_id: null },
-    ];
-    for (const p of payloads) await expect(h(p, ctx()), JSON.stringify(p)).resolves.toBeUndefined();
+    const payloads: any[] = [{}, { instrument_id: "x'; DROP TABLE quality.settings;--" }, { tenant_id: 42, plan_id: null }, { tenant_id: '01a1a98a-ac40-7000-8000-00000000b001', plan_id: '01a1a98a-ac40-7000-8000-00000000c9a3' }];
+    for (const p of payloads) await expect(Promise.resolve().then(() => h(p, ctx())), JSON.stringify(p)).rejects.toBeInstanceOf(Error);
   });
 
   it('subscriptions, when declared, are only TRD §10.2 events, each also in EVENT_CONSUMERS.quality, each with a handler; no own events', () => {
@@ -85,13 +92,43 @@ describe('C9 T-01 worker manifest (quality)', () => {
   // ---- T-09 ------------------------------------------------------------------------------------------------------------------------------
   it('T-09: quality.sync_qc_observations is registered with max attempts 5 (TRD §10.3) and is scheduled `* * * * *` per_tenant (cron.ts exports the same entry the manifest uses)', () => {
     expect(manifest.maxAttempts?.[SYNC]).toBe(5);
-    expect(crontab).toHaveLength(1);
-    expect(crontab[0]).toMatchObject({ identifier: SYNC, schedule: '* * * * *', tenantScope: 'per_tenant' });
+    expect(crontab).toHaveLength(4);   // + T-10, T-19 (tat_sweep, purge_tat_items)
+    expect(crontab.find((c) => c.identifier === SYNC)).toMatchObject({ identifier: SYNC, schedule: '* * * * *', tenantScope: 'per_tenant' });
     expect(manifest.crontab).toEqual(crontab);
   });
-  it('T-09: the only subscription so far is instruments.qc.received.v1, wired to the consumer `handle` (a trigger only: TRD §6.1)', () => {
-    expect(Object.keys(manifest.subscriptions ?? {})).toEqual(['instruments.qc.received.v1']);
+  // ---- T-10 ------------------------------------------------------------------------------------------------------------------------------
+  it('T-10: quality.close_stale_runs is registered with max attempts 5, scheduled `* * * * *` per_tenant, handler = the task module `handle`', () => {
+    expect(manifest.maxAttempts?.[CLOSE_STALE]).toBe(5);
+    expect(crontab.find((c) => c.identifier === CLOSE_STALE)).toMatchObject({ identifier: CLOSE_STALE, schedule: '* * * * *', tenantScope: 'per_tenant' });
+    expect(manifest.tasks![CLOSE_STALE]).toBe(closeStaleRuns);
+  });
+  it('T-10: the built task list has the close task per tenant plus its cron item', async () => {
+    const s = await setup([manifest]);
+    expect(s.entry(CLOSE_STALE)).toMatchObject({ module: 'quality', kind: 'task', scope: 'per_tenant' });
+    expect(s.built.cronItems.filter((x: any) => x.identifier === CLOSE_STALE)).toHaveLength(1);
+  });
+  it('T-09 + T-13 + T-16: the subscriptions so far are instruments.qc.received.v1 (a trigger only: TRD §6.1), instruments.result.received.v1 (qc_activity counter: TRD §10.2) and lab.result.verified.v1 (verification_log: TRD §10.2), each wired to its consumer `handle`', () => {
+    expect(Object.keys(manifest.subscriptions ?? {}).sort()).toEqual([...TRD_SUBSCRIPTIONS].sort());   // T-19 added lab.specimen.status_changed.v1 + reporting.report.released.v1: all five of TRD §10.2
     expect(manifest.subscriptions!['instruments.qc.received.v1']).toBe(qcReceived);
+    expect(manifest.subscriptions!['instruments.result.received.v1']).toBe(resultReceived);
+    expect(manifest.subscriptions!['lab.result.verified.v1']).toBe(resultVerified);
+  });
+  // ---- T-19 ------------------------------------------------------------------------------------------------------------------------------
+  it('T-19: tat_sweep (3 attempts, `* * * * *`), tat_refresh_order (5 attempts, enqueued only: no cron) and purge_tat_items (3 attempts, `40 2 * * *`) are registered per tenant with their task module `handle`', () => {
+    expect(manifest.maxAttempts?.[TAT_SWEEP]).toBe(3); expect(manifest.maxAttempts?.[TAT_REFRESH]).toBe(5); expect(manifest.maxAttempts?.[TAT_PURGE]).toBe(3);
+    expect(crontab.find((c) => c.identifier === TAT_SWEEP)).toMatchObject({ schedule: '* * * * *', tenantScope: 'per_tenant' });
+    expect(crontab.find((c) => c.identifier === TAT_PURGE)).toMatchObject({ schedule: '40 2 * * *', tenantScope: 'per_tenant' });
+    expect(crontab.map((c) => c.identifier)).not.toContain(TAT_REFRESH); expect(manifest.crontab).toEqual(crontab); expect(crontab).toHaveLength(Object.keys(TRD_CRON).length);
+    expect(manifest.tasks![TAT_SWEEP]).toBe(tatSweep); expect(manifest.tasks![TAT_REFRESH]).toBe(tatRefreshOrder); expect(manifest.tasks![TAT_PURGE]).toBe(purgeTatItems);
+  });
+  it('T-19: the two new subscriptions are wired to their consumer `handle` and exist in EVENT_CONSUMERS.quality', () => {
+    expect(manifest.subscriptions!['lab.specimen.status_changed.v1']).toBe(specimenStatusChanged); expect(manifest.subscriptions!['reporting.report.released.v1']).toBe(reportReleased);
+    for (const t of ['lab.specimen.status_changed.v1', 'reporting.report.released.v1']) expect([...(EVENT_CONSUMERS.quality ?? [])], t).toContain(t);
+  });
+  it('T-19: the built task list registers the three TAT tasks per tenant with cron items only for the sweep and the purge', async () => {
+    const s = await setup([manifest]);
+    for (const id of [TAT_SWEEP, TAT_REFRESH, TAT_PURGE]) expect(s.entry(id)).toMatchObject({ module: 'quality', kind: 'task', scope: 'per_tenant' });
+    expect(s.built.cronItems.filter((x: any) => x.identifier === TAT_SWEEP)).toHaveLength(1); expect(s.built.cronItems.filter((x: any) => x.identifier === TAT_PURGE)).toHaveLength(1); expect(s.built.cronItems.filter((x: any) => x.identifier === TAT_REFRESH)).toEqual([]);
   });
   it('T-09: the built task list has the sync task per tenant plus its cron item, and the consumer entry', async () => {
     const s = await setup([manifest]);

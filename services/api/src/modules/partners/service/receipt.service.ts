@@ -10,6 +10,7 @@ import { toLineDto, toManifestDto, toManifestSummaryDto, type CentreName } from 
 import type { Q, Scope } from '../repository/counters.repo.js';
 import * as lines from '../repository/manifest-lines.repo.js';
 import { ifMatch, pathId } from './manifest.service.js';
+import { manifestTransition } from './observability.js';
 
 type Row = Record<string, any>;
 type Req = { params?: unknown; query?: unknown; headers?: unknown; body?: unknown };
@@ -227,7 +228,10 @@ export async function receive(req: Req, ctx: HandlerContext): Promise<HandlerRes
     await s.tx.query(`UPDATE partners.manifest_lines SET ${set.join(', ')}, version = version + 1, updated_at = now(), updated_by = $3 WHERE tenant_id = $1 AND id = $2`, vals);
     if (mode === 'on_receipt' && it.outcome === 'received') await lines.enqueueConversion(sc, it.lineId, 1); // job_key convert:<line_id>:1
   }
-  return { status: 200, body: await inboundDto(ctx, s, row) };
+  const out = { status: 200, body: await inboundDto(ctx, s, row) };
+  const reached = (row as Record<string, unknown>)['state'];
+  if (reached === 'received' || reached === 'partially_received') manifestTransition(ctx, reached); // T23: the state the receipt leaves the manifest in
+  return out;
 }
 
 // ---- SI4 ----

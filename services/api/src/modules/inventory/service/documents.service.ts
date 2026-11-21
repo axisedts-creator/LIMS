@@ -21,8 +21,8 @@ import type { DocInput, DocLineInput, DocListQuery, WriteOffInput } from '../han
 import { toStockDocumentDto } from '../mappers/stockDocument.dto.js';
 import { listReasons } from '../repository/codedSets.repo.js';
 import { allocateNumber } from '../repository/counters.repo.js';
-import { insertStockDocument, insertStockDocumentLine } from '../repository/documents.repo.js';
-import { getItem, getPack } from '../repository/items.repo.js';
+import { insertStockDocument, insertStockDocumentLines } from '../repository/documents.repo.js';
+import { getItem, getItemsByIds, getPack } from '../repository/items.repo.js';
 import { ensureSettings, getSettings } from '../repository/settings.repo.js';
 import { type RepoCtx, type Row, Q, first, isUuid, query } from '../repository/_base.js';
 import { PERMISSIONS } from '../permissions.js';
@@ -71,7 +71,7 @@ async function clock(ctx: HandlerContext): Promise<Clock> {
 }
 
 /** AC-19.4: with settings.count_locks_store, a store with an open count takes no manual movement. */
-async function assertNotCounting(rc: RepoCtx, storeId: string): Promise<void> {
+export async function assertNotCounting(rc: RepoCtx, storeId: string): Promise<void> {
   if ((await getSettings(rc))?.['count_locks_store'] !== true) return;
   const open = await first(rc, "SELECT 1 AS x FROM inventory.stock_counts WHERE tenant_id = $1 AND status = 'open' AND store_id = $2 LIMIT 1", [storeId]);
   if (open !== null) throw new LimsError('inventory.store_locked_for_count');
@@ -188,10 +188,10 @@ async function commit(rc: RepoCtx, ck: Clock, head: Head, planned: readonly Plan
   });
   const rows = await ledgerPost(rc, { doc_type: 'stock_document', doc_id: id, occurred_at: occurredIso, business_date: business, movements });
   for (const r of rows) if (r['lot_id'] === null && Number(r['qty_base']) < 0 && Number(r['balance_qty_after']) < 0) throw new LimsError('inventory.insufficient_stock'); // see [CONV] above
-  for (const [j, p] of planned.entries()) {
-    const value = rows.filter((r) => r['doc_line_id'] === lineIds[j]).reduce((a, r) => a + abs(BigInt(r['value_paisa'])), 0n);
-    await insertStockDocumentLine(rc, { id: lineIds[j], document_id: id, line_no: j + 1, item_id: p.item_id, lot_id: p.lot_id, direction: p.direction, qty_base: p.qty, value_paisa: value.toString(), reason_code: p.reason });
-  }
+  const valueOf = new Map<string, bigint>(); // T-26 perf: one pass + one INSERT for all lines (was a filter and an INSERT per line)
+  for (const r of rows) valueOf.set(r['doc_line_id'], (valueOf.get(r['doc_line_id']) ?? 0n) + abs(BigInt(r['value_paisa'])));
+  await insertStockDocumentLines(rc, planned.map((p, j) => ({ id: lineIds[j], document_id: id, line_no: j + 1, item_id: p.item_id, lot_id: p.lot_id, direction: p.direction, qty_base: p.qty,
+    value_paisa: (valueOf.get(lineIds[j]!) ?? 0n).toString(), reason_code: p.reason })));
   return id;
 }
 const abs = (v: bigint): bigint => (v < 0n ? -v : v);
@@ -209,8 +209,8 @@ const lotRow = (rc: RepoCtx, id: string): Promise<Row | null> =>
   first(rc, `SELECT id, item_id, status, to_char(expiry_on, 'YYYY-MM-DD') AS expiry_on FROM inventory.lots WHERE tenant_id = $1 AND id = $2`, [id]);
 
 interface Resolved { item: Row; lot_id: string | null; qty: string; direction: 'in' | 'out'; reason: string | null }
-async function resolveLine(rc: RepoCtx, kind: DocKind, cfg: Cfg, today: string, l: DocLineInput, i: number): Promise<Resolved> {
-  const item = await getItem(rc, l.item_id);
+async function resolveLine(rc: RepoCtx, kind: DocKind, cfg: Cfg, today: string, l: DocLineInput, i: number, items?: ReadonlyMap<string, Row>): Promise<Resolved> {
+  const item = items !== undefined ? items.get(l.item_id) ?? null : await getItem(rc, l.item_id);
   if (item === null) throw notFound();
   if (cfg.active && item['is_active'] !== true) throw new LimsError('inventory.item_inactive');
   let qty: string;
@@ -289,7 +289,8 @@ export async function postDocument(ctx: HandlerContext, kind: Exclude<DocKind, '
   if (cfg.lock) await assertNotCounting(rc, input.store_id); // before the lines: a locked store answers 409 whatever the lines say
   const ck = await clock(ctx);
   const lines: Resolved[] = [];
-  for (const [i, l] of input.lines.entries()) lines.push(await resolveLine(rc, kind, cfg, ck.today, l, i));
+  const items = await getItemsByIds(rc, input.lines.map((l) => l.item_id));
+  for (const [i, l] of input.lines.entries()) lines.push(await resolveLine(rc, kind, cfg, ck.today, l, i, items));
   if (cfg.group !== null) await assertReasons(rc, cfg.group, input.reason_code, lines);
   const planned = await plan(rc, ck, input.store_id, lines);
   return commit(rc, ck, { kind, ...input }, planned);

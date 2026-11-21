@@ -196,4 +196,47 @@ describe.skipIf(!live)('P-07 write and FK probes: an A request that names a B id
     expect(await snapshot(TENANT_B)).toEqual(before);
   });
 });
+// ---------------------------------------------------------------- T0B-VERLEVEL-1 (LD-316): the 3 verification level operations (not in OPS while T0C carves them out; probed here by name)
+describe.skipIf(!live)('LD-316 verification level operations: tenant A never reads or changes tenant B (policy, sign-off chain)', () => {
+  it('getResultSignoffs with a B result id => 404 common.not_found, no B marker in the answer, B untouched', { timeout: T }, async () => {
+    const before = await snapshot(TENANT_B);
+    const out = await fire('getResultSignoffs', requestFor('getResultSignoffs', B), FULL_A);
+    expect(out.reply, `answered ${out.reply?.status}`).toBeUndefined();
+    expect(codeOf(out)).toBe('common.not_found');
+    expect((out.error as any).statusCode).toBe(404);
+    for (const needle of markersOf(B)) expect(seen(out.error), needle).not.toContain(needle);
+    expect(await snapshot(TENANT_B)).toEqual(before);
+  });
+  it('control: getResultSignoffs for A\'s own result answers 200 { data: [] } (nothing signed yet)', { timeout: T }, async () => {
+    const out = await fire('getResultSignoffs', requestFor('getResultSignoffs', A), FULL_A);
+    expect(out.reply?.status, `${out.error?.code} ${out.error?.message}`).toBe(200);
+    expect(out.reply!.body).toEqual({ data: [] });
+  });
+  it('upsertVerificationPolicy naming a B test (A has no such test) => refused, no row in either tenant', { timeout: T }, async () => {
+    const before = await snapshot(TENANT_B);
+    const out = await fire('upsertVerificationPolicy', requestFor('upsertVerificationPolicy', B), FULL_A);
+    expect(out.reply, 'must be rejected').toBeUndefined();
+    expect(['common.not_found', 'common.validation_failed']).toContain(codeOf(out));
+    for (const needle of markersOf(B)) expect(seen(out.error), needle).not.toContain(needle);
+    expect(await snapshot(TENANT_B)).toEqual(before);
+    const { owner } = await import('./kit.js');
+    expect(Number((await owner('SELECT count(*)::int AS n FROM lab.verification_policy WHERE test_id = $1', [B.testId]))[0].n), 'no policy for the B test was written anywhere').toBe(0);
+  });
+  it('listVerificationPolicies answers only A\'s policies (the lab default exists), nothing of B', { timeout: T }, async () => {
+    const out = await fire('listVerificationPolicies', requestFor('listVerificationPolicies', A), FULL_A);
+    expect(out.reply?.status, `${out.error?.code} ${out.error?.message}`).toBe(200);
+    const text = JSON.stringify(out.reply!.body);
+    for (const needle of markersOf(B).filter((m) => m !== TENANT_B)) expect(text, needle).not.toContain(needle);
+    expect(out.reply!.body.data.some((p: any) => p.scope === 'lab' && p.active === true)).toBe(true);
+  });
+  it('bulkVerifyResults / bulkApproveResults with [A, B] ids keep working per id (B common.not_found) after the sign-off rules (P-04)', { timeout: T }, async () => {
+    for (const id of ['bulkVerifyResults', 'bulkApproveResults']) {
+      const before = await snapshot(TENANT_B);
+      const out = await fire(id, req({ headers: { 'idempotency-key': uid() }, body: { items: [{ id: A.resultId, version: 1 }, { id: B.resultId, version: 1 }] } }), FULL_A);
+      expect(out.reply?.status, `${id}: ${out.error?.code}`).toBe(200);
+      expect(out.reply!.body.results.find((x: any) => x.id === B.resultId)).toMatchObject({ outcome: 'error', code: 'common.not_found' });
+      expect(await snapshot(TENANT_B)).toEqual(before);
+    }
+  });
+});
 void opById;

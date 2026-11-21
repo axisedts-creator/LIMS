@@ -2,6 +2,7 @@
 // contracts/openapi/reporting.yaml; these map request -> service and fail closed without an authenticated request context. T5 stays a stub (C6-T16).
 import { LimsError } from '../../../core/errors.js';
 import type { Handler, HandlerContext, HandlerRequest } from '../../../core/module.js';
+import { guarded } from './_guard.js';
 import { createTemplatesService, type TemplatesCtx, type TemplatesService } from '../service/templates.service.js';
 import { ifMatch } from './outsourced.handlers.js';
 
@@ -18,7 +19,7 @@ function bind(fn: (s: TemplatesService, ctx: TemplatesCtx, req: HandlerRequest) 
 const obj = (v: unknown): Record<string, any> => (typeof v === 'object' && v !== null ? (v as Record<string, any>) : {});
 const ver = (b: unknown) => obj(b)['version'] as number;
 
-export const templatesHandlers: Readonly<Record<string, Handler>> = Object.freeze({
+const templatesRaw: Readonly<Record<string, Handler>> = Object.freeze({
   listReportTemplates: bind(async (s, ctx, req) => ({ status: 200, body: await s.listTemplates(ctx, { family: obj(req.query)['family'] }) })),
   createReportTemplate: bind(async (s, ctx, req) => {
     const out = await s.createTemplate(ctx, { body: req.body });
@@ -36,4 +37,14 @@ export const templatesHandlers: Readonly<Record<string, Handler>> = Object.freez
     const out = await s.publish(ctx, { templateId: obj(req.params)['template_id'], expectedVersion: ifMatch(req) });
     return { status: 200, body: out, version: ver(out) };
   }),
+});
+
+// SEC-AUTHZ-7 (LD-189, LD-261): each row below asks its contract x-permission through IdentityPort.assertRole before the wrapped handler runs (see _guard.ts).
+export const templatesHandlers: Readonly<Record<string, Handler>> = Object.freeze({
+  ...templatesRaw,
+  listReportTemplates: guarded('reporting.template.manage', templatesRaw['listReportTemplates']!),
+  createReportTemplate: guarded('reporting.template.manage', templatesRaw['createReportTemplate']!),
+  getReportTemplate: guarded('reporting.template.manage', templatesRaw['getReportTemplate']!),
+  updateReportTemplateDraft: guarded('reporting.template.manage', templatesRaw['updateReportTemplateDraft']!),
+  publishReportTemplate: guarded('reporting.template.manage', templatesRaw['publishReportTemplate']!),
 });

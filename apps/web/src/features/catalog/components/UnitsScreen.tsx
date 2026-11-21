@@ -13,30 +13,44 @@ import { TextField } from '@lims/ui/components/TextField';
 import { VisuallyHidden } from '@lims/ui/components/VisuallyHidden';
 import { createMasterAction, updateMasterAction } from '../server/actions';
 import { UNIT_CODE_RE, VALUE_CODE_RE, VALUE_SET_CODE_RE, type Unit, type ValueSet, type ValueSetValue } from '../server/types';
-import { DUPLICATE, EditorDialog, MasterTable, canManage, changed, statusText, useListShortcuts, type Col } from './master-ui';
+import { DUPLICATE, EditorDialog, MasterTable, canManage, changed, statusText, useListFilter, useListShortcuts, type Col } from './master-ui';
+import { t } from '@/core/i18n/messages';
 
 const scope = (r: { scope: 'global' | 'tenant' }) => (r.scope === 'global' ? 'Global' : 'Lab');
 const SYSTEM = 'Provided by the system';
-const lock = (r: { scope: string }) => (r.scope === 'global' ? <span role="img" aria-label={SYSTEM} title={SYSTEM}>🔒</span> : null);
+// 10-DESIGN-SYSTEM §6: no emoji; system rows say so with a text Badge (named "Provided by the system") instead of a lock glyph.
+const lock = (r: { scope: string }) => (r.scope === 'global' ? <span role="img" aria-label={SYSTEM} title={SYSTEM}><Badge tone="neutral">System</Badge></span> : null);
 const IN_USE = 'This value set is used by a published analyte version; values can be added or hidden, not removed or re-ordered.';
+
+const READ_ONLY = 'You can view units and value sets. Adding or changing them needs the catalog manage permission.'; // [CONV]
 
 export function UnitsScreen({ units, valueSets, permissions }: { units: readonly Unit[]; valueSets: readonly ValueSet[]; permissions: readonly string[] }) {
   const [tab, setTab] = useState('units');
+  const manage = canManage(permissions);
+  // T0D-CATUNITS-1 (LD-310): the New button lives in the page header and follows the open tab.
+  const [unitEditing, setUnitEditing] = useState<Unit | 'new' | null>(null);
+  const [setEditing, setSetEditing] = useState<ValueSet | 'new' | null>(null);
+  const action = !manage ? null : tab === 'units'
+    ? <Button variant="primary" onPress={() => setUnitEditing('new')}>New unit</Button>
+    : <Button variant="primary" onPress={() => setSetEditing('new')}>New value set</Button>;
   return (
     <section aria-label="Units & value sets">
-      <PageHeader title="Units & value sets" helpKey="catalog.units" breadcrumbs={[{ label: 'Catalog', href: '/catalog' }, { label: 'Units & value sets' }]} />
+      <PageHeader title={t('catalog.nav.units')} helpKey="catalog.units" {...(action ? { actions: action } : {})} />
+      {manage ? null : <p className="lims-state-body">{READ_ONLY}</p>}
       <Tabs aria-label="Units & value sets" items={[{ id: 'units', label: 'Units' }, { id: 'value_sets', label: 'Value sets' }]} selectedId={tab} onChange={setTab}>
-        {tab === 'units' ? <UnitsTab rows={units} permissions={permissions} /> : <ValueSetsTab rows={valueSets} permissions={permissions} />}
+        {tab === 'units'
+          ? <UnitsTab rows={units} manage={manage} editing={unitEditing} setEditing={setUnitEditing} />
+          : <ValueSetsTab rows={valueSets} manage={manage} editing={setEditing} setEditing={setSetEditing} />}
       </Tabs>
     </section>
   );
 }
 
-function UnitsTab({ rows, permissions }: { rows: readonly Unit[]; permissions: readonly string[] }) {
-  const manage = canManage(permissions);
-  const [editing, setEditing] = useState<Unit | 'new' | null>(null);
+function UnitsTab({ rows, manage, editing, setEditing }: { rows: readonly Unit[]; manage: boolean; editing: Unit | 'new' | null; setEditing: (u: Unit | 'new' | null) => void }) {
   const openNew = manage ? () => setEditing('new') : undefined;
-  useListShortcuts(useRef(null), openNew);
+  // T0D-UILIST-3 (LD-353 template 1): the shared search + status filter row.
+  const { shown, toolbar, search } = useListFilter(rows, (r) => r.display);
+  useListShortcuts(search, openNew);
   const cols: Col<Unit>[] = [
     { header: 'Code', cell: (r) => r.code },
     { header: 'Display', cell: (r) => r.display },
@@ -46,9 +60,9 @@ function UnitsTab({ rows, permissions }: { rows: readonly Unit[]; permissions: r
   const tenantOnly = rows.length > 0 && !rows.some((r) => r.scope === 'tenant');
   return (
     <>
-      {openNew ? <Button variant="primary" onPress={openNew}>New lab unit</Button> : null}
       {tenantOnly ? <p className="lims-state-body">Only global units are available. Add a lab-specific unit if needed.</p> : null}
-      <MasterTable caption="Units" cols={cols} rows={rows} empty="Only global units are available. Add a lab-specific unit if needed." rowExtra={lock} canEdit={(r) => r.scope === 'tenant'} onEdit={manage ? setEditing : undefined} />
+      {toolbar}
+      <MasterTable caption="Units" cols={cols} rows={shown}empty="No test units yet. Add a unit" emptyAction={openNew ? { label: 'New unit', onPress: openNew } : undefined} rowExtra={lock} canEdit={(r) => r.scope === 'tenant'} onEdit={manage ? setEditing : undefined} />
       {editing ? <UnitDialog item={editing === 'new' ? undefined : editing} onClose={() => setEditing(null)} /> : null}
     </>
   );
@@ -61,7 +75,7 @@ function UnitDialog({ item, onClose }: { item: Unit | undefined; onClose: () => 
   const [codeError, setCodeError] = useState<string>();
   return (
     <EditorDialog
-      title={item ? 'Edit lab unit' : 'New lab unit'}
+      title={item ? 'Edit lab unit' : 'New unit'}
       savedText="Unit saved."
       onClose={onClose}
       onDuplicate={() => setCodeError(DUPLICATE)}
@@ -79,9 +93,7 @@ function UnitDialog({ item, onClose }: { item: Unit | undefined; onClose: () => 
   );
 }
 
-function ValueSetsTab({ rows, permissions }: { rows: readonly ValueSet[]; permissions: readonly string[] }) {
-  const manage = canManage(permissions);
-  const [editing, setEditing] = useState<ValueSet | 'new' | null>(null);
+function ValueSetsTab({ rows, manage, editing, setEditing }: { rows: readonly ValueSet[]; manage: boolean; editing: ValueSet | 'new' | null; setEditing: (v: ValueSet | 'new' | null) => void }) {
   const openNew = manage ? () => setEditing('new') : undefined;
   useListShortcuts(useRef(null), openNew);
   const cols: Col<ValueSet>[] = [
@@ -93,7 +105,6 @@ function ValueSetsTab({ rows, permissions }: { rows: readonly ValueSet[]; permis
   ];
   return (
     <>
-      {openNew ? <Button variant="primary" onPress={openNew}>New value set</Button> : null}
       <MasterTable caption="Value sets" cols={cols} rows={rows} empty="No value sets yet." emptyAction={openNew ? { label: 'New value set', onPress: openNew } : undefined} rowExtra={lock} canEdit={(r) => r.scope === 'tenant'} onEdit={manage ? setEditing : undefined} />
       {editing ? <ValueSetDialog item={editing === 'new' ? undefined : editing} onClose={() => setEditing(null)} /> : null}
     </>
@@ -119,6 +130,7 @@ function ValueSetDialog({ item, onClose }: { item: ValueSet | undefined; onClose
   };
   return (
     <EditorDialog
+      width="lg"
       title={item ? 'Edit value set' : 'New value set'}
       savedText="Value set saved."
       onClose={onClose}

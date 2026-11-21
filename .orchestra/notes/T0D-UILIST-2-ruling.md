@@ -1,0 +1,7 @@
+TESTS_WRONG — `expectWideTable` checks a sticky first body cell even when the table has no data rows, so in the no-rows case it ends up checking the colSpan EmptyState cell.
+Change (tester): in apps/web/src/__tests__/uilist2.helpers.tsx `bodyRows` (line 22), also leave out the empty-state row: a row whose only cell has colSpan > 1, or that holds `.lims-empty-state` / `.lims-state`. Keep `.lims-row-empty`. Do not touch the sticky assertion at line 63; it must still run and pass in the one-row entries test (uilist2.accounts.test.tsx:107-110, which calls expectWideTable with data rows).
+Reasons:
+1. LD-353 rule 5 and done_when (2) (inbox brief .orchestra/inbox/T0D-UILIST-2-arbiter.md:19, :30) ask for a sticky first COLUMN, meaning its header and its data cells. They do not ask for a sticky empty-state cell that spans all 15 columns. Rule 6 (:30) says the EmptyState sits in the table body.
+2. The kit's DataTable (packages/ui/src/components/DataTable/DataTable.tsx:195, :235-241) puts the sticky class only on the first column, and react-aria draws the empty state as one unclassed colSpan cell. So `bodyRows()[0].children[0]` in the no-rows case is not a first-column cell.
+3. The header-cell sticky check (helpers:61) already passes for the no-rows case, and the data-cell check still runs where data rows exist. With this change the test checks the same thing, just at the right row.
+4. packages/ui belongs to T0D-UIKIT-1 (LD-364 rule 2, inbox :35), so the writer cannot change the kit's markup. The fix belongs in the tester-owned helper.

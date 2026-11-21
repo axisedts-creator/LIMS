@@ -72,6 +72,12 @@
 - { code: catalog.tax_config_missing, http: 422, owner: C3, title: "Tax configuration missing", meaning: "No tenant-default tax rule (04 L15/L25, B7)" }   # CR-C3-003
 - { code: catalog.import_not_committable, http: 409, owner: C3, title: "Import cannot be committed", meaning: "Not in validated state, expired, or already committed" }   # CR-C3-003
 - { code: catalog.import_stale_base, http: 409, owner: C3, title: "Price list changed since export", meaning: "Base version superseded; resend with accept_stale_base" }   # CR-C3-003
+- { code: catalog.import_invalid_file, http: 422, owner: C3, title: "Import file is not a valid workbook", meaning: "Excel test import: not an xlsx by magic bytes, xlsm or xls, macros, external links, zip bomb or unreadable" }   # T0C-TESTIMPORT-1 (LD-318)
+- { code: catalog.import_template_outdated, http: 422, owner: C3, title: "Import template is outdated", meaning: "Excel test import: the template version of the file is not the current one; download the template again" }   # T0C-TESTIMPORT-1 (LD-318)
+- { code: catalog.import_too_large, http: 413, owner: C3, title: "Import file too large", meaning: "Excel test import: more than 5 MB, or more than 5000 rows per sheet" }   # T0C-TESTIMPORT-1 (LD-318)
+- { code: catalog.import_has_errors, http: 409, owner: C3, title: "Import batch has errors", meaning: "Excel test import: a rejected batch (it has errors) cannot be committed; fix the file and validate again" }   # T0C-TESTIMPORT-1 (LD-318)
+- { code: catalog.import_batch_expired, http: 409, owner: C3, title: "Import batch expired", meaning: "Excel test import: a batch older than 24 hours cannot be committed; validate the file again" }   # T0C-TESTIMPORT-1 (LD-318)
+- { code: catalog.import_already_committed, http: 409, owner: C3, title: "Import batch already committed", meaning: "Excel test import: the batch was already committed" }   # T0C-TESTIMPORT-1 (LD-318)
 # frontdesk (C4)
 - { code: frontdesk.patient_duplicate_suspected, http: 409, owner: C4, title: "Possible duplicate patient", meaning: "Dedupe match; confirm or merge (01 §1.1)" }
 - { code: frontdesk.consent_required,      http: 422, owner: C4, title: "Consent required", meaning: "REQ-SEC-005" }
@@ -122,6 +128,10 @@
 # added by 08 §4.2
 - { code: lab.barcode_pattern_invalid, http: 500, owner: C5, title: "Barcode numbering configuration invalid", meaning: "Rendered barcode violates [A-Z0-9]{1,20} or counter overflow" }   # CR-C5-005
 - { code: lab.specimen_inactive, http: 409, owner: C5, title: "Specimen inactive", meaning: "Order cancelled or test removed; specimen not usable" }   # CR-C5-005
+# T0C-VERLEVEL-1 (LD-316): verification levels 1, 2, 3 (lab.verification_policy, lab.result_signoff)
+- { code: lab.verifier_not_distinct, http: 409, owner: C5, title: "Already signed by this person", meaning: "Each sign-off of one result version must come from a different person (LD-316)" }
+- { code: lab.enterer_cannot_verify, http: 403, owner: C5, title: "The person who entered the result cannot sign it off", meaning: "Verification policy allow_enterer_verify is false (default; LD-316, LD-318 follow-up 4)" }
+- { code: lab.pathologist_required, http: 403, owner: C5, title: "Final sign-off needs a pathologist", meaning: "Verification policy require_pathologist is true and the signer does not hold lab.result.approve (LD-316)" }
 - { code: lab.flag_ack_required, http: 409, owner: C5, title: "Flag acknowledgement required", meaning: "Delta/critical/unit/instrument flag must be acknowledged before verification" }   # CR-C5-005
 # reporting + notifications + portal (C6)
 - { code: reporting.release_blocked_due,   http: 409, owner: C6, title: "Report held until payment", meaning: "Hold-till-paid (00 D1)" }
@@ -260,6 +270,7 @@
 - { code: partners.referrer_doctor_inactive, http: 422, owner: C13, title: "Doctor record inactive", meaning: "" }   # CR-C13-009
 - { code: partners.referrer_invalid_transition, http: 409, owner: C13, title: "Referrer mapping cannot change", meaning: "" }   # CR-C13-009
 - { code: partners.setting_out_of_range, http: 422, owner: C13, title: "Setting out of allowed range", meaning: "02-TRD §10.2" }   # CR-C13-009
+- { code: partners.ticket_invalid_transition, http: 409, owner: C13, title: "Ticket cannot change", meaning: "Closed ticket takes no reply and cannot be closed again; only a closed ticket reopens" }   # T0C-MSGDESK-1 (LD-321)
 # smartreport (C14)
 - { code: smartreport.no_eligible_results, http: 422, owner: C14, title: "No approved results for summary", meaning: "" }
 - { code: smartreport.template_not_approved, http: 409, owner: C14, title: "Template library not approved", meaning: "Pathologist approval pending (B14)" }
@@ -309,6 +320,13 @@
 - { code: engagement.reminder_invalid_transition, http: 409, owner: C16, title: "Reminder cannot change", meaning: "Already sent/cancelled" }   # CR-C16-003
 - { code: engagement.enquiry_invalid_transition, http: 409, owner: C16, title: "Enquiry cannot change", meaning: "Closed, or open-enquiry limit" }   # CR-C16-003
 - { code: engagement.setting_out_of_range, http: 422, owner: C16, title: "Setting out of allowed range", meaning: "05-SCHEMA §2.1" }   # CR-C16-003
+# T0C-MSGDESK-1 (LD-321): broadcast messages to an audience
+- { code: engagement.broadcast_invalid_transition, http: 409, owner: C16, title: "Broadcast cannot change", meaning: "Status does not allow this step (draft -> pending_approval -> approved -> sending -> sent; cancel before sending)" }
+- { code: engagement.broadcast_recipient_limit, http: 422, owner: C16, title: "Too many recipients", meaning: "The audience matches more than 5000 recipients per broadcast" }
+- { code: engagement.broadcast_self_approval, http: 403, owner: C16, title: "Second person must approve", meaning: "The approver is the requester of the broadcast" }
+- { code: engagement.broadcast_provider_not_configured, http: 422, owner: C16, title: "No message provider configured", meaning: "No provider configured and approved for the template channel; nothing is queued" }
+- { code: engagement.broadcast_placeholder_unknown, http: 422, owner: C16, title: "Unknown placeholder", meaning: "Template body uses a placeholder outside the closed list" }
+- { code: engagement.broadcast_template_inactive, http: 422, owner: C16, title: "Template inactive", meaning: "A deactivated template cannot start or approve a broadcast" }
 # homecollection (C17)
 - { code: homecollection.visit_not_assigned, http: 403, owner: C17, title: "Visit not assigned to you", meaning: "" }
 - { code: homecollection.barcode_mismatch, http: 422, owner: C17, title: "Scanned barcode does not match", meaning: "Patient/specimen ID check" }
@@ -321,3 +339,21 @@
 - { code: homecollection.visit_incomplete, http: 422, owner: C17, title: "Visit is not ready to assign", meaning: "Address and time window required" }   # CR-C17-007
 - { code: homecollection.phlebotomist_not_eligible, http: 422, owner: C17, title: "Phlebotomist cannot take this visit", meaning: "Inactive, other centre, or no phlebotomist role" }   # CR-C17-007
 - { code: homecollection.collection_not_held, http: 409, owner: C17, title: "Collection is not awaiting review", meaning: "" }   # CR-C17-007
+# T0C-SYNC-1 (LD-322): offline sync, closed list owned by C0; titles and meanings never carry personal data
+- { code: sync.device_revoked, http: 403, owner: C0, title: "Device revoked", meaning: "The device was revoked by an administrator; it must not sync or unlock" }
+- { code: sync.device_unknown, http: 409, owner: C0, title: "Device not registered", meaning: "Unknown device id for this tenant and user; register the device while online" }
+- { code: sync.block_size_too_large, http: 422, owner: C0, title: "Block size too large", meaning: "Requested number block size is above the configured maximum" }
+- { code: sync.series_unknown, http: 422, owner: C0, title: "Number series not available", meaning: "The series is not issued in blocks for this tenant" }
+- { code: sync.wipe_required, http: 409, owner: C0, title: "Device wipe required", meaning: "A remote wipe was requested; wipe local data and acknowledge before any other sync" }
+# T0C-SYNC-2 (LD-322): offline sync part 2 (push, pull, conflicts); closed list owned by C0; titles and meanings never carry personal data
+- { code: sync.base_version_stale, http: 409, owner: C0, title: "Base version stale", meaning: "The entity changed on the server after the version the device edited; the operation was not applied" }
+- { code: sync.op_id_reused, http: 422, owner: C0, title: "Operation id reused", meaning: "The op_id was already used with a different payload; generate a new op_id for a new operation" }
+- { code: sync.batch_too_large, http: 422, owner: C0, title: "Batch too large", meaning: "The batch is above 50 operations or 1 MB; split it and retry" }
+- { code: sync.clock_skew_too_large, http: 422, owner: C0, title: "Clock skew too large", meaning: "The device clock differs from the server clock beyond the allowed limit; correct the device time" }
+- { code: sync.result_locked, http: 409, owner: C0, title: "Result locked", meaning: "The result was verified or released on the server; an offline change cannot be applied" }
+- { code: sync.verification_policy_failed, http: 403, owner: C0, title: "Verification policy failed", meaning: "The offline verification does not meet the verification policy at sync time; any offline print is recalled" }
+- { code: sync.offline_not_allowed, http: 403, owner: C0, title: "Not allowed offline", meaning: "The operation needs an online step up or is online only for this tenant" }
+- { code: sync.number_out_of_block, http: 422, owner: C0, title: "Number outside reserved block", meaning: "A lab code or patient id used offline is not inside a block reserved by this device" }
+- { code: sync.entity_changed, http: 409, owner: C0, title: "Entity changed", meaning: "The entity changed since the conflict was recorded; reload both versions and resolve again" }
+# T0B-SYNC-2 (LD-322): an operation type of the catalogue whose server adapter is not installed yet (T0B-SYNC-3/4 add them); answered per operation, never a server error
+- { code: sync.op_type_not_available, http: 422, owner: C0, title: "Operation type not available", meaning: "The server cannot apply this operation type yet; keep it queued or redo it online" }

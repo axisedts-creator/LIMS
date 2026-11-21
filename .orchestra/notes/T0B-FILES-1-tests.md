@@ -1,0 +1,6 @@
+# T0B-FILES-1 tests (tester). New tests fail now: storage/direct.ts, adapter signUpload/signDownload/head, FileUpload/uploadQueue.ts and FileUpload `uploadFile` props do not exist.
+- services/api/src/core/storage/__tests__/direct.test.ts (+ direct.helpers.ts fake provider): ttl<=300, size/type/sha256 at signing, create-only, direct above 256 KiB, API never touches bytes, confirm before record, expired/tampered refused, resumable above 8 MiB, download disposition, private vs immutable cache, range, scan gate, access log. Prescribed API is in the file header.
+- packages/ui/src/components/__tests__/fileupload-queue.test.ts: parallel 3, 3 retries + backoff, non-retryable, cancel, resume. fileupload-direct.test.tsx: progress bar, cancel, retry status, parallel 3, unchanged client checks.
+- Run: `.orchestra/notes/T0B-FILES-1-verify.cmd` (also runs existing storage, uploads and batch2-fileupload tests).
+- Lead picks pinned in the tests: 256 KiB direct threshold, 8 MiB resumable threshold, lowercase hex sha256, max 4 attempts, backoff 250 ms to 30 s.
+- NOT covered (no seam without a contract change): engagement downloadMyReport (existing tests pin "signed URL never leaves the API", P-L1), partners, TRF, instruments and billing handlers. The writer lists them under "could not be made direct" or raises a CR. The bytes-path table (done_when 1) is the writer's note.

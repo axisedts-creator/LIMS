@@ -6,6 +6,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Banner } from '@lims/ui/components/Banner';
 import { Icon } from '@lims/ui/components/Icon';
 import { Inline } from '@lims/ui/components/Inline';
+import { Select } from '@lims/ui/components/Select';
 import { StatusChip } from '@lims/ui/components/StatusChip';
 import type { FilterValue } from '@lims/ui/components/FilterBar';
 import type { ActionResult } from '../server/types';
@@ -29,16 +30,74 @@ export function useIdemKey() {
   };
 }
 
-export function ProblemBanner({ problem }: { problem: Failure | undefined }) {
+/** auth.mfa_required = step-up (aal2): nothing was saved, the form stays open with its values (AC-11.3, AC-19.3). */
+export const isStepUp = (p: Failure | undefined) => p?.code === 'auth.mfa_required';
+
+/**
+ * Idempotency-Key per attempt: the same payload (resubmit after a failure) reuses the key, an edited payload gets a new one,
+ * so the server never sees one key with two different bodies. `sig` is the JSON of what is about to be sent.
+ */
+export function useAttemptKey() {
+  const k = useRef<{ sig: string; key: string } | undefined>(undefined);
+  return {
+    get: (sig: string) => {
+      if (k.current?.sig !== sig) k.current = { sig, key: newKey() };
+      return k.current.key;
+    },
+    reset: () => {
+      k.current = undefined;
+    },
+  };
+}
+
+export function ProblemBanner({ problem, hint }: { problem: Failure | undefined; hint?: string | undefined }) {
   if (!problem) return null;
+  const stepUp = isStepUp(problem);
+  const warn = stepUp || problem.code === 'common.version_conflict';
   return (
     <div role="alert">
-      <Banner tone="danger" title={problem.title || problem.code}>
-        {problem.requestId ? `Reference: ${problem.requestId}` : null}
+      <Banner tone={warn ? 'warning' : 'danger'} title={stepUp ? 'Additional verification required' : problem.title || problem.code}>
+        {stepUp ? <p>Verify your identity with your second factor, then submit again. Nothing was saved.</p> : null}
+        {hint ? <p>{hint}</p> : null}
+        {problem.requestId ? <p>{`Reference: ${problem.requestId}`}</p> : null}
       </Banner>
     </div>
   );
 }
+
+/** Server-side field message for a JSON-pointer path such as "/occurred_at" (400 common.validation_failed with errors[]). */
+export const fieldMessage = (p: Failure | undefined, path: string) => p?.errors?.find((e) => e.path === path)?.message;
+
+/** Quantity text: required, > 0, at most 3 decimals (DecimalStringPositive). Returns an error message or undefined. */
+export function qtyError(label: string, text: string | undefined): string | undefined {
+  const t = (text ?? '').trim();
+  if (t === '') return `${label} is required`;
+  if (!/^\d{1,12}(\.\d{1,3})?$/.test(t) || Number(t) <= 0) return `${label} must be greater than 0, with at most 3 decimals`;
+  return undefined;
+}
+/** Same, but 0 is allowed (counted quantity). */
+export function qtyOrZeroError(label: string, text: string | undefined): string | undefined {
+  const t = (text ?? '').trim();
+  if (t === '') return `${label} is required`;
+  if (!/^\d{1,12}(\.\d{1,3})?$/.test(t)) return `${label} must be 0 or more, with at most 3 decimals`;
+  return undefined;
+}
+
+/** Expiry as TEXT (LD-140: never colour alone). Dates are compared as UTC calendar days. */
+export function expiryState(expiryOn: string | undefined, now = new Date()): { label: string; tone: 'danger' | 'warning' } | undefined {
+  if (!expiryOn) return undefined;
+  const days = Math.round((Date.parse(`${expiryOn}T00:00:00Z`) - Date.parse(`${now.toISOString().slice(0, 10)}T00:00:00Z`)) / 86_400_000);
+  if (Number.isNaN(days)) return undefined;
+  if (days < 0) return { label: 'Expired', tone: 'danger' };
+  if (days <= 30) return { label: days === 0 ? 'Expires today' : `Expires in ${days} day${days === 1 ? '' : 's'}`, tone: 'warning' };
+  return undefined;
+}
+
+export const LOT_STATUS_LABEL: Record<string, string> = { available: 'Available', quarantined: 'Quarantined', blocked: 'Blocked' };
+
+/** Label for a stock line picker: "TIPS-1 · Item name · LOT (exp 2027-01-01)". */
+export const stockLabel = (b: { item_code: string; item_name: string; lot_no?: string | undefined; expiry_on?: string | undefined }) =>
+  [b.item_code, b.item_name, b.lot_no ? `${b.lot_no}${b.expiry_on ? ` (exp ${b.expiry_on})` : ''}` : undefined].filter(Boolean).join(' · ');
 
 export function ActiveChip({ active }: { active: boolean }) {
   return (
@@ -49,15 +108,44 @@ export function ActiveChip({ active }: { active: boolean }) {
   );
 }
 
+/**
+ * Select whose empty state reads "<Label> — choose one": the kit Select's accessible name is "<value> <label>", so without a value the
+ * placeholder keeps the control findable by its label. Pass `placeholder` to show a current default instead (then leave `value` unset).
+ */
+export function Pick({ label, name, options, value, onChange, error, isRequired, placeholder, description }: { label: string; name: string; options: readonly { value: string; label: string }[]; value?: string | undefined; onChange: (v: string) => void; error?: string | undefined; isRequired?: boolean; placeholder?: string; description?: string }) {
+  return (
+    <Select
+      label={label}
+      name={name}
+      placeholder={placeholder ?? `${label} — choose one`}
+      options={options}
+      onChange={onChange}
+      {...(value ? { value } : {})}
+      {...(error ? { error } : {})}
+      {...(isRequired ? { isRequired: true } : {})}
+      {...(description ? { description } : {})}
+    />
+  );
+}
+
+/** Status as tone + icon + word (StatusChip draws the icon). */
+export function Chip({ tone, label }: { tone: 'neutral' | 'info' | 'success' | 'warning' | 'danger'; label: string }) {
+  return <StatusChip kind="generic" status={label} tone={tone} label={label} size="sm" />;
+}
+
 export const yesNo = (b: boolean) => (b ? 'Yes' : 'No');
 export const isoDate = (s: string | undefined) => (s ? s.slice(0, 10) : '—');
 
 /** Filters live in the URL (shareable, the server component re-fetches). Text is debounced. */
-export function useUrlFilters(keys: readonly string[]) {
+export function useUrlFilters(keys: readonly string[], ranges: readonly { id: string; from: string; to: string }[] = []) {
   const router = useRouter();
   const pathname = usePathname();
   const sp = useSearchParams();
-  const [value, setValue] = useState<FilterValue>(() => Object.fromEntries(keys.map((k) => [k, sp.get(k) ?? undefined])));
+  // A range filter (FilterBar date_range = [from, to]) lives in two query params: `from` / `to` hold the UTC day bounds.
+  const [value, setValue] = useState<FilterValue>(() => ({
+    ...Object.fromEntries(keys.map((k) => [k, sp.get(k) ?? undefined])),
+    ...Object.fromEntries(ranges.map((r) => [r.id, sp.get(r.from) && sp.get(r.to) ? [sp.get(r.from)!.slice(0, 10), sp.get(r.to)!.slice(0, 10)] : undefined])),
+  }));
   const first = useRef(true);
   useEffect(() => {
     if (first.current) {
@@ -71,6 +159,16 @@ export function useUrlFilters(keys: readonly string[]) {
         if (typeof x === 'string' && x) p.set(k, x);
         else p.delete(k);
       }
+      for (const r of ranges) {
+        const x = value[r.id];
+        if (Array.isArray(x) && x.length === 2) {
+          p.set(r.from, `${x[0]}T00:00:00.000Z`);
+          p.set(r.to, `${x[1]}T23:59:59.999Z`);
+        } else {
+          p.delete(r.from);
+          p.delete(r.to);
+        }
+      }
       p.delete('cursor');
       const qs = p.toString();
       router.replace(qs ? `${pathname}?${qs}` : pathname);
@@ -79,4 +177,21 @@ export function useUrlFilters(keys: readonly string[]) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value]);
   return { value, onChange: setValue, onReset: () => setValue({}) };
+}
+
+/** Status filter options for an `is_active` boolean (value = String(is_active)). */
+export const ACTIVE_OPTIONS = [{ value: 'true', label: 'Active' }, { value: 'false', label: 'Inactive' }] as const;
+
+/** Case-insensitive "contains" for a text filter. */
+export const contains = (text: string | undefined, q: string) => (text ?? '').toLowerCase().includes(q.trim().toLowerCase());
+
+/**
+ * T0D-UILIST-3 (LD-353 template 1 LIST: one FilterBar per list): filters over the rows already on the page, for lists whose API read takes
+ * no filter. `match[id]` decides one filter; an empty filter matches every row.
+ * ponytail: filters the loaded page only (≤ 100-200 rows); move to URL filters (useUrlFilters) when the read gains query params.
+ */
+export function useLocalFilters<R>(rows: readonly R[], match: Readonly<Record<string, (r: R, v: string) => boolean>>) {
+  const [value, setValue] = useState<FilterValue>({});
+  const shown = rows.filter((r) => Object.entries(match).every(([k, f]) => { const v = value[k]; return typeof v !== 'string' || v === '' || f(r, v); }));
+  return { shown, value, onChange: setValue, onReset: () => setValue({}) };
 }

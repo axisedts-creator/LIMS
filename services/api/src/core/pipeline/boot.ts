@@ -7,18 +7,21 @@ import { pathToFileURL } from 'node:url';
 import { PORT_CONSUMERS } from '../../../../../contracts/ports/generated/port-consumers.js';
 import type { CoreConfig } from '../config.js';
 import { createCoreRepo } from '../core-repo/index.js';
-import { createDb, type Pool, type PoolClient } from '../db/tx.js';
+import { createDb, type Db, type Pool, type PoolClient } from '../db/tx.js';
 import { LimsError } from '../errors.js';
 import { createEvents } from '../events/publish.js';
 import { createIdempotency } from '../idempotency.js';
-import { PORT_OWNERS, REPO_ROOT, type LoadedModule } from '../module.js';
+import { operationIds, PORT_OWNERS, REPO_ROOT, type LoadedModule } from '../module.js';
 import type { CoreMetrics, MetricName } from '../observability/metrics.js';
 import { createAuthzGuard } from '../ports/authz-guard.js';
 import { PHASE_STUBS } from '../ports/phase-stubs.js';
 import { resolvePorts, type PortLog, type PortMetrics, type PortRegistry } from '../ports/registry.js';
 import { createRateLimiter, type RateLimiter } from '../ratelimit/index.js';
 import { createPgBackend } from '../ratelimit/pg.js';
+import type { HealthChecks } from '../health.js';
 import { createFiles } from '../uploads/index.js';
+import { createHealthChecks } from './healthChecks.js';
+import { loadAuthzExceptions } from './authz-central.js';
 import { createPipeline, type Pipeline } from './index.js';
 
 const FAKES_DIR = join(REPO_ROOT, 'packages', 'fakes', 'src');
@@ -56,6 +59,8 @@ async function loadPortImpls(env: string, needed: ReadonlySet<string>): Promise<
 }
 
 export interface PipelineBoot {
+  /** LD-193 (WIRE-HEALTH): real readiness checks; absent without a database (bootstrap then keeps UNWIRED_CHECKS, fail closed). */
+  healthChecks?: HealthChecks;
   pipelineFor(module: string): Pipeline;
   close(): Promise<void>;
 }
@@ -93,8 +98,13 @@ export async function bootPipeline(o: {
   }
   // [CONV] CoreDeps is not spelled out by 02-TRD §6.3; modules get env, log and metrics.
   const services: Record<string, unknown> = {};
+  // LD-189 (WIRE-DB): ONLY module 'identity' gets identityDb.register, to receive identityAuthTx later (the pool does not exist yet). Never a db or pool.
+  let bindIdentityDb: ((src: { readActorId(): Promise<unknown>; open(actorId: string): { identityAuthTx: Db['identityAuthTx'] } }) => void) | undefined;
   for (const m of modules) {
-    if (m.manifest.createServices) services[m.manifest.name] = m.manifest.createServices(Object.freeze({ env: config.env, log, metrics }));
+    if (!m.manifest.createServices) continue;
+    const base = { env: config.env, log, metrics };
+    services[m.manifest.name] = m.manifest.createServices(Object.freeze(
+      m.manifest.name === 'identity' ? { ...base, identityDb: Object.freeze({ register(b: typeof bindIdentityDb) { bindIdentityDb = b; } }) } : base));
   }
 
   // §6.4: one pool per API process; absent without LIMS_CORE_DATABASE_URL (only public, transaction-less operations then).
@@ -102,7 +112,9 @@ export async function bootPipeline(o: {
   if (config.databaseUrl) {
     // [CONV] pg is a devDependency of services/api until C0-0A moves it (LD-05); loaded only when a database is configured.
     const { default: Pg } = await import('pg');
-    pg = new Pg.Pool({ connectionString: config.databaseUrl, max: config.dbPoolMax, connectionTimeoutMillis: 10_000 }) as any;
+    pg = new Pg.Pool({ connectionString: config.databaseUrl, max: config.dbPoolMax, connectionTimeoutMillis: 10_000,
+      // T0B-PERF-1 (LD-310): idle clients go back to the Supabase pooler after 30 s
+      idleTimeoutMillis: 30_000 }) as any;
     pg!.on('error', (e) => log.warn({ event: 'db_pool_error', code: e?.code }, 'db_pool_error')); // idle client lost: never crash
   }
   const pool: Pool | undefined = pg && {
@@ -110,8 +122,10 @@ export async function bootPipeline(o: {
     connect: () => pg!.connect().catch((e: any) => { throw Object.assign(new Error('db_connect_failed'), { code: typeof e?.code === 'string' ? e.code : '08006' }); }),
   };
   const db = pool && createDb({
-    pool, log, metrics, retryMax: config.txRetryMax, statementTimeoutMs: config.statementTimeoutMs, lockTimeoutMs: config.lockTimeoutMs,
+    pool, log, metrics, retryMax: config.txRetryMax, statementTimeoutMs: config.statementTimeoutMs, writeStatementTimeoutMs: config.writeStatementTimeoutMs, lockTimeoutMs: config.lockTimeoutMs,
     identityAuthOps: config.identityAuthOps, withTenantScopeOps: config.withTenantScopeOps,
+    // PLATFORM-WIRE-1 (LD-267): ctx.db.withTenantScope of a platform request uses the lazily read identity system actor (declared below).
+    scopeActorId: () => identityActor!(),
   });
 
   let rateLimiter: RateLimiter | undefined;
@@ -122,9 +136,49 @@ export async function bootPipeline(o: {
       tenant: { rps: config.tenantRps, burst: config.tenantBurst },
     });
   }
+  // LD-189: bind now that the pool exists; nothing is read here. The identity actor comes lazily from core.g_system_actors (module 'identity', is_active),
+  // exactly one active row, never env/request/JWT. open() exposes only identityAuthTx.
+  // LD-204 (AUTH-ACTOR-1, AUTH-SENSITIVE): ONE reader for the identity system actor, shared by the identity claims binding (above) and the pipeline
+  // (ctx.actor / ctx.db.identityAuthTx of identityAuth operations of module identity). Lazy, UUID-validated, memoised on success only, concurrent
+  // first calls share one read; any failure = common.internal (code only: no id, no driver text). Never env / request / JWT.
+  let identityActor: (() => Promise<string>) | undefined;
+  let identityAuthDb: (() => Promise<Db>) | undefined;
+  if (pg && pool) {
+    const pgq = pg;
+    const ACTOR_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    let actorId: string | undefined;
+    let actorDb: Db | undefined;
+    let pendingActor: Promise<string> | undefined;
+    identityActor = () => {
+      if (actorId) return Promise.resolve(actorId);
+      pendingActor ??= (async () => {
+        let id: unknown;
+        try {
+          const r = await pgq.query('SELECT actor_id FROM core.g_system_actors WHERE module = $1 AND is_active', ['identity']);
+          id = r.rows.length === 1 ? r.rows[0]?.actor_id : undefined;
+        } catch { throw new LimsError('common.internal'); }
+        if (typeof id !== 'string' || !ACTOR_UUID.test(id)) throw new LimsError('common.internal');
+        return (actorId = id);
+      })().finally(() => { pendingActor = undefined; });
+      return pendingActor;
+    };
+    const openDb = (identitySystemActorId: string): Db => createDb({
+      pool, log, metrics, retryMax: config.txRetryMax, statementTimeoutMs: config.statementTimeoutMs, writeStatementTimeoutMs: config.writeStatementTimeoutMs, lockTimeoutMs: config.lockTimeoutMs,
+      identityAuthOps: config.identityAuthOps, withTenantScopeOps: config.withTenantScopeOps, identitySystemActorId,
+    });
+    identityAuthDb = async () => (actorDb ??= openDb(await identityActor!()));
+    bindIdentityDb?.({
+      readActorId: () => identityActor!(),
+      open: (id) => ({ identityAuthTx: openDb(id).identityAuthTx }),
+    });
+  }
   const idempotency = db && createIdempotency({ db, log });
 
   const authz = createAuthzGuard({ env: config.env, log, metrics });
+  // SEC-AUTHZ-2: stage 8a inputs; a malformed authz-exceptions.json stops the boot.
+  // every entry must name an operationId of a loaded module contract (SEC-AUTHZ-2 done_when)
+  const authzExceptions = loadAuthzExceptions(new Set(modules.flatMap((m) => operationIds(m.spec))));
+  const systemPermissions = Object.freeze(Object.fromEntries(modules.map((m) => [m.manifest.name, Object.freeze([...(m.manifest.systemPermissions ?? [])])])));
   // ponytail: core-internal 4-arg withTenantScope / systemActorOf exist in the worker only; ctx.core.deadLetters.replay answers 500 here.
   const internal = (): never => { throw new LimsError('common.internal'); };
   const core = createCoreRepo({ withTenantScope: internal, systemActorOf: internal, log });
@@ -136,13 +190,19 @@ export async function bootPipeline(o: {
     download: unwired('stream'),
   };
 
+  // LD-193: same pg.query as the limiter; nothing is issued until a readiness call.
+  const healthChecks = pg && createHealthChecks({ query: (t, v) => pg!.query(t, v), limiterConfigured: !!rateLimiter, log });
+
   const cache = new Map<string, Pipeline>();
   return {
+    ...(healthChecks ? { healthChecks } : {}),
     pipelineFor(module) {
       let p = cache.get(module);
       if (!p) {
         p = createPipeline({
-          env: config.env, db, idempotency, rateLimiter, authz, ports, services, log, metrics,
+          env: config.env, db, identityActor, identityAuthDb, idempotency, rateLimiter, authz, ports, services, log, metrics, coreMetrics: o.metrics,
+          authzMode: config.authzMode, systemPermissions, authzExceptions, // SEC-AUTHZ-2: stage 8a
+
           shared: { ...shared, events: createEvents({ producer: module, log, metrics }) },
         });
         cache.set(module, p);

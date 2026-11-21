@@ -1,3 +1,4 @@
+'use client';
 import { useId, type ReactNode } from 'react';
 
 export interface PageShellProps {

@@ -1,0 +1,7 @@
+# T0B-PRINTCFG-1 dispute 4 (writer, 2026-11-18 17:15 NPT) — not a PRINTCFG test, not a PRINTCFG defect
+Verify after the LD-382/LD-387 tester pass (2cdec075f), pg.sh once: 4601 passed / 1 failed / 64 skipped. render.client.integration now PASSES (no CHROMIUM_UNAVAILABLE line, both PDF cases ran). Renderer printcfg-report + printcfg-bill 34/34.
+Only failure: services/api/src/modules/billing/__tests__/accounts/reversal.test.ts:117 (T0B-ACCT-1 test, last tester commit 505b24949)
+  "no update path exists for the money columns: lims_api cannot UPDATE or DELETE the ledger table at all (42501)"
+  AssertionError: UPDATE billing.account_ledger_entries SET status = 'reversed' WHERE id = $1: expected 'P0001' to be '42501'
+Cause: T0C-FINCTRL-1 migration db/migrations/20261117190000_billing__add_finance_controls.sql (be39d61fb, merged from main) grants lims_app a COLUMN level UPDATE on status + hold columns and adds an UPDATE policy and the account_ledger_hold_guard trigger. The UPDATE now passes the privilege check and the guard trigger rejects it (P0001) instead of 42501. The invariant (no reversal by UPDATE) still holds; the test pins the old error code. No PRINTCFG file touches the ledger; the writer may not edit tests or that migration.
+Ask: rule on the T0B-ACCT-1 test vs T0C-FINCTRL-1 contract (tester accepts P0001 from the hold guard for status changes other than submitted<->held, keeps 42501 for DELETE and for the money columns), then the writer runs verify again.

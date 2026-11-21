@@ -1,6 +1,7 @@
 // 04-UI-UX §7 (route /frontdesk/discount-approvals). Non-approvers never reach the list endpoint; the API's 403 auth.mfa_required is a page state (MFA banner).
 import { ApiError } from '@/core/api/server-fetch';
 import { getShellSession } from '@/core/session/server';
+import { NotAvailable, isPending } from '@/core/shell/NotAvailable';
 import { DiscountApprovalsInbox } from '@/features/frontdesk/components/DiscountApprovalsInbox';
 import { listCentres, listDiscountApprovals } from '@/features/frontdesk/server/read.server';
 import type { DiscountApproval } from '@/features/frontdesk/server/types';
@@ -13,6 +14,7 @@ export default async function DiscountApprovalsPage({ searchParams }: { searchPa
   let approvals: DiscountApproval[] = [];
   let mfaRequired = false;
   let centres: { id: string; name: string }[] = [];
+  let failure: { requestId?: string } | undefined;
   if (perms.includes('frontdesk.discount.approve')) {
     try {
       approvals = (await listDiscountApprovals()).data;
@@ -20,8 +22,11 @@ export default async function DiscountApprovalsPage({ searchParams }: { searchPa
       centres = await listCentres().catch(() => []);
     } catch (e) {
       if (e instanceof ApiError && e.status === 403 && e.problem.code === 'auth.mfa_required') mfaRequired = true;
+      // T0D-UILIST-2 (LD-353 rule 6): 501 operation_pending = NotAvailable with the header row; 500+ keeps the title and the header row with an ErrorState in the table body
+      else if (isPending(e)) return <NotAvailable title="Discount approvals" columns={['Requested', 'Centre', 'Requested by', 'Patient code', 'Gross', 'Discount', 'Reason', 'Status', 'Actions']} />;
+      else if (e instanceof ApiError && e.status >= 500) failure = e.problem?.request_id ? { requestId: e.problem.request_id } : {};
       else throw e;
     }
   }
-  return <DiscountApprovalsInbox approvals={approvals} permissions={perms} currentMembershipId={session?.actor.membershipId ?? ''} centres={centres} mfaRequired={mfaRequired} />;
+  return <DiscountApprovalsInbox approvals={approvals} permissions={perms} currentMembershipId={session?.actor.membershipId ?? ''} centres={centres} mfaRequired={mfaRequired} {...(failure ? { failure } : {})} />;
 }

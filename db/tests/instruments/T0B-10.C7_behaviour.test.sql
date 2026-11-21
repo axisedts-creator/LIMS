@@ -254,7 +254,7 @@ SELECT alike(pg_temp.a('DELETE FROM instruments.' || split_part(tt.q, '.', 2), '
 SELECT alike(pg_temp.a('UPDATE instruments.' || split_part(atb.q, '.', 2) || ' SET created_by = created_by', 'w'), 'E42501|%', 'C7 check 14 / AC-0B-4.3: no UPDATE grant on A table ' || atb.q) FROM atb;
 SELECT alike(pg_temp.a('DELETE FROM instruments.' || t, 'w'), 'E42501|%', 'C7 check 14 / AC-0B-4.2: no DELETE on G table instruments.' || t) FROM unnest(ARRAY['g_drivers','g_agent_releases','g_cs_revoke_reasons','g_cs_reprocess_reasons']) t;
 SELECT alike(pg_temp.a('INSERT INTO instruments.g_drivers (code, display_name, protocol, status, driver_version) VALUES (''zz_test'', ''x'', ''astm'', ''generic'', ''1'')', 'w'), 'E42501|%', 'C7 check 14: lims_app cannot write G tables');
-SELECT is(pg_temp.a('SELECT 1 FROM instruments.g_drivers', 'n'), 'n=6', 'C7 check 14: lims_app reads the 6 seeded drivers (G tables are RLS-exempt; truth_h80e added by H80-T05)');
+SELECT is(pg_temp.a('SELECT 1 FROM instruments.g_drivers', 'n'), 'n=7', 'C7 check 14: lims_app reads the 7 seeded drivers (G tables are RLS-exempt; truth_h80e added by H80-T05, getein_metis by MET-T04)');
 SELECT alike(pg_temp.a('INSERT INTO audit.audit_log (id, tenant_id, schema_name, table_name, action, actor_type) VALUES (gen_random_uuid(), ' || quote_literal(pg_temp.ta()) || ', ''instruments'', ''agents'', ''INSERT'', ''system'')', 'w'), 'E42501|%',
   'AC-0B-5.3: lims_app cannot insert audit rows directly');
 
@@ -344,8 +344,11 @@ SELECT is((SELECT count(*)::int FROM instruments.messages WHERE id = pg_temp.uid
 
 -- C7 check 18: mutability, transitions, audit, views (spec §8 items 6, 8; AC-0B-4.1, 5.1, 5.2)
 -- mutable-column lists (§2.2, §2.6, §2.15, §4)
-SELECT alike(pg_temp.a('UPDATE instruments.agent_credentials SET kind = ''enrolment_code'' WHERE id = ' || quote_literal(pg_temp.uid(431))), 'EP0001|immutable_row%', 'C7 check 18 / AC-0B-4.1: agent_credentials.kind is frozen');
-SELECT alike(pg_temp.a('UPDATE instruments.agent_credentials SET expires_at = now() WHERE id = ' || quote_literal(pg_temp.uid(431))), 'EP0001|immutable_row%', 'AC-0B-4.1: agent_credentials.expires_at is frozen');
+-- STALE/HARNESS fix T0B-GREEN-2: lims_app has a column-level UPDATE grant on agent_credentials that omits kind and expires_at (information_schema.column_privileges; the C7 schema suite passes with it), so the
+-- freeze is enforced by the privilege check (E42501) before the BEFORE UPDATE trigger can raise immutable_row. The property (lims_app cannot change kind / expires_at) is unchanged; the error is the grant's.
+SELECT alike(pg_temp.a('UPDATE instruments.agent_credentials SET kind = ''enrolment_code'' WHERE id = ' || quote_literal(pg_temp.uid(431))), 'E42501|permission denied for table agent_credentials%', 'C7 check 18 / AC-0B-4.1: agent_credentials.kind is frozen (no column UPDATE grant)');
+SELECT alike(pg_temp.a('UPDATE instruments.agent_credentials SET expires_at = now() WHERE id = ' || quote_literal(pg_temp.uid(431))), 'E42501|permission denied for table agent_credentials%', 'AC-0B-4.1: agent_credentials.expires_at is frozen (no column UPDATE grant)');
+SELECT is(has_column_privilege('lims_app', 'instruments.agent_credentials', c, 'UPDATE'), false, 'AC-0B-4.1: lims_app holds no UPDATE on agent_credentials.' || c) FROM unnest(ARRAY['kind','expires_at','secret_sha256','agent_id','tenant_id']) c;
 SELECT alike(pg_temp.a('UPDATE instruments.attachments SET size_bytes = 5 WHERE id = ' || quote_literal(pg_temp.uid(563))), 'EP0001|immutable_row%', 'AC-0B-4.1: attachments.size_bytes is frozen');
 SELECT alike(pg_temp.a('UPDATE instruments.attachments SET mime_type = ''image/png'' WHERE id = ' || quote_literal(pg_temp.uid(563))), 'EP0001|immutable_row%', 'AC-0B-4.1: attachments.mime_type is frozen');
 SELECT is(pg_temp.a('UPDATE instruments.attachments SET sha256 = repeat(''d'', 64) WHERE id = ' || quote_literal(pg_temp.uid(563))), 'n=1', 'AC-0B-4.1: attachments.sha256 is mutable (PDF sanitisation)');

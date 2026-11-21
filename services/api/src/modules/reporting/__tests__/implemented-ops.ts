@@ -20,4 +20,7 @@ export const IMPLEMENTED = new Set([
   'regenerateReport',                                                                                         // C6-T41 (R9)
   'listMessageTemplates', 'upsertMessageTemplateText', 'listChannelAccounts', 'upsertChannelAccount', 'rotateChannelCallbackToken', // C6-T25 (M1, M2, C1-C3)
   'receiveProviderCallback', 'verifyProviderCallback',                                                        // C6-T29 (CB1, CB2)
+  'getPortalDues',                                                                                            // C6-T43 (P7)
+  'createPortalPaymentRequest', 'getPortalPaymentRequest',                                                    // C6-T42 (PP1, PP2)
+  'listPrintProfiles', 'upsertPrintProfile', 'previewPrintProfile', 'listSignatoryProfiles', 'upsertSignatoryProfile', // T0B-PRINTCFG-1 (LD-316): real handlers, no longer 501 / pending
 ]);

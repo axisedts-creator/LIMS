@@ -1,0 +1,7 @@
+/* 04-UI-UX §4.2.7 report text blocks: plain text with the author's line breaks kept (REQ-SEC-088: never HTML).
+   LD-140 (2026-11-13): no hex colours, no pixel radii. */
+.lims-report-text {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

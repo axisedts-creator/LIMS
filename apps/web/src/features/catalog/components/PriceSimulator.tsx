@@ -15,6 +15,7 @@ import type { OrderableSummary, PriceQuoteLine, PriceQuoteResult } from '../serv
 import { CatalogForbidden } from './CatalogForbidden';
 import { FailBanner, type Fail } from './shared';
 import { npr, PERM_READ, TaxDisclaimer } from './pricing-ui';
+import './catalog.css';
 
 interface Opt { id: string; label: string }
 type Priority = 'routine' | 'urgent';
@@ -66,8 +67,11 @@ export function PriceSimulator({ permissions }: { permissions: readonly string[]
   const nameOf = (id: string) => { const o = picked.find((x) => x.id === id); return o ? `${o.code} — ${o.name}` : id; };
   return (
     <section aria-label="Price simulator">
-      <PageHeader title="Price simulator" helpKey="catalog.price_simulator" breadcrumbs={[{ label: 'Pricing' }, { label: 'Price simulator' }]} />
+      <PageHeader title="Price simulator" helpKey="catalog.price_simulator" />
       <Form onSubmit={run} errorSummary={false}>
+        {/* T0D-UILIST-3, LD-353 template 6: what to price on the left, the pricing context on the right, sticky footer with the submit */}
+        <div className="lims-entry-form">
+        <div className="lims-entry-col">
         <Combobox<OrderableSummary>
           key={n}
           label="Orderables"
@@ -95,14 +99,20 @@ export function PriceSimulator({ permissions }: { permissions: readonly string[]
           </ul>
         ) : null}
         <RadioGroup<Priority> label="Priority" name="priority" orientation="horizontal" value={priority} onChange={setPriority} options={[{ value: 'routine', label: 'Routine' }, { value: 'urgent', label: 'Urgent' }]} />
+        </div>
+        <div className="lims-entry-col">
         <Pick label="Price list" load={searchPriceListsAction} onChange={setCtxId('price_list_id')} />
         <Pick label="Credit party" load={searchCreditPartiesAction} onChange={setCtxId('credit_party_id')} />
         <Pick label="Doctor" load={async (q) => { const r = await searchDoctorsAction(q); return r.ok ? r.data.map((d) => ({ id: d.id, label: `${d.doctor_code} — ${d.display_name}` })) : []; }} onChange={setCtxId('referrer_id')} />
         {permissions.includes('identity.centre.read') ? (
           <Pick label="Centre" load={async (q) => (await searchCentresAction(q)).map((c) => ({ id: c.centre_id, label: `${c.code} — ${c.name}` }))} onChange={setCtxId('centre_id')} />
         ) : null}
-        <DateTimePicker label="At" name="at" description="Leave empty for now." {...(at ? { value: at as never } : {})} onChange={setAt as never} />
-        <Button type="submit" variant="primary" isLoading={busy} isDisabled={picked.length === 0}>Get price</Button>
+        <DateTimePicker label="At" name="at" description="Shows the prices valid on this date and time. Leave empty for the current price." {...(at ? { value: at as never } : {})} onChange={setAt as never} />
+        </div>
+        <div className="lims-entry-footer">
+          <Button type="submit" variant="primary" isLoading={busy} isDisabled={picked.length === 0}>Get price</Button>
+        </div>
+        </div>
       </Form>
       {fail ? <FailBanner fail={fail} /> : null}
       {quotes ? (

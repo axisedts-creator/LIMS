@@ -18,7 +18,7 @@ const h = (op: string): any => (manifest.handlers as any)[op];
 
 const USER = idN(0xd1), MEM = idN(0xd2), SESS = idN(0xd3);
 const hctx = (operationId: string, c: Record<string, unknown> = {}) => ({ operationId, clientIp: '203.0.113.9', log: { info() {}, warn() {}, error() {} }, tenantId: TENANT_A, actor: { type: 'user', id: USER, membershipId: MEM },
-  sessionId: SESS, aal: 'aal2', requestId: idN(0xe1), tx: { __tx: 1 }, now: () => new Date(), commitOnError() {}, audit: { access: async () => undefined }, ...c });
+  sessionId: SESS, aal: 'aal2', requestId: idN(0xe1), tx: { __tx: 1 }, now: () => new Date(), commitOnError() {}, audit: { access: async () => undefined }, ports: { IdentityPort: { assertRole: async () => undefined } } /* SEC-AUTHZ-4 ruling */, ...c });
 const req = (o: { params?: object; query?: object; headers?: object; body?: unknown } = {}) => ({ params: {}, query: {}, headers: {}, body: undefined, ...o });
 beforeEach(() => {
   for (const op of OPS) svc[op] = vi.fn(async () => ({ status: 200, body: { ok: op } }));
@@ -27,7 +27,7 @@ beforeEach(() => {
 
 describe('no longer stubs; fail closed without an authenticated request context', () => {
   it.each(OPS)('%s: no context -> auth.unauthenticated (the stub answers common.internal); service never called', async (op) => {
-    const e = await rejection(h(op)(req(), { operationId: op, clientIp: '203.0.113.9', log: { info() {}, warn() {}, error() {} } }));
+    const e = await rejection(h(op)(req(), { operationId: op, clientIp: '203.0.113.9', log: { info() {}, warn() {}, error() {} }, ports: { IdentityPort: { assertRole: async () => undefined } } }));
     expect(e?.code).toBe('auth.unauthenticated'); expect(svc[op]).not.toHaveBeenCalled();
   });
   it.each(OPS)('%s: a context without the caller\'s current session id -> auth.unauthenticated (never guess "current")', async (op) => {

@@ -6,6 +6,7 @@ import { getPartner, listManifests, listPartnerUsers, listReferrers } from '@/fe
 import { UUID_RE } from '@/features/partners/server/types';
 import { PartnerDetail } from '@/features/partners/components/PartnerDetail';
 import { PermissionNotice } from '@/features/partners/components/common';
+import { getPartyCommercialSetting } from '@/features/partners/server/partyset.server';
 
 export const metadata = { title: 'Partner' };
 
@@ -24,11 +25,16 @@ export default async function PartnerPage({ params }: { params: Promise<{ partne
   const perms = session?.actor.permissions ?? [];
   if (!perms.includes('partners.partner.read')) return <PermissionNotice />;
   if (!UUID_RE.test(partner_id)) notFound();
-  const [partner, users, manifests, referrers] = await Promise.all([
+  // T0D-PARTYSET-1 (LD-321): the Commercial settings tab reads on its own; a failed read is null (a banner in that tab only).
+  const setting = perms.includes('partners.party_setting.read')
+    ? getPartyCommercialSetting('partner', partner_id).catch((e: unknown) => { if (e instanceof ApiError) return null; throw e; })
+    : undefined;
+  const [partner, users, manifests, referrers, commercial] = await Promise.all([
     getPartner(partner_id).catch((e: unknown) => { if (e instanceof ApiError && (e.status === 404 || e.status === 400)) notFound(); throw e; }),
     settle(listPartnerUsers(partner_id)),
     settle(perms.includes('partners.manifest.receive') ? listManifests({ partner_id }) : null),
     settle(perms.includes('partners.referrer.map') ? listReferrers({ partner_id }) : null),
+    setting,
   ]);
-  return <PartnerDetail partner={partner} users={users} manifests={manifests} referrers={referrers} permissions={perms} />;
+  return <PartnerDetail partner={partner} users={users} manifests={manifests} referrers={referrers} permissions={perms} setting={commercial} />;
 }

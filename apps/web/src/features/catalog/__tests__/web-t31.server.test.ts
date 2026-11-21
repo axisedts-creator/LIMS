@@ -26,7 +26,7 @@ const server = setupServer(
   http.post(`${ORIGIN}/v1/catalog/*`, async ({ request }) => { await rec(request); return HttpResponse.json(entity, { status: 201 }); }),
   http.patch(`${ORIGIN}/v1/catalog/*`, async ({ request }) => { await rec(request); return HttpResponse.json(entity, { status: 200 }); }),
 );
-beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => server.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { server.resetHandlers(); seen.length = 0; });
 afterAll(() => server.close());
 

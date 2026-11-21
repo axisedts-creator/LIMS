@@ -1,0 +1,6 @@
+TESTS_WRONG — two assertions in tests/db/T0B-HARDEN-1.mutable-columns.test.mjs contradict LD-231 and must change (no weakening):
+1. Line 213 `others.length > 50`: no spec or LD sets a migration count; the tree holds 40 .sql files incl. the new one (`ls db/migrations/*.sql | wc -l` = 40), and LD-231 (.orchestra/inbox/T0B-HARDEN-1-arbiter.md:31, "one additive migration") forbids adding others. Change to `others.length >= 39` (the count present at the task's base, so it still catches a missing tree).
+2. Line 226 `UPDATE\s|DELETE\s|INSERT\s`: LD-231 (arbiter.md:31) and the task brief (arbiter.md:21) require "BEFORE UPDATE FOR EACH ROW" triggers, which TRG_RE (line 188) and line 224 require in every statement; `UPDATE\s` matches that `BEFORE UPDATE ON`, so no valid migration can pass. Change: anchor DML at statement start, applied per statement:
+   `for (const s of migStmts) assert.doesNotMatch(s, /^\s*(UPDATE|DELETE|INSERT)\s/i, 'no DML');`
+   and keep the DDL alternatives (DROP|GRANT|REVOKE|CREATE ... FUNCTION|TABLE|POLICY|INDEX|VIEW|ALTER ...) unchanged on migSql. Line 224 still limits every statement to CREATE TRIGGER / RESET ROLE, so coverage is unchanged.
+3. All other assertions stand; the implementation needs no change from this dispute.

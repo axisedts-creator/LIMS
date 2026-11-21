@@ -37,8 +37,8 @@ export const sessionMock = {
   getShellSession: async () => ({ actor: { permissions: session.permissions, displayName: 'Synthetic Owner', tenantCode: 'syn', roles: [] } }),
   getRequestPathname: async () => '/analytics/reports',
 };
-export const router = { push: vi.fn(), replace: vi.fn(), refresh: vi.fn(), back: vi.fn() };
-export const navigationMock = {
+export const router: Record<'push' | 'replace' | 'refresh' | 'back', ReturnType<typeof vi.fn>> = { push: vi.fn(), replace: vi.fn(), refresh: vi.fn(), back: vi.fn() };
+export const navigationMock: { useRouter: () => typeof router; usePathname: () => string; useSearchParams: () => URLSearchParams; notFound: () => never; redirect: (to: string) => never } = {
   useRouter: () => router,
   usePathname: () => '/analytics/reports',
   useSearchParams: () => new URLSearchParams(),
@@ -48,7 +48,7 @@ export const navigationMock = {
 export const ALL = ['analytics.dashboard.read', 'analytics.collections.read', 'analytics.data.export', 'billing.cash_report.read', 'instruments.agent.read', 'lab.result.read'];
 
 // ---------------------------------------------------------------- fixtures
-export const problem = (code: string, status: number) => HttpResponse.json({ type: `urn:lims:error:${code}`, title: code, status, code }, { status });
+export const problem = (code: string, status: number, extra: Record<string, unknown> = {}) => HttpResponse.json({ type: `urn:lims:error:${code}`, title: code, status, code, ...extra }, { status });
 const FRESH = [{ family: 'income', refreshed_at: '2026-01-15T04:30:00.000Z', is_stale: false, live: false }];
 export const env = (code: string, over: Record<string, unknown> = {}) => ({
   report_code: code,
@@ -316,7 +316,11 @@ export const api = setupServer(
     calls.push({ url, headers: request.headers, method: request.method, ...(request.method === 'POST' ? { body: await request.clone().text() } : {}) });
     const h = respond[url.pathname];
     if (h) return h();
-    const b = bodies[url.pathname];
+    let b = bodies[url.pathname];
+    // T0D-UIREPORT-2 ruling: group_by=day answers with date-keyed rows (synthetic A.D. date), any other group_by keeps the body as set (the `cash` row).
+    if (url.pathname === '/v1/analytics/reports/collections' && url.searchParams.get('group_by') === 'day' && b?.rows?.length) {
+      b = { ...b, rows: b.rows.map((r: any, i: number) => ({ ...r, key: `2026-01-0${i + 5}`, label: `2026-01-0${i + 5}` })) };
+    }
     return b !== undefined ? HttpResponse.json(b) : problem('common.dependency_unavailable', 503);
   }),
 );
@@ -342,7 +346,7 @@ export async function load(kind: string) {
   const mod = (await import(/* @vite-ignore */ `../../../app/(staff)/analytics/${rel}`)) as { default: (p: any) => Promise<any> };
   return { Page: mod.default, paramKey };
 }
-export async function show(kind: string, sp: SP = {}) {
+export async function show(kind: string, sp: SP = {}): Promise<ReturnType<typeof render>> {
   const { Page, paramKey } = await load(kind);
   const props: Record<string, unknown> = { searchParams: Promise.resolve(sp) };
   if (paramKey) props['params'] = Promise.resolve({ [paramKey]: kind });

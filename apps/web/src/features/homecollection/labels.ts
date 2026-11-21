@@ -63,13 +63,77 @@ export interface Failure { status: number; code: string; pointers?: readonly str
 
 const COMMON: Record<string, string> = {
   'auth.forbidden': 'You do not have permission to do this.',
+  'auth.mfa_required': 'Confirm it is you with your second sign-in step, then try again.',
   'common.version_conflict': CHANGED,
   'homecollection.visit_closed': 'This visit is closed (completed, failed or cancelled) and can no longer be changed.',
   'homecollection.mutation_superseded': "The phlebotomist has already started this visit, so it can't be changed here. It may have changed; reload the page.",
 };
-export function failText(r: Failure, validation = 'Check the values and try again.'): string {
+export function failText(r: Failure, validation = 'Check the values and try again.', changed = CHANGED): string {
   if (r.code === 'common.validation_failed') return validation;
+  if (r.code === 'common.version_conflict') return changed;
   return COMMON[r.code] ?? OTHER_FAILURE;
+}
+
+// ---- HC-T20: handovers, phones, settings ----
+/** §2.3 "Status (StatusChip generic: Waiting warning / Received success / Missing tubes danger)". */
+export const HANDOVER_STATUS: Record<string, readonly [VisitTone, string]> = {
+  pending: ['warning', 'Waiting'], confirmed: ['success', 'Received'], discrepancy: ['danger', 'Missing tubes'],
+};
+export const handoverStatus = (s: string): readonly [VisitTone, string] => HANDOVER_STATUS[s] ?? ['neutral', humanize(s)];
+/** One tube's outcome in a handled handover. */
+export const TUBE_OUTCOME: Record<string, readonly [VisitTone, string]> = { received: ['success', 'Received'], missing: ['danger', 'Missing'] };
+export const tubeOutcome = (s: string): readonly [VisitTone, string] => TUBE_OUTCOME[s] ?? ['neutral', humanize(s)];
+export const HANDOVER_CHANGED = 'This handover has already been handled or has changed. Close this panel and refresh the page.';
+
+/** §2.4 "Status (Active info, Signed off neutral, Wipe requested warning, Wiped neutral)". */
+export const DEVICE_STATUS: Record<string, readonly [VisitTone, string]> = {
+  active: ['info', 'Active'], signed_off: ['neutral', 'Signed off'], wipe_requested: ['warning', 'Wipe requested'], wiped: ['neutral', 'Wiped'],
+};
+export const deviceStatus = (s: string): readonly [VisitTone, string] => DEVICE_STATUS[s] ?? ['neutral', humanize(s)];
+export const PLATFORM: Record<string, string> = { android: 'Android', ios: 'iOS' };
+export const DEVICE_CHANGED = 'This phone has already changed (for example it was wiped). Refresh the page to see the latest.';
+export const SETTINGS_CHANGED = 'Settings were changed by someone else. Reload the page to see the latest, then make your change again.';
+
+const SEMVER = /^(\d{1,6})\.(\d{1,6})\.(\d{1,6})$/;
+export const isSemver = (v: string): boolean => v.length <= 20 && SEMVER.test(v);
+/** Numeric semver compare (1.9.0 < 1.10.0); undefined when either side is not a plain x.y.z. */
+export function semverLess(a: string, b: string): boolean | undefined {
+  const x = SEMVER.exec(a);
+  const y = SEMVER.exec(b);
+  if (!x || !y) return undefined;
+  for (let i = 1; i <= 3; i++) if (+x[i]! !== +y[i]!) return +x[i]! < +y[i]!;
+  return false;
+}
+
+// ---- HC-T19: visit detail (04-UI-UX §2.2) ----
+/** "On hold" reason text per hold code (plain words; the code itself is never shown). */
+export const HOLD_REASON: Record<string, string> = {
+  mutation_superseded: 'The visit or tube changed on the server before this was uploaded',
+  visit_not_assigned: 'Collected by someone not assigned at that time',
+  barcode_mismatch: "Scanned barcode doesn't match the tube",
+};
+export const holdReason = (code: string | undefined): string => (code ? HOLD_REASON[code] ?? humanize(code) : 'Waiting for review');
+
+/** Collection chip on a tube (§2.2 "Collection": Applied success / On hold warning / Discarded neutral). */
+export const COLLECTION_STATUS: Record<string, readonly [VisitTone, string]> = { applied: ['success', 'Applied'], held: ['warning', 'On hold'], discarded: ['neutral', 'Discarded'] };
+export const collectionStatus = (s: string | undefined): readonly [VisitTone, string] | undefined => (s ? COLLECTION_STATUS[s] ?? ['neutral', humanize(s)] : undefined);
+
+export const SCAN_METHOD: Record<string, string> = { camera: 'Camera', scanner: 'Scanner', typed: 'Typed' };
+export const PAYMENT_OUTCOME: Record<string, readonly [VisitTone, string]> = { applied: ['success', 'Recorded'], rejected: ['danger', 'Rejected'], held: ['warning', 'Waiting for review'] };
+export const paymentOutcome = (s: string | undefined): readonly [VisitTone, string] => (s ? PAYMENT_OUTCOME[s] ?? ['neutral', humanize(s)] : ['neutral', '—']);
+
+export const CLOSED_VISIT = ['completed', 'failed', 'cancelled'] as const;
+/** US-11-3: a revisit can follow a failed visit or a partial completion only. */
+export const canRevisit = (status: string, outcome: string | undefined) => status === 'failed' || (status === 'completed' && outcome === 'partial');
+
+/** Review dialog (H9) failures in plain words (US-09-2 "only Discard remains"). */
+export function reviewFailText(r: Failure): string {
+  switch (r.code) {
+    case 'homecollection.mutation_superseded': return 'The visit or tube changed on the server after this was collected, so it can no longer be applied. Only Discard remains.';
+    case 'homecollection.barcode_mismatch': return "The scanned barcode doesn't match the tube, so it cannot be applied. Only Discard remains.";
+    case 'homecollection.collection_not_held': return 'This tube was already handled or is no longer on hold. Reload the page to see the latest.';
+    default: return failText(r);
+  }
 }
 
 export function assignFailText(r: Failure): string {

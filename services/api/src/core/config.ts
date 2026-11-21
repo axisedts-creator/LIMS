@@ -4,6 +4,7 @@ import { BFF_KINDS, type BffKeyFiles, type BffKind } from './auth/bff-key.js';
 import { createClientIpResolver } from './auth/client-ip.js';
 import { JWT_ALGS, type JwtAlg } from './auth/jwt.js';
 import { IDENTITY_AUTH_OPS, WITH_TENANT_SCOPE_OPS } from './db/allowlists.js';
+import { parseStorageConfig, type StorageConfig } from './storage/s3.js';
 
 export const CORE_ENVS = ['dev', 'ci', 'staging', 'production'] as const;
 export type CoreEnv = (typeof CORE_ENVS)[number];
@@ -35,7 +36,10 @@ export interface CoreConfig {
   /** T0D-18 (02-TRD §11). Unset = no pool: only public operations without a transaction can be served. */
   readonly databaseUrl?: string | undefined;
   readonly dbPoolMax: number;
+  /** LIMS_CORE_STATEMENT_TIMEOUT_MS: read requests (GET/HEAD). */
   readonly statementTimeoutMs: number;
+  /** T0B-PERF-1 (LD-310): LIMS_CORE_STATEMENT_TIMEOUT_WRITE_MS, every other method. */
+  readonly writeStatementTimeoutMs: number;
   readonly lockTimeoutMs: number;
   readonly fakePorts: readonly string[];
   readonly rateLimitBackend: 'postgres' | 'redis';
@@ -43,6 +47,10 @@ export interface CoreConfig {
   readonly rateLimitKeyFile?: string | undefined;
   readonly tenantRps: number;
   readonly tenantBurst: number;
+  /** LIMS_CORE_AUTHZ_MODE (SEC-AUTHZ-2, LD-261): stage 8a. Default shadow in EVERY environment until SEC-AUTHZ-9 changes it. */
+  readonly authzMode: 'shadow' | 'enforce';
+  /** T0B-STORAGE-1 (LD-316): STORAGE_* names; none = the API streams files itself. A half set stops the boot. */
+  readonly storage: StorageConfig;
 }
 
 function portKey(env: Env, key: string, fallback: number): number {
@@ -64,6 +72,12 @@ function positive(env: Env, key: string, fallback: number): number {
   if (v === undefined) return fallback;
   if (!/^[1-9]\d{0,6}$/.test(v)) throw new Error(`config: ${key} must be a positive integer`);
   return Number(v);
+}
+
+function bounded(env: Env, key: string, fallback: number, max: number): number {
+  const n = positive(env, key, fallback);
+  if (n > max) throw new Error(`config: ${key} must be 1..${max}`);
+  return n;
 }
 
 function opList(env: Env, key: string, fallback: readonly string[]): readonly string[] {
@@ -107,9 +121,17 @@ function oneOf<T extends string>(env: Env, key: string, allowed: readonly T[], f
   return v as T;
 }
 
+/**
+ * SEC-ENV-1 (LD-236; audit 10.2, 6.6): the ONE production-mode switch. True when LIMS_CORE_ENV or NODE_ENV is exactly `production` (fail towards production:
+ * render.yaml sets only LIMS_CORE_ENV, so NODE_ENV alone missed it). Staging (LIMS_CORE_ENV=staging, NODE_ENV unset) stays non-production. Reads only `env`.
+ */
+export function isProductionEnv(env: Env): boolean {
+  return env['LIMS_CORE_ENV'] === 'production' || env['NODE_ENV'] === 'production';
+}
+
 export function loadConfig(env: Env = process.env): CoreConfig {
   const coreEnv = oneOf(env, 'LIMS_CORE_ENV', CORE_ENVS);
-  const rv = oneOf(env, 'LIMS_CORE_RESPONSE_VALIDATION', ['on', 'off'], coreEnv === 'production' ? 'off' : 'on');
+  const rv = oneOf(env, 'LIMS_CORE_RESPONSE_VALIDATION', ['on', 'off'], isProductionEnv(env) ? 'off' : 'on');
   const sample = oneOf(env, 'LIMS_CORE_LOAD_SAMPLE_MODULE', ['0', '1'], '0');
   return Object.freeze({
     env: coreEnv,
@@ -126,8 +148,10 @@ export function loadConfig(env: Env = process.env): CoreConfig {
     withTenantScopeOps: opList(env, 'LIMS_CORE_WITH_TENANT_SCOPE_OPS', WITH_TENANT_SCOPE_OPS),
     metricsPort: portKey(env, 'LIMS_CORE_METRICS_PORT', 9464),
     databaseUrl: env.LIMS_CORE_DATABASE_URL || undefined,
-    dbPoolMax: positive(env, 'LIMS_CORE_DB_POOL_MAX', 20),
+    // T0B-PERF-1 (LD-310): default 10 fits the Supabase pooler per API process; [CONV] above 60 is refused (more than any pooler tier serves one client).
+    dbPoolMax: bounded(env, 'LIMS_CORE_DB_POOL_MAX', 10, 60),
     statementTimeoutMs: positive(env, 'LIMS_CORE_STATEMENT_TIMEOUT_MS', 5000),
+    writeStatementTimeoutMs: positive(env, 'LIMS_CORE_STATEMENT_TIMEOUT_WRITE_MS', 15000),
     lockTimeoutMs: positive(env, 'LIMS_CORE_LOCK_TIMEOUT_MS', 3000),
     fakePorts: Object.freeze((env.LIMS_CORE_FAKE_PORTS ?? '').split(',').map((s) => s.trim()).filter(Boolean)),
     rateLimitBackend: oneOf(env, 'LIMS_CORE_RATELIMIT_BACKEND', ['postgres', 'redis'] as const, 'postgres'),
@@ -135,5 +159,7 @@ export function loadConfig(env: Env = process.env): CoreConfig {
     rateLimitKeyFile: env.LIMS_CORE_RATELIMIT_KEY_FILE || undefined,
     tenantRps: positive(env, 'LIMS_CORE_TENANT_RPS', 100),
     tenantBurst: positive(env, 'LIMS_CORE_TENANT_BURST', 200),
+    authzMode: oneOf(env, 'LIMS_CORE_AUTHZ_MODE', ['shadow', 'enforce'] as const, 'shadow'), // LD-261: shadow everywhere; unknown value throws (boot stops)
+    storage: parseStorageConfig(env),
   });
 }

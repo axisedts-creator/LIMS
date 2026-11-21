@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lims_ui/lims_ui.dart';
 
 import '../notifications/notifications_providers.dart' show profileNamesProvider;
+import '../orders/status_look.dart' show StateCard;
 import '../profiles/profile_copy.dart' show ProfileNotice;
 import 'enquiries_providers.dart';
 import 'enquiry_copy.dart';
@@ -62,7 +63,8 @@ class _NewEnquiryScreenState extends ConsumerState<NewEnquiryScreen> {
     const gap = SizedBox(height: LimsTokens.space4);
     return SingleChildScrollView(
       padding: const EdgeInsets.all(LimsTokens.space4),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      child: LimsCard(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         _PickField(
           label: 'Topic',
           shown: [for (final t in topics) if (t.code == _topic) t.display].firstOrNull,
@@ -85,7 +87,7 @@ class _NewEnquiryScreenState extends ConsumerState<NewEnquiryScreen> {
         gap,
         if (_busy) const LimsLoading(label: 'Sending'),
         LimsButton(label: 'Send', onPressed: _ready && !_busy ? _send : null),
-      ]),
+      ])),
     );
   }
 
@@ -98,7 +100,7 @@ class _NewEnquiryScreenState extends ConsumerState<NewEnquiryScreen> {
         title: 'New message',
         body: topics.when(
           loading: () => const LimsLoading(),
-          error: (_, __) => LimsErrorState(title: 'Could not load the form', message: 'Check your connection and try again.', onRetry: () => ref.invalidate(enquiryCategoriesProvider)),
+          error: (_, __) => StateCard(LimsErrorState(title: 'Could not load the form', message: 'Check your connection and try again.', onRetry: () => ref.invalidate(enquiryCategoriesProvider))),
           data: (t) => _form(t, names),
         ),
       ),

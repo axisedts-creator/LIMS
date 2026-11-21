@@ -17,6 +17,7 @@ import { createFetchSmartSummary } from './tasks/fetch_smart_summary.js';
 import { PURGE_EPHEMERAL, PURGE_QUEUE, purgeEphemeral, purgeQueue } from './tasks/purge.js';
 import { SYNC_BOOKING_CENTRES, SYNC_BOOKING_CENTRES_NIGHTLY, syncBookingCentres, syncBookingCentresNightly } from './tasks/sync_booking_centres.js';
 import { createCreateSelfPatient } from './tasks/create_self_patient.js';
+import { CREATE_NOTIFICATION, createCreateNotification } from './tasks/create_notification.js';
 import { EXPIRE_PAYMENT_REQUESTS, createCreatePaymentIntent, createRefreshPaymentRequest, expirePaymentRequests } from './tasks/payment_tasks.js';
 import { createSendLoginOtp } from './tasks/send_login_otp.js';
 import { createSendBookingMessage } from './tasks/send_booking_message.js';
@@ -64,6 +65,7 @@ export const manifest: WorkerManifest = Object.freeze({
     [RECONCILE_BOOKINGS]: reconcileBookings, // T-B4 (cron-only)
     [MARK_NO_SHOWS]: markNoShows, // T-B4 (cron-only)
     [EXPIRE_MEMBERSHIPS]: expireMemberships, // T-M1 (cron-only)
+    [CREATE_NOTIFICATION]: createCreateNotification(), // T-N1 (LD-180; §8.1 row pending non-blocking CR)
   }),
   subscriptions: Object.freeze({
     ...Object.fromEntries(SUBSCRIPTIONS.map((type) => [type, consumer(type)])),

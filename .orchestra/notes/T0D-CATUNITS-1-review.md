@@ -1,0 +1,8 @@
+APPROVE
+# T0D-CATUNITS-1 review (reviewer)
+Diff 01d94820d..HEAD: 6 product/test files + tester config/notes; all in apps/web catalog + app/(staff)/catalog (owned; no admin/platform/(auth)/(platform), no routes or permission codes touched).
+Root cause verified against contracts/openapi/catalog.yaml: listValueSets (x-permission catalog.test.read, x-rate-limit-tier general, x-idempotency none) declares only `scope`; listUnits declares `is_active`. Fix at source: page.tsx + listValueSets.server.ts forward only scope. Only other caller (tests/[test_id]) passes nothing; lists.server.ts listValueSets sends no query.
+UI: header "New unit" (follows tab), MasterTable always draws headers, empty row "No units yet. Add a unit" with New unit, colSpan matches header count (actions column hidden when empty). No symbol/conversion: absent from contract, correctly not invented. Error boundary names the list, keeps digest, never echoes ids/messages; no PHI, no secrets, no logging added.
+Tests cover done_when 1-4: empty + real-shape (globals without id) render, value-sets query has no is_active, create POST with Idempotency-Key, 409 duplicate, edit PATCH with If-Match, read-only, error boundary. web-t31 regex change `/new (lab )?unit/` is a legitimate rename, not a weakening.
+Ran: catunits1 20/20, web-t31 125/125, cattests1 40/40, web-t32 107, web-t33 103, web-t34 116, web-t35 96 — all pass.
+Not run: rs-c3.static (writer reports baseline drift needing tester re-record; not a defect of this task). Note: tester note says 21 tests; actual 20 (17 it + one 3-case it.each = 20) — note miscount only.

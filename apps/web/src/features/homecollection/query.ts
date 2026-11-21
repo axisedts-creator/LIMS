@@ -19,6 +19,33 @@ const list = (v: string | string[] | undefined, allowed: readonly string[]): str
   return toks.every((t) => allowed.includes(t)) ? [...new Set(toks)] : [];
 };
 
+export const HANDOVER_STATUSES = ['pending', 'confirmed', 'discrepancy'] as const;
+export const DEVICE_STATUSES = ['active', 'signed_off', 'wipe_requested', 'wiped'] as const;
+
+/** Handovers URL -> H13 query: status (default pending), one centre (default the first the actor may use), cursor. Nothing else is forwarded. */
+export function handoverQuery(sp: SP, centres: readonly Centre[]) {
+  const st = list(sp['status'], HANDOVER_STATUSES);
+  const status = st.length ? st.join(',') : 'pending';
+  const c = one(sp['centre_id']);
+  const known = centres.length === 0 || centres.some((x) => x.id === c);
+  const centreId = c && UUID.test(c) && known ? c : centres[0]?.id;
+  const cursor = one(sp['cursor']);
+  const q = new URLSearchParams({ status, limit: '50' });
+  if (centreId) q.set('to_centre_id', centreId);
+  if (cursor && CURSOR.test(cursor)) q.set('cursor', cursor);
+  return { status, centreId, q };
+}
+
+/** Phones URL -> H16 query: whitelisted status, cursor. */
+export function deviceQuery(sp: SP) {
+  const status = list(sp['status'], DEVICE_STATUSES);
+  const cursor = one(sp['cursor']);
+  const q = new URLSearchParams({ limit: '100' });
+  if (status.length) q.set('status', status.join(','));
+  if (cursor && CURSOR.test(cursor)) q.set('cursor', cursor);
+  return { q, status };
+}
+
 export function dispatchQuery(sp: SP, now: number, centres: readonly Centre[]) {
   const d = one(sp['date']);
   const date = isRealDay(d) ? d : dayNpt(now);

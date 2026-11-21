@@ -48,14 +48,14 @@ void main() {
     expect(t.colorScheme.error, LimsTokens.colorToneDangerFg);
   });
 
-  // LD-140 / T0D-UI-R05: Plus Jakarta Sans replaces Noto Sans as the first family (spec 10-DESIGN-SYSTEM s5); the old
-  // 'Noto Sans first' assertion contradicted the lead decision. Noto Sans stays bundled as a fallback face.
-  test('fonts: Plus Jakarta Sans first, Devanagari fallback, bundled as package assets (no runtime download)', () {
+  // LD-140 / T0D-UI-R05 put Plus Jakarta Sans first; LD-251 / T0D-MSERIES-3 (13-M-SERIES s2.2) replaces it with Poppins.
+  // Noto Sans stays bundled as a fallback face.
+  test('fonts: Poppins first, Devanagari fallback, bundled as package assets (no runtime download)', () {
     final t = LimsTheme.light();
-    expect(t.textTheme.bodyMedium!.fontFamily, 'Plus Jakarta Sans');
+    expect(t.textTheme.bodyMedium!.fontFamily, 'Poppins');
     expect(t.textTheme.bodyMedium!.fontFamilyFallback, contains('Noto Sans Devanagari'));
     final pub = File('${pkgDir().path}/pubspec.yaml').readAsStringSync();
-    for (final f in ['Plus Jakarta Sans', 'Noto Sans', 'Noto Sans Devanagari', 'Noto Sans Mono']) {
+    for (final f in ['Poppins', 'Noto Sans', 'Noto Sans Devanagari', 'Noto Sans Mono']) {
       expect(pub, contains('family: $f'), reason: 'font family $f declared');
     }
     final assets = RegExp(r'asset:\s*(\S+)').allMatches(pub).map((m) => m.group(1)!).toList();

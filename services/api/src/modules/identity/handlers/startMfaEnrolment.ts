@@ -5,6 +5,7 @@
 import { LimsError } from '../../../core/errors.js';
 import type { Handler } from '../../../core/module.js';
 import { GoTrueError } from '../gotrue/gateway.js';
+import { qrOmitReason, qrSvgToBase64 } from './mfaQr.js';
 import { bodyObject, gotrueCall, invalid, mfaOperation, wire } from './verifyMfaChallenge.js';
 
 function parse(b: unknown): { friendlyName: string | undefined } {
@@ -27,7 +28,10 @@ export const createStartMfaEnrolment = mfaOperation('startMfaEnrolment', (req) =
   const enr = await gotrueCall(() => c.deps.gotrue.mfaEnrollTotp(c.load.accessToken, friendlyName));
   const id = c.newId();
   await c.deps.repo.insertFactor(c.tx, { id, tenantId: c.s.tenantId, userId: c.s.userId, gotrueFactorId: enr.factorId, friendlyName: friendlyName ?? null, actorId: c.actorId });
-  return { status: 200 as const, body: { factor_id: id, otpauth_uri: enr.otpauthUri, secret_base32: enr.secret } };
+  const qr = qrSvgToBase64(enr.qrSvg);   // LD-214 AUTH-MFA-QR-1: optional; an unusable QR is simply omitted (the page falls back to the key); never logged (E1)
+  // LD-221 AUTH-MFA-COMPLETE-1: when omitted, log the reason CODE only (never the SVG or any part of it, E1)
+  if (qr === undefined) c.log?.warn({ event: 'mfa_qr_omitted', reason: qrOmitReason(enr.qrSvg), request_id: c.requestId }, 'identity: MFA setup image omitted');
+  return { status: 200 as const, body: { factor_id: id, otpauth_uri: enr.otpauthUri, secret_base32: enr.secret, ...(qr !== undefined ? { qr_svg_base64: qr } : {}) } };
 });
 
 export const startMfaEnrolment: Handler = wire(createStartMfaEnrolment);

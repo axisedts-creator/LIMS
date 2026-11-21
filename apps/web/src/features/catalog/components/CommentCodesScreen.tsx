@@ -9,9 +9,13 @@ import { Select } from '@lims/ui/components/Select';
 import { Switch } from '@lims/ui/components/Switch';
 import { TextArea } from '@lims/ui/components/TextArea';
 import { TextField } from '@lims/ui/components/TextField';
-import { createCommentCodeAction, updateCommentCodeAction } from '../server/catalogActions';
+import { Checkbox } from '@lims/ui/components/Checkbox';
+import { updateCommentCodeAction } from '../server/catalogActions';
+import { createCommentCodeFullAction } from '../server/testMgmtActions';
+import { errAt, type Fail } from './shared';
 import { COMMENT_CODE_RE, type CommentCode, type Department } from '../server/types';
 import { DUPLICATE, EditorDialog, MasterTable, StatusBadge, canManage, changed, useListShortcuts, type Col } from './master-ui';
+import { t } from '@/core/i18n/messages';
 
 const ALL = 'all';
 const HELP = 'Technologists type :CODE followed by a space in the result comment to insert this text. Changing the text later does not change results already saved.';
@@ -37,7 +41,7 @@ export function CommentCodesScreen({ commentCodes, departments, permissions }: {
   ];
   return (
     <section aria-label="Comment codes">
-      <PageHeader title="Comment codes" helpKey="catalog.comment_codes" breadcrumbs={[{ label: 'Catalog', href: '/catalog' }, { label: 'Comment codes' }]} actions={openNew ? <Button variant="primary" onPress={openNew}>New comment code</Button> : null} />
+      <PageHeader title={t('catalog.nav.comment_codes')} helpKey="catalog.comment_codes" actions={openNew ? <Button variant="primary" onPress={openNew}>New comment code</Button> : null} />
       <div className="lims-filter-bar">
         <div ref={search}>
           <TextField label="Search" name="q" maxLength={16} description="Code prefix" value={q} onChange={setQ} />
@@ -49,7 +53,7 @@ export function CommentCodesScreen({ commentCodes, departments, permissions }: {
         cols={cols}
         rows={rows}
         empty="No comment codes for this department."
-        emptyAction={openNew ? { label: 'New comment code', onPress: openNew } : undefined}
+        emptyAction={openNew ? { label: 'Add a comment code', onPress: openNew } : undefined}
         codeOf={(r) => r.code}
         onEdit={manage ? setEditing : undefined}
       />
@@ -58,12 +62,28 @@ export function CommentCodesScreen({ commentCodes, departments, permissions }: {
   );
 }
 
+// T0D-TESTMGMT-1 (LD-318, ElabAssist Notes): Type (result type the note is offered for), Default template and text format on create.
+// [CONV] the format control is labelled "Format" (not "Text format") so the Text box stays the only field whose label starts with "Text".
+const NOTE_TYPES = [['numeric', 'Numeric'], ['text', 'Text'], ['ordinal', 'Ordinal'], ['coded', 'List'], ['narrative', 'Narrative'], ['attachment', 'Image'], ['boolean', 'Boolean'], ['test_footer', 'Test footer'], ['space', 'Space'], ['graph', 'Graph'], ['html_descriptive', 'HTML descriptive']]
+  .map(([value, label]) => ({ value: value!, label: label! }));
+
 function CommentCodeDialog({ item, departments, onClose }: { item: CommentCode | undefined; departments: readonly Department[]; onClose: () => void }) {
   const [code, setCode] = useState(item?.code ?? '');
   const [dept, setDept] = useState<string>(item?.department_id ?? ALL);
   const [text, setText] = useState(item?.text ?? '');
   const [active, setActive] = useState(item?.is_active ?? true);
   const [codeError, setCodeError] = useState<string>();
+  const [noteType, setNoteType] = useState<string>(ALL);
+  const [isDefault, setIsDefault] = useState(false);
+  const [format, setFormat] = useState<string>('plain');
+  const [fail, setFail] = useState<Fail>();
+  const create = async (key: string) => {
+    const r = await createCommentCodeFullAction({
+      code, ...(dept !== ALL ? { department_id: dept } : {}), text, ...(noteType !== ALL ? { result_type: noteType } : {}), ...(isDefault ? { is_default_template: true } : {}), ...(format !== 'plain' ? { text_format: format } : {}),
+    }, key);
+    setFail(r.ok ? undefined : r);
+    return r;
+  };
   return (
     <EditorDialog
       title={item ? 'Edit comment code' : 'New comment code'}
@@ -74,13 +94,19 @@ function CommentCodeDialog({ item, departments, onClose }: { item: CommentCode |
       save={(key) =>
         item
           ? updateCommentCodeAction(item.id, item.version, changed(item, { text, is_active: active }))
-          : createCommentCodeAction({ code, ...(dept !== ALL ? { department_id: dept } : {}), text }, key)
+          : create(key)
       }
     >
       <CodeField label="Code" name="code" maxLength={16} pattern={COMMENT_CODE_RE.source} patternHint="Capital letters A-Z, digits and _, up to 16." isRequired isReadOnly={!!item} value={code} onChange={(v) => { setCode(v); setCodeError(undefined); }} {...(codeError ? { error: codeError } : {})} />
       <Select label="Department" name="department_id" isReadOnly={!!item} options={[{ value: ALL, label: 'All departments' }, ...departments.map((d) => ({ value: d.id, label: d.name }))]} value={dept} onChange={setDept} />
-      <TextArea label="Text" name="text" maxLength={2000} rows={5} isRequired description={HELP} value={text} onChange={setText} />
-      {item ? <Switch label="Active" isSelected={active} onChange={setActive} /> : null}
+      <TextArea label="Text" name="text" maxLength={2000} rows={5} isRequired description={HELP} value={text} onChange={(v) => { setText(v); setFail(undefined); }} {...(errAt(fail, '/text') ? { error: errAt(fail, '/text')! } : {})} />
+      {item ? <Switch label="Active" isSelected={active} onChange={setActive} /> : (
+        <>
+          <Select label="Type" name="result_type" options={[{ value: ALL, label: 'Any result type' }, ...NOTE_TYPES]} value={noteType} onChange={setNoteType} />
+          <Checkbox label="Default template" name="is_default_template" isSelected={isDefault} onChange={setIsDefault} />
+          <Select label="Format" name="text_format" options={[{ value: 'plain', label: 'Plain text' }, { value: 'markdown', label: 'Markdown (safe subset)' }]} value={format} onChange={setFormat} />
+        </>
+      )}
     </EditorDialog>
   );
 }

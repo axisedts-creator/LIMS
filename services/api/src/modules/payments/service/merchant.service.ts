@@ -7,6 +7,7 @@ import { LimsError, type FieldError } from '../../../core/errors.js';
 // [CONV] uuidv7 via relative import until @lims/shared-ts is a services/api dependency (same as catalog services).
 import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';
 import type { PaymentsConfig } from '../config.js';
+import { requirePermission } from '../repository/shared.js';
 import { encryptSecret, openSecret, type Kek } from './credentials.js';
 
 type Row = Record<string, any>;
@@ -115,11 +116,13 @@ export function createMerchantService(deps: MerchantDeps) {
       [ctx.tenantId, gateway, environment])).rows[0];
 
   async function listMerchantAccounts(ctx: MerchantCtx): Promise<{ data: Row[] }> {
+    await requirePermission(ctx, 'payments.merchant_config.read'); // SEC-AUTHZ-6 (LD-189, LD-261)
     const r = await ctx.tx.query('SELECT * FROM payments.merchant_accounts WHERE tenant_id = $1 AND is_active = true ORDER BY gateway ASC, environment ASC', [ctx.tenantId]);
     return { data: r.rows.map(accountDto) };
   }
 
   async function putMerchantAccount(ctx: MerchantCtx, input: { gateway: string; environment: string; expectedVersion?: number; body: unknown }): Promise<Row> {
+    await requirePermission(ctx, 'payments.merchant_config.manage'); // SEC-AUTHZ-6
     const { gateway, environment, expectedVersion } = input;
     slot(gateway, environment);
     // Environment guard (TRD §6.9, REQ-SEC-058/136): production deployment <-> environment 'production' only.
@@ -193,6 +196,7 @@ export function createMerchantService(deps: MerchantDeps) {
   }
 
   async function testMerchantAccount(ctx: MerchantCtx, input: { gateway: string; environment: string }): Promise<{ outcome: TestOutcome; checked_at: string }> {
+    await requirePermission(ctx, 'payments.merchant_config.manage'); // SEC-AUTHZ-6
     const { gateway, environment } = input;
     slot(gateway, environment);
     const row = await findAccount(ctx, gateway, environment, false);
@@ -213,10 +217,12 @@ export function createMerchantService(deps: MerchantDeps) {
     (await ctx.tx.query(`SELECT * FROM payments.settings WHERE tenant_id = $1${lock ? ' FOR UPDATE' : ''}`, [ctx.tenantId])).rows[0];
 
   async function getPaymentSettings(ctx: MerchantCtx): Promise<Row> {
+    await requirePermission(ctx, 'payments.merchant_config.read'); // SEC-AUTHZ-6
     return settingsDto(await readSettings(ctx, false) ?? SETTINGS_DEFAULTS);   // P-22: no seed row; defaults until the first PUT
   }
 
   async function updatePaymentSettings(ctx: MerchantCtx, input: { expectedVersion?: number; body: unknown }): Promise<Row> {
+    await requirePermission(ctx, 'payments.merchant_config.manage'); // SEC-AUTHZ-6
     const body = validateSettingsBody(input.body);
     let cur = await readSettings(ctx, true);
     const before: Row = cur ?? SETTINGS_DEFAULTS;

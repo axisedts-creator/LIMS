@@ -136,7 +136,7 @@ export function AnalyteEditor({ testId, analyte, versions, units, methods, value
   const hasDraft = !!draft || !!analyte?.has_draft;
 
   return (
-    <div className="lims-stack" style={{ gap: 'var(--lims-space-3)' }}>
+    <div className="lims-stack catalog-gap-3">
       {!isCreate && shown ? (
         <>
           <p>{`Version ${shown.version_no} · ${STATUS_LABEL[shown.status] ?? shown.status}${shown.effective_from ? ` · effective ${fmtDateTime(shown.effective_from)}` : ''}`}</p>
@@ -176,13 +176,13 @@ export function AnalyteEditor({ testId, analyte, versions, units, methods, value
           <FormulaPanel analyteId={analyte?.id} value={formula} onChange={setFormula} isReadOnly={off} error={errAt(fail, '/initial_version/formula_expression', '/formula_expression')} />
         ) : null}
         </MirrorInvalid>
-        <div className="lims-inline" style={{ gap: 'var(--lims-space-2)' }}>
+        <div className="lims-inline catalog-gap-2">
           {canEdit ? <Button type="submit" variant="primary" shortcut="Ctrl+Enter">Save</Button> : null}
           {canEdit && !isCreate ? <Button variant="ghost" onPress={() => choose(selected)}>Cancel</Button> : null}
         </div>
       </Form>
       {!isCreate && canManage ? (
-        <div className="lims-inline" style={{ gap: 'var(--lims-space-2)' }}>
+        <div className="lims-inline catalog-gap-2">
           {!hasDraft ? <Button onPress={() => void createVersion()}>Create new version</Button> : null}
           {hasDraft && !editing && draft ? <Button onPress={() => { setSelected(String(draft.version_no)); setEditing(true); load(draft); }}>Edit draft</Button> : null}
           {editing && shown?.status === 'draft' ? <Button variant="primary" onPress={() => setPublishing(true)}>Publish…</Button> : null}

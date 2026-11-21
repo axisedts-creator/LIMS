@@ -113,8 +113,12 @@ SELECT is((SELECT count(*) FROM unnest(ARRAY['purge_event_log()','purge_event_in
 -- policy catalog (schema tests 14, 15, 17, 26)
 SELECT is((SELECT count(*) FROM pg_policies WHERE schemaname = 'core' AND policyname IN ('dead_letters__select__platform', 'dead_letters__update__platform') AND qual LIKE '%tenant_id IS NOT NULL%'), 2::bigint,
   'schema test 14: both dead_letters __platform policies contain tenant_id IS NOT NULL');
-SELECT is((SELECT count(*) FROM pg_policies WHERE (qual ~ 'app\.pre_|app\.maintenance' OR with_check ~ 'app\.pre_|app\.maintenance') AND roles <> '{lims_owner}'), 0::bigint,
-  'schema test 17: every policy mentioning app.pre_ / app.maintenance is TO lims_owner only');
+SELECT is((SELECT count(*) FROM pg_policies WHERE (qual ~ 'app\.pre_|app\.maintenance' OR with_check ~ 'app\.pre_|app\.maintenance') AND roles <> '{lims_owner}'
+  -- STALE fix T0B-GREEN-3 (08-CR-REGISTER C6-002 role row, A10.5, D-30): C6 pre-tenant lookup policies are TO lims_reporting_lookup, schema reporting only
+  AND NOT (schemaname = 'reporting' AND roles = ARRAY['lims_reporting_lookup']::name[])), 0::bigint,
+  'schema test 17: every policy mentioning app.pre_ / app.maintenance is TO lims_owner only (reporting lookup policies: TO lims_reporting_lookup only)');
+SELECT is((SELECT count(*) FROM pg_policies WHERE roles && ARRAY['lims_reporting_lookup']::name[] AND NOT (schemaname = 'reporting' AND roles = ARRAY['lims_reporting_lookup']::name[])), 0::bigint,
+  'STALE fix T0B-GREEN-3: lims_reporting_lookup is named only by schema reporting policies, never next to another role');
 SELECT is((SELECT count(*) FROM pg_policies WHERE roles = '{lims_owner}' AND schemaname || '.' || tablename IN ('core.event_log', 'core.idempotency_keys') AND (qual NOT LIKE '%app.maintenance%')), 0::bigint,
   'schema test 15: event_log / idempotency_keys owner policies are ANDed with app.maintenance');
 SELECT is((SELECT count(*) FROM pg_policies WHERE roles = '{lims_owner}' AND tablename = 'event_inbox' AND qual NOT LIKE '%app.maintenance%'), 0::bigint, 'schema test 15: every event_inbox owner policy is gated on app.maintenance');
@@ -123,6 +127,9 @@ SELECT is((SELECT count(*) FROM pg_policies WHERE (qual ~ 'current_centre_ids' A
 SELECT is((SELECT count(*) FROM pg_policies WHERE tablename = 'event_log' AND schemaname = 'core' AND cmd = 'SELECT' AND roles <> '{lims_owner}' AND policyname <> 'event_log__select__tenant'), 0::bigint, '08 A23.3: no non-staff SELECT policy on event_log');
 
 -- ---------------------------------------------------------------- fixtures (superuser)
+-- T0B-GREEN-3 (LD-268, HARNESS): run-suites.sh loads seed 010 (tenant_a / tenant_b, both active) before the suites, so core.tenants is not empty here.
+-- Snapshot them so the cron_tenant_ids expectations below are "fixtures + seeded active/suspended", not "fixtures only".
+CREATE TEMP TABLE seed_tenants AS SELECT id, status FROM core.tenants;
 SET LOCAL session_replication_role = replica;   -- seed without the audit trigger (tenant rows are fixtures)
 INSERT INTO core.tenants (id, tenant_code, legal_name, display_name, status, created_by, updated_by) VALUES
   (pg_temp.id(1), 'lab_a', 'Lab A Pvt Ltd', 'Lab A', 'active',      pg_temp.id(99), pg_temp.id(99)),
@@ -308,9 +315,10 @@ SELECT ok(pg_temp.x('lims_api', NULL, $q$SELECT set_config('app.maintenance', 'p
 -- 9. app.enqueue_job + queue_depth (schema tests 22, 23; AC-0D-5.14 / 5.15) live in T0B-05_queue.test.sql (needs the real graphile_worker schema, SP-2).
 
 -- ---------------------------------------------------------------- 10. cron fan-out (schema test 22, AC-0D-5.15), tenant resolver and hmac lookup (test 29), platform_list_tenants (test 16)
-SELECT is(pg_temp.x('lims_worker', pg_temp.sys(), NULL, $q$SELECT string_agg(c::text, ',' ORDER BY c) FROM app.cron_tenant_ids() c$q$), pg_temp.id(1)::text || ',' || pg_temp.id(2)::text,
+SELECT is(pg_temp.x('lims_worker', pg_temp.sys(), NULL, $q$SELECT string_agg(c::text, ',' ORDER BY c) FROM app.cron_tenant_ids() c$q$),
+  (SELECT string_agg(id::text, ',' ORDER BY id) FROM (SELECT id FROM seed_tenants WHERE status IN ('active', 'suspended') UNION SELECT pg_temp.id(1) UNION SELECT pg_temp.id(2)) s),
   'schema test 22: cron_tenant_ids returns exactly the active and suspended tenants (not provisioning / offboarded)');
-SELECT is(pg_temp.x('lims_worker', pg_temp.sys(), $q$SELECT 1$q$, $q$SELECT count(*) FROM app.cron_tenant_ids() c WHERE current_setting('app.maintenance', true) IS NOT DISTINCT FROM ''$q$), '2', 'app.maintenance is '''' while/after the rows are consumed (reset in body)');
+SELECT is(pg_temp.x('lims_worker', pg_temp.sys(), $q$SELECT 1$q$, $q$SELECT count(*) FROM app.cron_tenant_ids() c WHERE current_setting('app.maintenance', true) IS NOT DISTINCT FROM ''$q$), (2 + (SELECT count(*) FROM seed_tenants WHERE status IN ('active', 'suspended')))::text, 'app.maintenance is '''' while/after the rows are consumed (reset in body)');
 SELECT is(pg_temp.x('lims_worker', NULL, $q$SELECT set_config('app.maintenance', 'cron_tenant_ids', true)$q$, 'SELECT 1 FROM core.tenants', 'n'), '0', 'schema test 22: lims_worker setting app.maintenance itself sees 0 core.tenants rows');
 SELECT is(pg_temp.x('lims_api', NULL, NULL, $q$SELECT 1 FROM app.cron_tenant_ids()$q$, 'n'), 'E42501:permission denied for function cron_tenant_ids', 'lims_api cannot call cron_tenant_ids');
 SELECT is(pg_temp.x('lims_api', NULL, NULL, $q$SELECT tenant_id::text || ':' || status FROM app.core_resolve_tenant_code('lab_b')$q$), pg_temp.id(2)::text || ':suspended', 'schema test 29: known code resolves (any status)');

@@ -5,6 +5,8 @@
 // - A draft print (unreleased version) needs reporting.report.release on top of print (D-37) and always renders a file with draft_watermark.
 // - ASSUMED [CONV]: the working centre (bulk / preview `centre_id`) is ctx.centreId; expires_at = ctx.now() + 24 h computed in JS; jobs carry {tenant_id, print_job_id}, 5 attempts.
 import { LimsError } from '../../../core/errors.js';
+import type { BucketName, StorageAdapter } from '../../../core/storage/index.js';
+import { streamStored, type RequestHeaders } from '../../../core/storage/stream.js';
 import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';
 import { insertDeliveryRow } from '../repository/delivery.repo.js';
 import * as repo from '../repository/print.repo.js';
@@ -20,7 +22,9 @@ const PRINTS_BUCKET = 'reporting-prints';
 export interface PrintCtx {
   readonly tenantId: string; readonly actor: { readonly type?: string; readonly id: string; readonly centreId?: string }; readonly tx: repo.Tx; readonly centreId?: string;
   readonly ports?: Record<string, any>; readonly now?: () => string;
-  readonly storage?: { read(bucket: any, path: string): Promise<Uint8Array> }; readonly audit?: { access(e: Record<string, unknown>): Promise<unknown> };
+  readonly storage?: Partial<Pick<StorageAdapter, 'read' | 'readStream'>>; readonly audit?: { access(e: Record<string, unknown>): Promise<unknown> };
+  /** T0B-SYNC-4 done_when (3): pending offline print marker of a version (core/sync/offlineSignoffs.ts pendingMarkers); absent = never issued offline. */
+  readonly offlineMarkers?: { isPending(tx: repo.Tx, tenantId: string, reportVersionId: string): Promise<boolean> };
 }
 type Variant = 'letterhead' | 'plain';
 
@@ -61,10 +65,11 @@ export async function createReportPrint(c: PrintCtx, versionId: string, variant:
   if (!v) throw new LimsError('common.not_found');
   const draft = v['released_at'] == null;
   if (draft) await assertDraftPrint(c);
-  const noFile = !draft && variant === 'letterhead';
+  const issuedOffline = c.offlineMarkers ? await c.offlineMarkers.isPending(c.tx, c.tenantId, versionId) : false;
+  const noFile = !draft && variant === 'letterhead' && !issuedOffline;   // a marked print needs its own rendered file, never the canonical PDF
   const id = uuidv7(); const expiresAt = new Date(nowMs(c) + TTL_MS).toISOString();
   await repo.insertPrint(c.tx, { id, tenantId: c.tenantId, centreId: v['centre_id'], kind: 'single', versionIds: [versionId], excludedIds: [], templateVersionId: v['template_version_id'] ?? null,
-    variant, copies, draftWatermark: draft, state: noFile ? 'ready' : 'rendering', expiresAt, actorId: c.actor.id });
+    variant, copies, draftWatermark: draft, state: noFile ? 'ready' : 'rendering', expiresAt, actorId: c.actor.id, issuedOffline });
   const at = new Date(nowMs(c));
   await insertDeliveryRow(c.tx, { id: uuidv7(), tenantId: c.tenantId, centreId: v['centre_id'], channel: 'print', purpose: 'report_ready', templateCode: null, recipientKind: 'patient',
     recipientId: v['patient_id'] ?? null, destinationMasked: null, destinationSha256: null, destinationE164: null, params: {}, idempotencyKey: `${id}:print`, relatedType: 'report',
@@ -82,7 +87,7 @@ export async function getReportPrint(c: PrintCtx, printId: string) {
 }
 
 /** R12. Letterhead single (no own file) streams the canonical version PDF; every other print streams its own file. Never outside the tenant prefix. */
-export async function downloadReportPrintPdf(c: PrintCtx, printId: string) {
+export async function downloadReportPrintPdf(c: PrintCtx, printId: string, requestHeaders?: RequestHeaders) {
   const p = await repo.findPrint(c.tx, c.tenantId, printId);
   if (!p) throw new LimsError('common.not_found');
   if (!c.storage) throw new LimsError('common.internal');
@@ -96,14 +101,15 @@ export async function downloadReportPrintPdf(c: PrintCtx, printId: string) {
     bucket = 'reports'; path = v['pdf_object_path'];
   } else { bucket = PRINTS_BUCKET; path = p['object_path']; }
   if (typeof path !== 'string' || !path.startsWith(`${c.tenantId}/`)) throw new LimsError('common.internal');   // never read outside the caller's tenant prefix
-  const bytes = await c.storage.read(bucket, path);
-  await audit.access({ action: 'report.download', entityType: 'print_job', entityId: p['id'], centreId: p['centre_id'], outcome: 'allowed' });
-  return {
-    status: 200, body: bytes, headers: {
+  // T0B-FILESTREAM-1 (LD-312): streamed (Content-Length, ETag, Range, 304); the access-log row before the first byte, none for a 416.
+  return streamStored(c.storage, {
+    bucket: bucket as BucketName, objectPath: path, ...(requestHeaders ? { requestHeaders } : {}),
+    onServe: () => audit.access({ action: 'report.download', entityType: 'print_job', entityId: p['id'], centreId: p['centre_id'], outcome: 'allowed' }),
+    headers: {
       'content-type': 'application/pdf', 'content-disposition': `attachment; filename="print-${p['id']}.pdf"`,   // ids only: no patient data in the name
-      'x-content-type-options': 'nosniff', 'cache-control': 'no-store', 'content-security-policy': 'sandbox', 'content-length': String(bytes.length),
+      'x-content-type-options': 'nosniff', 'cache-control': 'no-store', 'content-security-policy': 'sandbox',
     },
-  };
+  });
 }
 
 /** R13 (REQ-SEC-100 privileged: assertRole carries auth.mfa_required). Unreleased / unknown / out-of-scope ids are excluded and listed; none printable -> report_not_released. */
@@ -115,9 +121,11 @@ export async function createBulkPrint(c: PrintCtx, ids: string[], variant: Varia
   const found = new Set((await repo.findVersionsForPrint(c.tx, c.tenantId, ids)).filter((v) => v['released_at'] != null).map((v) => v['id'] as string));
   const included = ids.filter((i) => found.has(i)); const excluded = ids.filter((i) => !found.has(i));
   if (included.length === 0) throw new LimsError('reporting.report_not_released');
+  // T0B-SYNC-4 done_when (3): any included version with a pending offline print marker marks the whole bulk print issued offline
+  const issuedOffline = c.offlineMarkers ? (await Promise.all(included.map((v) => c.offlineMarkers!.isPending(c.tx, c.tenantId, v)))).some(Boolean) : false;
   const id = uuidv7(); const expiresAt = new Date(nowMs(c) + TTL_MS).toISOString();
   await repo.insertPrint(c.tx, { id, tenantId: c.tenantId, centreId, kind: 'bulk', versionIds: included, excludedIds: excluded, templateVersionId: null, variant, copies: 1,
-    draftWatermark: false, state: 'rendering', expiresAt, actorId: c.actor.id });
+    draftWatermark: false, state: 'rendering', expiresAt, actorId: c.actor.id, issuedOffline });
   await enqueue(c, BULK_PRINT_TASK, id);
   await audit.access({ action: 'report.bulk_download', entityType: 'print_job', entityId: id, centreId, outcome: 'allowed', detail: { count: included.length } });
   return { status: 202, body: toPrintJob({ id, state: 'rendering', variant, copies: 1, expires_at: expiresAt, excluded_ids: excluded }) };

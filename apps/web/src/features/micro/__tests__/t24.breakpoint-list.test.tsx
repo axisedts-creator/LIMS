@@ -5,6 +5,7 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { t } from '@/core/i18n/messages';
 import { http, HttpResponse } from 'msw';
 import { ToastProvider } from '@lims/ui/components/Toast';
 import { parseMultipart } from '../../catalog/__tests__/web-t35.multipart';
@@ -14,7 +15,7 @@ vi.mock('next/navigation', async () => (await import('./t24.harness')).navigatio
 vi.mock('server-only', () => ({}));
 vi.mock('@/core/session/server', async () => (await import('./t24.harness')).sessionMock);
 
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 beforeEach(() => { resetHits(); router.push.mockReset(); });
 afterEach(() => { cleanup(); api.resetHandlers(); });
 afterAll(() => api.close());
@@ -39,7 +40,7 @@ const pickFile = (d: HTMLElement, f = new File([CSV], 'table.csv', { type: 'text
 describe('list (04-UI-UX §6.1)', () => {
   it('shows the always-on licence banner, the heading and the columns Title…Imported at', async () => {
     await mount();
-    expect(screen.getByRole('heading', { level: 1, name: /breakpoint tables/i })).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 1, name: t('micro.nav.breakpoint_sets') })).toBeTruthy();
     expect(document.body.textContent).toContain('LIMS does not include CLSI or EUCAST breakpoints. Import only tables your laboratory is licensed to use.');
     const headers = screen.getAllByRole('columnheader').map((h) => h.textContent?.trim());
     for (const h of ['Title', 'Standard', 'Version', 'Status', 'Effective from', 'Effective to', 'Rows', 'Errors', 'Imported by', 'Imported at']) expect(headers, h).toContain(h);

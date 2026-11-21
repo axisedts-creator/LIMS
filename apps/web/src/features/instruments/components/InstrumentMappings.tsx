@@ -13,6 +13,7 @@ import { DateText } from '@lims/ui/components/DateText';
 import { DecimalField } from '@lims/ui/components/DecimalField';
 import { Dialog } from '@lims/ui/components/Dialog';
 import { Drawer } from '@lims/ui/components/Drawer';
+import { EmptyRow, PlaceholderRows } from '@lims/ui/components/DataTable';
 import { EmptyState } from '@lims/ui/components/EmptyState';
 import { KeyValueListEditor, type KeyValueRow } from '@lims/ui/components/KeyValueListEditor';
 import { PageHeader } from '@lims/ui/components/PageHeader';
@@ -117,15 +118,14 @@ export function InstrumentMappings({ instrument, observed, maps = [], tests = {}
         <section aria-labelledby="obs-h" className={manage ? 'lims-col-5' : 'lims-col-12'}>
           <h2 id="obs-h">Observed codes</h2>
           <Switch label="Unmapped only" isSelected={unmappedOnly} onChange={setUnmappedOnly} />
-          {observed.length === 0 ? (
-            <EmptyState title="No codes seen yet. Codes appear here after the instrument sends results in commissioning." />
-          ) : (
-            <table className="lims-table">
+          {/* T0D-EMPTYTBL-2 (LD-310, LD-336): both tables are always drawn; the empty message is the one body row, four placeholder rows follow. */}
+          <table className="lims-table">
               <caption className="lims-visually-hidden">Observed codes</caption>
               <thead>
                 <tr><th scope="col">Code</th><th scope="col">Class</th><th scope="col">Seen count</th><th scope="col">Last seen</th><th scope="col">Mapping status</th>{manage ? <th scope="col"><VisuallyHidden>Actions</VisuallyHidden></th> : null}</tr>
               </thead>
               <tbody>
+                {observed.length === 0 ? <EmptyRow colSpan={manage ? 6 : 5}><EmptyState title="No codes seen yet. Codes appear here after the instrument sends results in commissioning." /></EmptyRow> : null}
                 {rows.map((o) => (
                   <tr key={`${o.record_class}:${o.instrument_analyte_code}`}>
                     <Td>{o.instrument_analyte_code}</Td>
@@ -143,22 +143,22 @@ export function InstrumentMappings({ instrument, observed, maps = [], tests = {}
                   </tr>
                 ))}
               </tbody>
+              {observed.length === 0 ? <PlaceholderRows colSpan={manage ? 6 : 5} /> : null}
             </table>
-          )}
         </section>
 
         {manage ? (
           <section aria-labelledby="maps-h" className="lims-col-7">
             <h2 id="maps-h">Mappings</h2>
-            {maps.length === 0 ? (
-              <EmptyState title="No mappings yet." />
-            ) : (
-              <table className="lims-table">
+            <table className="lims-table">
                 <caption className="lims-visually-hidden">Mappings</caption>
                 <thead>
                   <tr><th scope="col">Direction</th><th scope="col">Instrument code</th><th scope="col">Test</th><th scope="col">Analyte</th><th scope="col">Unit conversion</th><th scope="col">Flag map count</th><th scope="col">Active</th><th scope="col"><VisuallyHidden>Actions</VisuallyHidden></th></tr>
                 </thead>
                 <tbody>
+                  {maps.length === 0 ? (
+                    <EmptyRow colSpan={8}><EmptyState title="No mappings yet." action={{ label: 'Add mapping', onPress: () => setEditor({ mode: 'create', code: '' }) }} /></EmptyRow>
+                  ) : null}
                   {maps.map((m) => (
                     <tr key={m.id}>
                       <Td>{DIRECTION[m.direction] ?? m.direction}</Td>
@@ -175,8 +175,8 @@ export function InstrumentMappings({ instrument, observed, maps = [], tests = {}
                     </tr>
                   ))}
                 </tbody>
+                {maps.length === 0 ? <PlaceholderRows colSpan={8} /> : null}
               </table>
-            )}
           </section>
         ) : (
           <section aria-label="Mappings" className="lims-col-12">

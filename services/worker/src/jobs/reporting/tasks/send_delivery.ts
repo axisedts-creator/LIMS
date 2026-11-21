@@ -9,6 +9,7 @@
 // are not in 02-TRD §5.4 / 04-UI-UX §2.5 (CR-C6-027, .orchestra/cr/C6-T23.md). Staff / partner recipients are re-resolved as `no_contact` (open point in C6-T23-impl.md).
 import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';
 import type { TaskHandler } from '../../../core/manifest.js';
+import { isProductionEnv } from '../../../../../api/src/core/config.js';
 import { recordingTransport } from '../../../../../api/src/modules/reporting/delivery/adapters/recording.js';
 import { TransportError, type OutboundMessage, type Transport } from '../../../../../api/src/modules/reporting/delivery/transport.js';
 import { issueToken } from '../../../../../api/src/modules/reporting/domain/tokens.js';
@@ -36,7 +37,7 @@ const fill = (t: string, p: Record<string, string>, esc = false) => t.replace(/\
 export function createSendDelivery(deps: SendDeps = {}): TaskHandler {
   const breaker = new Map<string, { fails: number; openUntil: number }>();
   return async (payload, jobCtx) => {
-    const ctx = jobCtx as unknown as FlowCtx & { now(): string; log?: any };
+    const ctx = jobCtx as unknown as FlowCtx & { now(): string; log?: any; attempt: number; maxAttempts: number };   // VERIFY-GREEN-4: JobContext supplies both (core/manifest.ts:31)
     const env = deps.env ?? process.env;
     const tenantId = ctx.tenantId; const id = payload?.['delivery_id']; const actor = ctx.actor.id;
     if (typeof tenantId !== 'string' || typeof id !== 'string' || !UUID.test(id)) return;
@@ -81,7 +82,7 @@ export function createSendDelivery(deps: SendDeps = {}): TaskHandler {
     };
 
     // 2. provider choice (REQ-SEC-136)
-    const prod = env['NODE_ENV'] === 'production';
+    const prod = isProductionEnv(env);   // SEC-ENV-1 (LD-236): same helper as the API (LIMS_CORE_ENV or NODE_ENV is production)
     const account = await findActiveChannelAccount(tx, tenantId, d['channel']);
     let kind = 'recording';
     if (prod) {

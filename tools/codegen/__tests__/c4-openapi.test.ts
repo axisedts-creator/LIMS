@@ -74,6 +74,26 @@ const FRONTDESK: Spec[] = [
   S("updateFrontdeskSettings", "PUT", "/settings", FD("settings.manage"), "optional", 200, { im: true, err: [VC] }),
   S("listFrontdeskCodes", "GET", "/coded-sets/{set_name}", ORD_R, "none", 200),
   S("listPossibleDuplicatePatients", "GET", "/patients/possible-duplicates", REG, "none", 200, { err: INVALID_CURSOR }),
+  // T0C-REGPARITY-2 (LD-310): 18 additive operations (drafts, favourites, number preview, custom fields, coupons, ICD master, rewards). Not in the C4 TRD table (the drift guard only checks TRD -> test);
+  // the shape tests are in regparity2-openapi.test.ts. Added here so the inventory test ("no missing, no extra operations") stays true.
+  S("createRegistrationDraft", "POST", "/registration-drafts", REG, "required", 201),
+  S("listRegistrationDrafts", "GET", "/registration-drafts", REG, "none", 200, { err: INVALID_CURSOR }),
+  S("getRegistrationDraft", "GET", "/registration-drafts/{draft_id}", REG, "none", 200),
+  S("deleteRegistrationDraft", "DELETE", "/registration-drafts/{draft_id}", REG, "none", 204),
+  S("addFavouriteTest", "POST", "/favourite-tests", REG, "required", 201),
+  S("removeFavouriteTest", "DELETE", "/favourite-tests/{orderable_id}", REG, "none", 204),
+  S("listFavouriteTests", "GET", "/favourite-tests", REG, "none", 200, { err: INVALID_CURSOR }),
+  S("previewRegistrationNumbers", "GET", "/registrations/number-preview", REG, "none", 200),
+  S("listCustomFieldDefinitions", "GET", "/custom-field-definitions", REG, "none", 200, { err: INVALID_CURSOR }),
+  S("createCustomFieldDefinition", "POST", "/custom-field-definitions", FD("settings.manage"), "required", 201),
+  S("updateCustomFieldDefinition", "PATCH", "/custom-field-definitions/{definition_id}", FD("settings.manage"), "optional", 200, { im: true, err: [VC, "common.precondition_required"] }),
+  S("listCoupons", "GET", "/coupons", FD("settings.manage"), "none", 200, { err: INVALID_CURSOR }),
+  S("createCoupon", "POST", "/coupons", FD("settings.manage"), "required", 201),
+  S("updateCoupon", "PATCH", "/coupons/{coupon_id}", FD("settings.manage"), "optional", 200, { im: true, err: [VC, "common.precondition_required"] }),
+  S("listIcdCodes", "GET", "/icd-codes", REG, "none", 200, { err: INVALID_CURSOR }),
+  S("createIcdCode", "POST", "/icd-codes", FD("settings.manage"), "required", 201),
+  S("updateIcdCode", "PATCH", "/icd-codes/{icd_code_id}", FD("settings.manage"), "optional", 200, { im: true, err: [VC, "common.precondition_required"] }),
+  S("getPatientRewards", "GET", "/patients/{patient_id}/rewards", PAT_R, "none", 200, { err: INVALID_CURSOR }),
 ];
 
 const BILLING: Spec[] = [
@@ -129,6 +149,50 @@ const BILLING: Spec[] = [
   S("listCreditNoteTasks", "GET", "/credit-note-tasks", INV_R, "none", 200),
   S("listFinanceReviewItems", "GET", "/finance-review-items", INV_R, "none", 200),
   S("resolveFinanceReviewItem", "POST", "/finance-review-items/{item_id}/resolve", REF_OK, "required", 200, { im: true, err: [IMM] }),
+  // T0C-ACCT-1 (LD-313): 24 additive lab accounting operations (account groups, particulars, expense types, accounting ledger, statement, summary, expenses, cash transfers, daily collection).
+  // Not in the C4 TRD table; the shape tests are in acct1-openapi.test.ts. Added here so the inventory test ("no missing, no extra operations") stays true.
+  S("listAccountGroups", "GET", "/account-groups", BL("account.read"), "none", 200, { err: INVALID_CURSOR }),
+  S("createAccountGroup", "POST", "/account-groups", BL("account.manage"), "required", 201),
+  S("updateAccountGroup", "PATCH", "/account-groups/{account_group_id}", BL("account.manage"), "optional", 200, { im: true, err: [VC, "common.precondition_required"] }),
+  S("listAccountParticulars", "GET", "/account-particulars", BL("account.read"), "none", 200, { err: INVALID_CURSOR }),
+  S("createAccountParticular", "POST", "/account-particulars", BL("account.manage"), "required", 201),
+  S("updateAccountParticular", "PATCH", "/account-particulars/{account_particular_id}", BL("account.manage"), "optional", 200, { im: true, err: [VC, "common.precondition_required"] }),
+  S("listExpenseTypes", "GET", "/expense-types", BL("account.read"), "none", 200, { err: INVALID_CURSOR }),
+  S("createExpenseType", "POST", "/expense-types", BL("account.manage"), "required", 201),
+  S("updateExpenseType", "PATCH", "/expense-types/{expense_type_id}", BL("account.manage"), "optional", 200, { im: true, err: [VC, "common.precondition_required"] }),
+  S("createAccountLedgerEntry", "POST", "/account-ledger-entries", BL("account_entry.create"), "required", 201),
+  S("listAccountLedgerEntries", "GET", "/account-ledger-entries", BL("account.read"), "none", 200, { err: INVALID_CURSOR }),
+  S("getAccountLedgerEntry", "GET", "/account-ledger-entries/{account_ledger_entry_id}", BL("account.read"), "none", 200),
+  S("reverseAccountLedgerEntry", "POST", "/account-ledger-entries/{account_ledger_entry_id}/reverse", BL("account_entry.reverse"), "required", 201, { err: ["billing.ledger_reversal_invalid"] }),
+  S("getAccountStatement", "GET", "/account-statement", BL("account.read"), "none", 200),
+  S("getAccountSummary", "GET", "/account-summary", BL("account.read"), "none", 200),
+  S("listAccountSummaries", "GET", "/account-summaries", BL("account.read"), "none", 200, { err: INVALID_CURSOR }), // T0C-ACCTLIST-1 (LD-358)
+  S("createExpense", "POST", "/expenses", BL("expense.manage"), "required", 201),
+  S("listExpenses", "GET", "/expenses", BL("account.read"), "none", 200, { err: INVALID_CURSOR }),
+  S("cancelExpense", "POST", "/expenses/{expense_id}/cancel", BL("expense.manage"), "required", 200, { err: [IMM] }),
+  S("createCashTransfer", "POST", "/cash-transfers", BL("cash_transfer.manage"), "required", 201),
+  S("listCashTransfers", "GET", "/cash-transfers", BL("account.read"), "none", 200, { err: INVALID_CURSOR }),
+  S("acceptCashTransfer", "POST", "/cash-transfers/{cash_transfer_id}/accept", BL("cash_transfer.decide"), "required", 200, { err: [IMM] }),
+  S("rejectCashTransfer", "POST", "/cash-transfers/{cash_transfer_id}/reject", BL("cash_transfer.decide"), "required", 200, { err: [IMM] }),
+  S("cancelCashTransfer", "POST", "/cash-transfers/{cash_transfer_id}/cancel", BL("cash_transfer.manage"), "required", 200, { err: [IMM] }),
+  S("getDailyCollectionSummary", "GET", "/daily-collection-summary", BL("account.read"), "none", 200),
+  // T0C-FINCTRL-1 (LD-321): 16 additive accounting control operations (discount reasons, slabs per party, per user limits, authorities, policy, hold / release of ledger entries); shapes in finctrl1-openapi.test.ts.
+  S("listDiscountReasons", "GET", "/discount-reasons", BL("discount_policy.read"), "none", 200, { err: INVALID_CURSOR }),
+  S("createDiscountReason", "POST", "/discount-reasons", BL("discount_policy.manage"), "required", 201),
+  S("updateDiscountReason", "PATCH", "/discount-reasons/{discount_reason_id}", BL("discount_policy.manage"), "optional", 200, { im: true, err: [VC, "common.precondition_required"] }),
+  S("listPartyDiscountSlabs", "GET", "/discount-slabs", BL("discount_policy.read"), "none", 200, { err: INVALID_CURSOR }),
+  S("createPartyDiscountSlab", "POST", "/discount-slabs", BL("discount_policy.manage"), "required", 201),
+  S("updatePartyDiscountSlab", "PATCH", "/discount-slabs/{party_discount_slab_id}", BL("discount_policy.manage"), "optional", 200, { im: true, err: [VC, "common.precondition_required"] }),
+  S("deactivatePartyDiscountSlab", "POST", "/discount-slabs/{party_discount_slab_id}/deactivate", BL("discount_policy.manage"), "optional", 200, { im: true, err: [VC, "common.precondition_required"] }),
+  S("resolveDiscountSlab", "GET", "/discount-slabs/resolve", BL("discount_policy.read"), "none", 200),
+  S("listUserDiscountLimits", "GET", "/discount-limits", BL("discount_policy.read"), "none", 200, { err: INVALID_CURSOR }),
+  S("setUserDiscountLimit", "PUT", "/discount-limits/{user_id}", BL("discount_policy.manage"), "optional", 200, { im: true, err: [VC] }),
+  S("listDiscountAuthorities", "GET", "/discount-authorities", BL("discount_policy.read"), "none", 200, { err: INVALID_CURSOR }),
+  S("createDiscountAuthority", "POST", "/discount-authorities", BL("discount_policy.manage"), "required", 201),
+  S("deactivateDiscountAuthority", "POST", "/discount-authorities/{discount_authority_id}/deactivate", BL("discount_policy.manage"), "optional", 200, { im: true, err: [VC, "common.precondition_required"] }),
+  S("getMyDiscountPolicy", "GET", "/discount-policy/me", BL("discount_policy.read"), "none", 200),
+  S("holdLedgerEntry", "POST", "/account-ledger-entries/{account_ledger_entry_id}/hold", BL("account.manage"), "required", 200, { err: [IMM] }),
+  S("releaseLedgerEntry", "POST", "/account-ledger-entries/{account_ledger_entry_id}/release", BL("account.manage"), "required", 200, { err: [IMM] }),
 ];
 
 // Which list operations take cursor + limit (TRD: "page of …" / `cursor&limit` in the path column)
@@ -136,7 +200,8 @@ const PAGED: Record<string, string[]> = {
   frontdesk: ["listPatientOrders", "listOrders", "listDiscountApprovals", "listOrderFlags", "listPossibleDuplicatePatients"],
   billing: ["listInvoices", "listInvoicePrints", "listCreditNotes", "listRefundRequests", "listLedgerEntries", "listCreditAccounts", "listCreditCharges",
     "getSalesRegister", "getCancelledInvoiceRegister", "getCreditNoteRegister", "getAuditTrail", "listCbmsDocuments", "listDues",
-    "listCreditNoteTasks", "listFinanceReviewItems"],
+    "listCreditNoteTasks", "listFinanceReviewItems", "listAccountGroups", "listAccountParticulars", "listExpenseTypes", "listAccountLedgerEntries", "listExpenses", "listCashTransfers", "listAccountSummaries",
+    "listDiscountReasons", "listPartyDiscountSlabs", "listUserDiscountLimits", "listDiscountAuthorities"], // + T0C-FINCTRL-1 (LD-321)
 };
 // §5.1 / §5.2 named schemas that must exist as components
 const DTOS: Record<string, string[]> = {
@@ -151,8 +216,8 @@ const tmps: string[] = [];
 afterAll(() => tmps.forEach((d) => rmSync(d, { recursive: true, force: true })));
 
 describe.each([
-  { name: "frontdesk", specs: FRONTDESK, total: 29 },
-  { name: "billing", specs: BILLING, total: 47 },
+  { name: "frontdesk", specs: FRONTDESK, total: 29 + 18 }, // 29 C4 operations + 18 T0C-REGPARITY-2 operations (LD-310)
+  { name: "billing", specs: BILLING, total: 47 + 24 + 1 + 16 }, // 47 C4 operations + 24 T0C-ACCT-1 operations (LD-313) + listAccountSummaries (T0C-ACCTLIST-1, LD-358)
 ])("$name.yaml (T0C-10.C4)", ({ name, specs, total }) => {
   const FILE = join(ROOT, `contracts/openapi/${name}.yaml`);
   const PFX = `/v1/${name}`;

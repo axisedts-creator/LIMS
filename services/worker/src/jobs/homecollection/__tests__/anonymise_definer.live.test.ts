@@ -3,8 +3,8 @@
 // Roles: the job runs as lims_worker (EXECUTE), a request as lims_api (a lims_app session, NO execute). Missing env = HARD FAILURE.
 // No implementation file is imported: these cases fail only if the DB contract (migration / stand-in) is wrong.
 import { afterAll, describe, expect, it, vi } from 'vitest';
-import { TENANT_A, TENANT_B, apiTx, closePools, superTx, workerTx } from './hc16.helpers.js';
-import { collectedVisit, handOver, hc, ownerRows, seed, visitOf } from './hc16.fixtures.js';
+import { TENANT_A, TENANT_B, apiTx, closePools, workerTx } from './hc16.helpers.js';
+import { collectedVisit, handOver, hc, ownerRows, seed, superTx, visitOf } from './hc16.fixtures.js';
 
 vi.setConfig({ testTimeout: 30_000, hookTimeout: 60_000 });
 afterAll(async () => { await closePools(); });
@@ -43,7 +43,7 @@ describe('catalogue: the one DEFINER and its FORCE-RLS owner policies (05-SCHEMA
   it('visits and handover_items have FORCE ROW LEVEL SECURITY and the four owner policies are TO lims_owner only', async () => {
     const t = await superTx(async (tx: any) => (await tx.query(`SELECT relname, relrowsecurity, relforcerowsecurity FROM pg_class WHERE oid IN ('homecollection.visits'::regclass, 'homecollection.handover_items'::regclass) ORDER BY relname`)).rows);
     expect(t.map((x: any) => [x.relname, x.relrowsecurity, x.relforcerowsecurity])).toEqual([['handover_items', true, true], ['visits', true, true]]);
-    const p = await superTx(async (tx: any) => (await tx.query(`SELECT tablename, policyname, roles::text AS roles, cmd FROM pg_policies WHERE schemaname = 'homecollection' AND policyname LIKE '%__owner_only' ORDER BY policyname`)).rows);
+    const p = await superTx(async (tx: any) => (await tx.query(`SELECT tablename, policyname, roles::text AS roles, cmd FROM pg_policies WHERE schemaname = 'homecollection' AND policyname LIKE '%__owner_only' AND tablename IN ('visits', 'handover_items') ORDER BY policyname`)).rows);
     expect(p.map((x: any) => [x.policyname, x.cmd, x.roles])).toEqual([
       ['handover_items__select__owner_only', 'SELECT', '{lims_owner}'], ['handover_items__update__owner_only', 'UPDATE', '{lims_owner}'],
       ['visits__select__owner_only', 'SELECT', '{lims_owner}'], ['visits__update__owner_only', 'UPDATE', '{lims_owner}']]);
@@ -112,14 +112,14 @@ describe('T4 invalid input raises homecollection_anonymise_invalid_input and cha
   it('no tenant claims, a user actor, p_before in the future, NULL p_before, no actor id: all rejected', async () => {
     const c = await closedVisit('a', '1990-02-01T00:00:00Z');
     const future = new Date(Date.now() + 86_400_000).toISOString();
-    const bad: Array<[string, Promise<unknown>]> = [
-      ['no tenant claims', workerTx(null, (tx: any) => call(tx, '1995-01-01T00:00:00Z'))],
-      ['user actor', workerTx(TENANT_A, (tx: any) => call(tx, '1995-01-01T00:00:00Z'), 'user')],
-      ['p_before in the future', workerTx(TENANT_A, (tx: any) => call(tx, future))],
-      ['NULL p_before', workerTx(TENANT_A, (tx: any) => tx.query(`SELECT * FROM ${FN}(NULL::timestamptz)`))],
-      ['no actor id', workerTx(TENANT_A, (tx: any) => call(tx, '1995-01-01T00:00:00Z'), 'system', '')],
+    const bad: Array<[string, () => Promise<unknown>]> = [
+      ['no tenant claims', () => workerTx(null, (tx: any) => call(tx, '1995-01-01T00:00:00Z'))],
+      ['user actor', () => workerTx(TENANT_A, (tx: any) => call(tx, '1995-01-01T00:00:00Z'), 'user')],
+      ['p_before in the future', () => workerTx(TENANT_A, (tx: any) => call(tx, future))],
+      ['NULL p_before', () => workerTx(TENANT_A, (tx: any) => tx.query(`SELECT * FROM ${FN}(NULL::timestamptz)`))],
+      ['no actor id', () => workerTx(TENANT_A, (tx: any) => call(tx, '1995-01-01T00:00:00Z'), 'system', '')],
     ];
-    for (const [name, p] of bad) expect(await rejects(p), name).toContain('homecollection_anonymise_invalid_input');
+    for (const [name, p] of bad) expect(await rejects(p()), name).toContain('homecollection_anonymise_invalid_input');
     expect(same(await visitOf(c.visit.id))).toBe(true);
     expect(await barcode(c.item.id)).toBe(c.item.barcode);
   });

@@ -1,18 +1,12 @@
 // Shared bits of the C5 lab screens. Merge of T-11 helpers (collect / dispatch / receive; was shared.ts) and
 // T-26 worklist / pending / worksheet bits (04-UI-UX §3.4, §3.5, §3.15). Text only: no colour- or icon-only meaning.
-import { useRef } from 'react';
+import type { ReactNode } from 'react';
+import { EmptyRow, PlaceholderRows } from '@lims/ui/components/DataTable';
+import { EmptyState } from '@lims/ui/components/EmptyState';
 import { ErrorState } from '@lims/ui/components/ErrorState';
 import type { ActionResult } from '../server/types';
 
 // ---- T-11: collect / dispatch / receive helpers (client side; no network code here) ----
-
-/** Runs scan jobs strictly one after another, so rows / receives follow SCAN order even when lookups answer out of order. */
-export function useSerial() {
-  const tail = useRef<Promise<unknown>>(Promise.resolve());
-  return (job: () => Promise<void>) => {
-    tail.current = tail.current.then(job).catch(() => undefined);
-  };
-}
 
 /** Enter in an empty scan box (the kit already handled it when it consumed a value and called preventDefault). */
 export const enterOnEmptyBox = (e: { key: string; ctrlKey: boolean; defaultPrevented: boolean; target: EventTarget }) =>
@@ -68,5 +62,31 @@ export const NOT_VISIBLE = "This item doesn't exist or isn't visible to you.";
 export function Failure({ r, onRetry }: { r: Extract<ActionResult<unknown>, { ok: false }>; onRetry: () => void }) {
   if (r.status === 403) return <div className="lims-state"><p className="lims-state-title">{NO_ACCESS}</p></div>;
   if (r.status === 404) return <div className="lims-state"><p className="lims-state-title">{NOT_VISIBLE}</p></div>;
+  // T0D-UILIST-1, LD-353 rule 6: 501 operation_pending is the calm "Not available yet" state, never a red error
+  if (r.status === 501 && r.code === 'operation_pending') return <EmptyState title="Not available yet" body="This part of the system is being built. It appears here once it is switched on." />;
   return <ErrorState title="Something went wrong" {...(r.requestId ? { requestId: r.requestId } : {})} onRetry={onRetry} />;
 }
+
+export type Fail = Extract<ActionResult<unknown>, { ok: false }>;
+
+/** T0D-UILIST-1, LD-353 template 1 LIST and rules 5, 6: the header row is always drawn inside the scroll box; an empty list, a failure or a
+ * pending operation is ONE state in the table body. `rows` undefined = still loading (header only). Numeric th/td carry NUM. */
+export function ListTable({ caption, cols, head, rows, empty, fail, onRetry }: {
+  caption: string; cols: number; head: ReactNode; rows: readonly ReactNode[] | undefined; empty: string; fail?: Fail | undefined; onRetry?: () => void;
+}) {
+  const state = fail ? <Failure r={fail} onRetry={onRetry ?? (() => undefined)} /> : rows?.length === 0 ? <EmptyState title={empty} /> : null;
+  return (
+    <div className="lims-data-table">
+      <div className="lims-table-scroll">
+        <table className="lims-table" aria-label={caption}>
+          <thead><tr>{head}</tr></thead>
+          <tbody>{state ? <EmptyRow colSpan={cols}>{state}</EmptyRow> : rows}</tbody>
+          {state ? <PlaceholderRows colSpan={cols} /> : null}
+        </table>
+      </div>
+    </div>
+  );
+}
+
+/** Right aligned numeric column (LD-353 rules 3 and 5), the same classes the kit DataTable uses. */
+export const NUM = 'lims-align-end lims-num';

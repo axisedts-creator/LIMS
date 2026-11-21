@@ -46,7 +46,7 @@ const api = setupServer(
   http.patch(`${ORIGIN}/v1/frontdesk/patients/:id`, async ({ request }) => { await rec(request); return HttpResponse.json(patient({ version: 5 })); }),
   http.post(`${ORIGIN}/v1/frontdesk/patients/:id/consents`, async ({ request }) => { await rec(request); return HttpResponse.json({ id: U(95), patient_id: PATIENT, consents: patient().consents, recorded_at: '2026-11-07T04:00:00.000Z', recorded_by: { membership_id: ME, display_name: 'Me' } }); }),
 );
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { cleanup(); api.resetHandlers(); calls.length = 0; refresh.mockReset(); vi.useRealTimers(); localStorage.clear(); sessionStorage.clear(); });
 afterAll(() => api.close());
 
@@ -170,7 +170,9 @@ describe('§6 FrontdeskWorklist', () => {
   it('four tabs in spec order; "Possible duplicates created today" only with frontdesk.registration.create', async () => {
     const W = await load();
     view(W);
-    expect(screen.getAllByRole('tab').map((t) => t.textContent)).toEqual(['Recollection needed', 'Booking cancelled after registration', 'Pre-registered today', 'Possible duplicates created today']);
+    // T0D-UIDASH-2 (LD-436 worklist mock, review item 1): every tab carries its count after the name, 0 included
+    expect(screen.getAllByRole('tab').map((t) => (t.textContent ?? '').replace(/\s*\d+$/, ''))).toEqual(['Recollection needed', 'Booking cancelled after registration', 'Pre-registered today', 'Possible duplicates created today']);
+    expect(screen.getAllByRole('tab').map((t) => /\d+$/.exec(t.textContent ?? '')?.[0])).toEqual(['2', '1', '1', '1']);
     cleanup();
     view(W, { permissions: [PERM.orderRead, PERM.orderEdit] });
     expect(screen.queryByRole('tab', { name: /possible duplicates/i })).toBeNull();
@@ -190,7 +192,7 @@ describe('§6 FrontdeskWorklist', () => {
   it('Booking-cancelled tab shows only open booking_cancelled_after_registration flags', async () => {
     const W = await load();
     view(W);
-    await userEvent.click(screen.getByRole('tab', { name: 'Booking cancelled after registration' }));
+    await userEvent.click(screen.getByRole('tab', { name: /^Booking cancelled after registration(\s\d+)?$/ }));
     expect(screen.getByRole('link', { name: 'R-0001-000003' })).toBeTruthy();
     expect(screen.queryByRole('link', { name: 'R-0001-000001' })).toBeNull();
   });
@@ -199,7 +201,10 @@ describe('§6 FrontdeskWorklist', () => {
     const W = await load();
     view(W);
     const row = screen.getByRole('link', { name: 'R-0001-000001' }).closest('tr')!;
-    await userEvent.click(within(row).getByRole('button', { name: /resolve/i }));
+    // T0D-UIDASH-2 (mock: one row menu per row): Resolve moved from a row button into the row menu
+    expect(within(row).queryByRole('button', { name: /^resolve$/i }), 'no Resolve button in the row any more').toBeNull();
+    await userEvent.click(within(row).getByRole('button', { name: /row actions/i }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: /^resolve$/i }));
     const dlg = screen.getByRole('dialog');
     await userEvent.click(within(dlg).getByRole('button', { name: /resolve|confirm/i }));
     expect(calls.length).toBe(0);
@@ -214,10 +219,13 @@ describe('§6 FrontdeskWorklist', () => {
     await waitFor(() => expect(refresh).toHaveBeenCalled());
   });
 
-  it('no Resolve buttons without frontdesk.order.edit', async () => {
+  it('no Resolve buttons without frontdesk.order.edit, and no Resolve item in the row menu', async () => {
     const W = await load();
     view(W, { permissions: [PERM.orderRead] });
     expect(screen.queryByRole('button', { name: /resolve/i })).toBeNull();
+    const row = screen.getByRole('link', { name: 'R-0001-000001' }).closest('tr')!;
+    await userEvent.click(within(row).getByRole('button', { name: /row actions/i }));
+    expect((await screen.findAllByRole('menuitem')).map((m) => m.textContent)).toEqual(['Open order']);
   });
 
   it('keyboard: "R" on a focused row opens Resolve; Enter opens the order (DataTable row navigation)', async () => {
@@ -229,19 +237,19 @@ describe('§6 FrontdeskWorklist', () => {
     expect(screen.getByRole('dialog')).toBeTruthy();
   });
 
-  it('Pre-registered today: registration no, patient, source (text)', async () => {
+  it('Pre-registered today: accession number, patient (the Source column is not in the mock, so it is not drawn)', async () => {
     const W = await load();
     view(W);
-    await userEvent.click(screen.getByRole('tab', { name: 'Pre-registered today' }));
+    await userEvent.click(screen.getByRole('tab', { name: /^Pre-registered today(\s\d+)?$/ }));
     const row = screen.getByRole('link', { name: 'R-0001-000004' }).closest('tr')!;
     expect(within(row).getByText('Demo Patient E')).toBeTruthy();
-    expect(within(row).getByText(/booking/i)).toBeTruthy();
+    expect(screen.queryByRole('columnheader', { name: /^source$/i })).toBeNull();
   });
 
   it('Possible duplicates (F26): patient + candidates with MASKED phones only, link to each patient page, no raw phone', async () => {
     const W = await load();
     view(W);
-    await userEvent.click(screen.getByRole('tab', { name: 'Possible duplicates created today' }));
+    await userEvent.click(screen.getByRole('tab', { name: /^Possible duplicates created today(\s\d+)?$/ }));
     expect(screen.getByRole('link', { name: /P-000009/ }).getAttribute('href')).toBe(`/frontdesk/patients/${U(9)}`);
     expect(screen.getByRole('link', { name: /P-000003/ }).getAttribute('href')).toBe(`/frontdesk/patients/${U(10)}`);
     expect(document.body.textContent).toMatch(/98xxxxxx11/);
@@ -253,7 +261,7 @@ describe('§6 FrontdeskWorklist', () => {
     view(W, { flags: [], preRegistered: [], duplicates: [] });
     expect(screen.getByText('Nothing pending')).toBeTruthy();
     for (const t of ['Booking cancelled after registration', 'Pre-registered today', 'Possible duplicates created today']) {
-      await userEvent.click(screen.getByRole('tab', { name: t }));
+      await userEvent.click(screen.getByRole('tab', { name: new RegExp(`^${t}\\s0$`) })); // empty tab: count 0 is shown (LD-140)
       expect(screen.getByText('Nothing pending')).toBeTruthy();
     }
   });
@@ -282,10 +290,12 @@ describe('§7 DiscountApprovalsInbox', () => {
   it('columns per §7; row shows requester, gross, discount amount + %, reason, status as text, centre name', async () => {
     const I = await load();
     view(I);
-    for (const h of ['Requested', 'Centre', 'Requested by', 'Gross', 'Discount', 'Reason', 'Status']) expect(screen.getByRole('columnheader', { name: new RegExp('^' + h + '$', 'i') })).toBeTruthy();
+    // LD-353 rule 3 / done_when (7): the currency sits in the money column headers, the cells carry the number only.
+    for (const h of ['Requested', 'Centre', 'Requested by', 'Reason', 'Status']) expect(screen.getByRole('columnheader', { name: new RegExp('^' + h + '$', 'i') })).toBeTruthy();
+    for (const h of ['Gross', 'Discount']) expect(screen.getByRole('columnheader', { name: new RegExp('^' + h + '\\b.*\\bNPR\\b', 'i') })).toBeTruthy();
     const r = rowOf('Synthetic Receptionist');
-    expect(within(r).getByText('NPR 1,500.00')).toBeTruthy();
-    expect(r.textContent).toMatch(/NPR 450\.00/);
+    expect(within(r).getByText('1,500.00').closest('td,[role="gridcell"]')!.className).toMatch(/lims-align-end/);
+    expect(within(r).getByText('450.00').closest('td,[role="gridcell"]')!.className).toMatch(/lims-align-end/);
     expect(r.textContent).toMatch(/30(\.0)?\s?%/);
     expect(within(r).getByText(/pending/i)).toBeTruthy();
     expect(r.textContent).toMatch(/Synthetic Centre A1/);

@@ -3,6 +3,7 @@
 import { LimsError } from '../../../core/errors.js';
 import { createEvents } from '../../../core/events/publish.js';
 import type { Handler, HandlerContext, HandlerRequest, HandlerResult } from '../../../core/module.js';
+import { guarded } from './_guard.js';
 import { createBillingEvents } from '../events/publish.js';
 import type { BalanceCtx } from '../service/balance.service.js';
 import { createCounterService } from '../service/counter.service.js';
@@ -19,7 +20,7 @@ function bind(fn: (svc: InvoiceReadService, ctx: BalanceCtx, req: HandlerRequest
 const obj = (v: unknown): Record<string, any> => (typeof v === 'object' && v !== null ? (v as Record<string, any>) : {});
 
 // B3 printInvoice / B6 printCreditNote: schema, auth, x-permission (billing.invoice.reprint) and x-idempotency are the pipeline's. Only the path id and the
-// optional reason_code reach the service: the body can never steer print_no, is_copy, the clock, the tenant or the actor.
+// optional reason_code and style reach the service: the body can never steer print_no, is_copy, the clock, the tenant or the actor.
 let commands: InvoiceService | undefined;
 const commandService = (): InvoiceService => (commands ??= createInvoiceService({ counter: createCounterService() as never, events: createBillingEvents(createEvents({ producer: 'billing' }) as never) }));
 function bindPrint(run: (svc: InvoiceService, ctx: InvoiceCtx, req: HandlerRequest) => Promise<unknown>): Handler {
@@ -29,7 +30,10 @@ function bindPrint(run: (svc: InvoiceService, ctx: InvoiceCtx, req: HandlerReque
     return { status: 200, body: await run(commandService(), c as InvoiceCtx, req) };
   };
 }
-const reasonOf = (req: HandlerRequest): { reasonCode?: unknown } => { const r = obj(req.body)['reason_code']; return r === undefined ? {} : { reasonCode: r }; };
+const reasonOf = (req: HandlerRequest): { reasonCode?: unknown; style?: unknown } => {
+  const b = obj(req.body); const r = b['reason_code']; const st = b['style'];   // style: T0B-PRINTCFG-1 (LD-316), validated by the service
+  return { ...(r === undefined ? {} : { reasonCode: r }), ...(st === undefined ? {} : { style: st }) };
+};
 
 // B4 / B5 write handlers: HTTP snake_case body -> service input; the response is read back in the same transaction (the pipeline commits after the handler returns).
 const writeService = () => createInvoiceService({ counter: createCounterService() as never, events: createBillingEvents(createEvents({ producer: 'billing' }) as never) });
@@ -54,7 +58,7 @@ const issuePartialCreditNote = bindWrite(201, async (ctx, req) => {
   return createInvoiceReadService().getCreditNote(ctx, { creditNoteId: ref.creditNoteId });
 });
 
-export const invoiceHandlers: Readonly<Record<string, Handler>> = Object.freeze({
+const invoiceHandlersRaw: Readonly<Record<string, Handler>> = Object.freeze({
   listInvoices: bind((s, ctx, req) => s.listInvoices(ctx, req.query)),
   getInvoice: bind((s, ctx, req) => s.getInvoice(ctx, { invoiceId: obj(req.params)['invoice_id'] })),
   getOrderBilling: bind((s, ctx, req) => s.getOrderBilling(ctx, { orderId: obj(req.params)['order_id'] })),
@@ -66,4 +70,21 @@ export const invoiceHandlers: Readonly<Record<string, Handler>> = Object.freeze(
   getCreditNote: bind((s, ctx, req) => s.getCreditNote(ctx, { creditNoteId: obj(req.params)['credit_note_id'] })),
   cancelInvoice,
   issuePartialCreditNote,
+});
+
+// SEC-AUTHZ-6 (LD-189 AUTH-SENSITIVE, LD-261; SEC-AUTHZ-1.1): the contract x-permission is asked FIRST, before the wrapped handler reads or writes anything.
+export const invoiceHandlers: Readonly<Record<string, Handler>> = Object.freeze({
+  ...invoiceHandlersRaw,
+  // already guarded-exact in the service (after the row load, with the row's centre); this floor asks the same permission FIRST, before any read.
+  printInvoice: guarded('billing.invoice.reprint', invoiceHandlersRaw['printInvoice']!),
+  printCreditNote: guarded('billing.invoice.reprint', invoiceHandlersRaw['printCreditNote']!),
+  listInvoices: guarded('billing.invoice.read', invoiceHandlersRaw['listInvoices']!),
+  getInvoice: guarded('billing.invoice.read', invoiceHandlersRaw['getInvoice']!),
+  getOrderBilling: guarded('billing.invoice.read', invoiceHandlersRaw['getOrderBilling']!),
+  listInvoicePrints: guarded('billing.invoice.read', invoiceHandlersRaw['listInvoicePrints']!),
+  listCreditNoteTasks: guarded('billing.invoice.read', invoiceHandlersRaw['listCreditNoteTasks']!),
+  listCreditNotes: guarded('billing.invoice.read', invoiceHandlersRaw['listCreditNotes']!),
+  getCreditNote: guarded('billing.invoice.read', invoiceHandlersRaw['getCreditNote']!),
+  cancelInvoice: guarded('billing.invoice.cancel', invoiceHandlersRaw['cancelInvoice']!),
+  issuePartialCreditNote: guarded('billing.invoice.cancel', invoiceHandlersRaw['issuePartialCreditNote']!),
 });

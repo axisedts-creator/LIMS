@@ -19,7 +19,7 @@ vi.mock('@/core/session/server', async () => (await import('./r04.harness')).ses
 vi.mock('@/core/session/actions', async () => (await import('./r04.harness')).actionsMock);
 vi.mock('@/core/nav/generated', async () => (await import('./r04.harness')).generatedMock);
 
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterAll(() => api.close());
 beforeEach(() => { resetHits(); router.push.mockClear(); });
 afterEach(() => api.resetHandlers());
@@ -32,7 +32,7 @@ const mount = () => render(
     <button>Some button</button>
   </AppShell>,
 );
-const box = () => screen.getByRole('searchbox', { name: /search/i }) as HTMLInputElement;
+const box = () => screen.getByRole('searchbox', { name: /search patients/i }) as HTMLInputElement;
 
 describe('Ctrl+K', () => {
   it('focuses the search from the page body and prevents the browser default', () => {

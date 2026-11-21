@@ -179,9 +179,10 @@ describe('PORT_CONSUMERS enforcement (AC-0D-6.4, 08 A19 P-46)', () => {
     expect(m.labelsOf('lims_core_port_consumer_not_listed_total')).toEqual([{ module: 'instruments', port: 'CatalogPort' }]);
   });
 
-  it('no implicit owner access: billing owns BillingCommandPort but only frontdesk is listed -> billing read throws', () => {
+  // T0D-PORTOWN-1 / LD-305 supersedes the former "no implicit owner access" case (billing read of its own BillingCommandPort threw):
+  // the owner of a port may read it even when PORT_CONSUMERS omits the owner. That case now lives in the owner block below.
+  it('a listed consumer is unchanged: frontdesk reads BillingCommandPort', () => {
     const r = boot().run();
-    expect(thrown(() => r.portsFor('billing').BillingCommandPort)?.code).toBe('common.internal');
     expect(r.portsFor('frontdesk').BillingCommandPort).toMatchObject({ kind: 'real' });
   });
 
@@ -215,5 +216,88 @@ describe('PORT_CONSUMERS enforcement (AC-0D-6.4, 08 A19 P-46)', () => {
     const snap = JSON.stringify({ forceFake, modules });
     boot({ forceFake, modules }).run();
     expect(JSON.stringify({ forceFake, modules })).toBe(snap);
+  });
+});
+
+// T0D-PORTOWN-1, LD-305, CR-C0-0B-ADMINFIX-1: PORT_CONSUMERS omits the owner of IdentityPort, so on staging the identity audit view and
+// audit export handlers (ctx.ports.IdentityPort read by module identity) threw common.internal. The owner may read the port it owns.
+describe('owner reads its own port (T0D-PORTOWN-1, LD-305)', () => {
+  // Same shape as the generated list: IdentityPort consumers = every module EXCEPT the owner; BillingCommandPort omits its owner billing.
+  const NO_OWNER_LISTED = {
+    ...CONSUMERS,
+    IdentityPort: ALL_MODULES.filter((m) => m !== 'identity'),
+    BillingCommandPort: ['frontdesk'],
+  };
+
+  it.each(ENVS)('%s: identity (owner, not listed) reads IdentityPort: no error, no port_consumer_not_listed log, no metric', (env) => {
+    const { run, l, m } = boot({ env, consumers: NO_OWNER_LISTED });
+    const r = run();
+    expect(r.portsFor('identity').IdentityPort).toMatchObject({ kind: 'real', port: 'IdentityPort' });
+    expect(l.events('port_consumer_not_listed')).toHaveLength(0);
+    expect(m.counter('lims_core_port_consumer_not_listed_total')).toBe(0);
+  });
+
+  it.each(ENVS)('%s: billing (owner, not listed) reads BillingCommandPort without error or log', (env) => {
+    const { run, l } = boot({ env, consumers: NO_OWNER_LISTED });
+    const r = run();
+    expect(r.portsFor('billing').BillingCommandPort).toMatchObject({ kind: 'real', port: 'BillingCommandPort' });
+    expect(l.events('port_consumer_not_listed')).toHaveLength(0);
+  });
+
+  it.each(ENVS)('%s: the owner of two ports (reporting: NotificationPort, RenderPort) reads both with no log', (env) => {
+    const { run, l } = boot({ env, consumers: { ...CONSUMERS, NotificationPort: ['frontdesk'], RenderPort: ['frontdesk'] } });
+    const r = run();
+    expect(r.portsFor('reporting').NotificationPort).toMatchObject({ port: 'NotificationPort' });
+    expect(r.portsFor('reporting').RenderPort).toMatchObject({ port: 'RenderPort' });
+    expect(l.events('port_consumer_not_listed')).toHaveLength(0);
+  });
+
+  it.each(ENVS)('%s: an owner whose port has no consumers entry at all still reads it (no crash on a missing key)', (env) => {
+    const { IdentityPort: _i, ...rest } = CONSUMERS;
+    const { run, l } = boot({ env, consumers: rest });
+    expect(run().portsFor('identity').IdentityPort).toMatchObject({ port: 'IdentityPort' });
+    expect(l.events('port_consumer_not_listed')).toHaveLength(0);
+  });
+
+  it.each(['dev', 'ci', 'staging'] as const)('%s: a module that neither owns the port nor is listed still throws common.internal and logs', (env) => {
+    const { run, l } = boot({ env, consumers: NO_OWNER_LISTED });
+    const r = run();
+    const err = thrown(() => r.portsFor('instruments').BillingCommandPort);
+    expect(err?.code).toBe('common.internal');
+    expect(l.events('port_consumer_not_listed')).toHaveLength(1);
+    expect(l.events('port_consumer_not_listed')[0]).toMatchObject({ module: 'instruments', port: 'BillingCommandPort' });
+  });
+
+  it('production: a module that neither owns nor is listed still gets the port, with log and metric', () => {
+    const { run, l, m } = boot({ env: 'production', consumers: NO_OWNER_LISTED });
+    const got = run().portsFor('instruments').BillingCommandPort;
+    expect(got).toMatchObject({ kind: 'real', port: 'BillingCommandPort' });
+    expect(l.events('port_consumer_not_listed')).toHaveLength(1);
+    expect(m.labelsOf('lims_core_port_consumer_not_listed_total')).toEqual([{ module: 'instruments', port: 'BillingCommandPort' }]);
+  });
+
+  it.each(['dev', 'ci', 'staging'] as const)('%s: owning one port grants nothing on another: identity and catalog still cannot read an unlisted LabPort', (env) => {
+    const { run, l } = boot({ env, consumers: NO_OWNER_LISTED });
+    const r = run();
+    expect(thrown(() => r.portsFor('identity').LabPort)?.code).toBe('common.internal');
+    expect(thrown(() => r.portsFor('catalog').LabPort)?.code).toBe('common.internal');
+    expect(thrown(() => r.portsFor('billing').CatalogPort)).toBeUndefined(); // listed consumer: unchanged
+    expect(l.events('port_consumer_not_listed')).toHaveLength(2);
+  });
+
+  it('exact set: with no consumers listed anywhere, only the owner reads each port (every other module still throws on staging)', () => {
+    const r = boot({ env: 'staging', consumers: Object.fromEntries(PORT_NAMES.map((p) => [p, []])) }).run();
+    for (const p of PORT_NAMES) {
+      for (const mname of ALL_MODULES) {
+        const err = thrown(() => r.portsFor(mname)[p]);
+        if (mname === OWNERS[p]) expect(err, `${mname} owns ${p}`).toBeUndefined();
+        else expect(err?.code, `${mname} reads ${p}`).toBe('common.internal');
+      }
+    }
+  });
+
+  it('a fake-resolved owned port is readable by its owner too (dev, owner module not loaded)', () => {
+    const r = boot({ env: 'dev', modules: allModules(['CatalogPort']), consumers: { ...CONSUMERS, CatalogPort: ['frontdesk'] } }).run();
+    expect(r.portsFor('catalog').CatalogPort).toBe(fakes.CatalogPort);
   });
 });

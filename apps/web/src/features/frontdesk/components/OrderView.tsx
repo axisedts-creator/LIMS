@@ -16,9 +16,12 @@ import { Tabs } from '@lims/ui/components/Tabs';
 import { TextField } from '@lims/ui/components/TextField';
 import { useToast } from '@lims/ui/components/Toast';
 import { PAYMENT_METHODS } from '@/features/billing/server/types';
+// T0D-OFFLINE-3 (LD-322; done_when 4): cancel is online only; offline the button is disabled with the reason next to it
+import { useOnlineOnly } from '@/core/offline/ui/OfflineProvider';
 import { cancelOrderAction, changeOrderItemsAction, quoteItemsChangeAction, recordPaymentAction, uploadTrfAction } from '../server/actions';
 import type { CatalogOption, Coded, Order, OrderBilling, OrderItem } from '../server/types';
 import { BsAd, Status, errorText, formatNpr, hasPerm, humanize, npr } from './format';
+import './frontdesk.css';
 
 type Tab = 'items' | 'billing' | 'attachments';
 type Open = { kind: 'none' } | { kind: 'cancel' } | { kind: 'add' } | { kind: 'pay' } | { kind: 'remove'; item: OrderItem };
@@ -44,6 +47,7 @@ export function OrderView({ order, billing, permissions, cancelReasons, removalR
   const cancelled = order.status === 'cancelled';
   const editable = order.status === 'registered' && hasPerm(permissions, 'frontdesk.order.edit');
   const canCancel = !cancelled && hasPerm(permissions, 'frontdesk.order.cancel');
+  const cancelGate = useOnlineOnly('order.cancel');
   // Booked orders are confirmed through the registration payment panel (F12 needs quote_fingerprint + payments, FD-T13); this page only flags them.
   const booked = order.status === 'pre_registered' && hasPerm(permissions, 'frontdesk.registration.create');
   const paid = billing?.balance.paid.amount_paisa ?? 0;
@@ -63,7 +67,7 @@ export function OrderView({ order, billing, permissions, cancelReasons, removalR
         title={order.registration_no}
         helpKey="frontdesk.order"
         status={<Status status={order.status} />}
-        actions={canCancel ? <Button variant="danger" onPress={() => openDialog({ kind: 'cancel' })}>Cancel order</Button> : null}
+        actions={canCancel ? <><Button variant="danger" isDisabled={cancelGate.disabled} onPress={() => openDialog({ kind: 'cancel' })}>Cancel order</Button>{cancelGate.reason ? <span className="lims-description">{cancelGate.reason}</span> : null}</> : null}
       />
       <dl className="lims-order-header">
         <div><dt>Patient</dt><dd><a className="lims-link" href={`/frontdesk/patients/${order.patient.id}`}>{order.patient.full_name}</a> ({order.patient.patient_code}, {humanize(order.patient.sex)}{order.patient.age_at_order ? `, ${order.patient.age_at_order}` : ''})</dd></div>
@@ -71,7 +75,7 @@ export function OrderView({ order, billing, permissions, cancelReasons, removalR
         <div><dt>Billing mode</dt><dd>{humanize(order.billing_mode)}</dd></div>
         {order.referrer_name ? <div><dt>Referrer</dt><dd>{order.referrer_name}</dd></div> : null}
         {order.registered_at ? <div><dt>Registered</dt><dd><BsAd utc={order.registered_at} /></dd></div> : null}
-        {order.flags.length ? <div><dt>Flags</dt><dd>{order.flags.map((f) => <span key={f.id} className="lims-chip" style={{ marginRight: 4 }}>{humanize(f.kind)} ({f.status})</span>)}</dd></div> : null}
+        {order.flags.length ? <div><dt>Flags</dt><dd>{order.flags.map((f) => <span key={f.id} className="lims-chip lims-chip-gap">{humanize(f.kind)} ({f.status})</span>)}</dd></div> : null}
       </dl>
 
       {notice ? <div role="alert"><Banner tone="danger" title={notice} /></div> : null}
@@ -84,11 +88,11 @@ export function OrderView({ order, billing, permissions, cancelReasons, removalR
             {editable ? <Button variant="primary" onPress={() => openDialog({ kind: 'add' })}>Add tests</Button> : null}
             <table>
               <caption>Order items</caption>
-              <thead><tr><th scope="col">Code</th><th scope="col">Name</th><th scope="col">Priority</th><th scope="col">Status</th><th scope="col" style={{ textAlign: 'end' }}>Price</th><th scope="col">Actions</th></tr></thead>
+              <thead><tr><th scope="col">Code</th><th scope="col">Name</th><th scope="col">Priority</th><th scope="col">Status</th><th scope="col" className="lims-cell-end">Price</th><th scope="col">Actions</th></tr></thead>
               <tbody>
                 {order.items.map((i) => (
                   <tr key={i.id}>
-                    <td>{i.code}</td><td>{i.name}</td><td>{humanize(i.priority)}</td><td>{humanize(i.status)}</td><td style={{ textAlign: 'end' }}>{npr(i.unit_price)}</td>
+                    <td>{i.code}</td><td>{i.name}</td><td>{humanize(i.priority)}</td><td>{humanize(i.status)}</td><td className="lims-cell-end">{npr(i.unit_price)}</td>
                     <td>{editable && !GONE.includes(i.status) ? <Button size="sm" onPress={() => openDialog({ kind: 'remove', item: i })}>Remove</Button> : null}</td>
                   </tr>
                 ))}

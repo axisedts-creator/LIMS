@@ -1,3 +1,7 @@
+'use client';
+// T0D-WEBFIX-1 (LD-301): the help control passes an inline onPress to the client Button; server components (engagement
+// booking/queue/link page loaders) render PageHeader, and RSC refuses function props across the client boundary
+// ("Event handlers cannot be passed to Client Component props"), which was the engagement error page on staging.
 import type { ReactNode } from 'react';
 import { Button } from '../Button/Button';
 import { msg } from '../_shared/messages';
@@ -7,6 +11,8 @@ export interface PageHeaderProps {
   breadcrumbs?: readonly { label: string; href?: string }[];
   actions?: ReactNode;
   status?: ReactNode;
+  /** T0D-UIDASH-2 (LD-436 title row): one caption line under the title (date line, what the list holds). */
+  caption?: ReactNode;
   /** REQUIRED: in-app help (CV §14). */
   helpKey: string;
   /** [CONV] Called with helpKey when the help control is pressed; the web shell opens its help panel. */
@@ -17,7 +23,7 @@ export interface PageHeaderProps {
 /** Only relative or same-origin http(s) hrefs; anything else (javascript:, data:) renders as plain text. */
 const safeHref = (h?: string) => (h && /^(\/(?!\/)|#|\?|https?:\/\/)/i.test(h) ? h : undefined);
 
-export function PageHeader({ title, breadcrumbs, actions, status, helpKey, onHelp, ...rest }: PageHeaderProps) {
+export function PageHeader({ title, breadcrumbs, actions, status, caption, helpKey, onHelp, ...rest }: PageHeaderProps) {
   return (
     <div className="lims-page-header" {...rest}>
       {breadcrumbs?.length ? (
@@ -36,7 +42,14 @@ export function PageHeader({ title, breadcrumbs, actions, status, helpKey, onHel
         </nav>
       ) : null}
       <div className="lims-page-header-row">
-        <h1 className="lims-page-title">{title}</h1>
+        {caption ? (
+          <div className="lims-page-heading">
+            <h1 className="lims-page-title">{title}</h1>
+            <p className="lims-page-caption">{caption}</p>
+          </div>
+        ) : (
+          <h1 className="lims-page-title">{title}</h1>
+        )}
         {status ? <div className="lims-page-status">{status}</div> : null}
         <div className="lims-page-actions">
           {actions}

@@ -11,6 +11,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { parse } from 'yaml';
+import { STAFF } from './admin-staff-codes';
 
 const ROOT = join(import.meta.dirname, '../../../../../../..');
 const lf = (s: string) => s.replace(/\r\n/g, '\n');
@@ -59,6 +60,23 @@ function sheet(startHeading: string, endHeading: string): Feature[] {
   }
   return rows;
 }
+
+// LD-254 (R5a, 11-ROLE-MATRIX section 3.3, lead commit bc657dab0): the Admin additions beyond the sheet, copied from the section 3.3 table.
+const ADMIN_EXTRA_STD = [
+  'analytics.referral_report.read', 'anatomic.config.manage', 'billing.data.export', 'instruments.agent.read', 'inventory.cost.read',
+  'inventory.report.export', 'inventory.stock.adjust', 'inventory.stock.manage', 'micro.config.manage', 'micro.culture.read',
+  'partners.manifest.receive', 'quality.autoverify.read', 'quality.config.manage', 'quality.qc.manage', 'quality.qc_run.read',
+  'quality.tat_alert.ack', 'smartreport.summary.read',
+];
+// std_admin already held the other six codes of the table (so 17 are added there, 23 to corp_admin).
+const ADMIN_EXTRA: Record<string, string[]> = {
+  corp_admin: [...ADMIN_EXTRA_STD, 'inventory.item.read', 'inventory.master.manage', 'inventory.po.manage', 'lab.config.manage', 'quality.tat_alert.read', 'reporting.report.print'],
+  std_admin: ADMIN_EXTRA_STD,
+};
+const TENANT_ADMIN = new Set(
+  (parse(readFileSync(join(ROOT, 'contracts/permissions.yaml'), 'utf8')) as { permissions: Array<{ code: string; roles: string[] }> })
+    .permissions.filter((p) => p.roles.includes('tenant_admin')).map((p) => p.code),
+);
 
 const SHEETS = [
   { pack: 'elabcorp_default', roles: 19, rows: 80, features: sheet('### 5.1 ELabCorp sheet', '### 5.2 ELabAssist sheet') },
@@ -126,5 +144,22 @@ describe.each(SHEETS)('RM-T03 matrix replay: $pack', ({ pack, roles: nRoles, fea
 
   it('R4: capped codes never reach a role the cap excludes, even though the sheet ticks them', () => {
     for (const r of roles) for (const c of cappedFor(r.code)) expect(held.get(r.code)!.has(c), `${r.code} holds capped ${c}`).toBe(false);
+  });
+
+  // LD-254 (R5a, 11-ROLE-MATRIX section 3.3): the Admin pack is tenant_admin + ticked screens + ADMIN_EXTRA. The additions are pinned as an
+  // exact constant, so the pack minus ADMIN_EXTRA must be explained by the default role and the ticks, and ANY other difference fails.
+  it('R5a: Admin = tenant_admin base + ticked sheet features + ADMIN_EXTRA, and nothing else (the additions are pinned, any other difference fails)', () => {
+    const admin = roles.find((r) => r.base_default_role)!;
+    const extra = ADMIN_EXTRA[admin.code]!;
+    const have = held.get(admin.code)!;
+    expect(new Set(extra).size, 'ADMIN_EXTRA has no duplicates').toBe(extra.length);
+    expect(extra.length).toBe(admin.code === 'corp_admin' ? 23 : 17);
+    expect(extra.filter((c) => !have.has(c)), `${admin.code}: ADMIN_EXTRA codes missing from the pack`).toEqual([]);
+    const rest = [...have].filter((c) => !extra.includes(c));
+    const ticked = mapped.filter((f) => { const e = f.perms; return e.length > 0 && e.every((p) => have.has(p)); });
+    // LD-310 (T0B-ADMINPERM-1, founder: admin gets all features): corp_admin additionally holds every tenant staff code of the registry (STAFF);
+    // that set is pinned exactly by admin-all-permissions.test.ts. std_admin is not widened.
+    const explained = new Set([...TENANT_ADMIN, ...ticked.flatMap((f) => f.perms), ...(admin.code === 'corp_admin' ? STAFF : [])]);
+    expect(rest.filter((c) => !explained.has(c)), `${admin.code}: held, but neither tenant_admin, a ticked screen nor ADMIN_EXTRA`).toEqual([]);
   });
 });

@@ -72,6 +72,31 @@ export interface BuildDocumentInput {
   complete: boolean;
   earlierReleased: boolean;
   regeneration?: Regeneration;
+  /** T0B-PRINTCFG-1 (LD-316): the lab.result_signoff snapshots of the printed result versions (T0B-VERLEVEL-1 chain). Present (even []) = only
+   *  pathologist sign-offs print as signatures; absent = the legacy approvers / nominated path. */
+  signoffs?: readonly SignoffSnapshot[];
+}
+
+/** One lab.result_signoff row (camelCase snapshot) + the signer profile title (not snapshotted, contract). */
+export interface SignoffSnapshot {
+  resultId: Uuidv7; resultVersion: number; seq: number; action: 'verify' | 'approve'; signerUserId: Uuidv7; signerDisplayName: string; signerTitle?: string;
+  signerRoleCode: string; signerIsPathologist: boolean; signerRegistrationNo?: string; signerSignatureAssetId?: Uuidv7; signerSignatureSha256?: string; signedAt: IsoUtc;
+}
+
+/** LD-316: only sign-offs with signer_is_pathologist print, in sign-off order (signedAt, then seq), once per signer, at most `max`. Data from the snapshot only. */
+export function pathologistSignatories(signoffs: readonly SignoffSnapshot[], max: number): Signatory[] {
+  const ordered = signoffs.filter((s) => s.signerIsPathologist === true)
+    .sort((a, b) => (a.signedAt < b.signedAt ? -1 : a.signedAt > b.signedAt ? 1 : a.seq - b.seq));
+  const seen = new Set<string>(); const out: Signatory[] = [];
+  for (const s of ordered) {
+    if (seen.has(s.signerUserId) || out.length >= max) continue;
+    seen.add(s.signerUserId);
+    out.push({ membershipId: s.signerUserId, displayName: s.signerDisplayName, ...(s.signerTitle ? { displayTitle: s.signerTitle } : {}),
+      ...(s.signerRegistrationNo ? { registrationNo: s.signerRegistrationNo } : {}),
+      ...(s.signerSignatureAssetId && s.signerSignatureSha256 ? { signatureAssetRef: { source: 'signature', id: s.signerSignatureAssetId, sha256: s.signerSignatureSha256 } } : {}),
+      role: 'approver' });
+  }
+  return out;
 }
 
 const STATUS: Record<ReportKind, StatusLabel> = { final: 'Final', partial: 'Partial', preliminary: 'Preliminary', amended: 'Amended', addendum: 'Addendum' };
@@ -245,7 +270,7 @@ export function buildReportDocument(input: BuildDocumentInput): ReportDocument {
       ...(s.signatureAssetId && s.signatureSha256 ? { signatureAssetRef: { source: 'signature', id: s.signatureAssetId, sha256: s.signatureSha256 } } : {}), role };
   };
   const sigIds = config.signatoryMode === 'nominated' ? [...new Set(config.nominatedMembershipIds ?? [])] : byTime(approvals);
-  const signatories = sigIds.map((id) => toSig(id, config.signatoryMode === 'nominated' ? 'nominated' : 'approver'))
+  const signatories = input.signoffs !== undefined ? pathologistSignatories(input.signoffs, config.maxSignatories) : sigIds.map((id) => toSig(id, config.signatoryMode === 'nominated' ? 'nominated' : 'approver'))
     .filter((s): s is Signatory => !!s).slice(0, config.maxSignatories);
 
   const b = settings.branding ?? {};

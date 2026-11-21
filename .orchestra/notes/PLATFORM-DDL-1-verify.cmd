@@ -1,0 +1,1 @@
+pnpm --dir services/api exec vitest run src/modules/identity/__tests__/platform-ddl-1.static.test.ts src/modules/identity/service/__tests__/tenant.service.test.ts src/modules/identity/service/__tests__/tenant.integration.test.ts src/modules/identity/service/__tests__/tenant.handlers.test.ts && node db/tools/check-registry.ts

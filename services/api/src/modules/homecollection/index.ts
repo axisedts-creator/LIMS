@@ -9,6 +9,7 @@ import { handler as cancelHomeVisit } from './handlers/cancelHomeVisit.js';
 import { handler as createHomeRevisit } from './handlers/createHomeRevisit.js';
 import { handler as resequenceHomeRoute } from './handlers/resequenceHomeRoute.js';
 import { handler as resolveHomeVisitFlag } from './handlers/resolveHomeVisitFlag.js';
+import { handler as reviewHeldCollection } from './handlers/reviewHeldCollection.js';
 import { handler as scheduleHomeVisit } from './handlers/scheduleHomeVisit.js';
 import { handler as unassignHomeVisit } from './handlers/unassignHomeVisit.js';
 import { handler as ackSync } from './handlers/ackSync.js';
@@ -29,6 +30,7 @@ import { handler as updateHomecollectionSettings } from './handlers/updateHomeco
 import { handler as listHandovers } from './handlers/listHandovers.js';
 import { handler as getHandover } from './handlers/getHandover.js';
 import { handler as confirmHandover } from './handlers/confirmHandover.js';
+import { handler as updateCollectorFlags } from './handlers/updateCollectorFlags.js';
 
 const OPERATION_IDS = [
   'listHomeVisits', 'getHomeVisit', 'assignHomeVisit', 'unassignHomeVisit', 'scheduleHomeVisit', 'cancelHomeVisit', 'createHomeRevisit',
@@ -36,6 +38,7 @@ const OPERATION_IDS = [
   'getHandover', 'confirmHandover', 'listPhleboDevices', 'requestDeviceWipe', 'getHomecollectionSettings', 'updateHomecollectionSettings',
   'listHomecollectionReasons', 'revealHomeVisitPhone',
   'registerPhleboDevice', 'getSyncSnapshot', 'pushSyncMutations', 'ackSync', 'signOffPhleboDevice',
+  'updateCollectorFlags',
 ] as const;
 
 type HomecollectionOperationId = (typeof OPERATION_IDS)[number];
@@ -54,7 +57,9 @@ const implemented: Partial<Record<HomecollectionOperationId, Handler>> = {
   assignHomeVisit, unassignHomeVisit, scheduleHomeVisit, cancelHomeVisit, createHomeRevisit, resolveHomeVisitFlag, resequenceHomeRoute,   // HC-T09: H3-H8, H11
   getSyncSnapshot, ackSync,   // HC-T11: A2, A4
   pushSyncMutations,   // HC-T12: A3
+  reviewHeldCollection,   // HC-T13: H9
   listHandovers, getHandover, confirmHandover,   // HC-T14: H13-H15
+  updateCollectorFlags,   // T0B-SALES-1 (LD-321): collector Allow Collection / Allow Pickup
 };
 
 const handlers = Object.freeze(
@@ -65,5 +70,6 @@ export const manifest: ModuleManifest = {
   name: 'homecollection',
   openapi: 'contracts/openapi/homecollection.yaml',
   handlers,
+  pendingOperations: [], // LD-325 b: T0B-SALES-1 implemented updateCollectorFlags (pending since T0C-SALES-1)
   produces: ['homecollection.collection.synced.v1'],
 };

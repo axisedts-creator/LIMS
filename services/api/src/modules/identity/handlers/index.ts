@@ -3,6 +3,7 @@
 // replaces it with handlers/<operationId>.ts. [CONV] same one-list stub pattern as modules/lab/handlers/index.ts.
 import type { Handler } from '../../../core/module.js';
 import { LimsError } from '../../../core/errors.js';
+import { applyRolePack } from './applyRolePack.js';
 import { createRole } from './createRole.js';
 import { deactivateRole } from './deactivateRole.js';
 import { getRole } from './getRole.js';
@@ -40,6 +41,10 @@ import { listDeadLetters } from './listDeadLetters.js';
 import { getDeadLetter } from './getDeadLetter.js';
 import { replayDeadLetter } from './replayDeadLetter.js';
 import { discardDeadLetter } from './discardDeadLetter.js';
+import { listAuditEntries } from './listAuditEntries.js';
+import { getAuditEntry } from './getAuditEntry.js';
+import { listAccessLogEntries } from './listAccessLogEntries.js';
+import { listAuthEvents } from './listAuthEvents.js';
 import { createAuditExport } from './createAuditExport.js';
 import { listAuditExports } from './listAuditExports.js';
 import { getAuditExport } from './getAuditExport.js';
@@ -145,13 +150,14 @@ const notImplemented = (operationId: string): Handler => async () => {
 };
 
 const implemented: Partial<Record<IdentityOperationId, Handler>> = {
-  listPermissions, listRoles, createRole, getRole, updateRole, deactivateRole,   // T14
+  listPermissions, listRoles, createRole, getRole, updateRole, deactivateRole, applyRolePack,   // T14 (applyRolePack: guarded stub, SEC-AUTHZ-4)
   listBranches, createBranch, updateBranch, deactivateBranch, reactivateBranch,                  // T15
   listCentres, createCentre, updateCentre, deactivateCentre, reactivateCentre,                    // T15
   getSettings, updateSettings, uploadBrandingAsset, getBrandingAssetContent, listFeatureFlags, setTenantFeatureFlag, listOwnIrdAnnexes,   // T16
   openSupportSession, activateSupportSession, endSupportSession, listPlatformSupportSessions,                       // T21
   listPlatformIrdAnnexes, createPlatformIrdAnnex, updateIrdAnnex, transitionIrdAnnex, uploadIrdAnnexDocument, downloadIrdAnnexDocument,   // T23
   listDeadLetters, getDeadLetter, replayDeadLetter, discardDeadLetter,                                          // T24
+  listAuditEntries, getAuditEntry, listAccessLogEntries, listAuthEvents,                                       // T18 (wired T0C-AUDIT-WIRE-1)
   createAuditExport, listAuditExports, getAuditExport, downloadAuditExport,                                    // T19
   listPlatformStaff, invitePlatformStaff, updatePlatformStaff, deactivatePlatformStaff, resetPlatformStaffMfa,  // T25
   listPlatformSessions, revokePlatformSession, listPlatformAuthEvents,                                          // T25

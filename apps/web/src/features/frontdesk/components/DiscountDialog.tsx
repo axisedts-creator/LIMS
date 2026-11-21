@@ -1,5 +1,8 @@
 'use client';
 // F6 discount dialog (04-UI-UX §3.2 E): scope line/bill, kind amount/percent, value, reason. The quote decides whether approval is needed.
+// T0D-FINCTRL-1 (LD-321, additive): reasons, the requester limit and the approval authority come from getMyDiscountPolicy; the form says whether
+// approval will be needed (above the own limit, or no own limit) but never blocks Apply (the server decides). If the policy read fails the form
+// falls back to the F25 coded set and shows no hint. The payload is unchanged.
 import { useEffect, useState } from 'react';
 import { Button } from '@lims/ui/components/Button';
 import { Dialog } from '@lims/ui/components/Dialog';
@@ -8,8 +11,12 @@ import { MoneyField, type Money } from '@lims/ui/components/MoneyField';
 import { RadioGroup } from '@lims/ui/components/RadioGroup';
 import { Select } from '@lims/ui/components/Select';
 import { TextField } from '@lims/ui/components/TextField';
+import { t } from '@/core/i18n/messages';
+import { pctText } from '@/features/billing/components/discounts/discountShared';
+import { formatNpr } from '@/features/billing/components/format';
 import type { Item } from '../forms/draft';
-import { listDiscountReasonsAction } from '../server/actions';
+import { getMyDiscountPolicyAction, listDiscountReasonsAction } from '../server/actions';
+import type { MyDiscountPolicy } from '../server/read.server';
 import type { CodedSetEntry, DraftDiscount } from '../server/types';
 
 export function DiscountDialog({ items, onApply, onClose }: { items: Item[]; onApply: (d: DraftDiscount) => void; onClose: () => void }) {
@@ -20,14 +27,29 @@ export function DiscountDialog({ items, onApply, onClose }: { items: Item[]; onA
   const [pct, setPct] = useState<number>();
   const [reason, setReason] = useState<string>();
   const [reasons, setReasons] = useState<CodedSetEntry[]>([]);
+  const [policy, setPolicy] = useState<MyDiscountPolicy>();
   const [text, setText] = useState('');
   const [err, setErr] = useState<Record<string, string>>({});
-  // Reason comes from the F25 discount_reasons coded set (04-UI-UX:90), ordered by sort_order.
+  // Reason comes from the tenant master via getMyDiscountPolicy (LD-321), in display order; when that read fails, from the F25 discount_reasons
+  // coded set (04-UI-UX:90), ordered by sort_order.
   useEffect(() => {
     let live = true;
-    void listDiscountReasonsAction().then((r) => { if (live && r.ok) setReasons([...r.data].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))); });
+    const fallback = () => listDiscountReasonsAction().then((r) => { if (live && r.ok) setReasons([...r.data].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))); }, () => undefined);
+    void getMyDiscountPolicyAction().then(
+      (r) => {
+        if (!live) return;
+        if (!r.ok) return void fallback();
+        setPolicy(r.data);
+        setReasons([...r.data.reasons].sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0)).map((x) => ({ code: x.code, display: x.name })));
+      },
+      () => void fallback(),
+    );
     return () => { live = false; };
   }, []);
+  const own = policy?.own_limit;
+  const ceiling = (c: { max_discount_bp: number; max_discount_paisa: number }) => `${pctText(c.max_discount_bp)}% · ${formatNpr(c.max_discount_paisa)}`;
+  const value = kind === 'amount' ? (money && money.amountPaisa >= 1 ? money.amountPaisa : undefined) : (pct && pct >= 1 ? pct * 100 : undefined);
+  const needsApproval = value === undefined || !policy ? undefined : !own ? true : kind === 'amount' ? value > own.max_discount_paisa : value > own.max_discount_bp;
 
   const apply = () => {
     const e: Record<string, string> = {};
@@ -51,6 +73,13 @@ export function DiscountDialog({ items, onApply, onClose }: { items: Item[]; onA
         : <IntegerField label="Discount percent" name="discount_percent" min={1} max={100} isRequired {...(pct !== undefined ? { value: pct } : {})} onChange={setPct} {...(err['value'] ? { error: err['value'] } : {})} />}
       <Select label="Reason" name="reason_code" isRequired options={reasons.map((r) => ({ value: r.code, label: r.display }))} {...(reason ? { value: reason } : {})} onChange={setReason} {...(err['reason'] ? { error: err['reason'] } : {})} />
       <TextField label="Details" name="reason_text" maxLength={500} value={text} onChange={setText} />
+      {policy ? (
+        <div className="lims-stack" aria-live="polite">
+          {own ? <p className="lims-inline"><span>{t('billing.discounts.form.own_limit')}</span>{' '}<span>{ceiling(own)}</span></p> : <p>{t('billing.discounts.form.no_limit')}</p>}
+          {policy.authority ? <p className="lims-inline"><span>{t('billing.discounts.form.authority')}</span>{' '}<span>{ceiling(policy.authority)}</span></p> : null}
+          {needsApproval === undefined ? null : <p>{t(needsApproval ? 'billing.discounts.form.approval_needed' : 'billing.discounts.form.approval_not_needed')}</p>}
+        </div>
+      ) : null}
     </Dialog>
   );
 }

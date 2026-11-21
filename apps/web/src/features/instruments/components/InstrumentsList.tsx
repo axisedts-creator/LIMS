@@ -1,9 +1,11 @@
 'use client';
-// SCR-05 Instruments (04-UI-UX §3). "New instrument" opens the SCR-06 form in a Dialog lg. Manage affordances are a UI hint; the API enforces.
-import { useEffect, useState } from 'react';
+// SCR-05 Instruments (04-UI-UX §3). T0D-UILIST-1 (LD-353): a table again, same data, filters, sort and routes. "New instrument" opens the SCR-06 form in a Dialog lg. Manage affordances are a UI hint; the API enforces.
+import { useEffect, useState, type ReactNode } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@lims/ui/components/Button';
-import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
+import { EmptyRow, PlaceholderRows } from '@lims/ui/components/DataTable';
+import { EmptyState } from '@lims/ui/components/EmptyState';
+import { ErrorState } from '@lims/ui/components/ErrorState';
 import { DateText } from '@lims/ui/components/DateText';
 import { Dialog } from '@lims/ui/components/Dialog';
 import { FilterBar, type FilterValue } from '@lims/ui/components/FilterBar';
@@ -14,7 +16,7 @@ import { DriverStatusBadge, INSTRUMENT_STATE_OPTIONS, InstrumentStatePill, PROTO
 import type { Centre } from './AgentsList';
 import { InstrumentForm } from './InstrumentForm';
 
-export function InstrumentsList({ instruments, permissions, centres, agents, drivers }: { instruments: readonly InstrumentSummary[]; permissions: readonly string[]; centres: readonly Centre[]; agents: readonly Pick<AgentSummary, 'id' | 'agent_code' | 'display_name' | 'status'>[]; drivers: readonly Driver[] }) {
+export function InstrumentsList({ instruments, permissions, centres, agents, drivers, loadError }: { instruments: readonly InstrumentSummary[]; permissions: readonly string[]; centres: readonly Centre[]; agents: readonly Pick<AgentSummary, 'id' | 'agent_code' | 'display_name' | 'status'>[]; drivers: readonly Driver[]; loadError?: { requestId?: string } }) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -44,23 +46,27 @@ export function InstrumentsList({ instruments, permissions, centres, agents, dri
     ...(q.protocol ? { protocol: q.protocol } : {}),
   };
 
-  const columns: ColumnDef<InstrumentSummary>[] = [
-    { id: 'code', header: 'Code', isRowHeader: true, sortKey: 'instrument_code', cell: (i) => <a className="lims-link" href={`/instruments/instruments/${i.id}`}>{i.instrument_code}</a> },
+  // T0D-UILIST-1 (LD-353 template 1, rules 5 and 8; arbiter ruling item 2): the link-card grid is a table with its header row always shown.
+  // [CONV] a native <table role="grid"> (as features/admin/Grid.tsx), not the react-aria DataTable: the row links stay in the Tab order
+  // (SCR-05 keyboard-only contract), which a roving-focus grid does not give. The sort is the header buttons (E23 sort=-last_message_at).
+  type Col = { id: string; header: string; sortKey?: string; align?: 'end'; hideBelow?: 'xl'; cell: (i: InstrumentSummary) => ReactNode };
+  const columns: Col[] = [
+    { id: 'code', header: 'Code', sortKey: 'instrument_code', cell: (i) => <a className="lims-link" href={`/instruments/instruments/${i.id}`}>{i.instrument_code}</a> },
     { id: 'name', header: 'Name', cell: (i) => i.display_name },
-    { id: 'vendor', header: 'Vendor / Model', cell: (i) => [i.vendor, i.model].filter(Boolean).join(' ') || '—' },
-    { id: 'protocol', header: 'Protocol', cell: (i) => (i.protocol ? (PROTOCOL_LABEL[i.protocol] ?? i.protocol) : '—') },
+    // the state pill is the first chip of the row (the driver badge is a chip too)
+    { id: 'status', header: 'Status', cell: (i) => <InstrumentStatePill state={i.state} /> },
+    { id: 'vendor', header: 'Vendor / Model', hideBelow: 'xl', cell: (i) => [i.vendor, i.model].filter(Boolean).join(' ') || '—' },
+    { id: 'protocol', header: 'Protocol', hideBelow: 'xl', cell: (i) => (i.protocol ? (PROTOCOL_LABEL[i.protocol] ?? i.protocol) : '—') },
     { id: 'agent', header: 'Agent', cell: (i) => i.agent_code ?? '—' },
-    {
-      id: 'driver',
-      header: 'Driver',
-      cell: (i) => (i.driver_code ? <>{driverName.get(i.driver_code) ?? i.driver_code} {i.driver_status ? <DriverStatusBadge status={i.driver_status} /> : null}</> : '—'),
-    },
-    { id: 'state', header: 'State', cell: (i) => <InstrumentStatePill state={i.state} /> },
-    { id: 'link_state', header: 'Link state', cell: (i) => i.link_state ?? '—' },
+    { id: 'driver', header: 'Driver', cell: (i) => (i.driver_code ? <>{driverName.get(i.driver_code) ?? i.driver_code} {i.driver_status ? <DriverStatusBadge status={i.driver_status} /> : null}</> : '—') },
+    { id: 'link', header: 'Link state', hideBelow: 'xl', cell: (i) => i.link_state ?? '—' },
     { id: 'last_message', header: 'Last message', sortKey: 'last_message_at', cell: (i) => (i.last_message_at ? <DateText value={i.last_message_at as never} withTime /> : '—') },
     // 04-UI-UX SCR-05: unmapped codes are text ("3 unmapped"), never colour only; the link goes to SCR-08.
     { id: 'unmapped', header: 'Unmapped', align: 'end', cell: (i) => (i.unmapped_code_count === undefined ? '—' : <a className="lims-link" href={`/instruments/instruments/${i.id}/mappings`}>{`${i.unmapped_code_count} unmapped`}</a>) },
   ];
+  const cls = (c: Col) => `lims-align-${c.align ?? 'start'}${c.hideBelow ? ` lims-hide-below-${c.hideBelow}` : ''}`;
+  const sortOf = (c: Col) => (q.sort.replace(/^-/, '') === c.sortKey ? (q.sort.startsWith('-') ? 'descending' : 'ascending') : 'none');
+  const n = columns.length;
 
   return (
     <section aria-label="Instruments">
@@ -76,14 +82,40 @@ export function InstrumentsList({ instruments, permissions, centres, agents, dri
         onChange={(v) => navigate({ centre_id: v.centre_id, agent_id: v.agent_id, state: v.state, protocol: v.protocol })}
         onReset={() => navigate({ centre_id: undefined, agent_id: undefined, state: undefined, protocol: undefined })}
       />
-      <DataTable
-        caption="Instruments"
-        columns={columns}
-        rows={instruments}
-        getRowId={(i) => i.id}
-        sort={{ value: q.sort, onChange: (v) => navigate({ sort: v.includes('last_message_at') ? '-last_message_at' : 'instrument_code' }) }}
-        emptyState={{ title: 'No instruments registered.', ...(canManage ? { action: { label: 'New instrument', onPress: () => setCreating(true) } } : {}) }}
-      />
+      <div className="lims-data-table">
+        <div className="lims-table-scroll">
+          <table role="grid" aria-label="Instruments" className="lims-table lims-table-regular lims-table-sticky">
+            <thead>
+              <tr>
+                {columns.map((c) => (
+                  <th key={c.id} scope="col" className={`lims-col ${cls(c)}`} {...(c.sortKey ? { 'aria-sort': sortOf(c) } : {})}>
+                    {c.sortKey ? (
+                      // Code sorts ascending, Last message newest first: the two sort values E23 accepts.
+                      <button type="button" className="lims-btn lims-btn-ghost lims-btn-sm" onClick={() => navigate({ sort: c.sortKey === 'last_message_at' ? '-last_message_at' : 'instrument_code' })}>{c.header}</button>
+                    ) : c.header}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {loadError ? (
+                <EmptyRow colSpan={n}><ErrorState title="The instruments could not be loaded." {...(loadError.requestId ? { requestId: loadError.requestId } : {})} onRetry={() => router.refresh()} /></EmptyRow>
+              ) : instruments.length === 0 ? (
+                // the primary action lives in the header only, not again in the EmptyState
+                <EmptyRow colSpan={n}><EmptyState title="No instruments registered." /></EmptyRow>
+              ) : (
+                instruments.map((i) => (
+                  <tr key={i.id} className="lims-row">
+                    {/* the trailing space keeps cell texts apart when the row is read or copied as text */}
+                    {columns.map((c) => <td key={c.id} className={`lims-cell ${cls(c)}`}>{c.cell(i)}{' '}</td>)}
+                  </tr>
+                ))
+              )}
+            </tbody>
+            {!loadError && instruments.length === 0 ? <PlaceholderRows colSpan={n} /> : null}
+          </table>
+        </div>
+      </div>
       {canManage && creating ? (
         <Dialog title="New instrument" isOpen onClose={() => setCreating(false)} size="lg">
           <InstrumentForm mode="create" agents={agents} drivers={drivers} permissions={permissions} onDone={() => setCreating(false)} />

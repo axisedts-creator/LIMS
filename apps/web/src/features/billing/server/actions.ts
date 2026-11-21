@@ -4,7 +4,7 @@
 import 'server-only';
 import { ApiError } from '@/core/api/server-fetch';
 import { approveRefund, cancelInvoice, closeCashSession, createBillingExport, getBillingExport, issuePartialCreditNote, printInvoice, rejectRefund, requestRefund, resolveFinanceReviewItem, retryCbmsDocument, updateBillingSettings } from './write.server';
-import type { ActionResult, BillingSettings, ExportFormat, ExportJob, ExportKind, InvoicePrintDocument } from './types';
+import type { ActionResult, BillingSettings, ExportFormat, ExportJob, ExportKind, InvoicePrintDocument, PrintStyle } from './types';
 
 async function run<T>(f: () => Promise<T>): Promise<ActionResult<T>> {
   try {
@@ -15,8 +15,8 @@ async function run<T>(f: () => Promise<T>): Promise<ActionResult<T>> {
   }
 }
 
-export async function printInvoiceAction(invoiceId: string, reasonCode: string, key: string): Promise<ActionResult<{ print_no: number; copy_mark?: string; document: InvoicePrintDocument }>> {
-  return run(() => printInvoice(invoiceId, reasonCode, key));
+export async function printInvoiceAction(invoiceId: string, reasonCode: string, key: string, style: PrintStyle = 'full'): Promise<ActionResult<{ print_no: number; style?: PrintStyle; copy_mark?: string; document: InvoicePrintDocument }>> {
+  return run(() => printInvoice(invoiceId, reasonCode, key, style));
 }
 export async function cancelInvoiceAction(invoiceId: string, version: number, r: { reason_code: string; reason_text?: string }, key: string): Promise<ActionResult<{ credit_note_no: string }>> {
   return run(async () => ({ credit_note_no: (await cancelInvoice(invoiceId, version, r, key)).credit_note.credit_note_no }));

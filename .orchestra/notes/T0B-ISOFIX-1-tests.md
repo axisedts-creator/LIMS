@@ -1,0 +1,6 @@
+- File: tests/db/T0B-DBSEED-1.fixtures.test.mjs, new describe "T0B-ISOFIX-1 / LD-263" at the end (5 static node:test tests; no SQL, no docker).
+- Reads CHECKs `flag OR cardinality(arr) BETWEEN lo AND hi` from db/migrations (exports__scope__ck, schedules__scope__ck) and judges the fixture rows itself; pins analytics.exports rows to scope_all_centres = true with columns/other values unchanged; schedules rows too; fresh generator output must not emit false.
+- Fail now (right reason): analytics.exports and analytics.schedules fixture rows have scope_all_centres = false, scope_centre_ids empty. Sanity test passes.
+- Run: node --test --test-name-pattern=ISOFIX tests/db/T0B-DBSEED-1.fixtures.test.mjs  (or .orchestra/notes/T0B-ISOFIX-1-verify.cmd, which runs the whole file).
+- Writer: derive scope_all_centres = true for exports AND schedules rows (evaluator: cast the array DEFAULT to an array so cardinality() is not UNKNOWN), write the CHECK audit note T0B-ISOFIX-1-checks.md; then the tester regenerates analytics.sql with node db/tools/gen-isolation-probes.ts.
+- Fixture analytics.sql NOT regenerated yet: the current generator still emits the false rows; regenerating now would change nothing.

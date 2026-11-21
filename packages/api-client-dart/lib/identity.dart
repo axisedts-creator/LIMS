@@ -19,6 +19,10 @@ class IdentityApi {
   Future<Object?> activateTenant({required String tenantId, Map<String, String>? headers}) =>
       _send('POST', '/v1/identity/platform/tenants/${Uri.encodeComponent(tenantId)}/activate', headers: headers);
 
+  /// POST /v1/identity/role-packs/apply
+  Future<Object?> applyRolePack({Map<String, String>? headers, Object? body}) =>
+      _send('POST', '/v1/identity/role-packs/apply', headers: headers, body: body);
+
   /// POST /v1/identity/support-sessions/{support_session_id}/approve
   Future<Object?> approveSupportSession({required String supportSessionId, Map<String, String>? headers}) =>
       _send('POST', '/v1/identity/support-sessions/${Uri.encodeComponent(supportSessionId)}/approve', headers: headers);
@@ -226,6 +230,10 @@ class IdentityApi {
   /// GET /v1/identity/platform/support-sessions
   Future<Object?> listPlatformSupportSessions({Map<String, Object?>? query}) =>
       _send('GET', '/v1/identity/platform/support-sessions', query: query);
+
+  /// GET /v1/identity/role-packs
+  Future<Object?> listRolePacks() =>
+      _send('GET', '/v1/identity/role-packs');
 
   /// GET /v1/identity/roles
   Future<Object?> listRoles({Map<String, Object?>? query}) =>

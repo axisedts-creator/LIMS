@@ -8,11 +8,15 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import { appTx, SYS_ACTOR, TENANT_A, TENANT_B, seed, seedOrder, seedPatient, superTx, tag, uid } from '../patients/helpers.js';
 import { rows } from '../integration/helpers.js';
-import { objs, snapshot, T, TENANT_TABLES, type Objs } from './kit.js';
+import { mid, objs, snapshot, T, TENANT_TABLES, type Objs } from './kit.js';
 
 const EXPECTED = [...TENANT_TABLES, 'g_cs_reasons'].sort();
 const GLOBAL = new Set(['g_cs_reasons']);                                  // no tenant_id: global reference data, SELECT-only for lims_app
-const APPEND_ONLY = new Set(['patient_consents']);                         // INSERT + SELECT only (REQ-SEC-005)
+const APPEND_ONLY = new Set(['patient_consents', 'reward_points_ledger']);  // INSERT + SELECT only (REQ-SEC-005; LD-315 (b): the points ledger is append only)
+// LD-315 (b): the ONLY tables lims_app may DELETE from; user deletable by design, each with a delete policy limited to the actor tenant AND the owning user
+const USER_DELETABLE = ['favourite_tests', 'registration_drafts'];
+// LD-315 (b): master data is deactivated, never deleted
+const NEVER_DELETED = ['coupons', 'icd_codes', 'custom_field_definitions', 'reward_points_ledger'];
 let A: Objs; let B: Objs;
 
 beforeAll(async () => {
@@ -37,14 +41,21 @@ describe('structure (catalog queries)', () => {
       FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = 'frontdesk' AND c.relkind IN ('r','p') AND NOT c.relispartition AND c.relname <> 'g_cs_reasons'`)).rows);
     expect(r.filter((x: any) => !x.rls || !x.forced || x.policies < 1).map((x: any) => x.relname)).toEqual([]);
   });
-  it('grants: lims_app never has DELETE/TRUNCATE; append-only tables have no UPDATE; g_cs_reasons is SELECT-only', async () => {
+  it('grants: lims_app has DELETE on exactly the allow list (LD-315 b) and never TRUNCATE; append-only tables have no UPDATE; g_cs_reasons is SELECT-only', async () => {
     const r = await superTx(async (tx) => (await tx.query(`SELECT c.relname, has_table_privilege('lims_app', c.oid, 'DELETE') AS del, has_table_privilege('lims_app', c.oid, 'TRUNCATE') AS trunc,
       has_table_privilege('lims_app', c.oid, 'UPDATE') AS upd, has_table_privilege('lims_app', c.oid, 'INSERT') AS ins, has_table_privilege('lims_app', c.oid, 'SELECT') AS sel
       FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = 'frontdesk' AND c.relkind IN ('r','p') AND NOT c.relispartition`)).rows);
-    expect(r.filter((x: any) => x.del || x.trunc).map((x: any) => x.relname), 'DELETE/TRUNCATE').toEqual([]);
+    expect(r.filter((x: any) => x.del).map((x: any) => x.relname).sort(), 'DELETE (allow list of exactly the two user deletable tables)').toEqual(USER_DELETABLE);
+    expect(r.filter((x: any) => x.trunc).map((x: any) => x.relname), 'TRUNCATE').toEqual([]);
     expect(r.filter((x: any) => (APPEND_ONLY.has(x.relname) || GLOBAL.has(x.relname)) && x.upd).map((x: any) => x.relname), 'UPDATE on append-only').toEqual([]);
     expect(r.filter((x: any) => GLOBAL.has(x.relname) && x.ins).map((x: any) => x.relname), 'INSERT on global').toEqual([]);
     expect(r.filter((x: any) => !x.sel).map((x: any) => x.relname), 'SELECT').toEqual([]);
+  });
+  it('the two user deletable tables have exactly one DELETE policy each, bound to the tenant AND the owning membership (LD-315 b); no other table has a DELETE policy for lims_app', async () => {
+    // LD-326 (TESTS_WRONG 4): LD-315 (b) governs lims_app. The pre LD-315 owner / purge policies (e.g. trf_attachments__delete__owner_only, TO lims_owner) are not lims_app policies.
+    const r = await superTx(async (tx) => (await tx.query(`SELECT tablename, qual FROM pg_policies WHERE schemaname = 'frontdesk' AND cmd = 'DELETE' AND ('lims_app' = ANY(roles) OR 'public' = ANY(roles))`)).rows);
+    expect(r.map((x: any) => x.tablename).sort()).toEqual(USER_DELETABLE);
+    for (const x of r) { expect(x.qual, x.tablename).toMatch(/current_tenant_id/); expect(x.qual, `${x.tablename}: owner bound`).toMatch(/user_id/); expect(x.qual, x.tablename).toMatch(/current_membership_id/); }
   });
   it('no sequences in the schema (counters are rows)', async () => {
     expect((await superTx(async (tx) => (await tx.query(`SELECT c.relname FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = 'frontdesk' AND c.relkind = 'S'`)).rows))).toEqual([]);
@@ -120,6 +131,27 @@ describe('immutability (mutable-column + lifecycle triggers; P0001 immutable_row
     for (const t of ['settings', 'number_counters', 'patients', 'orders', 'order_items', 'discounts', 'discount_approvals', 'trf_attachments', 'order_flags', 'booking_links', 'cs_reasons']) {
       expect((await dbError(TENANT_A, `DELETE FROM frontdesk.${t} WHERE tenant_id = $1`, [TENANT_A])).code, t).toBe('42501');
     }
+  });
+});
+
+describe('T0B-REGAPI-2 / LD-315 (b): DELETE rules of the six parity tables', () => {
+  it.each(NEVER_DELETED.map((t) => [t] as const))('frontdesk.%s: DELETE is refused outright (42501): deactivated, never deleted', { timeout: T }, async (t) => {
+    expect((await dbError(TENANT_A, `DELETE FROM frontdesk.${t} WHERE tenant_id = $1`, [TENANT_A])).code, t).toBe('42501');
+  });
+  const asMember = async <R>(tenant: string, membership: string | null, fn: (tx: any) => Promise<R>): Promise<R> => appTx(tenant, async (tx) => {
+    await tx.query(`SELECT set_config('request.jwt.claims', $1, true)`, [JSON.stringify({ tenant_id: tenant, sub: SYS_ACTOR, actor_type: 'system', ...(membership ? { membership_id: membership } : {}) })]);
+    return fn(tx);
+  });
+  it.each([['registration_drafts', 'draftId'], ['favourite_tests', 'favId']] as const)('frontdesk.%s: only the owning user of the same tenant deletes a row', { timeout: T }, async (t, key) => {
+    const owner = mid('a', 500); const stranger = mid('a', 999);         // objs() rows belong to mk(TENANT_A).membershipId = mid('a', 500)
+    const id = key === 'draftId' ? A.draftId : (await rowOf('favourite_tests', 'tenant_id = $1 AND orderable_id = $2', [TENANT_A, A.favOrderable])).id;
+    const del = (tenant: string, m: string | null) => asMember(tenant, m, async (tx) => (await tx.query(`DELETE FROM frontdesk.${t} WHERE id = $1`, [id])).rowCount);
+    expect(await del(TENANT_A, stranger), 'another user of the same tenant').toBe(0);
+    expect(await del(TENANT_A, null), 'no membership claim').toBe(0);
+    expect(await del(TENANT_B, mid('b', 500)), 'a user of another tenant').toBe(0);
+    expect(await rowOf(t, 'id = $1', [id]), 'row survived all three').toBeTruthy();
+    expect(await del(TENANT_A, owner), 'the owner').toBe(1);
+    expect(await rowOf(t, 'id = $1', [id])).toBeUndefined();
   });
 });
 

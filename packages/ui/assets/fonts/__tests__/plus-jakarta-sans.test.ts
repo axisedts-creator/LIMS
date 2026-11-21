@@ -1,212 +1,30 @@
-// T0D-UI-R02 (LD-140, CR-UI-R-001; 10-DESIGN-SYSTEM s2.2): Plus Jakarta Sans 400/500/600/700 latin, self-hosted from
-// @fontsource/plus-jakarta-sans 5.3.0 (exact pin), Noto Sans Devanagari as fallback in the same stack, no font CDN,
-// Flutter TTFs of the same weights made by packages/ui-flutter/tool/woff2ttf.py and declared in pubspec, OFL files present.
-// Node env. The font files are parsed for real (WOFF2 -> cmap, TTF -> cmap/OS/2), nothing is mocked.
+// T0D-UI-R02 (LD-140, CR-UI-R-001) tests that stay after T0D-MSERIES-1 (LD-251; 13-M-SERIES s2.2):
+// the WEB Plus Jakarta Sans parts (fonts.css faces, woff2 files, web licence, Devanagari walk) moved to poppins.test.ts and now
+// assert the opposite (Poppins present, Plus Jakarta Sans absent). What remains here is NOT part of MSERIES-1 and must keep passing:
+//   - the Flutter side still ships Plus Jakarta Sans TTFs until T0D-MSERIES-3 (lane C0-0F) replaces them; those TTFs are made by
+//     packages/ui-flutter/tool/woff2ttf.py from the @fontsource/plus-jakarta-sans devDependency, so that devDependency and its
+//     lock entry STAY in packages/ui until MSERIES-3 (MSERIES-1 removes only the web woff2 files, the web OFL file and the fonts.css rules);
+//   - the CSP / no-egress guard (font-agnostic), the parser self-check, and the Flutter licence file.
 import { spawnSync } from 'node:child_process';
-import { createHash } from 'node:crypto';
 import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { brotliDecompressSync } from 'node:zlib';
 import { describe, expect, it } from 'vitest';
+import { FONTS, ROOT, SAMPLE_DEVA, SAMPLE_LATIN, UI, WEIGHTS, css, faces, fontOf, read } from './_font-utils';
 
-const FONTS = fileURLToPath(new URL('..', import.meta.url)); // packages/ui/assets/fonts
-const UI = resolve(FONTS, '..', '..'); // packages/ui
-const ROOT = resolve(UI, '..', '..');
 const FLUTTER = join(ROOT, 'packages', 'ui-flutter');
-const WEIGHTS = [400, 500, 600, 700];
-const read = (p: string) => readFileSync(p, 'utf8');
 
-// ---------- minimal sfnt / woff2 readers (cmap + OS/2 only) ----------
-type Tables = Map<string, Buffer>;
-
-const sfntTables = (b: Buffer): Tables => {
-  const n = b.readUInt16BE(4);
-  const out: Tables = new Map();
-  for (let i = 0; i < n; i++) {
-    const r = 12 + 16 * i;
-    out.set(b.toString('latin1', r, r + 4), b.subarray(b.readUInt32BE(r + 8), b.readUInt32BE(r + 8) + b.readUInt32BE(r + 12)));
-  }
-  return out;
-};
-
-const KNOWN = ['cmap', 'head', 'hhea', 'hmtx', 'maxp', 'name', 'OS/2', 'post', 'cvt ', 'fpgm', 'glyf', 'loca', 'prep'];
-const woff2Tables = (b: Buffer): Tables => {
-  expect(b.toString('latin1', 0, 4)).toBe('wOF2');
-  const n = b.readUInt16BE(12);
-  const compressed = b.readUInt32BE(20);
-  let p = 48;
-  const base128 = () => {
-    let v = 0;
-    for (let i = 0; i < 5; i++) {
-      const c = b[p++]!;
-      v = v * 128 + (c & 0x7f);
-      if (!(c & 0x80)) return v;
-    }
-    throw new Error('bad UIntBase128');
-  };
-  const dir: { tag: string; len: number }[] = [];
-  for (let i = 0; i < n; i++) {
-    const flags = b[p++]!;
-    const idx = flags & 0x3f;
-    const tag = idx === 63 ? b.toString('latin1', p, (p += 4)) : (KNOWN[idx] ?? `#${idx}`);
-    const orig = base128();
-    const version = flags >> 6;
-    const transformed = tag === 'glyf' || tag === 'loca' ? version === 0 : version !== 0;
-    dir.push({ tag, len: transformed ? base128() : orig });
-  }
-  const data = brotliDecompressSync(b.subarray(p, p + compressed));
-  const out: Tables = new Map();
-  let o = 0;
-  for (const d of dir) {
-    out.set(d.tag, data.subarray(o, o + d.len));
-    o += d.len;
-  }
-  return out;
-};
-
-/** returns covers(codepoint) from the best Unicode cmap subtable (format 4 or 12). */
-const cmapCovers = (cmap: Buffer): ((cp: number) => boolean) => {
-  const n = cmap.readUInt16BE(2);
-  const subs: { off: number; fmt: number; rank: number }[] = [];
-  for (let i = 0; i < n; i++) {
-    const plat = cmap.readUInt16BE(4 + 8 * i);
-    const enc = cmap.readUInt16BE(6 + 8 * i);
-    const off = cmap.readUInt32BE(8 + 8 * i);
-    const fmt = cmap.readUInt16BE(off);
-    const unicode = plat === 0 || (plat === 3 && (enc === 1 || enc === 10));
-    if (unicode && (fmt === 4 || fmt === 12)) subs.push({ off, fmt, rank: fmt === 12 ? 2 : 1 });
-  }
-  expect(subs.length, 'no unicode cmap subtable (format 4/12)').toBeGreaterThan(0);
-  const fns = subs.map(({ off, fmt }) => {
-    if (fmt === 12) {
-      const groups = cmap.readUInt32BE(off + 12);
-      return (cp: number) => {
-        for (let g = 0; g < groups; g++) {
-          const r = off + 16 + 12 * g;
-          if (cp >= cmap.readUInt32BE(r) && cp <= cmap.readUInt32BE(r + 4)) return true;
-        }
-        return false;
-      };
-    }
-    const segs = cmap.readUInt16BE(off + 6) / 2;
-    const end = off + 14;
-    const start = end + 2 * segs + 2;
-    const delta = start + 2 * segs;
-    const range = delta + 2 * segs;
-    return (cp: number) => {
-      if (cp > 0xffff) return false;
-      for (let s = 0; s < segs; s++) {
-        if (cp > cmap.readUInt16BE(end + 2 * s)) continue;
-        const st = cmap.readUInt16BE(start + 2 * s);
-        if (cp < st) return false;
-        const ro = cmap.readUInt16BE(range + 2 * s);
-        const d = cmap.readUInt16BE(delta + 2 * s);
-        if (ro === 0) return ((cp + d) & 0xffff) !== 0;
-        const gid = cmap.readUInt16BE(range + 2 * s + ro + 2 * (cp - st));
-        return gid !== 0 && ((gid + d) & 0xffff) !== 0;
-      }
-      return false;
-    };
-  });
-  return (cp) => fns.some((f) => f(cp));
-};
-
-const weightClass = (t: Tables) => t.get('OS/2')!.readUInt16BE(4);
-const fontOf = (path: string) => {
-  const buf = readFileSync(path);
-  const t = buf.toString('latin1', 0, 4) === 'wOF2' ? woff2Tables(buf) : sfntTables(buf);
-  expect(t.has('cmap'), `${path}: cmap table`).toBe(true);
-  return { buf, covers: cmapCovers(t.get('cmap')!), weight: weightClass(t) };
-};
-
-// ---------- fonts.css ----------
-const css = () => read(join(FONTS, 'fonts.css'));
-type Face = { family: string; weight: number; style: string; display: string; urls: string[]; formats: string[]; range: string | null; file: string };
-const faces = (): Face[] =>
-  [...css().replace(/\/\*[\s\S]*?\*\//g, '').matchAll(/@font-face\s*{([^}]*)}/g)].map((m) => {
-    const body = m[1]!;
-    const get = (p: string) => new RegExp(`${p}\\s*:\\s*([^;]+)`, 'i').exec(body)?.[1]?.trim() ?? '';
-    const urls = [...body.matchAll(/url\(\s*['"]?([^'")]+)/g)].map((u) => u[1]!);
-    return {
-      family: get('font-family').replace(/['"]/g, ''),
-      weight: Number(get('font-weight')),
-      style: get('font-style'),
-      display: get('font-display'),
-      urls,
-      formats: [...body.matchAll(/format\(\s*['"]?([^'")]+)/g)].map((f) => f[1]!),
-      range: /unicode-range\s*:\s*([^;]+)/i.exec(body)?.[1]?.trim() ?? null,
-      file: urls[0] ? resolve(FONTS, urls[0]) : '',
-    };
-  });
-const faceFor = (family: string, weight: number) => faces().find((f) => f.family === family && f.weight === weight);
-
-const SAMPLE_LATIN = 'Lab 123 Hb'; // latin text, digits, space
-const SAMPLE_DEVA = 'नेपाल रक्त परीक्षण ०१२३४५६७८९ ।'; // Nepali words, Devanagari digits and danda
-
-// ---------- tests ----------
-describe('T0D-UI-R02 web: dependency pin (CR-UI-R-001)', () => {
+describe('T0D-UI-R02 dependency pin kept for the Flutter TTF tool (until T0D-MSERIES-3)', () => {
   const pkg = JSON.parse(read(join(UI, 'package.json')));
   const all = { ...pkg.dependencies, ...pkg.devDependencies };
-  it('@lims/ui pins @fontsource/plus-jakarta-sans to exactly 5.3.0 (no ^ ~ range)', () => {
+  it('@lims/ui still pins @fontsource/plus-jakarta-sans to exactly 5.3.0 (source of the Flutter TTFs)', () => {
     expect(all['@fontsource/plus-jakarta-sans']).toBe('5.3.0');
   });
-  it('pnpm-lock.yaml resolves it to 5.3.0 only, with an integrity hash, in the packages/ui importer', () => {
+  it('pnpm-lock.yaml still resolves it to 5.3.0 only, with an integrity hash', () => {
     const lock = read(join(ROOT, 'pnpm-lock.yaml'));
     expect(lock).toMatch(/'@fontsource\/plus-jakarta-sans':\s*\n\s+specifier: 5\.3\.0\s*\n\s+version: 5\.3\.0/);
     expect(lock).toMatch(/'@fontsource\/plus-jakarta-sans@5\.3\.0':\s*\n\s+resolution: \{integrity: sha512-/);
     expect(lock).not.toMatch(/plus-jakarta-sans@(?!5\.3\.0)/);
-  });
-  it('the Noto Devanagari / Mono pins stay (fallback and mono are still bundled)', () => {
-    expect(all['@fontsource/noto-sans-devanagari']).toBe('5.3.0');
-    expect(all['@fontsource/noto-sans-mono']).toBe('5.3.0');
-  });
-});
-
-describe('T0D-UI-R02 web: fonts.css declares Plus Jakarta Sans 400/500/600/700 latin, self-hosted woff2', () => {
-  it('has a normal-style @font-face for every weight 400, 500, 600, 700 with font-display: swap', () => {
-    for (const w of WEIGHTS) {
-      const f = faceFor('Plus Jakarta Sans', w);
-      expect(f, `Plus Jakarta Sans ${w} @font-face`).toBeTruthy();
-      expect(f!.style).toBe('normal');
-      expect(f!.display).toBe('swap');
-    }
-  });
-  it('each face points at its own existing woff2 file in assets/fonts (valid wOF2, not a stub)', () => {
-    const files = new Set<string>();
-    for (const w of WEIGHTS) {
-      const f = faceFor('Plus Jakarta Sans', w)!;
-      expect(f.urls, `weight ${w}: one url()`).toHaveLength(1);
-      expect(f.urls[0], `weight ${w}`).toMatch(/^\.\/[\w.-]+\.woff2$/);
-      expect(f.formats).toEqual(['woff2']);
-      expect(existsSync(f.file), `${f.urls[0]} exists`).toBe(true);
-      const b = readFileSync(f.file);
-      expect(b.toString('latin1', 0, 4)).toBe('wOF2');
-      expect(b.length).toBeGreaterThan(5000);
-      files.add(createHash('sha256').update(b).digest('hex'));
-    }
-    expect(files.size, 'four different weight files').toBe(4);
-  });
-  it('the weight in each file (OS/2 usWeightClass) matches the weight fonts.css declares for it', () => {
-    for (const w of WEIGHTS) expect(fontOf(faceFor('Plus Jakarta Sans', w)!.file).weight, `weight ${w}`).toBe(w);
-  });
-  it('keeps the Noto Sans Devanagari 400/500/600/700 and Noto Sans Mono 400 faces (fallback and mono stay)', () => {
-    for (const w of WEIGHTS) {
-      const f = faceFor('Noto Sans Devanagari', w);
-      expect(f, `Noto Sans Devanagari ${w}`).toBeTruthy();
-      expect(existsSync(f!.file)).toBe(true);
-    }
-    expect(existsSync(faceFor('Noto Sans Mono', 400)?.file ?? '')).toBe(true);
-  });
-  it('no Plus Jakarta Sans face declares a unicode-range that reaches Devanagari (U+0900-097F)', () => {
-    for (const f of faces().filter((x) => x.family === 'Plus Jakarta Sans')) {
-      for (const m of (f.range ?? '').matchAll(/U\+([0-9A-F]+)(?:-([0-9A-F]+))?/gi)) {
-        const lo = parseInt(m[1]!, 16);
-        const hi = m[2] ? parseInt(m[2], 16) : lo;
-        expect(lo <= 0x097f && hi >= 0x0900, `range ${m[0]}`).toBe(false);
-      }
-    }
   });
 });
 
@@ -215,35 +33,6 @@ describe('T0D-UI-R02 parser self-check (guards the test tooling, runs on the alr
     const f = fontOf(join(FONTS, 'noto-sans-latin-400-normal.woff2'));
     expect([f.covers(0x41), f.covers(0x7a), f.covers(0x37), f.covers(0x0928)]).toEqual([true, true, true, false]);
     expect(f.weight).toBe(400);
-  });
-});
-
-describe('T0D-UI-R02 web: Devanagari falls back correctly (10-DESIGN-SYSTEM s2.2: order matters)', () => {
-  const stack = /--lims-font-family-sans:\s*([^;]+);/.exec(read(join(UI, 'dist', 'tokens.css')))?.[1] ?? '';
-  const families = stack.split(',').map((s) => s.trim().replace(/^["']|["']$/g, ''));
-  it('font.family.sans is exactly "Plus Jakarta Sans", "Noto Sans Devanagari", system-ui, sans-serif', () => {
-    expect(families).toEqual(['Plus Jakarta Sans', 'Noto Sans Devanagari', 'system-ui', 'sans-serif']);
-  });
-  it('Plus Jakarta Sans woff2 (all 4 weights) has no Devanagari glyphs but covers Latin and digits', () => {
-    for (const w of WEIGHTS) {
-      const { covers } = fontOf(faceFor('Plus Jakarta Sans', w)!.file);
-      for (const ch of SAMPLE_LATIN.replace(/ /g, '')) expect(covers(ch.codePointAt(0)!), `${w} ${ch}`).toBe(true);
-      for (const ch of SAMPLE_DEVA.replace(/ /g, '')) expect(covers(ch.codePointAt(0)!), `${w} U+${ch.codePointAt(0)!.toString(16)} must NOT be in Plus Jakarta`).toBe(false);
-    }
-  });
-  it('Noto Sans Devanagari woff2 (all 4 weights) covers every Devanagari sample character', () => {
-    for (const w of WEIGHTS) {
-      const { covers } = fontOf(faceFor('Noto Sans Devanagari', w)!.file);
-      for (const ch of SAMPLE_DEVA.replace(/ /g, '')) expect(covers(ch.codePointAt(0)!), `${w} U+${ch.codePointAt(0)!.toString(16)}`).toBe(true);
-    }
-  });
-  it('walking the stack per character: Latin -> Plus Jakarta Sans, Devanagari -> Noto Sans Devanagari, never system-ui', () => {
-    for (const w of WEIGHTS) {
-      const cover = new Map(families.slice(0, 2).map((fam) => [fam, fontOf(faceFor(fam, w)!.file).covers]));
-      const pick = (cp: number) => families.find((fam) => cover.get(fam)?.(cp)) ?? families[families.length - 1];
-      for (const ch of SAMPLE_LATIN.replace(/ /g, '')) expect(pick(ch.codePointAt(0)!), `${w} ${ch}`).toBe('Plus Jakarta Sans');
-      for (const ch of SAMPLE_DEVA.replace(/ /g, '')) expect(pick(ch.codePointAt(0)!), `${w} U+${ch.codePointAt(0)!.toString(16)}`).toBe('Noto Sans Devanagari');
-    }
   });
 });
 
@@ -276,18 +65,14 @@ describe('T0D-UI-R02 CSP / no-egress: fonts load from self only (REQ-SEC-141, RE
   });
 });
 
-describe('T0D-UI-R02 licences: SIL OFL files present next to the fonts', () => {
-  for (const [name, dir] of [
-    ['packages/ui/assets/fonts', FONTS],
-    ['packages/ui-flutter/assets/fonts', join(FLUTTER, 'assets', 'fonts')],
-  ] as const) {
-    it(`${name} has an OFL/LICENSE file that names Plus Jakarta Sans and the SIL Open Font License 1.1`, () => {
-      const lic = readdirSync(dir).filter((n) => /OFL|LICEN[CS]E/i.test(n) && !/\.(woff2?|ttf)$/i.test(n));
-      expect(lic.length).toBeGreaterThan(0);
-      const hit = lic.find((n) => /Plus Jakarta/i.test(read(join(dir, n))) && /SIL OPEN FONT LICENSE Version 1\.1/i.test(read(join(dir, n))));
-      expect(hit, `no licence file in ${name} mentions "Plus Jakarta"`).toBeTruthy();
-    });
-  }
+describe('T0D-UI-R02 Flutter licence: SIL OFL file for the Plus Jakarta Sans TTFs stays until T0D-MSERIES-3', () => {
+  it('packages/ui-flutter/assets/fonts has an OFL/LICENSE file that names Plus Jakarta Sans and the SIL Open Font License 1.1', () => {
+    const dir = join(FLUTTER, 'assets', 'fonts');
+    const lic = readdirSync(dir).filter((n) => /OFL|LICEN[CS]E/i.test(n) && !/\.(woff2?|ttf)$/i.test(n));
+    expect(lic.length).toBeGreaterThan(0);
+    const hit = lic.find((n) => /Plus Jakarta/i.test(read(join(dir, n))) && /SIL OPEN FONT LICENSE Version 1\.1/i.test(read(join(dir, n))));
+    expect(hit, 'no licence file in packages/ui-flutter/assets/fonts mentions "Plus Jakarta"').toBeTruthy();
+  });
 });
 
 // ---------- Flutter ----------

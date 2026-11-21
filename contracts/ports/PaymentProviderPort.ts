@@ -1,5 +1,5 @@
 // contracts/ports/PaymentProviderPort.ts
-import type { RequestContext, Uuidv7, IsoUtc, Money, Code } from './common';
+import type { RequestContext, Uuidv7, IsoUtc, Money, Code } from './common.js';
 export const PAYMENT_PROVIDER_PORT_VERSION = 1 as const;
 
 export type Gateway = 'esewa' | 'khalti' | 'fonepay';

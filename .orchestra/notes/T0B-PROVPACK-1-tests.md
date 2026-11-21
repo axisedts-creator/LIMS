@@ -1,0 +1,9 @@
+# T0B-PROVPACK-1 tests (tester)
+- NEW `services/api/src/modules/identity/handlers/__tests__/tenant.provpack.test.ts` (22 tests) + `tenant.provpack.helpers.ts` (stateful pg simulator: unique role code, role_permissions PK, BEGIN/ROLLBACK; oracle = contracts/permissions.yaml read directly).
+- EDITED test helper `tenant.realchain.helpers.ts`: optional `handle` hook on makePool/makeChain and `headers` on run (additive; existing tests still pass).
+- Real chain: pipeline -> provisionTenant/activateTenant handlers -> tenant.service -> role-pack.service -> self.service getMe (real self.repo SQL). Only the DB is simulated; the accept step is set on the sim row.
+- Covers done_when 1-5, 7: getMe holds all 155 tenant scoped codes + lab/instruments/inventory/quality/payments/engagement/homecollection/partners; pack roles applied at provisioning (role-pack insert shape, role.change audit rows); idempotent, rollback + retry; legacy lab (staging state) repaired by activateTenant; tenant edit wins; no other role gains; mfa kept; no UPDATE/DELETE; isolation; platform-only.
+- Now: 9 fail for the right reason (tenant_admin holds 58 of 155, no pack roles); 13 guards pass. Run: `.orchestra/notes/T0B-PROVPACK-1-verify.cmd` (this task's tests + existing tenant / role-pack tests).
+- NOT in verify: `apply-role-pack.script.test.ts` fails on main (missing docs/runbooks/apply-role-pack.md, extra package.json script): pre-existing, unrelated.
+- Writer: new repair SQL must keep the seedRoles / role-pack shape (INSERT ... unnest($n::text[]), tenant first, role id param, no UPDATE/DELETE) or the sim throws "TEST SIM: unrecognised ..." (then extend the sim). "Never for tenant admin" = platform.* and actor-only (roles: []) codes; name them in the CR.
+- Item 6 (CR for 11-ROLE-MATRIX R6 / 02-TRD) is the writer's, not tested.

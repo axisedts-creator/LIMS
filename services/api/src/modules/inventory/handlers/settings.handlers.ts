@@ -2,6 +2,7 @@
 // Permission (x-permission), schema check and rate limit are the pipeline's (contracts/openapi/inventory.yaml); these map request -> service and set ETag. If-Match is `"<version>"` (02-CV §4.2).
 import { LimsError } from '../../../core/errors.js';
 import type { Handler, HandlerContext, HandlerRequest } from '../../../core/module.js';
+import { guarded } from './_guard.js';
 import { getSettings, listCodedSet, putSettings, putTenantCode, type Result, type SvcCtx } from '../service/settings.service.js';
 
 const obj = (v: unknown): Record<string, any> => (typeof v === 'object' && v !== null && !Array.isArray(v) ? (v as Record<string, any>) : {});
@@ -23,9 +24,10 @@ const wrap = (fn: (c: SvcCtx, req: HandlerRequest) => Promise<Result>): Handler 
   return { status: out.status, body: out.body, ...(out.version !== undefined ? { headers: { etag: `"${out.version}"` } } : {}) };
 };
 
+// SEC-AUTHZ-7 (LD-189, LD-261): each row asks its contract x-permission through IdentityPort.assertRole before the wrapped handler runs (see _guard.ts).
 export const settingsHandlers: Readonly<Record<string, Handler>> = {
-  getInventorySettings: wrap((c) => getSettings(c)),
-  updateInventorySettings: wrap((c, req) => putSettings(c, { expectedVersion: ifMatch(req), body: req.body })),
-  listInventoryCodedSet: wrap((c, req) => listCodedSet(c, { setName: obj(req.params)['set_name'], reasonGroup: obj(req.query)['reason_group'] })),
-  putInventoryTenantCode: wrap((c, req) => putTenantCode(c, { setName: obj(req.params)['set_name'], code: obj(req.params)['code'], expectedVersion: ifMatch(req), body: req.body })),
+  getInventorySettings: guarded('inventory.item.read', wrap((c) => getSettings(c))),
+  updateInventorySettings: guarded('inventory.master.manage', wrap((c, req) => putSettings(c, { expectedVersion: ifMatch(req), body: req.body }))),
+  listInventoryCodedSet: guarded('inventory.item.read', wrap((c, req) => listCodedSet(c, { setName: obj(req.params)['set_name'], reasonGroup: obj(req.query)['reason_group'] }))),
+  putInventoryTenantCode: guarded('inventory.master.manage', wrap((c, req) => putTenantCode(c, { setName: obj(req.params)['set_name'], code: obj(req.params)['code'], expectedVersion: ifMatch(req), body: req.body }))),
 };

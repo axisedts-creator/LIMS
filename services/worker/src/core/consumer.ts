@@ -45,7 +45,7 @@ function envelopeValidator(type: string): (v: unknown) => boolean {
 }
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-function tenantOf(payload: any, task: string): string {
+export function tenantOf(payload: any, task: string): string {
   const t = payload?.tenant_id;
   if (typeof t !== 'string' || !UUID.test(t)) throw new Error(`${task}: job payload has no valid tenant_id`);
   return t;
@@ -57,6 +57,7 @@ function jobContext(deps: WorkerDeps, module: string, tenantId: string | undefin
     tenantId, actor: { type: 'system', id: actorId }, requestId: uuidv7(), tx,
     db: { tx: (fn) => fn(ctx) },                                         // [CONV] the job already runs in one transaction: reuse it
     events: deps.events, core: deps.core, storage: deps.storage, files: deps.files, audit: deps.audit,
+    metrics: deps.metrics,                                               // LD-190 / CR-C9-T26-002
     log: deps.log.child({ task, module, ...(tenantId ? { tenant_id: tenantId } : {}) }),
     attempt: job.attempts, maxAttempts: job.max_attempts, jobId: String(job.id),
     now: () => deps.now().toISOString(),

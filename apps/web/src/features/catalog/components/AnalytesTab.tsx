@@ -40,15 +40,15 @@ export function AnalytesTab({ testId, analytes, permissions }: { testId: string;
 
   if (rows.length === 0) {
     return (
-      <div className="lims-stack" style={{ gap: 'var(--lims-space-3)' }}>
-        <p>This test has no analytes yet.</p>
+      <div className="lims-stack catalog-gap-3">
+<p>This test has no analytes yet.</p>
         {canManage ? <div><Button variant="primary" onPress={() => router.push(`${base}?analyte=new`)}>Add analyte</Button></div> : null}
       </div>
     );
   }
 
   return (
-    <div className="lims-stack" style={{ gap: 'var(--lims-space-3)' }}>
+    <div className="lims-stack catalog-gap-3">
       {fail ? <FailBanner fail={fail} /> : null}
       {canManage ? <div><Button variant="primary" onPress={() => router.push(`${base}?analyte=new`)}>Add analyte</Button></div> : null}
       <table className="lims-table" aria-label="Analytes">

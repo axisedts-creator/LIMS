@@ -4,6 +4,7 @@
 import { useRouter } from 'next/navigation';
 import { Banner, type BannerProps } from '@lims/ui/components/Banner';
 import { DateText, type DateTextProps } from '@lims/ui/components/DateText';
+import { ErrorState } from '@lims/ui/components/ErrorState';
 import type { DateTimePickerProps } from '@lims/ui/components/DateTimePicker';
 import { Icon, type IconName } from '@lims/ui/components/Icon';
 import type { ActionResult } from '../server/types';
@@ -33,6 +34,9 @@ const COPY: Record<string, string> = {
   'micro.report_final_locked': 'The final report has been sent. Reopen the culture to make changes.',
   'micro.isolate_invalid_transition': "This isolate can't be changed that way.",
   'micro.organism_code_unknown': 'Choose an organism from the list. Ask your lab manager to add new organisms.',
+  // T-23 instrument data (04-UI-UX §10)
+  'micro.instrument_record_conflict': 'This record conflicts with existing data. Choose which value to keep.',
+  'common.not_found': 'This record was not found. Reload and try again.',
   'common.version_conflict': 'Someone else changed this. Reload and try again.',
   'common.precondition_required': 'Someone else changed this. Reload and try again.',
   'common.validation_failed': 'Check the values and try again.',
@@ -63,5 +67,11 @@ export function Chip({ tone, label }: { tone: Tone; label: string }) {
   );
 }
 
-export const yesNo = (b: boolean | undefined) => (b ? 'Yes' : 'No');
+/** T0D-UILIST-1, LD-353 rule 6: a failed page read keeps the page title (h1) and shows ErrorState with reference and Retry (one re-read), never error.tsx. */
+export function MicroLoadError({ title, requestId }: { title: string; requestId?: string }) {
+  const router = useRouter();
+  return <ErrorState pageTitle={title} title="This list could not be loaded." body="Try again. If it keeps happening, tell your administrator." {...(requestId ? { requestId } : {})} onRetry={() => router.refresh()} />;
+}
+
+export const yesNo =(b: boolean | undefined) => (b ? 'Yes' : 'No');
 export const rowsOf = <T,>(r: ActionResult<T[]>): T[] => (r.ok ? r.data : []);

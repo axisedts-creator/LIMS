@@ -14,6 +14,7 @@ const PATHS = {
   'arrow-down': 'M12 5v14M19 12l-7 7-7-7',
   minus: 'M5 12h14',
   'chevron-down': 'M6 9l6 6 6-6',
+  'chevron-right': 'M9 6l6 6-6 6', // T0D-UIKIT-2 ActionList row chevron (LD-436 mock)
   copy: 'M8 8h11v11H8zM5 16V5h11',
   help: 'M12 3a9 9 0 100 18 9 9 0 000-18zM9.5 9.5a2.5 2.5 0 115 0c0 2-2.5 2-2.5 4M12 17h.01',
   plus: 'M12 5v14M5 12h14',

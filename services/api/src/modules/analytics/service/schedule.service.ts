@@ -6,7 +6,7 @@ import { ROUTES } from '../../../../../../packages/shared-ts/src/routes/generate
 import { LimsError } from '../../../core/errors.js';
 import { loadAnalyticsConfig } from '../config.js';
 import { businessDateOf } from '../domain/period.js';
-import { getReport } from '../domain/reportRegistry.js';
+import { getReport, REPORT_REGISTRY } from '../domain/reportRegistry.js';
 import { intersect } from '../domain/scope.js';
 import {
   PERIOD_RULES, SCHEDULE_FREQUENCIES, isSlotLate, nextSlot, schedulePeriod, validateScheduleName, type PeriodRule,
@@ -297,7 +297,8 @@ export async function dispatchDueSchedules(ctx: DispatchCtx): Promise<void> {
     const slotStart = new Date(s.next_run_at as string).toISOString();
     const period = schedulePeriod(s.period_rule as PeriodRule, businessDateOf(slotStart as never));
     const next = nextSlot(s, slotStart as never);
-    const omittedRun = !flagOn && s.report_codes.includes('referral_incentive') ? ['referral_incentive'] : [];
+    // T0B-MISREPORTS-2 / A39-2: every code behind the referral flag (referral_incentive and the two A39 money reports) is omitted for everyone while it is off.
+    const omittedRun = flagOn ? [] : s.report_codes.filter((c) => REPORT_REGISTRY[c]?.flag === 'referralIncentiveReportEnabled');
     const remaining = s.report_codes.filter((c) => !omittedRun.includes(c));
     const state = isSlotLate(slotStart as never, now as never) ? 'skipped_late' : remaining.length === 0 ? 'skipped_flag_off' : 'dispatched';
     const runId = uuidv7();

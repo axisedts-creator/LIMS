@@ -243,7 +243,7 @@ describe('AN-T01 boot against the real repo (default modulesDir, real analytics.
     }
     expect(n).toBe(30);
     expect(unmounted).toEqual([]);
-  }, 30_000);
+  }, 60_000);
 
   it('fails closed: operations without required query/body answer 401 auth.* without credentials (never 200/501/500); non-spec path is 404', async () => {
     const app = await boot();

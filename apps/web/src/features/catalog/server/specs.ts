@@ -1,7 +1,8 @@
 import 'server-only';
 // Field specs for SCR-09…12 (04-UI-UX §4; contracts/openapi/catalog.yaml). Create-only fields (`code`, `panel_kind`, `party_code`,
 // `doctor_code`) are absent from the PATCH specs so they can never be sent; server-owned fields (is_verified, source, merged_into_id,
-// tenant_id, version, quick_add) are in no spec at all.
+// tenant_id, version) are in no spec at all. `quick_add` is the one exception: DoctorCreate in
+// contracts/openapi/catalog.yaml has it (optional boolean, LD-329), so only DOCTOR.create carries it.
 import { COMMENT_CODE_RE, EMAIL_RE, PANEL_CODE_RE, PARTY_CODE_RE, PHONE_RE } from './types';
 import { bool, exactCode, int, list, oneOf, pick, str, upperCode, uuid, bad, type V } from './shared';
 
@@ -32,10 +33,12 @@ export const COMMENT_CODE = {
 } as const;
 
 const docFields = { qualification: str(0, 120), registration_council: str(0, 20), registration_no: str(0, 30), phone_e164: phone, email, notes: str(0, 500) };
+// T0D-PARTYSET-1 (T0C-PARTYSET-1 DoctorUpdate): speciality, hospital, national_id_number (the full new value, 1 to 32 letters, digits or -).
+const docNew = { speciality: str(1, 120), hospital: str(1, 200), national_id_number: exactCode(/^[A-Za-z0-9-]{1,32}$/) };
 export const DOCTOR = {
-  create: { doctor_code: upperCode(PARTY_CODE_RE), display_name: str(1, 120), ...docFields },
+  create: { doctor_code: upperCode(PARTY_CODE_RE), display_name: str(1, 120), ...docFields, quick_add: bool },
   required: ['display_name'],
-  patch: { display_name: str(1, 120), ...docFields, is_active: bool, unset: list(6, oneOf('qualification', 'registration_council', 'registration_no', 'phone_e164', 'email', 'notes')) },
+  patch: { display_name: str(1, 120), ...docFields, ...docNew, is_active: bool, unset: list(9, oneOf('qualification', 'registration_council', 'registration_no', 'phone_e164', 'email', 'notes', 'speciality', 'hospital', 'national_id_number')) },
 } as const;
 
 const KINDS = ['hospital', 'company', 'clinic', 'partner_lab', 'insurer', 'other'] as const;

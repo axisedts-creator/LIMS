@@ -1,7 +1,7 @@
 'use client';
 // SCR-06 Instrument form (04-UI-UX §3): create in a Dialog (SCR-05), edit on the SCR-07 Configuration tab.
 // Schema-driven: client validation = forms/instrument.ts (same rules as the BFF), server errors[] are mapped by JSON Pointer.
-import { memo, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { memo, useCallback, useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { Banner } from '@lims/ui/components/Banner';
 import { Button } from '@lims/ui/components/Button';
@@ -42,11 +42,76 @@ const KIND_DEFAULTS: Record<TransportKind, Obj> = {
 const FILE_DROP_DEFAULTS: Obj = KIND_DEFAULTS.file_drop;
 const ASTM_DEFAULTS = Object.fromEntries(ASTM_OPTIONS.map(([k, , d]) => [k, d])) as Record<string, number>;
 
+// H80-T06, LD-139 (binding): preset "Truth H80E" (08-ADDENDUM-TRUTH-H80E §1, §3, §7, §8, §9). The analyser is a TCP client; the address typed
+// into it is the LAB PC running the bridge agent (tcp_server), never the cloud server and never 0.0.0.0. Every U position stays unverified:
+// nothing here is seeded or guessed, the driver stays generic and host query inert until a reviewed migration promotes it.
+const H80E = { driver: 'truth_h80e', vendor: 'Truth', model: 'Truth-H80E', protocol: 'hl7v2' as Protocol, kind: 'tcp_server' as TransportKind };
+const H80E_CODES = ['HbA1c_NGSP', 'HbA1c_IFCC', 'HbF', 'HbA1', 'eAG', 'A1ab', 'HbLA1C+', 'HbA0', 'A1A', 'A1B'] as const; // §3 "analyte codes seen in the manual"
+const H80E_RUNBOOK = 'docs/manual/instruments/truth-h80e-commissioning.md';
+const H80E_CHECKLIST = [ // §9, wording kept close to the addendum
+  "Vendor engineer sets the analyser's static IP (same subnet as the lab PC) and, with lab staff, the LIS address and port ([Apply] → [Set] → [Lis]). Ping the analyser from the lab PC; the LIS icon in the analyser turns green.",
+  'Install the bridge agent on the lab PC with a static LAN IP. Create this instrument with transport tcp_server, then issue and use the enrolment code.',
+  "Set the instrument state to commissioning (shadow). Run 5 patient samples and 2 QC runs, capture the raw messages and compare every value with the analyser's printout.",
+  "Map the analyte codes (for example HbA1c_NGSP to the lab's HbA1c test) and review the mappings.",
+  'Host query in shadow: scan a registered tube. Confirm QCK OK and DSR, that the analyser shows the patient and runs, and the ACK^Q03 reply.',
+  'Scan an unregistered tube and a tube registered without HbA1c. Record what the analyser does on NF.',
+  'Register a patient with a Devanagari name. Record whether the analyser screen shows it.',
+  'Pull the internet link, scan a tube and record what happens. Restore the link and confirm queued results upload once, with no duplicates.',
+  'Sign off. Promotion to verified is a reviewed migration plus a code change, not a switch in this form.',
+] as const;
+
+// MET-T05, LD-163 (binding): preset "Getein Metis series" (09-ADDENDUM-GETEIN-METIS §1, §3, §7, §8, §9). Same topology as H80E (D-MET-3): the analyser is
+// assumed to connect out (U1), so transport tcp_server on the lab PC. The ids below are the addendum's examples only (U2): which ids a lab runs is
+// confirmed at commissioning and C3 owns the code-map rows, so nothing is seeded. Driver stays generic and host query inert until a reviewed migration.
+const METIS = { driver: 'getein_metis', vendor: 'Getein', model: 'Metis', protocol: 'hl7v2' as Protocol, kind: 'tcp_server' as TransportKind };
+const METIS_CODES = [['0', 'ALT'], ['1', 'AST'], ['1112', 'CoV2Ag']] as const; // §3 example item ids
+const METIS_RUNBOOK = 'docs/manual/instruments/getein-metis-commissioning.md';
+const METIS_CHECKLIST = [ // §9, wording kept close to the addendum
+  "Vendor engineer sets the analyser's static IP (same subnet as the lab PC) and its LIS settings, and confirms whether the analyser connects out to the LIS address typed into it or listens. If it listens, stop and raise CR-C7-021.",
+  'Install the bridge agent on the lab PC with a static LAN IP. Create this instrument with transport tcp_server, then issue and use the enrolment code.',
+  "Set the instrument state to commissioning (shadow). Run 5 patient samples and 2 QC runs per level in use, capture the raw messages and compare every value with the analyser's printout.",
+  "Read the analyser's own item list and record which ids the lab runs. Map them to the lab's tests and review the mappings.",
+  "Host query in shadow: scan a registered tube. Confirm QCK OK and DSR, that the analyser shows the sample and runs the listed tests, the ACK^Q03 form, and whether the QCK is acknowledged.",
+  'Scan an unregistered tube and a tube registered without any test mapped to this analyser. Record what the analyser does on NF.',
+  "Try the analyser's sample-number-range and time-range download once and record what it shows after NF. Ask the vendor engineer whether this unit accepts a LIS-pushed sample request. Decide with the lab manager whether CR-C7-022 is needed.",
+  'Register a patient with a Devanagari name and record whether the analyser shows it. Record whether a calibration run arrives and is archived harmlessly.',
+  'Pull the internet link, scan a tube and record what happens. Restore the link and confirm queued results upload once, with no duplicates. Sign off. Promotion to verified is a reviewed migration plus a code change, not a switch in this form.',
+] as const;
+
+interface OptionField { key: string; title: string; maxLength?: number; options?: string[]; numeric?: boolean; def: string }
+const UNSAFE_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+/** One field per string / enum property of the driver's JSON Schema (own keys only; anything else is ignored, never rendered as HTML).
+ *  A numeric enum (with or without `type`, e.g. truth_h80e host_query_detection_mode) is a Select whose value is sent back as a number. */
+function optionFields(schema: Record<string, unknown> | undefined): OptionField[] {
+  const props = schema && Object.hasOwn(schema, 'properties') ? schema['properties'] : undefined;
+  if (typeof props !== 'object' || props === null || Array.isArray(props)) return [];
+  const out: OptionField[] = [];
+  for (const k of Object.keys(props)) {
+    const p = (props as Record<string, unknown>)[k];
+    if (UNSAFE_KEYS.has(k) || typeof p !== 'object' || p === null) continue;
+    const { type, title, maxLength, enum: en, default: def } = p as Obj;
+    const numEnum = Array.isArray(en) && en.length > 0 && en.every((x) => typeof x === 'number' && Number.isFinite(x))
+      && (type === undefined || type === 'integer' || type === 'number');
+    if (type !== 'string' && !numEnum) continue;
+    out.push({
+      key: k, title: typeof title === 'string' && title ? title : k,
+      def: numEnum ? (typeof def === 'number' ? String(def) : '') : typeof def === 'string' ? def : '',
+      ...(typeof maxLength === 'number' && maxLength > 0 && !numEnum ? { maxLength } : {}),
+      ...(numEnum ? { options: (en as number[]).map(String), numeric: true }
+        : Array.isArray(en) && en.every((x) => typeof x === 'string') && en.length ? { options: en as string[] } : {}),
+    });
+  }
+  return out;
+}
+/** Driver JSON Schema of parser options. Field name pending .orchestra/cr/H80-T06.md (E22 Driver has no optionsSchema yet); read only here. */
+const driverOptionsSchema = (d: Driver | undefined) => (d as (Driver & { options_schema?: Record<string, unknown> }) | undefined)?.options_schema;
+
 interface State {
   instrument_code: string; display_name: string; vendor: string; model: string; serial_no: string; software_version: string;
   agent_id?: string | undefined; protocol?: Protocol | undefined; driver_code?: string | undefined;
   transport: Obj; peers: string; file_drop?: Obj | undefined; host_query: boolean;
   astm: Record<string, number | undefined>; hl7: Obj;
+  preset: 'custom' | 'truth_h80e' | 'getein_metis'; popts: Record<string, string>; // popts: parser options the user touched (schema keys only)
   timezone?: string | undefined; qc: string; silence_window?: number | undefined; from: string; to: string;
 }
 
@@ -57,6 +122,7 @@ const init = (i?: Instrument): State => ({
   transport: { ...(i?.transport ?? {}) }, peers: Array.isArray(i?.transport?.['allowed_peers']) ? (i!.transport!['allowed_peers'] as string[]).join(', ') : '',
   ...(i?.file_drop ? { file_drop: { ...i.file_drop } } : {}), host_query: i?.capabilities?.host_query ?? false,
   astm: { ...ASTM_DEFAULTS, ...(i?.protocol_options?.astm as Record<string, number> | undefined) }, hl7: { ...(i?.protocol_options?.hl7v2 ?? {}) },
+  preset: 'custom', popts: {},
   ...(i?.timezone ? { timezone: i.timezone } : {}), qc: (i?.qc_sample_id_patterns ?? []).join('\n'),
   ...(i?.silence_window_minutes !== undefined ? { silence_window: i.silence_window_minutes } : {}), from: i?.silence_active_from ?? '', to: i?.silence_active_to ?? '',
 });
@@ -118,7 +184,10 @@ export function InstrumentForm({ mode, agents, drivers, instrument, permissions 
   seen.current = new Set();
 
   const driver = drivers.find((d) => d.code === s.driver_code);
-  const supportsHostQuery = !!driver?.capabilities.host_query;
+  const declaresHostQuery = !!driver?.capabilities.host_query;
+  const supportsHostQuery = declaresHostQuery && driver?.status === 'verified'; // 02-TRD §6.6 step 2: host query is inert until verified (LD-139)
+  const optFields = useMemo(() => (edit ? [] : optionFields(driverOptionsSchema(driver))), [edit, driver]);
+  const presetId = useId();
   const patch = (p: Partial<State>, ...ptrs: string[]) => {
     setS((x) => ({ ...x, ...p }));
     if (ptrs.length) setServerErr((e) => Object.fromEntries(Object.entries(e).filter(([k]) => !ptrs.includes(k))));
@@ -147,6 +216,8 @@ export function InstrumentForm({ mode, agents, drivers, instrument, permissions 
     const astm = s.protocol === 'astm' ? opts(s.astm, orig?.astm, ASTM_DEFAULTS) : {};
     const hl7 = s.protocol === 'hl7v2' ? opts(s.hl7, orig?.hl7v2, {}) : {};
     if (Object.keys(astm).length || Object.keys(hl7).length) b['protocol_options'] = { ...(Object.keys(astm).length ? { astm } : {}), ...(Object.keys(hl7).length ? { hl7v2: hl7 } : {}) };
+    const po = Object.fromEntries(optFields.filter((f) => Object.hasOwn(s.popts, f.key) && s.popts[f.key] !== f.def && s.popts[f.key] !== '').map((f) => [f.key, f.numeric ? Number(s.popts[f.key]) : s.popts[f.key]]));
+    if (Object.keys(po).length) b['parser_options'] = po;
     if (s.file_drop && s.protocol !== 'file_drop') b['file_drop'] = clean(s.file_drop);
     b['capabilities'] = { host_query: s.host_query && supportsHostQuery, worklist_download: false }; // worklist download: never true (AC-03.4)
     const qc = s.qc.split('\n').map((x) => x.trim()).filter(Boolean);
@@ -209,8 +280,20 @@ export function InstrumentForm({ mode, agents, drivers, instrument, permissions 
   const setKind = (k: string) => patch({ transport: { kind: k, ...KIND_DEFAULTS[k as TransportKind] } }, '/transport/kind');
   const setDriver = (code: string) => {
     const d = drivers.find((x) => x.code === code);
-    patch({ driver_code: code, ...(d?.capabilities.host_query ? {} : { host_query: false }) }, '/driver_code', '/capabilities/host_query');
+    patch({ driver_code: code, popts: {}, ...(d?.capabilities.host_query && d.status === 'verified' ? {} : { host_query: false }) }, '/driver_code', '/capabilities/host_query');
   };
+  const setPreset = (v: string) => {
+    const p = v === 'truth_h80e' ? H80E : v === 'getein_metis' ? METIS : undefined;
+    if (!p) return patch({ preset: 'custom' });
+    const known = drivers.some((d) => d.code === p.driver && d.protocol === p.protocol);
+    patch({
+      preset: v as 'truth_h80e' | 'getein_metis', vendor: p.vendor, model: p.model, protocol: p.protocol, transport: { kind: p.kind, ...KIND_DEFAULTS[p.kind] }, peers: '',
+      popts: {}, host_query: false, ...(known ? { driver_code: p.driver } : { driver_code: undefined }),
+    }, '/protocol', '/transport/kind', '/driver_code');
+  };
+  const h80 = s.preset === 'truth_h80e';
+  const metis = s.preset === 'getein_metis';
+  const lanPreset = h80 || metis; // both: analyser connects out to the lab PC (tcp_server)
 
   const agentOptions = agents.filter((a) => a.status === 'active' || a.status === 'pending_enrolment' || a.id === s.agent_id).map((a) => ({ value: a.id, label: `${a.agent_code} — ${a.display_name}` }));
   if (s.agent_id && !agentOptions.some((o) => o.value === s.agent_id)) agentOptions.push({ value: s.agent_id, label: instrument?.['agent_code' as keyof Instrument] as string ?? s.agent_id });
@@ -280,7 +363,12 @@ export function InstrumentForm({ mode, agents, drivers, instrument, permissions 
   };
 
   const hostErr = E('/capabilities/host_query');
-  const hostDesc = 'error' in hostErr ? hostErr.error : supportsHostQuery ? undefined : 'This driver does not support host query.';
+  const hostDesc = 'error' in hostErr ? hostErr.error : supportsHostQuery ? undefined
+    : declaresHostQuery ? `Host query stays off while this driver's status is ${driverStatusLabel(driver!.status).toLowerCase()}. It can be switched on only after commissioning is signed off and the driver is promoted to verified.`
+    : 'This driver does not support host query.';
+  const regionCard = (id: string, title: string, children: ReactNode) => (
+    <div className="lims-card"><section aria-labelledby={`${presetId}-${id}`}><h2 id={`${presetId}-${id}`} className="lims-card-title">{title}</h2>{children}</section></div>
+  );
   const section = (title: string, children: ReactNode) => <Card title={title}>{children}</Card>;
 
   return (
@@ -304,6 +392,12 @@ export function InstrumentForm({ mode, agents, drivers, instrument, permissions 
           </Banner>
         </div>
       ) : null}
+
+      {edit ? null : section('Preset', <>
+        <Select<string> label="Preset" name="preset" options={[{ value: 'custom', label: 'Custom' }, { value: 'truth_h80e', label: 'Truth H80E' }, { value: 'getein_metis', label: 'Getein Metis series' }]} value={s.preset} onChange={setPreset} />
+        {h80 ? <p className="lims-description">The Truth-H80E connects out to the address typed into the analyser ([Apply] → [Set] → [Lis]). That address is the lab PC that runs the bridge agent, not the cloud server. Use the lab PC's static LAN IP below, never 0.0.0.0.</p> : null}
+        {metis ? <p className="lims-description">The Metis analyser is assumed to connect out to the LIS address typed into the analyser (confirmed at commissioning, step 1). That address is the lab PC that runs the bridge agent, not the cloud server: the analyser speaks plain MLLP with no TLS. Use the lab PC's static LAN IP below, never 0.0.0.0.</p> : null}
+      </>)}
 
       {section('Identity', <>
         {tf('Code', '/instrument_code', s.instrument_code, 32, (v) => patch({ instrument_code: v.toUpperCase() }), { required: true, readOnly: edit })}
@@ -341,9 +435,9 @@ export function InstrumentForm({ mode, agents, drivers, instrument, permissions 
         {kind === 'tcp_server' ? (
           <>
             <Banner tone="warning" title="The agent will accept connections on the lab network. Run 'bridge-agent firewall enable' on the PC." />
-            {tf('Listen address', '/transport/bind_address', String(s.transport['bind_address'] ?? ''), 15, (v) => setT('bind_address', v))}
+            {tf(lanPreset ? "Listen address: the lab PC's static LAN IP" : 'Listen address', '/transport/bind_address', String(s.transport['bind_address'] ?? ''), 15, (v) => setT('bind_address', v), lanPreset ? { description: 'Type this same address into the analyser as the LIS address.' } : {})}
             {nf('Port', '/transport/port', s.transport['port'] as number | undefined, 1024, 65535, (v) => setT('port', v))}
-            {tf('Allowed instrument addresses', '/transport/allowed_peers', s.peers, 100, (v) => patch({ peers: v }, '/transport/allowed_peers'), { description: 'IPv4 addresses, separated by commas (1–8).' })}
+            {tf(lanPreset ? 'Allowed analyser addresses' : 'Allowed instrument addresses', '/transport/allowed_peers', s.peers, 100, (v) => patch({ peers: v }, '/transport/allowed_peers'), { description: lanPreset ? "The analyser's own static IP. IPv4 addresses, separated by commas (1–8)." : 'IPv4 addresses, separated by commas (1–8).' })}
           </>
         ) : null}
         {kind === 'file_drop' ? fileDrop('/transport', s.transport) : null}
@@ -351,6 +445,13 @@ export function InstrumentForm({ mode, agents, drivers, instrument, permissions 
 
       {section('Driver', <>
         {sel('Driver', '/driver_code', s.driver_code, driverOptions, setDriver, { required: true })}
+        {optFields.map((f) => {
+          const val = Object.hasOwn(s.popts, f.key) ? s.popts[f.key]! : f.def;
+          const set = (v: string) => patch({ popts: { ...s.popts, [f.key]: v } });
+          return f.options
+            ? <Select<string> key={f.key} label={`Analyser option: ${f.title}`} name={`parser_options.${f.key}`} options={f.options.map((o) => ({ value: o, label: o }))} {...on(val, { value: val })} onChange={set} />
+            : <TextField key={f.key} label={`Analyser option: ${f.title}`} name={`parser_options.${f.key}`} maxLength={f.maxLength ?? 64} value={val} onChange={set} />;
+        })}
         <TimezoneSelect value={s.timezone} error={zoneErr} disabled={ro} onChange={onZone} />
         <TextArea label="QC sample ID patterns" name="qc_sample_id_patterns" maxLength={1010} rows={3} description="One pattern per line, up to 10." value={s.qc} onChange={(v) => patch({ qc: v }, '/qc_sample_id_patterns')} {...ROF} {...E('/qc_sample_id_patterns', s.qc)} />
       </>)}
@@ -391,6 +492,23 @@ export function InstrumentForm({ mode, agents, drivers, instrument, permissions 
         {tf('Active from', '/silence_active_from', s.from, 5, (v) => patch({ from: v }), { description: 'HH:MM, optional.' })}
         {tf('Active to', '/silence_active_to', s.to, 5, (v) => patch({ to: v }), { description: 'HH:MM, optional.' })}
       </>)}
+
+      {h80 ? regionCard('codes', 'Suggested analyte codes', <>
+        <p className="lims-description">Codes the analyser sends (manual). Nothing is created here: map them to the lab's tests on the instrument's code map after it is created.</p>
+        <ul>{H80E_CODES.map((c) => <li key={c}><code>{c}</code></li>)}</ul>
+      </>) : null}
+      {h80 ? regionCard('checklist', 'Commissioning checklist', <>
+        <ol>{H80E_CHECKLIST.map((t, i) => <li key={i}>{t}</li>)}</ol>
+        <p className="lims-description">Runbook: {H80E_RUNBOOK}</p>
+      </>) : null}
+      {metis ? regionCard('codes', 'Suggested analyte codes', <>
+        <p className="lims-description">Item ids shown in the addendum's examples. Item ids are the analyser's own; which ones this lab runs is confirmed at commissioning from the analyser's item list. Nothing is created here: map them to the lab's tests on the instrument's code map after it is created.</p>
+        <ul>{METIS_CODES.map(([id, name]) => <li key={id}><code>{id}</code> {name}</li>)}</ul>
+      </>) : null}
+      {metis ? regionCard('checklist', 'Commissioning checklist', <>
+        <ol>{METIS_CHECKLIST.map((t, i) => <li key={i}>{t}</li>)}</ol>
+        <p className="lims-description">Runbook: {METIS_RUNBOOK}</p>
+      </>) : null}
 
       {ro ? null : <Button type="submit" variant="primary" shortcut="Ctrl+Enter" isLoading={busy}>{edit ? 'Save' : 'Create instrument'}</Button>}
     </Form>

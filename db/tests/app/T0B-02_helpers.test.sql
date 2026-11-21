@@ -41,8 +41,10 @@ SELECT is(has_schema_privilege('supabase_auth_admin', 'app', 'USAGE'), false, 's
 SELECT ok(EXISTS (SELECT 1 FROM pg_default_acl d WHERE d.defaclrole = 'lims_owner'::regrole AND d.defaclobjtype = 'f'
   AND NOT EXISTS (SELECT 1 FROM aclexplode(d.defaclacl) a WHERE a.grantee = 0)),
   'lims_owner default ACL for functions has no PUBLIC EXECUTE');
-SELECT ok(EXISTS (SELECT 1 FROM pg_default_acl d WHERE d.defaclrole = 'lims_owner'::regrole AND d.defaclobjtype = 'r'
-  AND NOT EXISTS (SELECT 1 FROM aclexplode(d.defaclacl) a WHERE a.grantee = 0)),
+-- LD-230 (9): PostgreSQL drops the pg_default_acl row once REVOKE ALL ON TABLES FROM PUBLIC makes it equal the built-in default
+-- (owner-only, no PUBLIC), so assert that no lims_owner tables default-ACL row (global or per schema) grants anything to PUBLIC.
+SELECT is_empty($$SELECT a.privilege_type FROM pg_default_acl d, aclexplode(d.defaclacl) a
+   WHERE d.defaclrole = 'lims_owner'::regrole AND d.defaclobjtype = 'r' AND a.grantee = 0$$,
   'lims_owner default ACL for tables has no PUBLIC rights');
 SELECT ok(EXISTS (SELECT 1 FROM pg_default_acl d WHERE d.defaclrole = r::regrole AND d.defaclobjtype = 'f'
   AND NOT EXISTS (SELECT 1 FROM aclexplode(d.defaclacl) a WHERE a.grantee = 0)),

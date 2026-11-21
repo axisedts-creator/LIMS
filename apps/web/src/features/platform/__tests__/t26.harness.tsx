@@ -48,8 +48,8 @@ export const sessionMock = {
   }),
   getRequestPathname: async () => '/platform',
 };
-export const router = { push: vi.fn(), replace: vi.fn(), refresh: vi.fn(), back: vi.fn() };
-export const navigationMock = {
+export const router: Record<'push' | 'replace' | 'refresh' | 'back', ReturnType<typeof vi.fn>> = { push: vi.fn(), replace: vi.fn(), refresh: vi.fn(), back: vi.fn() };
+export const navigationMock: { useRouter: () => typeof router; usePathname: () => string; useSearchParams: () => URLSearchParams; notFound: () => never; redirect: (to: string) => never } = {
   useRouter: () => router,
   usePathname: () => '/platform',
   useSearchParams: () => new URLSearchParams(),
@@ -131,7 +131,7 @@ export const appFile = (...p: string[]) => join(APP, ...p);
 export async function importPage(rel: string) {
   return (await import(/* @vite-ignore */ `../../../app/(platform)/platform/${rel}`)) as { default: (p: any) => Promise<any> };
 }
-export async function show(rel: string, props: { searchParams?: SP; params?: Record<string, string> } = {}) {
+export async function show(rel: string, props: { searchParams?: SP; params?: Record<string, string> } = {}): Promise<ReturnType<typeof render>> {
   const { default: Page } = await importPage(rel);
   const el = await Page({ searchParams: Promise.resolve(props.searchParams ?? {}), params: Promise.resolve(props.params ?? {}) });
   return render(<ToastProvider>{el}</ToastProvider>);
@@ -144,7 +144,7 @@ export async function showOrThrown(rel: string, props: Parameters<typeof show>[1
     return m;
   }
 }
-export async function showLayout(children = <div>CHILD-CONTENT</div>) {
+export async function showLayout(children = <div>CHILD-CONTENT</div>): Promise<ReturnType<typeof render>> {
   const rel = 'layout'; // variable specifier: a missing file must fail at run time (red test), not at transform time
   const { default: Layout } = (await import(/* @vite-ignore */ `../../../app/(platform)/${rel}`)) as { default: (p: any) => Promise<any> };
   return render(<ToastProvider>{await Layout({ children })}</ToastProvider>);

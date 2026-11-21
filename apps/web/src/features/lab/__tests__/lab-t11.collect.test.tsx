@@ -65,7 +65,7 @@ const api = setupServer(
     return HttpResponse.json({ results: items.map((i) => okRow(i.id === SP(4) ? byBarcode[BC(4)]! : byBarcode[BC(5)]!, 'in_transit')) });
   }),
 );
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { cleanup(); api.resetHandlers(); calls.length = 0; push.mockReset(); replace.mockReset(); refresh.mockReset(); localStorage.clear(); sessionStorage.clear(); });
 afterAll(() => api.close());
 
@@ -95,8 +95,8 @@ const urlsPushed = () => [...push.mock.calls, ...replace.mock.calls].map((c) => 
 describe('permissions / empty state', () => {
   it('opens on the Collect tab with the empty text and a focused BarcodeInput labelled per spec (kit autofocus)', async () => {
     await show();
-    expect(tab(/^collect$/i).getAttribute('aria-selected')).toBe('true');
-    expect(tab(/^dispatch$/i)).toBeTruthy();
+    expect(tab(/^collect\b/i).getAttribute('aria-selected')).toBe('true');
+    expect(tab(/^dispatch\b/i)).toBeTruthy();
     expect(bodyHas('Scan a label to start.')).toBe(true);
     const input = screen.getByLabelText(/scan barcode or enter registration number/i);
     expect(document.activeElement).toBe(input);
@@ -267,7 +267,7 @@ describe('Collect tab — registration-no lookup + collect (AC-03.1)', () => {
 });
 
 describe('Dispatch tab (AC-03.3)', () => {
-  const dispatchTab = async () => { await userEvent.click(tab(/^dispatch$/i)); await waitFor(() => expect(tab(/^dispatch$/i).getAttribute('aria-selected')).toBe('true')); };
+  const dispatchTab = async () => { await userEvent.click(tab(/^dispatch\b/i)); await waitFor(() => expect(tab(/^dispatch\b/i).getAttribute('aria-selected')).toBe('true')); };
 
   it('each scan adds a row (barcode + status); a non-collected specimen gets "Not ready to dispatch (status: ordered)" and is not counted', async () => {
     await show();
@@ -337,7 +337,7 @@ describe('SECURITY — barcode / registration no never leave the POST body (REQ-
     await setChecked(BC(1), true);
     await userEvent.click(screen.getByRole('button', { name: /collect selected/i }));
     await waitFor(() => expect(bulkCollects()).toHaveLength(1));
-    await userEvent.click(tab(/^dispatch$/i));
+    await userEvent.click(tab(/^dispatch\b/i));
     await scan(BC(4));
     await waitFor(() => expect(lookups()).toHaveLength(2));
     const secrets = [LONG_REG, REG, BC(1), BC(2), BC(4)];

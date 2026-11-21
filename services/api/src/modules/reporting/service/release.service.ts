@@ -102,7 +102,9 @@ export async function releaseVersion(ctx: ReleaseCtx, versionId: string, o: Rele
   let settings: Awaited<ReturnType<typeof findSettings>> | undefined;
   if (auto) {
     settings = await findSettings(tx, tenantId);
-    if ((settings?.auto_release ?? 'when_eligible') !== 'when_eligible') return { kind: 'skipped', reason: 'auto_release_manual' };
+    // T0B-PARTYSET-1 (LD-321): a party with auto_release_reports on is auto released although the tenant switch is manual (additive; default off)
+    if ((settings?.auto_release ?? 'when_eligible') !== 'when_eligible'
+      && !(await repo.partyAutoRelease(tx, tenantId, r.partner_id ?? null, r.referrer_id ?? null))) return { kind: 'skipped', reason: 'auto_release_manual' };
   }
 
   const el = await eligibility(ctx, r.order_id);

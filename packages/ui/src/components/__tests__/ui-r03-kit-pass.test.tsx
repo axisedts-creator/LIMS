@@ -122,14 +122,15 @@ describe('no colour or radius literals inside components (10-DESIGN-SYSTEM §8, 
   });
 });
 
-describe('radius ladder 8/12/16/20/full (§2.3)', () => {
-  // selector -> token. sm: checkboxes, dense chips; md: inputs, buttons, menu items; lg: cards, panels; xl: dialogs, drawers; full: pills.
+describe('radius ladder 8/12/16/24/full (13-M-SERIES §2.3, T0D-MSERIES-1; was 8/12/16/20/full in 10 §2.3)', () => {
+  // selector -> token. sm: checkboxes; md: menu items; lg: tiles, tooltips, popovers, stat tiles; xl (24): cards, dialogs, drawers; full: buttons, fields, pills.
+  // Button and single-line field moved md -> full and card lg -> xl in T0D-MSERIES-1; the token values are checked in tokens/__tests__.
   const LADDER: [string, string][] = [
     ['.lims-check-box', 'sm'],
-    ['.lims-btn', 'md'],
-    ['.lims-input', 'md'],
+    ['.lims-btn', 'full'],
+    ['.lims-input', 'full'],
     ['.lims-menuitem', 'md'],
-    ['.lims-card', 'lg'],
+    ['.lims-card', 'xl'],
     ['.lims-stat', 'lg'],
     ['.lims-popover', 'lg'],
     ['.lims-dialog', 'xl'],
@@ -151,7 +152,8 @@ describe('elevation: green-tinted level 1 on resting surfaces only; hairline OR 
   it.each(['.lims-card', '.lims-stat', '.lims-data-table', '.lims-shell-top'])('%s (resting) never uses elevation 2 or 3', (sel) => {
     expect(decl(sel, 'box-shadow') ?? 'none').toMatch(/^(none|var\(--lims-elevation-[01]\))$/);
   });
-  it.each(['.lims-card', '.lims-stat'])('%s has a hairline border or elevation 1, never both', (sel) => {
+  // 13 s2.3: cards are white, no border, no elevation, on neutral.50 (checked in m-series-kit.test.tsx); the stat tile keeps the rule.
+  it.each(['.lims-stat'])('%s has a hairline border or elevation 1, never both', (sel) => {
     const border = decl(sel, 'border');
     const hairline = !!border && !/^(0|none)\b/.test(border);
     const shadow = /elevation-1/.test(decl(sel, 'box-shadow') ?? '');

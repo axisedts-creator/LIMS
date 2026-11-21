@@ -1,0 +1,13 @@
+{
+  "extends": "../../../../../tsconfig.json",
+  "compilerOptions": { "noEmit": true, "incremental": false },
+  "include": [],
+  "exclude": [],
+  "files": [
+    "../../service/registration.service.ts",
+    "../../service/order.service.ts",
+    "../../../billing/ports/BillingPort.impl.ts",
+    "../../../billing/ports/BillingCommandPort.impl.ts",
+    "../../../billing/service/invoice.service.ts"
+  ]
+}

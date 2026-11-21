@@ -1,17 +1,21 @@
 // SCR-06…08 Test detail — server component. 404 (incl. another tenant's test) and non-UUID ids → notFound(); other errors → error.tsx.
+// T0D-TESTMGMT-1 (LD-318): General = full Edit Test form (TestForm), ?tab=analytes&analyte=new|<id> = full parameter form (ParameterForm),
+// ?tab=ranges&analyte=<id> = reference range manager (RangeManager). Critical limits keep RangesTab. No route added.
+import { Stack } from '@lims/ui/components/Stack';
 import { notFound } from 'next/navigation';
 import { ApiError } from '@/core/api/server-fetch';
 import { getShellSession } from '@/core/session/server';
-import { AnalyteEditor } from '@/features/catalog/components/AnalyteEditor';
 import { AnalytesTab } from '@/features/catalog/components/AnalytesTab';
-import { RangePreview } from '@/features/catalog/components/RangePreview';
+import { ParameterForm } from '@/features/catalog/components/ParameterForm';
+import { RangeManager } from '@/features/catalog/components/RangeManager';
 import { RangesTab } from '@/features/catalog/components/RangesTab';
-import { TestGeneralForm } from '@/features/catalog/components/TestGeneralForm';
+import { TestForm } from '@/features/catalog/components/TestForm';
 import { TestHeader } from '@/features/catalog/components/TestHeader';
 import { TAB_IDS, TestTabs, type TabId } from '@/features/catalog/components/TestTabs';
 import { getAnalyte } from '@/features/catalog/server/getAnalyte.server';
 import { getTest } from '@/features/catalog/server/getTest.server';
 import { listDepartments, listMethods, listRangeSets, listSpecimenTypes, listUnits, listValueSets } from '@/features/catalog/server/lists.server';
+import { listTestCategories } from '@/features/catalog/server/testMgmt.server';
 import { UUID_RE, type AnalyteRow, type AnalyteVersion, type RangeSet, type TestDto } from '@/features/catalog/server/types';
 
 type Sp = Readonly<Record<string, string | string[] | undefined>>;
@@ -48,46 +52,55 @@ export default async function TestPage({ params, searchParams }: { params: Promi
 
   const [departments, units, methods, valueSets, specimenTypes] = await Promise.all([listDepartments(), listUnits(), listMethods(), listValueSets(), listSpecimenTypes()]);
   const methodName = (id?: string) => methods.find((m) => m.id === id)?.name;
-  const analytes = (test['analytes'] as Record<string, any>[] | undefined) ?? [];
+  const analytes = ((test['analytes'] as Record<string, any>[] | undefined) ?? []).filter((a) => a['is_active'] !== false);
   const hasPublished = analytes.some((a) => (a['current_version'] as AnalyteVersion | undefined)?.status === 'published');
-  const subheadings = [...new Set(analytes.map((a) => a['report_subheading'] as string | undefined).filter((s): s is string => !!s))];
+  const codes = analytes.map((a) => String(a['code']));
 
   let body: React.ReactNode;
   if (tab === 'general') {
-    body = <TestGeneralForm test={test as TestDto} departments={departments} hasPublishedAnalyteVersion={hasPublished} permissions={permissions} />;
+    const categories = await listTestCategories().catch(() => []);
+    body = (
+      <TestForm
+        mode="edit"
+        test={test}
+        departments={departments}
+        categories={categories}
+        specimenTypes={specimenTypes.map((s) => ({ id: s.id, name: s.name, is_active: (s as { is_active?: boolean }).is_active ?? true }))}
+        permissions={permissions}
+        hasPublishedAnalyteVersion={hasPublished}
+      />
+    );
   } else if (tab === 'analytes' && creating) {
-    body = <AnalyteEditor testId={test_id} analyte={null} versions={[]} units={units} methods={methods} valueSets={valueSets} subheadings={subheadings} permissions={permissions} />;
+    body = <ParameterForm testId={test_id} analyte={null} siblings={codes} units={units} methods={methods} valueSets={valueSets} permissions={permissions} />;
   } else if (analyteId) {
     const [analyte, rangeSets, criticalSets] = await Promise.all([
       getAnalyte(analyteId).catch((e: unknown) => { if (e instanceof ApiError && e.status === 404) notFound(); throw e; }),
       listRangeSets('ranges', analyteId),
       listRangeSets('critical', analyteId),
     ]);
+    const version = analyte.versions.find((v) => v.status === 'draft') ?? analyte.versions.find((v) => v.status === 'published') ?? analyte.versions[0];
     if (tab === 'analytes') {
       body = (
-        <AnalyteEditor
+        <ParameterForm
+          key={analyte.id}
           testId={test_id}
-          analyte={toRow(analyte, methodName, rangeSets.find((s) => s.status === 'published')?.version_no ?? null)}
-          versions={analyte.versions}
+          analyte={analyte as unknown as Record<string, unknown>}
+          siblings={codes.filter((c) => c !== analyte.code)}
           units={units}
           methods={methods}
           valueSets={valueSets}
-          subheadings={subheadings}
           rangeDraft={draftOf(rangeSets)}
           criticalDraft={draftOf(criticalSets)}
           permissions={permissions}
         />
       );
+    } else if (tab === 'ranges') {
+      const unit = units.find((u) => u.code === version?.unit_code)?.display ?? version?.unit_code;
+      body = <RangeManager key={analyte.id} analyte={{ id: analyte.id, code: analyte.code, name: analyte.name, unit }} sets={rangeSets} criticalSets={criticalSets} methods={methods} permissions={permissions} />;
     } else {
-      const published = analyte.versions.find((v) => v.status === 'published') ?? analyte.versions[0];
-      const a = { id: analyte.id, code: analyte.code, ...(published?.unit_code ? { unit_code: published.unit_code } : {}) };
-      const vs = valueSets.find((s) => s.code === published?.value_set_code);
-      body = (
-        <>
-          <RangesTab key={tab} analyte={a} kind={tab} sets={tab === 'ranges' ? rangeSets : criticalSets} valueSet={vs} specimenTypes={specimenTypes} permissions={permissions} />
-          {tab === 'ranges' ? <RangePreview analyteId={analyte.id} specimenTypes={specimenTypes} /> : null}
-        </>
-      );
+      const a = { id: analyte.id, code: analyte.code, ...(version?.unit_code ? { unit_code: version.unit_code } : {}) };
+      const vs = valueSets.find((s) => s.code === version?.value_set_code);
+      body = <RangesTab key={tab} analyte={a} kind="critical" sets={criticalSets} valueSet={vs} specimenTypes={specimenTypes} permissions={permissions} />;
     }
   } else {
     // Analytes list. The per-analyte range-set version needs one list call each; only the first 50 are resolved. [CONV] open point: add it to the Analyte DTO.
@@ -97,9 +110,9 @@ export default async function TestPage({ params, searchParams }: { params: Promi
   }
 
   return (
-    <div className="lims-stack" style={{ gap: 'var(--lims-space-4)' }}>
+    <Stack gap={4}>
       <TestHeader test={test as TestDto} />
       <TestTabs testId={test_id} tab={tab} analyteId={analyteId}>{body}</TestTabs>
-    </div>
+    </Stack>
   );
 }

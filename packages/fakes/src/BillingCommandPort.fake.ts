@@ -236,6 +236,11 @@ export function createFakeBillingCommandPort(opts: FakeOpts<BillingCommandFixtur
           creditChargeIds: f.creditCharges.filter((c) => c.tenantId === t && c.orderId === input.orderId && !c.voided).map((c) => c.id),
           balance: balance(t, input.orderId, nowOf(ctx)) } as any;
       },
+      async previewInvoiceNo(ctx) {                      // LD-323 (a): the number issueOrderInvoice would give next; reads, never bumps
+        const t = tenantOf(ctx);
+        const fy = fyOf(nowOf(ctx));
+        return { invoiceNo: `${fy}-${((counters.get(`${t}:invoice:${fy}`) ?? 0) + 1).toString().padStart(6, "0")}` };
+      },
     };
   });
 }

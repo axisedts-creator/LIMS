@@ -1,3 +1,4 @@
+'use client';
 // 04-UI-UX §2.5 FilterBar. date_range values are [from, to] A.D. IsoDates ([CONV]: the value map only holds string | string[]).
 import { useId } from 'react';
 import { Label, ListBox, ListBoxItem, type Selection } from 'react-aria-components';
@@ -20,6 +21,10 @@ export interface FilterBarProps {
   value: FilterValue;
   onChange: (v: FilterValue) => void;
   onReset: () => void;
+  /** T0D-UIKIT-1, LD-353 rule 2: a "Search" button right after the (first) text filter, inside `.lims-filter-search`. */
+  onSearch?: () => void;
+  /** T0D-UIDASH-2 (LD-436 worklist mock "Clear filters"). Default "Reset filters". */
+  resetLabel?: string;
   'data-testid'?: string;
 }
 
@@ -48,15 +53,24 @@ function MultiSelect({ label, options, value, onChange }: { label: string; optio
   );
 }
 
-export function FilterBar({ filters, value, onChange, onReset, ...rest }: FilterBarProps) {
+export function FilterBar({ filters, value, onChange, onReset, onSearch, resetLabel = 'Reset filters', ...rest }: FilterBarProps) {
   const set = (id: string, v: string | readonly string[] | undefined) => onChange({ ...value, [id]: v });
   const str = (id: string) => (typeof value[id] === 'string' ? (value[id] as string) : undefined);
   const arr = (id: string) => (Array.isArray(value[id]) ? (value[id] as readonly string[]) : []);
+  const firstText = filters.find((f) => f.kind === 'text')?.id;
   return (
     <div role="search" className="lims-filter-bar" {...rest}>
       {filters.map((f) => {
         const key = `f-${f.id}`;
-        if (f.kind === 'text') return <TextField key={key} label={f.label} name={f.id} maxLength={f.maxLength} value={str(f.id) ?? ''} onChange={(v) => set(f.id, v === '' ? undefined : v)} />;
+        if (f.kind === 'text') {
+          // LD-353 rule 2: a search is a short label plus a control (kit.css caps .lims-filter-search) with its button next to it
+          return (
+            <div key={key} className="lims-filter-search">
+              <TextField label={f.label} name={f.id} maxLength={f.maxLength} value={str(f.id) ?? ''} onChange={(v) => set(f.id, v === '' ? undefined : v)} />
+              {onSearch && f.id === firstText ? <Button onPress={onSearch}>Search</Button> : null}
+            </div>
+          );
+        }
         if (f.kind === 'date_range') {
           const [from, to] = arr(f.id) as readonly IsoDate[];
           return (
@@ -78,7 +92,7 @@ export function FilterBar({ filters, value, onChange, onReset, ...rest }: Filter
         return <Select key={key} label={f.label} name={f.id} options={f.options} {...(v ? { value: v } : {})} onChange={(x) => set(f.id, x)} />;
       })}
       <Button variant="ghost" onPress={onReset}>
-        Reset filters
+        {resetLabel}
       </Button>
     </div>
   );

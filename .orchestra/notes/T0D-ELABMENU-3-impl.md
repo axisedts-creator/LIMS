@@ -1,0 +1,7 @@
+# T0D-ELABMENU-3 impl (writer)
+Files: core/i18n/messages.ts (values only: billing.accounts.{entries,ledger,pocket,summary}.title, catalog.tests.title/empty); ~45 screen files: literal PageHeader/Frame title -> t('<nav label key>'); bare h1 -> PageHeader (PendingPage, WorksheetListPage, partners/settings page); empty-message wording in the render-walk screens; SpecimensScreen gets New in the header.
+[CONV] heading uses the entry's own nav label key (t('catalog.nav.departments')), so heading = menu label by construction; no key added, renamed or removed.
+[CONV] analytics ReportView: /analytics/reports and /analytics/collections show the menu label; report tabs opened on their own path keep the report name.
+Pinned pages (rs-c2.static, done_when 6; not edited, their headings come from features/admin or features/platform, no message key behind them): /admin/branches, /admin/centres (OrgUnits.tsx literal 'Collection centres'/'Branches'), /admin/settings (SettingsScreen 'Lab settings'), /admin/exports (ExportsScreen 'Exports'), /platform (app/(platform)/platform/page.tsx 'Platform home').
+[CONV] WorksheetListPage help link uses the existing lab.worklists help page (no worksheets help page; a new one would be an orphan for c5-t33).
+Open: older suites pin the old copy (list in dispute note); walk (e) route-baseline test is stale (T0D-ACCT-2 added billing.cash_transfers, billing.expenses, billing.expense_types after the baseline) — see dispute note.

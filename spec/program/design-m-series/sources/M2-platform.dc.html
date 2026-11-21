@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Metro brand platform home</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap">
+<style>
+:root{--lime:#A0C032;--lime-soft:#ECF3D7;--green:#005A52;--forest:#014D3C;--ink:#0A1A17;--muted:#5C6A66;--bg:#F3F3F3;--line:#ECECEC}
+body{margin:0;font-family:'Poppins',system-ui,sans-serif;color:var(--ink);background:var(--bg)}
+a{color:var(--green)}a:hover{color:var(--forest)}
+@keyframes rise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+@keyframes drift{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+@keyframes rung{from{opacity:0;transform:scaleY(.2)}to{opacity:1;transform:none}}
+@keyframes draw{from{stroke-dashoffset:100}to{stroke-dashoffset:0}}
+.rise{animation:rise .6s cubic-bezier(.2,.7,.2,1) both}
+.drift{animation:drift 7s ease-in-out infinite}
+.rg{transform-box:fill-box;transform-origin:center;animation:rung .5s ease-out both}
+.st{stroke-dasharray:100;stroke-dashoffset:100;animation:draw 2.2s ease-out .2s forwards}
+.sp{stroke-dasharray:100;stroke-dashoffset:100;animation:draw 1.4s ease-out .4s forwards}
+.nav{display:flex;align-items:center;gap:12px;min-height:46px;padding:0 16px;border-radius:999px;color:#fff;text-decoration:none;font-size:14px;font-weight:500}
+.nav:hover{background:rgba(255,255,255,.10)}
+.nav.on{background:#A0C032;color:#00362F;font-weight:600}
+.nav:focus-visible,.ibtn:focus-visible,.btn:focus-visible,.link:focus-visible{outline:3px solid #E4F239;outline-offset:2px}
+.badge{margin-left:auto;background:rgba(255,255,255,.18);color:#fff;border-radius:999px;font-size:12px;font-weight:600;padding:2px 9px}
+.nav.on .badge{background:#005A52;color:#fff}
+.card{background:#fff;border-radius:24px}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:5px 12px;border-radius:999px;white-space:nowrap}
+.chip.ok{background:#E4F4DE;color:#14612F}.chip.trial{background:#E3EEFB;color:#1A4F8B}.chip.warn{background:#FFF1D0;color:#7A4B00}.chip.bad{background:#FDE7E4;color:#9C1C12}
+.dot{width:10px;height:10px;border-radius:50%;flex:none}
+.dot.ok{background:#2E8B4A}.dot.bad{background:#C62A1E}.dot.warn{background:#D98A00}.dot.trial{background:#3B82C4}
+.row{display:grid;grid-template-columns:minmax(190px,1fr) 96px 110px 62px 88px 44px;align-items:center;gap:10px;padding:12px 20px;border-top:1px solid var(--line)}
+.row:hover{background:#FAFBF7}
+.th{font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);min-height:44px;background:#FAFBF7;border-top:0}
+.ibtn{width:44px;height:44px;border:0;border-radius:50%;background:transparent;display:grid;place-items:center;color:var(--ink);cursor:pointer}
+.ibtn:hover{background:#EEF1E6}
+.btn{min-height:46px;padding:0 22px;border:0;border-radius:999px;background:var(--green);color:#fff;font:600 14px 'Poppins',system-ui,sans-serif;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
+.btn:hover{background:var(--forest)}
+.btn.lime{background:#A0C032;color:#00362F}.btn.lime:hover{background:#B2D23F}
+.btn.ghost{background:transparent;color:var(--green);box-shadow:inset 0 0 0 2px var(--green)}.btn.ghost:hover{background:var(--lime-soft)}
+.btn.glass{background:transparent;color:#fff;box-shadow:inset 0 0 0 2px rgba(255,255,255,.7)}.btn.glass:hover{background:rgba(255,255,255,.12)}
+.tile{width:48px;height:48px;border-radius:16px;background:var(--lime-soft);display:grid;place-items:center;flex:none}
+@media (prefers-reduced-motion:reduce){.rise,.drift,.rg{animation:none}.st,.sp{animation:none;stroke-dashoffset:0}}
+</style>
+</helmet>
+<div style="display:flex;flex-wrap:wrap;min-height:1040px;background:var(--bg)">
+
+  <aside style="flex:0 0 276px;box-sizing:border-box;background:var(--green);color:#fff;padding:24px 16px;display:flex;flex-direction:column;gap:28px">
+    <div style="display:flex;align-items:center;gap:12px;padding:0 8px">
+      <img src="/_blob/fc5dceab92f2145d47d609e2807f0f99" alt="Metro Labs" style="height:40px;width:auto">
+      <div style="display:flex;flex-direction:column"><span style="font-weight:700;font-size:18px;letter-spacing:-.02em">Metro LIMS</span><span style="font-size:12px;color:#CFE3DF">Platform console</span></div>
+    </div>
+    <nav aria-label="Platform" style="display:flex;flex-direction:column;gap:20px">
+      <sc-for list="{{groups}}" as="g" hint-placeholder-count="3">
+        <div style="display:flex;flex-direction:column;gap:2px">
+          <div style="font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:#CFE3DF;padding:0 16px 8px">{{g.label}}</div>
+          <sc-for list="{{g.items}}" as="n" hint-placeholder-count="3">
+            <a href="#" class="nav {{n.cls}}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{n.d}}"/></svg><span>{{n.label}}</span><sc-if value="{{n.badge}}" hint-placeholder-val="{{ false }}"><span class="badge">{{n.badge}}</span></sc-if></a>
+          </sc-for>
+        </div>
+      </sc-for>
+    </nav>
+    <div style="margin-top:auto;display:flex;align-items:center;gap:12px;padding:12px;border-radius:20px;background:rgba(255,255,255,.10)">
+      <span style="width:40px;height:40px;border-radius:50%;background:#A0C032;color:#00362F;display:grid;place-items:center;font-weight:700;font-size:14px">PA</span>
+      <div style="display:flex;flex-direction:column;min-width:0"><span style="font-weight:600;font-size:14px">Platform admin</span><span style="font-size:12px;color:#E4F239">Signed in with MFA</span></div>
+    </div>
+  </aside>
+
+  <main style="flex:999 1 560px;min-width:0;display:flex;flex-direction:column">
+    <header style="display:flex;flex-wrap:wrap;align-items:center;gap:16px;min-height:76px;padding:0 32px;background:#fff">
+      <div style="display:flex;align-items:center;gap:8px;font-size:14px;color:var(--muted)"><span>Platform</span><span aria-hidden="true">/</span><span style="color:var(--ink);font-weight:600">Overview</span></div>
+      <div style="flex:1 1 280px;max-width:420px;margin-left:auto;display:flex;align-items:center;gap:10px;height:46px;padding:0 18px;border-radius:999px;background:var(--bg);color:var(--muted)">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM21 21l-4.300-4.300"/></svg>
+        <span style="font-size:14px;flex:1">Search tenants, staff, events</span><span style="font-size:12px;font-weight:600;border-radius:8px;padding:2px 8px;background:#fff">Ctrl K</span>
+      </div>
+      <span class="chip warn">Staging</span>
+      <button class="ibtn" aria-label="Notifications"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.700 21a2 2 0 0 1-3.400 0"/></svg></button>
+    </header>
+
+    <div style="padding:28px 32px 40px;display:flex;flex-direction:column;gap:24px">
+      <section class="rise" style="border-radius:28px;background-image:linear-gradient(135deg,#005A52 0%,#2F7D46 58%,#A0C032 100%);color:#fff;padding:32px 36px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:24px;position:relative;overflow:hidden">
+        <div style="display:flex;flex-direction:column;gap:12px;max-width:540px;position:relative">
+          <span class="chip" style="align-self:flex-start;background:rgba(255,255,255,.2);color:#fff">Sample data</span>
+          <h1 style="margin:0;font-weight:700;font-size:34px;line-height:1.15;letter-spacing:-.03em">Three labs are waiting on a decision</h1>
+          <p style="margin:0;font-size:15px;line-height:1.6;color:#EAF5E6">Two support-access requests and one payment issue. Everything else is running.</p>
+          <div style="display:flex;flex-wrap:wrap;gap:12px;margin-top:4px"><button class="btn lime">Review requests</button><button class="btn glass">Open tenants</button></div>
+        </div>
+        <svg class="drift" viewBox="0 0 340 180" width="340" height="180" aria-hidden="true" style="flex:none;max-width:100%">
+          <polyline class="st" pathLength="100" points="{{helix.a}}" fill="none" stroke="#fff" stroke-width="3.500" stroke-linecap="round" stroke-linejoin="round"/>
+          <polyline class="st" pathLength="100" points="{{helix.b}}" fill="none" stroke="#E4F239" stroke-width="3.500" stroke-linecap="round" stroke-linejoin="round"/>
+          <sc-for list="{{helix.rungs}}" as="r" hint-placeholder-count="22"><line class="rg" style="animation-delay:{{r.d}}" x1="{{r.x}}" y1="{{r.y1}}" x2="{{r.x}}" y2="{{r.y2}}" stroke="#fff" stroke-opacity="{{r.o}}" stroke-width="2.500" stroke-linecap="round"/></sc-for>
+        </svg>
+      </section>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px">
+        <sc-for list="{{kpis}}" as="k" hint-placeholder-count="4">
+          <div class="card rise" style="padding:20px 22px;display:flex;flex-direction:column;gap:14px;animation-delay:{{k.delay}}">
+            <div style="display:flex;align-items:center;gap:12px"><span class="tile"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#005A52" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{k.d}}"/></svg></span><span style="font-size:14px;font-weight:500;color:var(--muted);line-height:1.3">{{k.label}}</span></div>
+            <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:12px"><span style="font-size:38px;line-height:1;font-weight:700;letter-spacing:-.03em">{{k.value}}</span><svg width="96" height="32" viewBox="0 0 120 34" aria-hidden="true"><polyline class="sp" pathLength="100" points="{{k.spark}}" fill="none" stroke="{{k.color}}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+            <span style="font-size:13px;font-weight:600;color:{{k.dcolor}}">{{k.delta}}</span>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start">
+        <section class="card" style="flex:2 1 560px;min-width:0;overflow:hidden">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:22px 24px 16px"><h2 style="margin:0;font-size:20px;font-weight:600;letter-spacing:-.01em">Tenants</h2><div style="display:flex;gap:10px"><button class="btn ghost">Status: all</button><button class="btn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.400" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>New tenant</button></div></div>
+          <div style="overflow-x:auto"><div role="table" aria-label="Tenants" style="min-width:680px">
+            <div role="row" class="row th"><span role="columnheader">Tenant</span><span role="columnheader">Plan</span><span role="columnheader">Status</span><span role="columnheader">Centres</span><span role="columnheader">Last active</span><span></span></div>
+            <sc-for list="{{tenants}}" as="t" hint-placeholder-count="6">
+              <div role="row" class="row">
+                <span role="cell" style="display:flex;align-items:center;gap:14px;min-width:0"><span style="width:42px;height:42px;border-radius:14px;background:var(--lime-soft);color:var(--forest);display:grid;place-items:center;font-weight:700;font-size:14px;flex:none">{{t.ini}}</span><span style="display:flex;flex-direction:column;min-width:0"><span style="font-weight:600;font-size:14px">{{t.name}}</span><span style="font-size:12px;color:var(--muted)">{{t.slug}}</span></span></span>
+                <span role="cell" style="font-size:14px">{{t.plan}}</span>
+                <span role="cell"><span class="chip {{t.cls}}">{{t.status}}</span></span>
+                <span role="cell" style="font-size:14px;font-weight:500">{{t.centres}}</span>
+                <span role="cell" style="font-size:13px;color:var(--muted)">{{t.last}}</span>
+                <span role="cell"><button class="ibtn" aria-label="Row actions"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.400" stroke-linecap="round" aria-hidden="true"><path d="M12 12h.01M19 12h.01M5 12h.01"/></svg></button></span>
+              </div>
+            </sc-for>
+          </div></div>
+        </section>
+
+        <div style="flex:1 1 320px;min-width:0;display:flex;flex-direction:column;gap:20px">
+          <section class="card" style="padding:24px;display:flex;flex-direction:column;gap:14px">
+            <div style="display:flex;align-items:center;justify-content:space-between"><h2 style="margin:0;font-size:20px;font-weight:600;letter-spacing:-.01em">Needs your decision</h2><span class="chip warn">3 pending</span></div>
+            <sc-for list="{{requests}}" as="r" hint-placeholder-count="2">
+              <div style="background:#F7F9F1;border-radius:20px;padding:16px;display:flex;flex-direction:column;gap:12px">
+                <div style="display:flex;flex-direction:column;gap:2px"><span style="font-weight:600;font-size:14px">{{r.tenant}}</span><span style="font-size:13px;color:var(--muted);line-height:1.5">{{r.why}}</span><span style="font-size:12px;color:var(--muted)">{{r.age}}</span></div>
+                <div style="display:flex;gap:8px"><button class="btn">Approve</button><button class="btn ghost">Deny</button></div>
+              </div>
+            </sc-for>
+          </section>
+          <section class="card" style="padding:24px;display:flex;flex-direction:column;gap:4px">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:8px"><h2 style="margin:0;font-size:20px;font-weight:600;letter-spacing:-.01em">Auth events</h2><a class="link" href="#" style="font-weight:600;font-size:14px;text-decoration:none;min-height:44px;display:inline-flex;align-items:center">All</a></div>
+            <sc-for list="{{events}}" as="e" hint-placeholder-count="5">
+              <div style="display:flex;align-items:center;gap:12px;min-height:48px;border-top:1px solid var(--line)"><span class="dot {{e.cls}}"></span><span style="flex:1;font-size:14px">{{e.text}}</span><span style="font-size:12px;color:var(--muted);white-space:nowrap">{{e.time}}</span></div>
+            </sc-for>
+          </section>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1040}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const HOME = 'M3 11.500 12 4l9 7.500V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z';
+    const BUILD = 'M4 21V4a1 1 0 0 1 1-1h9a1 1 0 0 1 1 1v17M15 9h4a1 1 0 0 1 1 1v11M4 21h16M8 7h3M8 11h3M8 15h3';
+    const USERS = 'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM22 21v-2a4 4 0 0 0-3-3.870M16 3.130a4 4 0 0 1 0 7.750';
+    const SHIELD = 'M12 3 4 6v6c0 5 3.400 8 8 9 4.600-1 8-4 8-9V6z';
+    const LOCK = 'M5 11h14v10H5zM8 11V7a4 4 0 0 1 8 0v4';
+    const CARD = 'M2 6h20v12H2zM2 10h20';
+    const FILE = 'M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8zM14 3v5h5M9 13h6M9 17h6';
+    const SLID = 'M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0M14 4v4M8 10v4M16 16v4';
+    const LIST = 'M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01';
+    const N = 24, a = [], b = [], rungs = [];
+    for (let i = 0; i < N; i++) {
+      const x = 12 + i * 13.6, ph = i * 0.52;
+      const ya = 90 + 62 * Math.sin(ph), yb = 90 - 62 * Math.sin(ph);
+      a.push(x.toFixed(1) + ',' + ya.toFixed(1));
+      b.push(x.toFixed(1) + ',' + yb.toFixed(1));
+      rungs.push({ x: x.toFixed(1), y1: ya.toFixed(1), y2: yb.toFixed(1), o: (0.25 + 0.55 * Math.abs(Math.cos(ph))).toFixed(2), d: (0.5 + i * 0.07).toFixed(2) + 's' });
+    }
+    return {
+      helix: { a: a.join(' '), b: b.join(' '), rungs },
+      groups: [
+        { label: 'Platform', items: [
+          { label: 'Overview', d: HOME, cls: 'on' },
+          { label: 'Tenants', d: BUILD, badge: '12' },
+          { label: 'Platform staff', d: USERS },
+          { label: 'Support sessions', d: SHIELD, badge: '3' },
+          { label: 'Auth events', d: LOCK }
+        ]},
+        { label: 'Business', items: [{ label: 'Billing', d: CARD }, { label: 'Reports', d: FILE }] },
+        { label: 'System', items: [{ label: 'Settings', d: SLID }, { label: 'Audit log', d: LIST }] }
+      ],
+      kpis: [
+        { label: 'Tenants on the platform', value: '12', d: BUILD, delta: '+2 this month', dcolor: '#14612F', color: '#2F7D46', delay: '.05s', spark: '0,26 20,24 40,20 60,21 80,14 100,10 120,5' },
+        { label: 'Active staff', value: '48', d: USERS, delta: '+5 this week', dcolor: '#14612F', color: '#2F7D46', delay: '.10s', spark: '0,22 20,25 40,18 60,19 80,12 100,13 120,6' },
+        { label: 'Support access pending', value: '3', d: SHIELD, delta: '2 waiting over a day', dcolor: '#7A4B00', color: '#D98A00', delay: '.15s', spark: '0,8 20,12 40,10 60,18 80,16 100,22 120,26' },
+        { label: 'Failed sign-ins, 24 h', value: '7', d: LOCK, delta: 'Below the usual range', dcolor: '#14612F', color: '#3B82C4', delay: '.20s', spark: '0,20 20,14 40,24 60,12 80,22 100,18 120,24' }
+      ],
+      tenants: [
+        { ini: 'KC', name: 'Kathmandu Central Lab', slug: 'kathmandu-central', plan: 'Professional', status: 'Active', cls: 'ok', centres: '4', last: '2 min ago' },
+        { ini: 'LP', name: 'Lalitpur Pathology', slug: 'lalitpur-pathology', plan: 'Professional', status: 'Active', cls: 'ok', centres: '2', last: '14 min ago' },
+        { ini: 'PD', name: 'Pokhara Diagnostics', slug: 'pokhara-diagnostics', plan: 'Starter', status: 'Trial', cls: 'trial', centres: '1', last: '1 h ago' },
+        { ini: 'BH', name: 'Biratnagar Health Lab', slug: 'biratnagar-health', plan: 'Professional', status: 'Active', cls: 'ok', centres: '3', last: '3 h ago' },
+        { ini: 'BM', name: 'Butwal Medical Lab', slug: 'butwal-medical', plan: 'Starter', status: 'Payment due', cls: 'warn', centres: '1', last: 'Yesterday' },
+        { ini: 'CC', name: 'Chitwan Care Lab', slug: 'chitwan-care', plan: 'Professional', status: 'Active', cls: 'ok', centres: '2', last: 'Yesterday' }
+      ],
+      requests: [
+        { tenant: 'Pokhara Diagnostics', why: 'Support access to investigate a report delivery delay', age: 'Requested 1 day ago' },
+        { tenant: 'Butwal Medical Lab', why: 'Support access to review a billing question', age: 'Requested 3 hours ago' }
+      ],
+      events: [
+        { text: 'Platform admin signed in with MFA', time: '2 min ago', cls: 'ok' },
+        { text: 'Failed sign-in, third attempt', time: '19 min ago', cls: 'bad' },
+        { text: 'Password reset requested', time: '41 min ago', cls: 'trial' },
+        { text: 'Support session approved', time: '2 h ago', cls: 'ok' },
+        { text: 'Sign-in from a new device', time: '5 h ago', cls: 'warn' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

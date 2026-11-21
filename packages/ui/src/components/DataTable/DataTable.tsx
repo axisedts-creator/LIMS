@@ -1,3 +1,4 @@
+'use client';
 // 04-UI-UX §2.5 DataTable on react-aria Table (role=grid): sort, selection, keyboard, row actions, cursor paging, virtualisation.
 // Rows are rendered through column.cell() only; the kit never serialises rows (REQ-SEC-081).
 import { useLayoutEffect, useRef, useState, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react';
@@ -32,6 +33,8 @@ export interface ColumnDef<Row> {
   sortKey?: string;
   isRowHeader?: boolean;
   hideBelow?: 'md' | 'lg' | 'xl';
+  /** T0D-UIKIT-1, LD-353 rules 3 and 5: right aligned (header too) with tabular digits. */
+  numeric?: boolean;
 }
 
 export interface DataTableProps<Row> {
@@ -42,6 +45,8 @@ export interface DataTableProps<Row> {
   error?: { title: string; requestId?: string; onRetry?: () => void };
   emptyState: EmptyStateProps;
   /** Cursor pagination only (CV §4.3): no page numbers, no totals. */
+  /** T0D-UIDASH-2 (LD-436 worklist pager): the row total of the list; draws "Showing 1 to n of total" in the pager. */
+  total?: number;
   page?: { hasNext: boolean; hasPrevious: boolean; onNext: () => void; onPrevious: () => void; limit: number };
   /** value like 'received_at' or '-received_at' (descending). */
   sort?: { value: string; onChange: (v: string) => void };
@@ -62,7 +67,38 @@ export interface DataTableProps<Row> {
   caption: string;
   /** Default true when rows > 200. */
   virtualize?: boolean;
+  /** T0D-UIKIT-1, LD-353 rule 5: the first data column stays in view while the table scrolls sideways. */
+  stickyFirstColumn?: boolean;
+  /** T0D-UIKIT-1, LD-353 rule 5 (tables over 8 columns): a "Columns" button that shows or hides columns. */
+  columnChooser?: boolean;
+  /** T0D-UIKIT-1, LD-353 rule 5: text cells carry title = their text, so a cut off cell can be read. */
+  cellTitle?: boolean;
   'data-testid'?: string;
+}
+
+/** T0D-EMPTYTBL-1 (LD-310): four faint rows under the empty message keep the table's height; inert (aria-hidden, no focus, no pointer events in kit.css). */
+const PLACEHOLDERS = [0, 1, 2, 3] as const;
+
+/** Empty native <table>, part 1: the message in one full-width body row. Use inside <tbody>. */
+export function EmptyRow({ colSpan, children }: { colSpan: number; children: ReactNode }) {
+  return (
+    <tr className="lims-row-empty">
+      <td className="lims-cell" colSpan={colSpan}>{children}</td>
+    </tr>
+  );
+}
+
+/** Empty native <table>, part 2: the four placeholder rows, in an aria-hidden <tfoot> after </tbody> so the body holds only the message row. */
+export function PlaceholderRows({ colSpan }: { colSpan: number }) {
+  return (
+    <tfoot aria-hidden="true">
+      {PLACEHOLDERS.map((i) => (
+        <tr key={i} className="lims-row-placeholder" aria-hidden="true">
+          <td colSpan={colSpan} />
+        </tr>
+      ))}
+    </tfoot>
+  );
 }
 
 const BULK_MAX = 200; // CV §4.1
@@ -77,6 +113,7 @@ export function DataTable<Row>({
   error,
   emptyState,
   page,
+  total,
   sort,
   selection,
   density = 'regular',
@@ -89,9 +126,14 @@ export function DataTable<Row>({
   onRowActionMenu,
   caption,
   virtualize,
+  stickyFirstColumn,
+  columnChooser,
+  cellTitle,
   ...rest
 }: DataTableProps<Row>) {
   const [menu, setMenu] = useState<{ row: Row } | null>(null);
+  const [hidden, setHidden] = useState<ReadonlySet<string>>(() => new Set());
+  const [chooserOpen, setChooserOpen] = useState(false);
   const [start, setStart] = useState(0);
   const anchor = useRef<HTMLElement | null>(null);
   const grid = useRef<HTMLTableElement>(null);
@@ -112,10 +154,6 @@ export function DataTable<Row>({
     const id = (el as HTMLElement | null)?.closest?.('[data-row-id]')?.getAttribute('data-row-id');
     return id != null ? byId.get(id) : undefined;
   };
-
-  if (error) {
-    return <ErrorState title={error.title} {...(error.requestId ? { requestId: error.requestId } : {})} {...(error.onRetry ? { onRetry: error.onRetry } : {})} />;
-  }
 
   const sortCol = sort ? columns.find((c) => c.sortKey && c.sortKey === sort.value.replace(/^-/, '')) : undefined;
   const sortDescriptor: SortDescriptor | undefined = sortCol ? { column: sortCol.id, direction: sort!.value.startsWith('-') ? 'descending' : 'ascending' } : undefined;
@@ -154,8 +192,19 @@ export function DataTable<Row>({
 
   const virtual = isVirtual;
   const first = virtual ? Math.min(start, Math.max(0, rows.length - WINDOW)) : 0;
-  const shown = virtual ? rows.slice(first, first + WINDOW) : rows;
-  const align = (c: ColumnDef<Row>) => `lims-align-${c.align ?? 'start'}${c.hideBelow ? ` lims-hide-below-${c.hideBelow}` : ''}`;
+  // LD-353 rule 5: on error the header row stays and the ErrorState sits in the body (T0D-UIKIT-1)
+  const shown = error ? [] : virtual ? rows.slice(first, first + WINDOW) : rows;
+  const cols = columnChooser ? columns.filter((c) => !hidden.has(c.id)) : columns;
+  const stickyId = stickyFirstColumn ? cols[0]?.id : undefined;
+  const align = (c: ColumnDef<Row>) =>
+    `lims-align-${c.align ?? (c.numeric ? 'end' : 'start')}${c.numeric ? ' lims-num' : ''}${c.id === stickyId ? ' lims-sticky-first' : ''}${c.hideBelow ? ` lims-hide-below-${c.hideBelow}` : ''}`;
+  const toggle = (id: string) =>
+    setHidden((h) => {
+      const n = new Set(h);
+      if (n.has(id)) n.delete(id);
+      else if (columns.length - n.size > 1) n.add(id); // never hide the last column
+      return n;
+    });
 
   const table = (
     <Table
@@ -173,7 +222,7 @@ export function DataTable<Row>({
             {selection.mode === 'multiple' ? <RacCheckbox slot="selection" className="lims-checkbox" /> : <VisuallyHidden>Select</VisuallyHidden>}
           </Column>
         ) : null}
-        {columns.map((c) => (
+        {cols.map((c) => (
           <Column key={c.id} id={c.id} isRowHeader={!!c.isRowHeader} allowsSorting={!!(sort && c.sortKey)} className={`lims-col ${align(c)}`} {...(typeof c.width === 'number' ? { width: c.width } : {})}>
             {c.header}
           </Column>
@@ -185,7 +234,15 @@ export function DataTable<Row>({
           </Column>
         ) : null}
       </TableHeader>
-      <TableBody renderEmptyState={() => (isLoading ? null : <EmptyState {...emptyState} />)}>
+      {/* react-aria renders the empty state in one cell, so the T0D-EMPTYTBL-1 placeholder rows are inert divs inside it (LD-310). */}
+      <TableBody renderEmptyState={() => (error ? (
+        <ErrorState title={error.title} {...(error.requestId ? { requestId: error.requestId } : {})} {...(error.onRetry ? { onRetry: error.onRetry } : {})} />
+      ) : isLoading ? null : (
+        <>
+          <EmptyState {...emptyState} />
+          {PLACEHOLDERS.map((i) => <div key={i} className="lims-row-placeholder" aria-hidden="true" />)}
+        </>
+      ))}>
         {shown.map((r, i) => {
           const id = getRowId(r);
           const st = rowStatus?.(r);
@@ -196,11 +253,16 @@ export function DataTable<Row>({
                   <RacCheckbox slot="selection" className="lims-checkbox" />
                 </Cell>
               ) : null}
-              {columns.map((c) => (
-                <Cell key={c.id} className={`lims-cell ${align(c)}`}>
-                  {c.cell(r)}
-                </Cell>
-              ))}
+              {cols.map((c) => {
+                const v = c.cell(r);
+                // T0D-UIKIT-1 cellTitle: react-aria's Cell drops `title`, so a text cell gets it through its ref (an attribute value, never markup)
+                const text = cellTitle && (typeof v === 'string' || typeof v === 'number') ? String(v) : undefined;
+                return (
+                  <Cell key={c.id} className={`lims-cell ${align(c)}`} {...(text ? { ref: (el: HTMLTableCellElement | null) => { if (el) el.title = text; } } : {})}>
+                    {v}
+                  </Cell>
+                );
+              })}
               {rowStatus ? <Cell className="lims-cell lims-cell-status">{st ? <StatusChip {...st} /> : null}</Cell> : null}
               {rowActions ? (
                 <Cell className="lims-cell-actions">
@@ -217,7 +279,7 @@ export function DataTable<Row>({
   );
 
   return (
-    <div className="lims-data-table" onKeyDownCapture={onKeyDownCapture} onDoubleClick={onDoubleClick} {...rest}>
+    <div className={`lims-data-table${cellTitle ? ' lims-cell-titles' : ''}`} onKeyDownCapture={onKeyDownCapture} onDoubleClick={onDoubleClick} {...rest}>
       {selection && bulkActions?.length && selection.selectedIds.size > 0 ? (
         <div role="toolbar" aria-label="Bulk actions" className="lims-bulk-bar">
           <span className="lims-bulk-count">{selection.selectedIds.size} selected</span>
@@ -231,6 +293,23 @@ export function DataTable<Row>({
           </Button>
         </div>
       ) : null}
+      {columnChooser ? (
+        <div className="lims-colchooser">
+          <button type="button" className="lims-btn lims-btn-ghost" aria-expanded={chooserOpen} onClick={() => setChooserOpen((o) => !o)}>
+            Columns
+          </button>
+          {chooserOpen ? (
+            <div role="group" aria-label="Columns" className="lims-colchooser-list lims-popover">
+              {columns.map((c) => (
+                <label key={c.id} className="lims-check">
+                  <input type="checkbox" checked={!hidden.has(c.id)} onChange={() => toggle(c.id)} />
+                  {c.header}
+                </label>
+              ))}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
       {virtual ? (
         // ponytail: fixed-height row window; react-aria's Virtualizer renders every row when it cannot measure (jsdom, hidden tabs).
         <div className="lims-table-scroll" style={{ maxHeight: ROW_HEIGHT * 20, overflowY: 'auto' }} onScroll={(e) => setStart(Math.max(0, Math.floor(e.currentTarget.scrollTop / ROW_HEIGHT) - 10))}>
@@ -239,19 +318,24 @@ export function DataTable<Row>({
           <div style={{ height: Math.max(0, rows.length - first - shown.length) * ROW_HEIGHT }} />
         </div>
       ) : (
-        table
+        <div className="lims-table-scroll">{table}</div>
       )}
       <div role="status" className="lims-visually-hidden">
         {isLoading ? 'Loading results' : ''}
       </div>
-      {page ? (
+      {page || total !== undefined ? (
         <div className="lims-pager">
-          <button type="button" className="lims-btn lims-btn-secondary lims-btn-sm" disabled={!page.hasPrevious} onClick={page.onPrevious}>
-            Previous
-          </button>
-          <button type="button" className="lims-btn lims-btn-secondary lims-btn-sm" disabled={!page.hasNext} onClick={page.onNext}>
-            Next
-          </button>
+          {total !== undefined ? <span className="lims-pager-total">{shown.length > 0 ? `Showing 1 to ${shown.length} of ${total}` : `0 of ${total}`}</span> : null}
+          {page ? (
+            <>
+              <button type="button" className="lims-btn lims-btn-secondary lims-btn-sm" disabled={!page.hasPrevious} onClick={page.onPrevious}>
+                Previous
+              </button>
+              <button type="button" className="lims-btn lims-btn-secondary lims-btn-sm" disabled={!page.hasNext} onClick={page.onNext}>
+                Next
+              </button>
+            </>
+          ) : null}
         </div>
       ) : null}
       {menu && rowActions ? (

@@ -1,0 +1,253 @@
+$ pnpm run build:nav && next build
+$ node src/core/nav/build-nav.ts
+build-nav: 92 nav entries, 160 staff routes → C:\LIMS-lanes\C1\apps\web\src\core\nav\generated.ts
+▲ Next.js 16.4.5 (Turbopack)
+✓ Running next.config.mjs took 74ms
+
+⚠ The "middleware" file convention is deprecated. Please use "proxy" instead.
+
+  To migrate automatically, run:
+  npx @next/codemod@canary middleware-to-proxy .
+
+  Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+  Creating an optimized production build ...
+✓ Compiled successfully in 14.7s
+  Running TypeScript ...
+  Finished TypeScript in 2.8s ...
+  Collecting page data using 11 workers ...
+✓ Finished filesystem cache database compaction in 10.8s
+  Generating static pages using 11 workers (0/12) ...
+  Generating static pages using 11 workers (3/12) 
+  Generating static pages using 11 workers (6/12) 
+  Generating static pages using 11 workers (9/12) 
+✓ Generating static pages using 11 workers (12/12) in 633ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ○ /_not-found
+├ ƒ /[...slug]
+├ ƒ /admin/access-log
+├ ƒ /admin/access-review
+├ ƒ /admin/audit
+├ ƒ /admin/audit/[audit_id]
+├ ƒ /admin/branches
+├ ƒ /admin/centres
+├ ƒ /admin/exports
+├ ƒ /admin/exports/[export_id]/file
+├ ƒ /admin/me
+├ ƒ /admin/roles
+├ ƒ /admin/roles/[role_id]
+├ ƒ /admin/roles/new
+├ ƒ /admin/roles/packs
+├ ƒ /admin/sessions
+├ ƒ /admin/settings
+├ ƒ /admin/support-access
+├ ƒ /admin/users
+├ ƒ /admin/users/[membership_id]
+├ ƒ /admin/users/new
+├ ƒ /analytics
+├ ƒ /analytics/collections
+├ ƒ /analytics/exports
+├ ƒ /analytics/exports/[export_id]/file
+├ ƒ /analytics/referral-incentive
+├ ƒ /analytics/report-runs/[report_run_id]
+├ ƒ /analytics/reports
+├ ƒ /analytics/reports/[reportCode]
+├ ƒ /analytics/schedules
+├ ƒ /analytics/schedules/[schedule_id]
+├ ƒ /analytics/schedules/new
+├ ƒ /anatomic
+├ ƒ /anatomic/batches
+├ ƒ /anatomic/batches/[batch_id]
+├ ƒ /anatomic/cases/[case_id]
+├ ƒ /anatomic/cases/[case_id]/labels
+├ ƒ /anatomic/config
+├ ƒ /anatomic/config/templates/[template_id]
+├ ƒ /anatomic/images/[image_id]/content
+├ ƒ /anatomic/tracking
+├ ƒ /auth/confirm
+├ ○ /auth/forgot
+├ ƒ /auth/login
+├ ○ /auth/logout
+├ ○ /auth/mfa
+├ ○ /auth/mfa/enrol
+├ ƒ /auth/session-expired
+├ ○ /auth/set-password
+├ ƒ /billing/audit-trail
+├ ƒ /billing/cbms
+├ ƒ /billing/credit-parties
+├ ƒ /billing/credit-parties/[credit_party_id]
+├ ƒ /billing/daily-cash
+├ ƒ /billing/dues
+├ ƒ /billing/exports/[export_id]/content
+├ ƒ /billing/invoices
+├ ƒ /billing/invoices/[invoice_id]
+├ ƒ /billing/registers
+├ ƒ /billing/settings
+├ ƒ /billing/worklist
+├ ƒ /catalog
+├ ƒ /catalog/comment-codes
+├ ƒ /catalog/credit-parties
+├ ƒ /catalog/credit-parties/[credit_party_id]
+├ ƒ /catalog/departments
+├ ƒ /catalog/doctors
+├ ƒ /catalog/doctors/[doctor_id]
+├ ƒ /catalog/doctors/verify
+├ ƒ /catalog/exports/[export_id]/file
+├ ƒ /catalog/import-templates/[kind]
+├ ƒ /catalog/imports
+├ ƒ /catalog/imports/[import_id]
+├ ƒ /catalog/imports/[import_id]/report
+├ ƒ /catalog/methods
+├ ƒ /catalog/panels
+├ ƒ /catalog/panels/[panel_id]
+├ ƒ /catalog/price-lists
+├ ƒ /catalog/price-lists/[price_list_id]
+├ ƒ /catalog/price-lists/[price_list_id]/versions/[version_id]
+├ ƒ /catalog/price-simulator
+├ ƒ /catalog/specimens
+├ ƒ /catalog/surcharges
+├ ƒ /catalog/tax
+├ ƒ /catalog/tests
+├ ƒ /catalog/tests/[test_id]
+├ ƒ /catalog/units
+├ ƒ /engagement/app-access/[patient_id]
+├ ƒ /engagement/bookable-items
+├ ƒ /engagement/bookings
+├ ƒ /engagement/bookings/[booking_id]
+├ ƒ /engagement/bookings/new
+├ ƒ /engagement/enquiries
+├ ƒ /engagement/enquiries/[enquiry_id]
+├ ƒ /engagement/memberships
+├ ƒ /engagement/queue
+├ ƒ /engagement/queue/setup
+├ ƒ /engagement/queue/tokens
+├ ƒ /engagement/reminders
+├ ƒ /engagement/slots
+├ ƒ /frontdesk/discount-approvals
+├ ƒ /frontdesk/orders/[order_id]
+├ ƒ /frontdesk/patients/[patient_id]
+├ ƒ /frontdesk/registrations/new
+├ ƒ /frontdesk/trf-attachments/[attachment_id]/content
+├ ƒ /frontdesk/worklist
+├ ƒ /homecollection/devices
+├ ƒ /homecollection/dispatch
+├ ƒ /homecollection/handovers
+├ ƒ /homecollection/settings
+├ ƒ /instruments/agents
+├ ƒ /instruments/agents/[agent_id]
+├ ƒ /instruments/instruments
+├ ƒ /instruments/instruments/[instrument_id]
+├ ƒ /instruments/instruments/[instrument_id]/mappings
+├ ƒ /instruments/messages
+├ ƒ /instruments/messages/[instrument_message_id]
+├ ƒ /instruments/messages/[instrument_message_id]/attachment
+├ ƒ /instruments/settings
+├ ƒ /inventory
+├ ƒ /inventory/alerts
+├ ƒ /inventory/bench
+├ ƒ /inventory/counts
+├ ƒ /inventory/counts/[count_id]
+├ ƒ /inventory/items
+├ ƒ /inventory/items/[item_id]
+├ ƒ /inventory/purchase-orders
+├ ƒ /inventory/purchase-orders/[po_id]/print
+├ ƒ /inventory/receipts
+├ ƒ /inventory/reports
+├ ƒ /inventory/reports/[report_code]/export
+├ ƒ /inventory/rules
+├ ƒ /inventory/settings
+├ ƒ /inventory/stock
+├ ƒ /inventory/stores
+├ ƒ /inventory/suppliers
+├ ƒ /inventory/transfers
+├ ƒ /inventory/unresolved
+├ ƒ /inventory/wastage
+├ ƒ /lab/approval
+├ ƒ /lab/collect
+├ ƒ /lab/ingest-exceptions
+├ ƒ /lab/ingest-exceptions/[exception_id]
+├ ƒ /lab/orders/[order_id]/labels
+├ ƒ /lab/orders/[order_id]/results
+├ ƒ /lab/pending
+├ ƒ /lab/qc
+├ ƒ /lab/receive
+├ ƒ /lab/settings
+├ ƒ /lab/specimens/[specimen_id]
+├ ƒ /lab/status-board
+├ ƒ /lab/verification
+├ ƒ /lab/worklists/[department_id]
+├ ƒ /lab/worksheets
+├ ƒ /lab/worksheets/[worksheet_id]
+├ ƒ /micro/breakpoint-sets
+├ ƒ /micro/breakpoint-sets/[breakpoint_set_id]
+├ ƒ /micro/breakpoint-sets/breakpoint-template
+├ ƒ /micro/cultures/[culture_id]
+├ ƒ /micro/instrument-records
+├ ƒ /micro/settings
+├ ƒ /micro/worklist
+├ ƒ /partners
+├ ƒ /partners/[partner_id]
+├ ƒ /partners/manifests
+├ ƒ /partners/manifests/[manifest_id]
+├ ƒ /partners/pickups
+├ ƒ /partners/referrers
+├ ƒ /partners/settings
+├ ƒ /payments/intents/[intent_id]
+├ ƒ /payments/reconciliation
+├ ƒ /payments/refunds
+├ ƒ /payments/review
+├ ƒ /payments/settings
+├ ƒ /payments/static-qr
+├ ƒ /platform
+├ ƒ /platform/auth-events
+├ ƒ /platform/dead-letters
+├ ƒ /platform/dead-letters/[dead_letter_id]
+├ ƒ /platform/ird
+├ ƒ /platform/staff
+├ ƒ /platform/support-sessions
+├ ƒ /platform/tenants
+├ ƒ /platform/tenants/[tenant_id]
+├ ƒ /platform/tenants/new
+├ ƒ /quality
+├ ƒ /quality/autoverify
+├ ƒ /quality/autoverify/[version_id]
+├ ƒ /quality/autoverify/decisions
+├ ƒ /quality/lj
+├ ƒ /quality/observations
+├ ƒ /quality/qc-runs/[qc_run_id]
+├ ƒ /quality/runs
+├ ƒ /quality/settings
+├ ƒ /quality/setup/maps
+├ ƒ /quality/setup/materials
+├ ƒ /quality/setup/plans
+├ ƒ /quality/setup/targets
+├ ƒ /quality/tat-alerts
+├ ƒ /queue-display
+├ ƒ /queue-display/api/board
+├ ƒ /reporting
+├ ƒ /reporting/deliveries
+├ ƒ /reporting/deliveries/[delivery_id]
+├ ƒ /reporting/messages
+├ ƒ /reporting/narratives/[narrative_id]
+├ ƒ /reporting/outsourced
+├ ƒ /reporting/outsourced-files/[file_id]/pdf
+├ ƒ /reporting/prints/[print_id]/pdf
+├ ƒ /reporting/report-versions/[version_id]/pdf
+├ ƒ /reporting/reports/[report_id]
+├ ƒ /reporting/settings
+├ ƒ /reporting/templates
+├ ƒ /reporting/templates/[template_id]
+├ ƒ /smartreport/library
+├ ƒ /smartreport/library/[library_version_id]
+├ ƒ /smartreport/library/[library_version_id]/review
+├ ƒ /smartreport/summaries
+├ ƒ /smartreport/summaries/[summary_id]
+└ ƒ /smartreport/wording
+
+
+ƒ Proxy (Middleware)
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+

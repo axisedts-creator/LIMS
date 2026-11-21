@@ -7,6 +7,7 @@ import { Checkbox } from '@lims/ui/components/Checkbox';
 import { Combobox } from '@lims/ui/components/Combobox';
 import { DataTable } from '@lims/ui/components/DataTable';
 import { Dialog } from '@lims/ui/components/Dialog';
+import { FilterBar, type FilterValue } from '@lims/ui/components/FilterBar';
 import { MoneyText } from '@lims/ui/components/MoneyText';
 import { Switch } from '@lims/ui/components/Switch';
 import { useToast } from '@lims/ui/components/Toast';
@@ -78,6 +79,11 @@ export function BookableCatalogue({ items: initial, actions }: BookableCatalogue
   const [adding, setAdding] = useState(false);
   const [failure, setFailure] = useState<string>();
   const [refreshing, setRefreshing] = useState(false);
+  // T0D-UILIST-3 (LD-353 template 1): one FilterBar; display only, filters the loaded rows by code/name and status.
+  const [filters, setFilters] = useState<FilterValue>({});
+  const needle = typeof filters['q'] === 'string' ? filters['q'].trim().toLowerCase() : '';
+  const fStatus = filters['status'];
+  const shown = items.filter((i) => (!fStatus || i.is_active === (fStatus === 'active')) && (!needle || i.code.toLowerCase().includes(needle) || i.display_name.toLowerCase().includes(needle)));
   const setOne = (id: string, is_active: boolean) => setItems((l) => l.map((x) => (x.orderable_id === id ? { ...x, is_active } : x)));
 
   const toggle = async (item: StaffBookableItem, next: boolean) => {
@@ -108,10 +114,20 @@ export function BookableCatalogue({ items: initial, actions }: BookableCatalogue
         <Button variant="primary" onPress={() => setAdding(true)}>Add test or package</Button>
         <Button isLoading={refreshing} onPress={() => void refresh()}>Refresh from catalogue</Button>
       </div>
+      <FilterBar
+        filters={[
+          { id: 'q', label: 'Search', kind: 'text', maxLength: 100 },
+          { id: 'status', label: 'Status', kind: 'select', options: [{ value: 'active', label: 'Active' }, { value: 'inactive', label: 'Inactive' }] },
+        ]}
+        value={filters}
+        onChange={setFilters}
+        onReset={() => setFilters({})}
+      />
       {failure ? <p role="alert" className="lims-error">{failure}</p> : null}
       <DataTable
         caption="Bookable catalogue"
-        rows={items}
+        cellTitle
+        rows={shown}
         getRowId={(i) => i.orderable_id}
         emptyState={{ title: 'No bookable tests yet.' }}
         columns={[
@@ -121,7 +137,7 @@ export function BookableCatalogue({ items: initial, actions }: BookableCatalogue
           { id: 'types', header: 'Types', cell: (i) => i.booking_kinds.map((k) => TYPES[k] ?? k).join(', ') },
           { id: 'price', header: 'Indicative price', align: 'end', cell: (i) => (i.indicative_price ? <MoneyText value={{ amountPaisa: i.indicative_price.amount_paisa, currency: 'NPR' }} /> : '—') },
           { id: 'synced', header: 'Synced at', cell: (i) => (i.synced_at ? dateTime(i.synced_at) : '—') },
-          { id: 'active', header: 'Active', cell: (i) => <Switch label={`Active: ${i.display_name}`} isSelected={i.is_active} onChange={(on) => void toggle(i, on)} /> },
+          { id: 'active', header: 'Active', cell: (i) => <span title={i.display_name}><Switch label={`Active: ${i.display_name}`} isSelected={i.is_active} onChange={(on) => void toggle(i, on)} /></span> },
         ]}
       />
       {adding ? <AddDialog actions={actions} onClose={() => setAdding(false)} onAdded={(name) => { setAdding(false); toast.show({ tone: 'success', title: `${name} added` }); }} /> : null}

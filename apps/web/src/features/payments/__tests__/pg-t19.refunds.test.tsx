@@ -16,6 +16,7 @@ import { cleanup, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
+import { actionBar, itemOf, pickItem } from '../../../__tests__/uiconsole1.helpers';
 import { ORIGIN, U, axeClean, describedText, isEnabled, noRawCodes, npr, pick, problem, recorder, wrap, type Call } from './pg-t19.helpers';
 
 const refresh = vi.hoisted(() => vi.fn());
@@ -97,7 +98,7 @@ const api = setupServer(
   ...(['refund_reject_reasons', 'refund_fail_reasons', 'refund_hold_reasons'] as const).map((s) =>
     http.get(`${ORIGIN}/v1/payments/coded-sets/${s}`, async ({ request }) => { await rec(request); return HttpResponse.json({ data: codes[s] }); })),
 );
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 beforeEach(() => { vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(new Date('2026-11-12T06:00:00Z')); });
 afterEach(() => { vi.useRealTimers(); cleanup(); api.resetHandlers(); calls.length = 0; refresh.mockReset(); push.mockReset(); perms.current = READ; reset(); });
 afterAll(() => api.close());
@@ -107,21 +108,32 @@ const view = async (permissions: readonly string[] = ALL, data: unknown[] = rows
   const RefundsList = await comp();
   return wrap(<RefundsList refunds={data as never} permissions={permissions} currentMembershipId={ME} codes={codes} {...extra} />);
 };
-const rowOf = (n: number) => document.querySelector(`a[href="/payments/intents/${U(100 + n)}"]`)!.closest('tr') as HTMLElement;
-const act = (n: number, name: RegExp) => within(rowOf(n)).queryByRole('button', { name });
+// T0D-UICONSOLE-1 (LD-353 template 2): the queue row is the console item (data-console-item = refund id U(400+n)); mode, names, hold reason and the payment link are in the
+// detail of the SELECTED refund, and the row actions are the buttons of the sticky bar of that refund (absent action = null, as before).
+const rowOf = (n: number) => itemOf(document.body, U(400 + n)) as HTMLElement;
+const detailOf = (n: number) => pickItem(document.body, U(400 + n));
+const act = (n: number, name: RegExp) => { pickItem(document.body, U(400 + n)); const bar = actionBar(document.body); return bar ? within(bar).queryByRole('button', { name }) : null; };
 const posts = (suffix: string, n?: number) => calls.filter((c) => c.method === 'POST' && c.url.pathname.endsWith(`/${suffix}`) && (n === undefined || c.url.pathname.includes(U(400 + n))));
 const dlgOf = async () => screen.findByRole('dialog');
 const SECOND = 'A second person must approve this refund.';
 
 describe('§2.3 RefundsList — table', () => {
-  it('title mentions refunds; the nine columns in spec order', async () => {
+  it('title mentions refunds; the nine columns in spec order (the age first; the last four are the facts of the detail, the intent is its Payment link)', async () => {
     await view();
     expect(screen.getByRole('heading', { level: 1, name: /refunds/i })).toBeTruthy();
     const heads = screen.getAllByRole('columnheader').map((h) => (h.textContent ?? '').trim().toLowerCase());
+    expect(heads[0]).toMatch(/^age/);
     let at = -1;
-    for (const w of ['requested', 'gateway', 'amount', 'status', 'mode', 'requested by', 'approved by', 'reason under review', 'intent']) {
+    for (const w of ['requested', 'gateway', 'amount', 'status']) {
       const i = heads.findIndex((h, k) => k > at && h.startsWith(w));
       expect(i, `column ${w} in ${heads.join('|')}`).toBeGreaterThan(at);
+      at = i;
+    }
+    const terms = [...detailOf(1).querySelectorAll('dt')].map((d) => (d.textContent ?? '').trim().toLowerCase());
+    at = -1;
+    for (const w of ['mode', 'requested by', 'approved by', 'reason under review', 'payment']) {
+      const i = terms.findIndex((h, k) => k > at && h.startsWith(w));
+      expect(i, `detail ${w} in ${terms.join('|')}`).toBeGreaterThan(at);
       at = i;
     }
   });
@@ -132,13 +144,16 @@ describe('§2.3 RefundsList — table', () => {
     expect(within(r1).getByText('Khalti')).toBeTruthy();
     expect(within(r1).getByText(/2,250\.00/)).toBeTruthy();
     expect(within(r1).getByText('Waiting for approval')).toBeTruthy();
-    expect(within(r1).getByText('Manual')).toBeTruthy();
-    expect(within(r1).getByText('Synthetic Finance A')).toBeTruthy();
+    const d1 = detailOf(1);
+    expect(within(d1).getByText('Manual')).toBeTruthy();
+    expect(within(d1).getByText('Synthetic Finance A')).toBeTruthy();
     expect(r1.textContent).not.toContain(A);
-    expect(within(rowOf(5)).getByText('Provider API')).toBeTruthy();
+    expect(d1.textContent).not.toContain(A);
+    expect(d1.querySelector(`a[href="/payments/intents/${U(101)}"]`)).toBeTruthy();
+    expect(within(detailOf(5)).getByText('Provider API')).toBeTruthy();
     expect(within(rowOf(5)).getByText('Refund in progress')).toBeTruthy();
     expect(within(rowOf(3)).getByText('eSewa')).toBeTruthy();
-    expect(within(rowOf(3)).getByText('Synthetic Finance B')).toBeTruthy();
+    expect(within(detailOf(3)).getByText('Synthetic Finance B')).toBeTruthy();
     expect(within(rowOf(6)).getByText('Completed')).toBeTruthy();
     expect(within(rowOf(7)).getByText('Failed')).toBeTruthy();
     expect(within(rowOf(8)).getByText('Rejected')).toBeTruthy();
@@ -148,8 +163,10 @@ describe('§2.3 RefundsList — table', () => {
     await view();
     const r4 = rowOf(4);
     expect(within(r4).getByText('Under review')).toBeTruthy();
-    expect(within(r4).getByText('Refund not visible at the provider yet')).toBeTruthy();
+    const d4 = detailOf(4);
+    expect(within(d4).getByText('Refund not visible at the provider yet')).toBeTruthy();
     expect(r4.textContent).not.toMatch(/refund_not_visible/);
+    expect(d4.textContent).not.toMatch(/refund_not_visible/);
   });
 
   it('filters: status (the seven spec options), gateway, created range', async () => {
@@ -675,7 +692,8 @@ describe('refunds page.tsx — request (P6/P24)', () => {
     expect(l.headers.get('authorization')).toBe('Bearer jwt-synthetic');
     for (const s of ['refund_reject_reasons', 'refund_fail_reasons', 'refund_hold_reasons']) expect(calls.some((c) => c.url.pathname === `/v1/payments/coded-sets/${s}`), s).toBe(true);
     expect(container.innerHTML).not.toContain('jwt-synthetic');
-    expect((await within(screen.getByRole('grid')).findAllByText('Synthetic Finance A', {}, { timeout: 3000 })).length).toBeGreaterThan(0);
+    await waitFor(() => expect(rowOf(1)).toBeTruthy(), { timeout: 3000 });
+    expect((await within(detailOf(1)).findAllByText('Synthetic Finance A', {}, { timeout: 3000 })).length).toBeGreaterThan(0); // names are in the detail of the selected refund
   });
 
   it('forwards only whitelisted, well-formed params; drops tenant_id / evil / malformed values', async () => {

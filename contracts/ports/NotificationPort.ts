@@ -1,6 +1,6 @@
 // contracts/ports/NotificationPort.ts
-import type { RequestContext, Uuidv7, Code } from './common';
-import type { PermissionCode } from './IdentityPort';               // added by 08 A4.2 (staff recipient)
+import type { RequestContext, Uuidv7, Code } from './common.js';
+import type { PermissionCode } from './IdentityPort.js';               // added by 08 A4.2 (staff recipient)
 export const NOTIFICATION_PORT_VERSION = 1 as const;
 
 export type Recipient =

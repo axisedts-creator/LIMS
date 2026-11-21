@@ -21,7 +21,7 @@
 import { createHash } from 'node:crypto';
 import { vi } from 'vitest';
 import { LimsError } from '../../../../core/errors.js';
-import { EMAIL, HMAC_KEY, MEMB_A, REQ_ID, START, STAFF_ID, SYSTEM_ACTOR, TENANT_A, hmacHex, idN, rejection } from '../../service/__tests__/auth.helpers.js';
+import { EMAIL, HMAC_KEY, MEMB_A, REQ_ID, START, STAFF_ID, SYSTEM_ACTOR, TENANT_A, TENANT_PERMS, hmacHex, idN, makePerms, rejection, type PermsCall } from '../../service/__tests__/auth.helpers.js';
 
 export { EMAIL, HMAC_KEY, MEMB_A, REQ_ID, STAFF_ID, SYSTEM_ACTOR, TENANT_A, hmacHex, idN, rejection, LimsError };
 export const CLIENT_IP = '203.0.113.9';
@@ -55,7 +55,19 @@ export function makeStore(clock: { ms: number }) {
   };
   const terminal = (s: Row) => s.state === 'revoked' || s.state === 'expired';
 
+  // SESSION-ACTOR-1 (LD-208): app.identity_session_actor as a READ (never in `writes`). Default: platform row for tenantId null, tenant row otherwise; `actor.impl` overrides (undefined = no row).
+  const actor = { calls: [] as Array<{ tx: unknown; userId: string; tenantId: string | null; membershipId: string | null }>, impl: undefined as undefined | ((a: { userId: string; tenantId: string | null; membershipId: string | null }) => unknown) };
+  // AUTH-ACTOR-2 (LD-222): repo.membershipPermissions(tx, { tenantId, membershipId }) -> string[], a READ (never in `writes`); `perms.impl` overrides (throw = failed read)
+  const perms = makePerms();
   const repo = {
+    async membershipPermissions(tx: unknown, a: { tenantId: string | null; membershipId: string | null }) {
+      order.push('membershipPermissions'); const c: PermsCall = { tx, ...a }; perms.calls.push(c); return perms.impl ? perms.impl(c) : [...TENANT_PERMS];
+    },
+    async sessionActor(tx: unknown, a: { userId: string; tenantId: string | null; membershipId: string | null }) {
+      order.push('sessionActor'); actor.calls.push({ tx, ...a });
+      return actor.impl ? actor.impl(a) : (a.tenantId ? { display_name: 'Ana Demo', role_codes: ['lab_manager', 'technician'], tenant_code: 'lab_a' }
+        : { display_name: 'Sam Staff', role_codes: ['platform_support'], tenant_code: null });
+    },
     async sessionByToken(_tx: unknown, sha: Buffer) {
       order.push('sessionByToken'); const s = sessions.get(sha.toString('hex')); if (!s) return undefined;
       return { sessionId: s.sessionId, kind: s.kind, state: s.state, tenantId: s.tenantId, userId: s.userId, membershipId: s.membershipId, platformStaffId: s.platformStaffId, tokenReused: s.tokenReused };
@@ -100,7 +112,7 @@ export function makeStore(clock: { ms: number }) {
   }
   const committed = (m?: string) => writes.filter((w) => w.committed && (!m || w.m === m));
   const eventsOf = (type: string) => committed().filter((w) => (w.m === 'recordTenant' || w.m === 'recordTenantless') && w.arg.eventType === type).map((w) => w.arg);
-  return { sessions, writes, order, repo, events, envelope, committed, eventsOf, byId, now: () => clock.ms };
+  return { sessions, writes, order, repo, events, envelope, committed, eventsOf, byId, actor, perms, now: () => clock.ms };
 }
 
 /** GoTrue refresh stub on the injected clock: every refresh token works ONCE (second use -> reused, like a strict rotating GoTrue); modes simulate revoke / outage. */

@@ -10,7 +10,7 @@ import { createSessionService, type SessionCall, type SessionDeps } from '../ser
 import { bodyObject, gw, invalid, sessionToken } from './verifyMfaChallenge.js';
 
 interface SessionHctx extends HandlerContext {
-  requestId: string; bffKey?: string; actor?: { type: string; id: string }; commitOnError?: () => void;
+  requestId: string; bffKey?: HandlerContext['bffKey']; actor?: { type: string; id: string }; commitOnError?: () => void;
   db: { identityAuthTx<T>(input: TxInput, fn: TxFn<T>): Promise<T> };
 }
 export const TOKEN_RE = /^[A-Za-z0-9_-]{43}$/;
@@ -24,7 +24,7 @@ export function sessionCall(operationId: SessionCall['operationId'], req: Handle
   if (!token || !TOKEN_RE.test(token)) throw new LimsError('auth.session_expired');
   const ua = (req.headers as Record<string, unknown> | undefined)?.['user-agent'];
   return { operationId, token, bffKey: ctx.bffKey, actorId, requestId: ctx.requestId, clientIp: ctx.clientIp, userAgent: typeof ua === 'string' ? ua : undefined,
-    commitOnError: ctx.commitOnError, db: ctx.db };
+    commitOnError: ctx.commitOnError, db: ctx.db, log: ctx.log };
 }
 
 export const createResolveSession = (deps: SessionDeps) => {

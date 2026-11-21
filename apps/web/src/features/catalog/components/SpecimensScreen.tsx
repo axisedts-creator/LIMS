@@ -9,17 +9,37 @@ import { Select } from '@lims/ui/components/Select';
 import { Switch } from '@lims/ui/components/Switch';
 import { Tabs } from '@lims/ui/components/Tabs';
 import { TextField } from '@lims/ui/components/TextField';
+import './catalog.css';
 import { createMasterAction, updateMasterAction } from '../server/actions';
 import { CODE_RE, type Container, type SpecimenType } from '../server/types';
 import { CODE_HINT, DUPLICATE, EditorDialog, MasterTable, canManage, changed, statusText, useListFilter, useListShortcuts, type Col } from './master-ui';
+import { t } from '@/core/i18n/messages';
+
+/** LD-140 / 10-DESIGN-SYSTEM §6: cap colour as a swatch (decorative, class-styled) plus its name; never colour-only. No colour → dash, no swatch. */
+const SWATCH: Record<string, string> = { red: 'red', green: 'green', blue: 'blue', grey: 'grey', gray: 'grey', black: 'black' };
+function CapColour({ name }: { name: string | undefined }) {
+  if (!name) return <>—</>;
+  const tone = SWATCH[name.trim().toLowerCase()];
+  return (
+    <span className="catalog-colour-cell">
+      <span className={`catalog-swatch${tone ? ` catalog-swatch-${tone}` : ''}`} aria-hidden="true" />
+      {name}
+    </span>
+  );
+}
 
 const status = (r: { is_active: boolean }) => <Badge tone={r.is_active ? 'success' : 'neutral'}>{statusText(r.is_active)}</Badge>;
 
 export function SpecimensScreen({ specimenTypes, containers, permissions }: { specimenTypes: readonly SpecimenType[]; containers: readonly Container[]; permissions: readonly string[] }) {
   const [tab, setTab] = useState('specimen_types');
+  const [adding, setAdding] = useState(false);
+  const types = tab === 'specimen_types';
+  // T0D-ELABMENU-3 (LD-340): shared header pattern, the primary New of the open tab sits on the right of the title
+  const action = canManage(permissions) ? <Button variant="primary" onPress={() => setAdding(true)}>{types ? 'New specimen type' : 'New container'}</Button> : null;
   return (
     <section aria-label="Specimens & containers">
-      <PageHeader title="Specimens & containers" helpKey="catalog.specimens" breadcrumbs={[{ label: 'Catalog', href: '/catalog' }, { label: 'Specimens & containers' }]} />
+      <PageHeader title={t('catalog.nav.specimens')} helpKey="catalog.specimens" actions={action} />
+      {adding ? (types ? <SpecimenTypeDialog item={undefined} onClose={() => setAdding(false)} /> : <ContainerDialog item={undefined} specimenTypes={specimenTypes} onClose={() => setAdding(false)} />) : null}
       <Tabs aria-label="Specimens & containers" items={[{ id: 'specimen_types', label: 'Specimen types' }, { id: 'containers', label: 'Containers' }]} selectedId={tab} onChange={setTab}>
         {tab === 'specimen_types' ? <SpecimenTypesTab rows={specimenTypes} permissions={permissions} /> : <ContainersTab rows={containers} specimenTypes={specimenTypes} permissions={permissions} />}
       </Tabs>
@@ -41,9 +61,8 @@ function SpecimenTypesTab({ rows, permissions }: { rows: readonly SpecimenType[]
   ];
   return (
     <>
-      {openNew ? <Button variant="primary" onPress={openNew}>New specimen type</Button> : null}
       {toolbar}
-      <MasterTable caption="Specimen types" cols={cols} rows={shown} empty="No specimen types yet." emptyAction={openNew ? { label: 'New specimen type', onPress: openNew } : undefined} onEdit={manage ? setEditing : undefined} />
+      <MasterTable caption="Specimen types" cols={cols} rows={shown} empty="No test groups (specimen types) yet." emptyAction={openNew ? { label: 'New specimen type', onPress: openNew } : undefined} onEdit={manage ? setEditing : undefined} />
       {editing ? <SpecimenTypeDialog item={editing === 'new' ? undefined : editing} onClose={() => setEditing(null)} /> : null}
     </>
   );
@@ -84,13 +103,12 @@ function ContainersTab({ rows, specimenTypes, permissions }: { rows: readonly Co
     { header: 'Code', cell: (r) => r.code },
     { header: 'Name', cell: (r) => r.name },
     { header: 'Additive', cell: (r) => r.additive || '—' },
-    { header: 'Cap colour', cell: (r) => r.cap_colour_display || '—' },
+    { header: 'Cap colour', cell: (r) => <CapColour name={r.cap_colour_display} /> },
     { header: 'Default specimen type', cell: (r) => (r.default_specimen_type_id ? (typeName.get(r.default_specimen_type_id) ?? '—') : '—') },
     { header: 'Status', cell: status },
   ];
   return (
     <>
-      {openNew ? <Button variant="primary" onPress={openNew}>New container</Button> : null}
       {toolbar}
       <MasterTable caption="Containers" cols={cols} rows={shown} empty="No containers yet." emptyAction={openNew ? { label: 'New container', onPress: openNew } : undefined} onEdit={manage ? setEditing : undefined} />
       {editing ? <ContainerDialog item={editing === 'new' ? undefined : editing} specimenTypes={specimenTypes} onClose={() => setEditing(null)} /> : null}

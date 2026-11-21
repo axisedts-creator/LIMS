@@ -12,7 +12,7 @@ import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
 import { DatePicker, type IsoDate } from '@lims/ui/components/DatePicker';
 import { DateText, type DateTextProps } from '@lims/ui/components/DateText';
 import { EmptyState } from '@lims/ui/components/EmptyState';
-import { FilterBar, type FilterDef, type FilterValue } from '@lims/ui/components/FilterBar';
+import type { FilterValue } from '@lims/ui/components/FilterBar';
 import { Grid } from '@lims/ui/components/Grid';
 import { Icon } from '@lims/ui/components/Icon';
 import { IconButton } from '@lims/ui/components/IconButton';
@@ -44,12 +44,8 @@ const BASE = '/homecollection/dispatch';
 const ALL = 'all';
 const ASSIGN = 'homecollection.visit.assign'; // dispatcher actions
 const LABELS = 'lab.specimen.label_print'; // Print labels link (US-05-1)
-const STATUS_OPTIONS = VISIT_STATUSES.map((s) => ({ value: s, label: visitStatus(s)[1] }));
+const STATUS_OPTIONS = [{ value: ALL, label: 'All statuses' }, ...VISIT_STATUSES.map((s) => ({ value: s, label: visitStatus(s)[1] }))];
 const KIND_OPTIONS = [{ value: ALL, label: 'All kinds' }, ...VISIT_KINDS.map((k) => ({ value: k, label: kindLabel(k) }))];
-const FILTERS: FilterDef[] = [
-  { id: 'status', label: 'Status', kind: 'select', multiple: true, options: STATUS_OPTIONS },
-  { id: 'kind', label: 'Kind', kind: 'select', options: KIND_OPTIONS },
-];
 
 export interface DispatchBoardProps {
   date: string;
@@ -188,25 +184,23 @@ export function DispatchBoard({ date, centreId, centres, visits, routes, permiss
   const visibleRoutes = routes.filter((r) => r.active_visits > 0 || r.visit_ids_in_order.length > 0);
   return (
     <div ref={root}>
-      <PageHeader
-        title="Home visits" helpKey="homecollection.dispatch"
-        actions={
-          <Inline gap={2} align="end">
-            <DatePicker label="Date" name="date" value={date as IsoDate} onChange={(d) => { if (d && d !== date) router.replace(go({ date: d })); }} />
-            {centres.length ? <Select label="Centre" name="centre_id" options={centres.map((c) => ({ value: c.id, label: c.name }))} {...(centreId ? { value: centreId } : {})} onChange={(c) => router.replace(go({ centreId: c }))} /> : null}
-            <Button onPress={() => router.refresh()}>Refresh</Button>
-          </Inline>
-        }
-      />
-      <Inline gap={4} align="end">
-        <FilterBar filters={FILTERS} value={fv} onChange={onFilter} onReset={() => router.replace(go({ filter: { status: [] } }))} />
+      <PageHeader title="Home visits" helpKey="homecollection.dispatch" actions={<Button onPress={() => router.refresh()}>Refresh</Button>} />
+      {/* T0D-UILIST-3, LD-353 template 1 and rule 2: every filter (date, centre, status, kind, needs attention) in ONE filter row of single-height
+          controls. The kit FilterBar has no single-date or switch filter, so the row uses its class and role with kit controls. [CONV] status is one
+          value here (the chip list was taller than the other controls); the URL still takes a comma list. */}
+      <div role="search" className="lims-filter-bar">
+        <DatePicker label="Date" name="date" value={date as IsoDate} onChange={(d) => { if (d && d !== date) router.replace(go({ date: d })); }} />
+        {centres.length ? <Select label="Centre" name="centre_id" options={centres.map((c) => ({ value: c.id, label: c.name }))} {...(centreId ? { value: centreId } : {})} onChange={(c) => router.replace(go({ centreId: c }))} /> : null}
+        <Select label="Status" name="status" options={STATUS_OPTIONS} value={f.status.length === 1 ? f.status[0]! : ALL} onChange={(st) => onFilter({ ...fv, status: st === ALL ? [] : [st] })} />
+        <Select label="Kind" name="kind" options={KIND_OPTIONS} value={f.kind ?? ALL} onChange={(k) => onFilter({ ...fv, kind: k })} />
         <Switch label="Needs attention" isSelected={!!f.has_open_flags} onChange={(on) => router.replace(go({ filter: { ...f, ...(on ? { has_open_flags: true } : { has_open_flags: false }) } }))} />
-      </Inline>
+        <Button variant="ghost" onPress={() => router.replace(go({ filter: { status: [] } }))}>Reset filters</Button>
+      </div>
       <Grid columns={2}>
         <Card title="Unassigned">
           <div ref={unassignedBox}>
             <DataTable<VisitDto>
-              caption="Unassigned" columns={columns} rows={unassigned} getRowId={(v) => v.id} density="compact"
+              caption="Unassigned" columns={columns} rows={unassigned} getRowId={(v) => v.id} density="compact" cellTitle
               emptyState={{ title: 'No unassigned visits for this date.' }}
               rowActions={() => rowItems()} onRowActionMenu={onMenu}
               onRowAction={(v) => (canAssign ? setDlg({ kind: v.window_start ? 'assign' : 'schedule', visit: v }) : open(v))}
@@ -337,7 +331,7 @@ function RouteCard({ route, byId, canAssign, canLabels, onOpen, onUnassign }: Ro
           {route.last_ack_at ? <DateText value={route.last_ack_at as Iso} withTime /> : 'never'}
         </p>
         <DataTable<VisitDto>
-          caption={`${route.phlebotomist.display_name} route`} columns={columns} rows={rows} getRowId={(v) => v.id} density="compact"
+          caption={`${route.phlebotomist.display_name} route`} columns={columns} rows={rows} getRowId={(v) => v.id} density="compact" cellTitle
           emptyState={{ title: 'No visits on this route.' }}
         />
         {error ? <div role="alert"><Banner tone="danger" title={error} /></div> : null}

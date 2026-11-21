@@ -35,10 +35,15 @@ describe('BL-T01 manifest (index.ts)', () => {
     expect([...(eventProducers().billing ?? [])].sort()).toEqual(want);
   });
 
-  it('has a handler for every billing.yaml operationId and no extra handler', () => {
-    expect(operationIds(spec).length).toBeGreaterThan(0);
-    expect(() => checkHandlers('billing', spec, manifest.handlers)).not.toThrow();
-    expect(Object.keys(manifest.handlers).sort()).toEqual([...operationIds(spec)].sort());
+  // LD-325 (a) + LD-328 (2)(3): an operation without a handler is allowed only if listed in pendingOperations.
+  it('every billing.yaml operationId has a handler or is pending, never both, and no extra handler', () => {
+    const pending = manifest.pendingOperations ?? [];
+    const ids = operationIds(spec);
+    expect(ids.length).toBeGreaterThan(0);
+    expect(() => checkHandlers('billing', spec, manifest.handlers, pending)).not.toThrow();
+    const handlerKeys = Object.keys(manifest.handlers);
+    expect(handlerKeys.filter((k) => pending.includes(k))).toEqual([]);
+    expect([...handlerKeys, ...pending].sort()).toEqual([...ids].sort());
   });
 
   it('declares only ports billing owns (BillingPort, BillingCommandPort)', () => {

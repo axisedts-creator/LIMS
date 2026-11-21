@@ -15,7 +15,18 @@ import { SessionsGrid } from './SessionsGrid';
 export interface Me { display_name: string; email: string; roles: RoleRef[]; centre_scope: { all: boolean; centre_ids: string[] }; mfa: { enrolled: boolean; level: string }; last_login_at?: string }
 export interface Factor { factor_id: string; friendly_name?: string; status: string; verified_at?: string }
 
-export function MyAccount({ me, sessions, factors, mfaRequired }: { me: Me; sessions: SessionSummary[]; factors: Factor[]; mfaRequired: boolean }) {
+/** T0D-ELABMENU-2 (LD-340): a refused or failed read; shown as such, never as an empty list. */
+export interface ReadFail { code: string; requestId?: string }
+
+/** auth.step_up_required -> step up prompt (link to /auth/mfa); anything else -> "Could not load ..." with the reference. */
+function ReadFailed({ fail, what }: { fail: ReadFail; what: string }) {
+  if (fail.code === 'auth.step_up_required') {
+    return <p>Confirm it is you to see {what}. <Link href="/auth/mfa" className="lims-btn">Verify with two-step</Link></p>;
+  }
+  return <Alert text={`Could not load ${what}`} requestId={fail.requestId} />;
+}
+
+export function MyAccount({ me, sessions, factors, mfaRequired }: { me: Me; sessions: SessionSummary[] | ReadFail; factors: Factor[] | ReadFail; mfaRequired: boolean }) {
   const [tab, setTab] = useState('Profile');
   return (
     <main className="lims-page">
@@ -31,13 +42,16 @@ export function MyAccount({ me, sessions, factors, mfaRequired }: { me: Me; sess
           </dl>
         ) : null}
         {tab === 'Security' ? <Security me={me} factors={factors} mfaRequired={mfaRequired} /> : null}
-        {tab === 'Sessions' ? <SessionsGrid sessions={sessions} variant="me" onRevoke={revokeOwnSession} buttonLabel="Log out this session" /> : null}
+        {tab === 'Sessions' ? (Array.isArray(sessions)
+          ? <SessionsGrid sessions={sessions} variant="me" onRevoke={revokeOwnSession} buttonLabel="Log out this session" />
+          : <ReadFailed fail={sessions} what="your sessions" />) : null}
       </Tabs>
     </main>
   );
 }
 
-function Security({ me, factors: initial, mfaRequired }: { me: Me; factors: Factor[]; mfaRequired: boolean }) {
+function Security({ me, factors: initial, mfaRequired }: { me: Me; factors: Factor[] | ReadFail; mfaRequired: boolean }) {
+  const loadFail = Array.isArray(initial) ? null : initial;
   const toast = useToast();
   const [cur, setCur] = useState('');
   const [next, setNext] = useState('');
@@ -45,7 +59,7 @@ function Security({ me, factors: initial, mfaRequired }: { me: Me; factors: Fact
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [fail, setFail] = useState<{ text: string; requestId?: string | undefined } | null>(null);
   const [busy, setBusy] = useState(false);
-  const [factors, setFactors] = useState(initial.filter((f) => f.status === 'verified'));
+  const [factors, setFactors] = useState(Array.isArray(initial) ? initial.filter((f) => f.status === 'verified') : []);
   const [removing, setRemoving] = useState<Factor | null>(null);
   const [removeErr, setRemoveErr] = useState<string | null>(null);
   const lastProtected = mfaRequired && factors.length <= 1;
@@ -81,7 +95,8 @@ function Security({ me, factors: initial, mfaRequired }: { me: Me; factors: Fact
       <section className="lims-card" aria-labelledby="mfa-h">
         <h2 id="mfa-h">Two-step verification</h2>
         <p>Status: <Badge text={me.mfa.enrolled ? 'On' : 'Off'} />.</p>
-        {!factors.length ? <Link href="/auth/mfa/enrol" className="lims-btn">Set up</Link> : null}
+        {loadFail ? <ReadFailed fail={loadFail} what="your two-step factors" /> : null}
+        {!loadFail && !factors.length ? <Link href="/auth/mfa/enrol" className="lims-btn">Set up</Link> : null}
         {removeErr && !removing ? <Alert text={removeErr} /> : null}
         <ul>
           {factors.map((f) => (

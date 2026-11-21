@@ -55,9 +55,15 @@ export type ErrorCode =
   | "billing.refund_self_approval_forbidden"
   | "catalog.code_duplicate"
   | "catalog.formula_invalid"
+  | "catalog.import_already_committed"
+  | "catalog.import_batch_expired"
+  | "catalog.import_has_errors"
   | "catalog.import_invalid"
+  | "catalog.import_invalid_file"
   | "catalog.import_not_committable"
   | "catalog.import_stale_base"
+  | "catalog.import_template_outdated"
+  | "catalog.import_too_large"
   | "catalog.instrument_code_unmapped"
   | "catalog.no_price"
   | "catalog.no_reference_range"
@@ -93,6 +99,12 @@ export type ErrorCode =
   | "engagement.booking_invalid_transition"
   | "engagement.booking_limit_reached"
   | "engagement.booking_not_cancellable"
+  | "engagement.broadcast_invalid_transition"
+  | "engagement.broadcast_placeholder_unknown"
+  | "engagement.broadcast_provider_not_configured"
+  | "engagement.broadcast_recipient_limit"
+  | "engagement.broadcast_self_approval"
+  | "engagement.broadcast_template_inactive"
   | "engagement.enquiry_invalid_transition"
   | "engagement.link_code_invalid"
   | "engagement.link_limit_reached"
@@ -179,10 +191,12 @@ export type ErrorCode =
   | "lab.barcode_duplicate"
   | "lab.barcode_pattern_invalid"
   | "lab.critical_ack_required"
+  | "lab.enterer_cannot_verify"
   | "lab.flag_ack_required"
   | "lab.formula_inputs_missing"
   | "lab.module_result_invalid"
   | "lab.module_result_stale"
+  | "lab.pathologist_required"
   | "lab.rejection_reason_required"
   | "lab.result_invalid_transition"
   | "lab.result_locked"
@@ -193,6 +207,7 @@ export type ErrorCode =
   | "lab.specimen_invalid_transition"
   | "lab.specimen_not_found"
   | "lab.specimen_not_receivable"
+  | "lab.verifier_not_distinct"
   | "micro.amendment_reason_required"
   | "micro.antibiotic_not_in_panel"
   | "micro.ast_category_not_allowed"
@@ -228,6 +243,7 @@ export type ErrorCode =
   | "partners.referrer_not_mapped"
   | "partners.self_action_forbidden"
   | "partners.setting_out_of_range"
+  | "partners.ticket_invalid_transition"
   | "payments.amount_not_supported"
   | "payments.callback_mismatch"
   | "payments.callback_stale"
@@ -286,7 +302,22 @@ export type ErrorCode =
   | "smartreport.summary_not_ready"
   | "smartreport.summary_superseded"
   | "smartreport.template_not_approved"
-  | "smartreport.validator_failed";
+  | "smartreport.validator_failed"
+  | "sync.base_version_stale"
+  | "sync.batch_too_large"
+  | "sync.block_size_too_large"
+  | "sync.clock_skew_too_large"
+  | "sync.device_revoked"
+  | "sync.device_unknown"
+  | "sync.entity_changed"
+  | "sync.number_out_of_block"
+  | "sync.offline_not_allowed"
+  | "sync.op_id_reused"
+  | "sync.op_type_not_available"
+  | "sync.result_locked"
+  | "sync.series_unknown"
+  | "sync.verification_policy_failed"
+  | "sync.wipe_required";
 
 export const ERROR_META: Readonly<Record<ErrorCode, { readonly http: number; readonly owner: string; readonly title: string }>> = {
   "analytics.export_not_ready": { http: 409, owner: "C8", title: "Export not ready" },
@@ -344,9 +375,15 @@ export const ERROR_META: Readonly<Record<ErrorCode, { readonly http: number; rea
   "billing.refund_self_approval_forbidden": { http: 403, owner: "C4", title: "Refund approver must differ from requester" },
   "catalog.code_duplicate": { http: 409, owner: "C3", title: "Code already used" },
   "catalog.formula_invalid": { http: 422, owner: "C3", title: "Formula invalid" },
+  "catalog.import_already_committed": { http: 409, owner: "C3", title: "Import batch already committed" },
+  "catalog.import_batch_expired": { http: 409, owner: "C3", title: "Import batch expired" },
+  "catalog.import_has_errors": { http: 409, owner: "C3", title: "Import batch has errors" },
   "catalog.import_invalid": { http: 422, owner: "C3", title: "Import file invalid" },
+  "catalog.import_invalid_file": { http: 422, owner: "C3", title: "Import file is not a valid workbook" },
   "catalog.import_not_committable": { http: 409, owner: "C3", title: "Import cannot be committed" },
   "catalog.import_stale_base": { http: 409, owner: "C3", title: "Price list changed since export" },
+  "catalog.import_template_outdated": { http: 422, owner: "C3", title: "Import template is outdated" },
+  "catalog.import_too_large": { http: 413, owner: "C3", title: "Import file too large" },
   "catalog.instrument_code_unmapped": { http: 422, owner: "C3", title: "Instrument code not mapped" },
   "catalog.no_price": { http: 422, owner: "C3", title: "No price configured" },
   "catalog.no_reference_range": { http: 422, owner: "C3", title: "No reference range" },
@@ -382,6 +419,12 @@ export const ERROR_META: Readonly<Record<ErrorCode, { readonly http: number; rea
   "engagement.booking_invalid_transition": { http: 409, owner: "C16", title: "Booking cannot move to the requested state" },
   "engagement.booking_limit_reached": { http: 429, owner: "C16", title: "Booking limit reached" },
   "engagement.booking_not_cancellable": { http: 409, owner: "C16", title: "Booking cannot be cancelled" },
+  "engagement.broadcast_invalid_transition": { http: 409, owner: "C16", title: "Broadcast cannot change" },
+  "engagement.broadcast_placeholder_unknown": { http: 422, owner: "C16", title: "Unknown placeholder" },
+  "engagement.broadcast_provider_not_configured": { http: 422, owner: "C16", title: "No message provider configured" },
+  "engagement.broadcast_recipient_limit": { http: 422, owner: "C16", title: "Too many recipients" },
+  "engagement.broadcast_self_approval": { http: 403, owner: "C16", title: "Second person must approve" },
+  "engagement.broadcast_template_inactive": { http: 422, owner: "C16", title: "Template inactive" },
   "engagement.enquiry_invalid_transition": { http: 409, owner: "C16", title: "Enquiry cannot change" },
   "engagement.link_code_invalid": { http: 422, owner: "C16", title: "Code not valid" },
   "engagement.link_limit_reached": { http: 409, owner: "C16", title: "Profile limit reached" },
@@ -468,10 +511,12 @@ export const ERROR_META: Readonly<Record<ErrorCode, { readonly http: number; rea
   "lab.barcode_duplicate": { http: 409, owner: "C5", title: "Barcode already used" },
   "lab.barcode_pattern_invalid": { http: 500, owner: "C5", title: "Barcode numbering configuration invalid" },
   "lab.critical_ack_required": { http: 409, owner: "C5", title: "Critical notification not recorded" },
+  "lab.enterer_cannot_verify": { http: 403, owner: "C5", title: "The person who entered the result cannot sign it off" },
   "lab.flag_ack_required": { http: 409, owner: "C5", title: "Flag acknowledgement required" },
   "lab.formula_inputs_missing": { http: 422, owner: "C5", title: "Formula inputs missing" },
   "lab.module_result_invalid": { http: 422, owner: "C5", title: "Module result not accepted" },
   "lab.module_result_stale": { http: 409, owner: "C5", title: "Older module result version" },
+  "lab.pathologist_required": { http: 403, owner: "C5", title: "Final sign-off needs a pathologist" },
   "lab.rejection_reason_required": { http: 422, owner: "C5", title: "Rejection reason required" },
   "lab.result_invalid_transition": { http: 409, owner: "C5", title: "Result cannot move to the requested state" },
   "lab.result_locked": { http: 409, owner: "C5", title: "Result is approved and locked" },
@@ -482,6 +527,7 @@ export const ERROR_META: Readonly<Record<ErrorCode, { readonly http: number; rea
   "lab.specimen_invalid_transition": { http: 409, owner: "C5", title: "Specimen cannot move to the requested state" },
   "lab.specimen_not_found": { http: 404, owner: "C5", title: "Specimen not found" },
   "lab.specimen_not_receivable": { http: 409, owner: "C5", title: "Specimen not receivable" },
+  "lab.verifier_not_distinct": { http: 409, owner: "C5", title: "Already signed by this person" },
   "micro.amendment_reason_required": { http: 422, owner: "C10", title: "Amendment reason required" },
   "micro.antibiotic_not_in_panel": { http: 422, owner: "C10", title: "Antibiotic not in panel" },
   "micro.ast_category_not_allowed": { http: 422, owner: "C10", title: "Interpretive category not allowed" },
@@ -517,6 +563,7 @@ export const ERROR_META: Readonly<Record<ErrorCode, { readonly http: number; rea
   "partners.referrer_not_mapped": { http: 422, owner: "C13", title: "Referrer not yet linked by the lab" },
   "partners.self_action_forbidden": { http: 409, owner: "C13", title: "You cannot change your own access" },
   "partners.setting_out_of_range": { http: 422, owner: "C13", title: "Setting out of allowed range" },
+  "partners.ticket_invalid_transition": { http: 409, owner: "C13", title: "Ticket cannot change" },
   "payments.amount_not_supported": { http: 422, owner: "C15", title: "Amount not supported by this payment method" },
   "payments.callback_mismatch": { http: 400, owner: "C15", title: "Callback does not match payment" },
   "payments.callback_stale": { http: 400, owner: "C15", title: "Callback too old" },
@@ -576,4 +623,19 @@ export const ERROR_META: Readonly<Record<ErrorCode, { readonly http: number; rea
   "smartreport.summary_superseded": { http: 409, owner: "C14", title: "Summary built on superseded results" },
   "smartreport.template_not_approved": { http: 409, owner: "C14", title: "Template library not approved" },
   "smartreport.validator_failed": { http: 422, owner: "C14", title: "Generated text failed validation" },
+  "sync.base_version_stale": { http: 409, owner: "C0", title: "Base version stale" },
+  "sync.batch_too_large": { http: 422, owner: "C0", title: "Batch too large" },
+  "sync.block_size_too_large": { http: 422, owner: "C0", title: "Block size too large" },
+  "sync.clock_skew_too_large": { http: 422, owner: "C0", title: "Clock skew too large" },
+  "sync.device_revoked": { http: 403, owner: "C0", title: "Device revoked" },
+  "sync.device_unknown": { http: 409, owner: "C0", title: "Device not registered" },
+  "sync.entity_changed": { http: 409, owner: "C0", title: "Entity changed" },
+  "sync.number_out_of_block": { http: 422, owner: "C0", title: "Number outside reserved block" },
+  "sync.offline_not_allowed": { http: 403, owner: "C0", title: "Not allowed offline" },
+  "sync.op_id_reused": { http: 422, owner: "C0", title: "Operation id reused" },
+  "sync.op_type_not_available": { http: 422, owner: "C0", title: "Operation type not available" },
+  "sync.result_locked": { http: 409, owner: "C0", title: "Result locked" },
+  "sync.series_unknown": { http: 422, owner: "C0", title: "Number series not available" },
+  "sync.verification_policy_failed": { http: 403, owner: "C0", title: "Verification policy failed" },
+  "sync.wipe_required": { http: 409, owner: "C0", title: "Device wipe required" },
 };

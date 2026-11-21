@@ -1,0 +1,86 @@
+/* RS-C4 (LD-140; 10-DESIGN-SYSTEM s4 Register, s6): tokens only, no raw colour, no pixel radius.
+   LD-310 / T0D-REGSCREEN-1 (founder request 2026-11-17 04:49 NPT): one screen. At >= 1280 px three columns (context | tests | payment) whose height
+   is bound to the viewport (each column scrolls inside itself if it must, the page does not); the totals bar sticks to the bottom.
+   Below 1280 px the columns stack (one track) and the page scrolls normally. */
+.lims-reg-layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--lims-space-3); align-items: stretch; }
+.lims-reg-col { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+/* T0D-UILIST-2 (LD-353 rule 2, done_when 6): the card of each column fills it, so the three columns are equally high. */
+.lims-reg-col > * { flex: 1 1 auto; }
+@media (min-width: 1000px) {
+  /* 100dvh minus the shell top bar (44), the page header and the totals bar (LD-340: from 1000 px, the sidebar is now 176 px wide) */
+  .lims-reg-layout { grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) minmax(0, 1fr); height: calc(100dvh - 8.6rem); }
+  .lims-reg-col { overflow-y: auto; }
+}
+.lims-reg-summary { position: sticky; bottom: 0; z-index: 1; display: flex; flex-wrap: wrap; align-items: center; gap: var(--lims-space-3); margin-top: var(--lims-space-2); padding: var(--lims-space-2) var(--lims-space-3); border: 1px solid var(--lims-neutral-200); border-radius: var(--lims-radius-lg); background: var(--lims-neutral-0); box-shadow: var(--lims-elevation-1); }
+.lims-reg-summary-title { margin: 0; font-size: var(--lims-font-size-md-size); }
+.lims-reg-summary-list { display: flex; flex-wrap: wrap; flex: 1 1 auto; gap: var(--lims-space-2) var(--lims-space-4); margin: 0; }
+.lims-reg-summary-row { display: flex; align-items: baseline; gap: var(--lims-space-2); }
+.lims-reg-summary-row dt { color: var(--lims-neutral-600); }
+.lims-reg-summary-row dd { margin: 0; text-align: end; }
+.lims-reg-summary-tests { display: none; }
+.lims-reg-summary-balance { font-size: var(--lims-font-size-lg-size); font-weight: var(--lims-font-weight-bold); }
+.lims-reg-summary-balance dt { color: inherit; }
+
+.lims-reg-section { display: flex; flex-direction: column; gap: var(--lims-space-2); }
+.lims-reg-fill { min-height: 0; }
+.lims-reg-pair { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--lims-space-2); }
+.lims-reg-grow { flex: 1 1 8rem; min-width: 0; }
+/* the cart box: 8 compact rows (28 px) + header before it scrolls inside itself */
+.lims-reg-tests-list { flex: 1 1 auto; min-height: 0; max-height: 18rem; overflow-y: auto; }
+.lims-reg-cell-field .lims-field { margin: 0; }
+.lims-reg-cell-field .lims-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.lims-reg-cell-field .lims-input { width: 4rem; }
+.lims-reg-tabs { display: flex; gap: var(--lims-space-1); border-bottom: 1px solid var(--lims-neutral-200); }
+.lims-reg-tab { padding: var(--lims-space-1) var(--lims-space-3); border: 0; border-bottom: 2px solid transparent; background: none; font: inherit; color: var(--lims-neutral-600); cursor: pointer; }
+.lims-reg-tab[aria-selected='true'] { border-bottom-color: var(--lims-accent); color: inherit; font-weight: var(--lims-font-weight-medium); }
+.lims-reg-tab[aria-disabled='true'] { cursor: not-allowed; opacity: 0.6; }
+.lims-reg-more { align-self: flex-start; padding: var(--lims-space-1) var(--lims-space-2); border: 1px solid var(--lims-neutral-200); border-radius: var(--lims-radius-md); background: var(--lims-neutral-0); font: inherit; cursor: pointer; }
+.lims-reg-more:focus-visible, .lims-reg-tab:focus-visible { outline: 2px solid var(--lims-focus-ring); outline-offset: 2px; }
+.lims-reg-notice { display: flex; flex-wrap: wrap; align-items: center; gap: var(--lims-space-2); padding: var(--lims-space-2); border: 1px solid var(--lims-tone-warning-border); border-radius: var(--lims-radius-md); }
+.lims-reg-credit { margin: 0; }
+.lims-reg-pay-row { display: flex; flex-direction: column; gap: var(--lims-space-1); margin-bottom: var(--lims-space-3); }
+.lims-reg-actions { display: flex; flex-wrap: wrap; gap: var(--lims-space-2); margin-top: var(--lims-space-4); }
+.lims-reg-fieldset { min-width: 0; margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: var(--lims-space-2); }
+.lims-reg-fieldset legend { padding: 0; font-weight: var(--lims-font-weight-medium); }
+.lims-reg-hint { margin: 0; color: var(--lims-neutral-600); font-size: var(--lims-font-size-sm-size); }
+.lims-total-net { font-size: var(--lims-font-size-lg-size); font-weight: var(--lims-font-weight-bold); }
+
+.lims-reg-no { font-size: var(--lims-font-size-2xl-size); font-weight: var(--lims-font-weight-bold); user-select: all; }
+.lims-reg-paid-due { display: flex; gap: var(--lims-space-6); }
+
+.lims-chip-gap { margin-inline-end: var(--lims-space-1); }
+.lims-cell-end { text-align: end; }
+
+/* LD-340 (founder 2026-11-17 20:27 NPT): the registration fits one screen; compact fields, two fields per row, a one row totals bar. */
+.lims-reg .lims-label { height: auto !important; font-size: 0.75rem !important; }
+/* T0D-UILIST-2 (LD-353 rule 2): one control height, 30 px (1.875rem), for inputs, selects and buttons. */
+.lims-reg input.lims-input, .lims-reg .lims-input { box-sizing: border-box !important; height: 1.875rem !important; min-height: 1.875rem !important; padding-block: 0.125rem !important; }
+.lims-reg select.lims-input, .lims-reg .lims-select { height: 1.875rem !important; }
+.lims-reg .lims-field { gap: 0.125rem !important; }
+.lims-reg-section { gap: var(--lims-space-1-5, 0.375rem) !important; }
+.lims-reg-pair { gap: var(--lims-space-2) !important; }
+.lims-reg-pair > .lims-field, .lims-reg-pair > div:not(.lims-reg-grow) { flex: 1 1 7rem; min-width: 0; }
+.lims-reg-pair .lims-input { width: 100% !important; }
+.lims-reg .lims-btn { min-height: 1.875rem !important; padding-block: 0 !important; }
+.lims-reg-more { padding: 0.125rem var(--lims-space-2) !important; }
+.lims-reg-summary { flex-wrap: nowrap !important; gap: var(--lims-space-3) !important; margin-top: var(--lims-space-1-5, 0.375rem) !important; padding: var(--lims-space-1-5, 0.375rem) var(--lims-space-3) !important; }
+.lims-reg-summary-title { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+.lims-reg-summary-list { gap: 0.125rem var(--lims-space-4) !important; font-size: 0.75rem; }
+.lims-reg-summary .lims-btn { flex: none; white-space: nowrap; }
+.lims-reg-summary-balance { font-size: 0.9375rem !important; }
+
+/* LD-310 / T0D-REGSCREEN-2: the new groups live inside the three columns; each column and the More fold scroll inside their own box, never the page. */
+[data-reg-column] { min-height: 0; overflow-y: auto; }
+.lims-reg-fold { max-height: 40vh; overflow-y: auto; }
+.lims-reg-grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--lims-space-1-5, 0.375rem) var(--lims-space-2); }
+.lims-reg-favs { max-height: 8rem; overflow-y: auto; }
+.lims-reg-fav-list, .lims-reg-coupons { margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: var(--lims-space-1); }
+.lims-reg-fav { padding: 0 var(--lims-space-2); border: 1px solid var(--lims-neutral-200); border-radius: var(--lims-radius-lg); background: var(--lims-neutral-0); font: inherit; cursor: pointer; }
+.lims-reg-coupons li { display: flex; align-items: center; gap: var(--lims-space-2); }
+.lims-reg-star { border: 0; background: none; font: inherit; color: var(--lims-neutral-600); cursor: pointer; }
+.lims-reg-star[aria-pressed='true'] { color: var(--lims-accent); }
+.lims-reg-fav:focus-visible, .lims-reg-star:focus-visible { outline: 2px solid var(--lims-focus-ring); outline-offset: 2px; }
+.lims-reg-cell-icd { display: flex; align-items: center; gap: var(--lims-space-1); }
+.lims-reg-cell-icd .lims-input { width: 5.5rem; }
+.lims-reg-drafts { max-height: 60vh; overflow-y: auto; }
+.lims-reg-video { width: 100%; max-height: 50vh; }

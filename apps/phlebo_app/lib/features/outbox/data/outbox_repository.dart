@@ -6,6 +6,8 @@ import '../../../core/db/outbox_db.dart';
 import '../../../core/platform/boot_id.dart';
 import '../../../core/platform/monotonic_clock.dart';
 import '../../../core/sync/clock_anchor.dart';
+import '../../visit/data/mutation_sink.dart' show MutationSink;
+import '../domain/outbox_row.dart';
 import 'outbox_lock.dart';
 import 'sha256.dart';
 import 'time_format.dart';
@@ -99,7 +101,7 @@ String? _phiKeyIn(Object? v) {
 String _j(Object? v) => jsonEncode(v);
 int _bytes(String s) => utf8.encode(s).length;
 
-class OutboxRepository {
+class OutboxRepository implements MutationSink {
   OutboxRepository({
     required this.db,
     required this.anchors,
@@ -122,6 +124,7 @@ class OutboxRepository {
 
   /// Stores one mutation. Completes only after COMMIT (the UI shows "Saved on phone" on completion); the row and the
   /// next_device_seq bump are one transaction (invariant 2). Throws, writing nothing, on any invalid input.
+  @override
   Future<SavedMutation> enqueue({
     required String type,
     String? visitId,
@@ -311,6 +314,26 @@ class OutboxRepository {
     final r = await db.select("SELECT count(*) AS n FROM mutation_log WHERE state IN ('pending','sending')");
     return r.single['n'] == 0;
   }
+
+  /// HC-T27 M12: changes the server has not confirmed yet (pending + sending): the same set as [canLogout].
+  Future<int> pendingCount() async {
+    final r = await db.select("SELECT count(*) AS n FROM mutation_log WHERE state IN ('pending','sending')");
+    return r.single['n']! as int;
+  }
+
+  /// HC-T27 M11: every stored mutation, newest first. No payload, no patient data: type, visit label, time, state, outcome code.
+  Future<List<OutboxRow>> listRows() async => [
+        for (final r in await db.select(
+            'SELECT client_mutation_id, type, visit_label, captured_wall_time, state, outcome_code FROM mutation_log ORDER BY device_seq DESC'))
+          OutboxRow(
+            clientMutationId: r['client_mutation_id']! as String,
+            type: r['type']! as String,
+            visitLabel: r['visit_label'] as String?,
+            capturedAt: DateTime.parse(r['captured_wall_time']! as String).toLocal(),
+            state: r['state']! as String,
+            outcomeCode: r['outcome_code'] as String?,
+          ),
+      ];
 
   /// client_mutation_ids whose payload_json no longer matches the payload_sha256 stored at capture.
   Future<List<String>> integrityViolations() async {

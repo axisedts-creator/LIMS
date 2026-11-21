@@ -1,0 +1,46 @@
+# HC-T17: Prometheus alert rules of chunk C17 (02-TRD §14 "Alert rules for C1", 08 A13 P-14). expr + for are verbatim from the TRD table.
+# Wired by C1 through one CR (.orchestra/cr/HC-T17-c1-alerts.md); C1 adds the team + runbook_url labels and the route (tenant ops e-mail / provider on-call) on import.
+# Labels are tenant_id only: never a visit, device, patient or barcode (02-CV §9.2).
+groups:
+  - name: homecollection
+    rules:
+      - alert: HomecollectionHeldOpen
+        expr: |-
+          max by (tenant_id) (lims_homecollection_held_open) > 0
+        for: 4h
+        labels:
+          severity: warning
+        annotations:
+          summary: Held home-collection items stay open for over 4 hours
+      - alert: HomecollectionPush5xx
+        expr: |-
+          sum(rate(lims_http_requests_total{operation_id="pushSyncMutations",status=~"5.."}[15m])) / sum(rate(lims_http_requests_total{operation_id="pushSyncMutations"}[15m])) > 0.02
+        for: 15m
+        labels:
+          severity: critical
+        annotations:
+          summary: More than 2 percent of phlebotomist sync pushes fail with 5xx over 15 minutes
+      - alert: HomecollectionDeadLetter
+        expr: |-
+          sum(increase(lims_core_dead_letters_total{task=~"evt\\.homecollection\\..*|homecollection\\..*"}[15m])) > 0
+        for: 0m
+        labels:
+          severity: critical
+        annotations:
+          summary: A home-collection event or task went to the dead-letter queue
+      - alert: HomecollectionClockSkew
+        expr: |-
+          histogram_quantile(0.95, sum by (le) (rate(lims_homecollection_clock_skew_seconds_bucket[1h]))) > 1800
+        for: 1h
+        labels:
+          severity: warning
+        annotations:
+          summary: Phlebotomist device clocks are off by over 30 minutes at p95 (fleet-wide)
+      - alert: HomecollectionDevicesStale
+        expr: |-
+          max by (tenant_id) (lims_homecollection_devices_stale_total) > 0
+        for: 8h
+        labels:
+          severity: warning
+        annotations:
+          summary: Phlebotomist devices have unsynced data for over 8 hours

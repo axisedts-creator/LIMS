@@ -1,0 +1,7 @@
+TESTS_WRONG — uidash2.today.test.tsx:294-296 bans border/height/width in any inline style, which also hits react-aria's visually hidden HiddenSelect inside the required kit PeriodPicker; the spec does not require that.
+Change in the test (only :294-296; :293 colour/gradient innerHTML check stays as is): skip elements whose inline style is the visually hidden pattern, i.e. `if (/clip:\s*rect\(0/i.test(style)) continue;` before the expect. Keep the ban on font-weight, color, background, box-shadow, border, height, width for every other [style] element.
+Reasons:
+1. The task brief done_when (1) (.orchestra/inbox/T0D-UIDASH-2-arbiter.md:20) requires the kit PeriodPicker in the Today header; the test itself pins it at uidash2.today.test.tsx:78. Same test file, two assertions that cannot both pass with the kit part.
+2. The look rules (.orchestra/notes/LD-436-look.md:18, :28) bind weights (400/500, 600 only title and stat numbers), no gradients/glows/coloured fills, and tokens only. None of them forbids an off-screen 1px screen-reader hiding box; it carries no colour, weight or design value.
+3. The tokens-only limit in done_when (arbiter.md:20) is on "CSS added to kit.css or shell.css", not on third-party accessibility markup; removing HiddenSelect would break form semantics of the kit Select, which the task (display only, LD-438 (d), arbiter.md:38) does not authorise.
+4. The visually hidden pattern is narrow (clip rect(0…) plus 1px), so the exemption cannot hide a real design-value leak; every other inline style is still checked.

@@ -13,6 +13,7 @@ import { ConfirmDialog } from '@lims/ui/components/ConfirmDialog';
 import { EmptyState } from '@lims/ui/components/EmptyState';
 import { FileUpload } from '@lims/ui/components/FileUpload';
 import { Select } from '@lims/ui/components/Select';
+import { Stack } from '@lims/ui/components/Stack';
 import { TextField } from '@lims/ui/components/TextField';
 import { useToast } from '@lims/ui/components/Toast';
 import { deactivateImageAction, updateImageAction, uploadImageAction } from '../../server/actions.material';
@@ -66,7 +67,7 @@ function ImageCard({ n, image, detail, canWork, onFail, onMfa }: Props & { n: nu
   };
 
   return (
-    <li>
+    <article aria-label={`Image ${n}`}>
       <Card title={`Image ${n}`}>
         {image.state === 'ready' ? (
           // eslint-disable-next-line @next/next/no-img-element -- same-origin BFF stream (D-67), not a static asset
@@ -95,7 +96,7 @@ function ImageCard({ n, image, detail, canWork, onFail, onMfa }: Props & { n: nu
         body="Remove this image from the case? Signed reports that include it keep it."
         onConfirm={remove}
       />
-    </li>
+    </article>
   );
 }
 
@@ -139,9 +140,10 @@ export function ImagesTab(props: Props) {
       {images.length === 0 ? (
         <EmptyState title="No images. Upload gross or microscopy photos." />
       ) : (
-        <ul className="lims-image-list">
+        // LD-439 (a), LD-436 rule 7: a Stack of image Cards, not a raw ul.
+        <Stack gap={3}>
           {images.map((img, i) => <ImageCard key={img.id} n={i + 1} image={img} {...props} />)}
-        </ul>
+        </Stack>
       )}
     </>
   );

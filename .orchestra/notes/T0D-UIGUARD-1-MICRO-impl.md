@@ -1,0 +1,7 @@
+# T0D-UIGUARD-1-MICRO impl (writer)
+- Pages (6): /micro/worklist, /micro/instrument-records, /micro/settings, /micro/breakpoint-sets, /micro/breakpoint-sets/[breakpoint_set_id], /micro/cultures/[culture_id]. Worklist, records, breakpoint list/detail and culture already sat on PageHeader + Tabs/FilterBar/DataTable (T0D-UILIST-1); this pass removed the rule 7 breaks.
+- Files: MicroForbidden.tsx (raw h1 -> PageHeader, takes the caller's helpKey; the 6 pages pass theirs), settings Dictionaries/Protocols/Panels/Mappings tabs (raw h2/h3 -> Card title rows over DataTable, Default standard its own Card), PanelsTab + ReportDrawer (drawer h3 -> kit DrawerSection), ReadsTab + ChooseCultureDialog (raw ol/ul -> kit Stack role=list), notes/T0D-UIGUARD-1-exceptions.md (MICRO block deleted).
+- Kit prop (additive, LD-441): Stack gets role ('list'|'group') and aria-label, same shape as Inline's.
+- [CONV] regions named by aria-label (Card h2 has no id). [CONV] ReadsTab items stay li inside the role=list Stack: t20.reads pins closest('li').
+- Green: uiguard1 36/36, micro t20 188, t21 157, t22 159, t23 154, t24 147, t26 32, uilist1 micro 12, uiset1 micro 4, packages/ui layout+axe+uikit1.static 289; tsc clean for touched paths. No rs-cN snapshots in micro.
+- t19.pages: arbiter TESTS_WRONG (LD-353 in-page ErrorState), tester revised; now t19 134/134 with no impl change. OPEN: eslint not runnable from apps/web (command not found).

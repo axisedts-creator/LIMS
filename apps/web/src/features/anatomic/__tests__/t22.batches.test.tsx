@@ -70,11 +70,14 @@ describe('list (04-UI-UX §4.6)', () => {
     expect(a.getAttribute('href')).toBe(`/anatomic/batches/${BATCH}`);
   });
 
-  it('empty: a "No batches" state (not an empty table)', async () => {
+  it('empty: the kit DataTable keeps its header row and its one body row is the "No batches" state (LD-436 rule 5)', async () => {
     api.use(http.get(`${ORIGIN}/v1/anatomic/batches`, () => page([])));
     await listPage();
     expect(text()).toMatch(/No batches/i);
-    expect(screen.queryAllByRole('row').filter((r) => !within(r).queryAllByRole('columnheader').length)).toHaveLength(0);
+    expect(screen.getAllByRole('columnheader').length).toBeGreaterThan(0); // header row stays
+    const body = screen.getAllByRole('row').filter((r) => !within(r).queryAllByRole('columnheader').length);
+    expect(body).toHaveLength(1); // no data rows: only the empty-state row
+    expect(body[0]!.querySelector('.lims-state')?.textContent ?? '').toMatch(/No batches/i);
   });
 
   it('the page query is forwarded: ?status=open&assay_code=SYN_PCR_A -> GET /batches?status=open&assay_code=SYN_PCR_A', async () => {

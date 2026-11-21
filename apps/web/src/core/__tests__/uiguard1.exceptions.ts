@@ -26,15 +26,6 @@ export const EXCEPTIONS: GuardException[] = [
   { route: '/[...slug]', rule: 1, reason: 'catch-all placeholder for module routes without a page; not a screen (CR T0D-14)' },
 
   // LD-434 legacy baseline, grouped by rule then feature area. Follow-up task ids: T0D-UIGUARD-1-<AREA> (the lead queues one per area).
-  ...legacy('PARTNERS', 2, 'PartysetCommon.tsx, ManifestInbox.tsx, PenaltyEvents.tsx', [
-    '/partners/manifests',
-    '/partners/penalty-events',
-  ]),
-  // LD-441: TicketInbox.tsx hand builds its filter row (breach arrived with T0D-MSGDESK-1, after UIGUARD-1).
-  ...legacy('PARTNERS', 2, 'TicketInbox.tsx', [
-    '/partners/tickets',
-    '/partners/tickets/[ticket_id]',
-  ]),
   ...legacy('QUALITY', 2, 'DecisionsView.tsx, LjView.tsx', [
     '/quality',
     '/quality/autoverify/decisions',
@@ -51,28 +42,6 @@ export const EXCEPTIONS: GuardException[] = [
   // The area is the sidebar group of the route (LD-439 a); the area task rebuilds every screen of its area, so when it ends none of its entries may remain (LD-439 b).
   // Nothing under app/(auth), app/(platform), features/platform or features/admin/auth is walked, so no pinned rule 7 entry is needed (a finding there would fail the pinned test).
   { route: '/[...slug]', rule: 7, reason: 'catch-all placeholder for module routes without a page; not a screen (CR T0D-14): raw h1 in page.tsx' },
-  ...legacy7('ANATOMIC', [
-    ['/anatomic', 'AnatomicForbidden.tsx'],
-    ['/anatomic/batches', 'AnatomicForbidden.tsx'],
-    ['/anatomic/batches/[batch_id]', 'AnatomicForbidden.tsx, BatchDetailScreen.tsx'],
-    ['/anatomic/cases/[case_id]', 'AnatomicForbidden.tsx, CaseWorkspace.tsx, ImagesTab.tsx, BlocksSlidesTab.tsx, ReportEditor.tsx, ...'],
-    ['/anatomic/cases/[case_id]/labels', 'AnatomicForbidden.tsx'],
-    ['/anatomic/config', 'config-shared.tsx, AssaysTab.tsx'],
-    ['/anatomic/config/templates/[template_id]', 'config-shared.tsx, TemplateEditor.tsx, TemplatePreview.tsx'],
-    ['/anatomic/tracking', 'AnatomicForbidden.tsx, TrackingScreen.tsx, MovementDialog.tsx'],
-  ]),
-  ...legacy7('MICRO', [
-    ['/micro/breakpoint-sets', 'MicroForbidden.tsx'],
-    ['/micro/breakpoint-sets/[breakpoint_set_id]', 'MicroForbidden.tsx'],
-    ['/micro/cultures/[culture_id]', 'MicroForbidden.tsx, ReportDrawer.tsx, ReadsTab.tsx, ChooseCultureDialog.tsx'],
-    ['/micro/instrument-records', 'MicroForbidden.tsx'],
-    ['/micro/settings', 'MicroForbidden.tsx, DictionariesTab.tsx, MappingsTab.tsx, PanelsTab.tsx, ProtocolsTab.tsx'],
-    ['/micro/worklist', 'MicroForbidden.tsx, ChooseCultureDialog.tsx'],
-  ]),
-  ...legacy7('PARTNERS', [
-    ['/partners/sales/representatives', 'SalesRepresentatives.tsx'],
-    ['/partners/tickets/[ticket_id]', 'TicketThread.tsx'],
-  ]),
   ...legacy7('PAYMENTS', [
     ['/payments/refunds', 'RefundsList.tsx, consoleParts.tsx'],
     ['/payments/review', 'ReviewQueue.tsx, consoleParts.tsx'],

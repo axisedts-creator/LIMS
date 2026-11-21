@@ -14,7 +14,7 @@ export default function BreakpointSetsPage() {
   return pendingOr(t('micro.nav.breakpoint_sets'), COLUMNS, async () => {
     const session = await getShellSession();
     const r = await orForbidden(() => listBreakpointSets());
-    if (!r) return <MicroForbidden />;
+    if (!r) return <MicroForbidden helpKey="micro.breakpoint_sets" />;
     return <BreakpointSetsScreen sets={r.data} permissions={session?.actor.permissions ?? []} />;
   });
 }

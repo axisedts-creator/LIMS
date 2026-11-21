@@ -12,27 +12,6 @@ Other groups = LD-434 legacy baseline (CR-C0-0D-UIGUARD-1 option A); the heading
 - /anatomic/cases/[case_id]/labels rule 3: label sheet: print layout of a physical label (label-sheet.css) needs a bold first line
 - /[...slug] rule 1: catch-all placeholder for module routes without a page; not a screen (CR T0D-14)
 
-## T0D-UIGUARD-1-PARTNERS (18 entries, 18 routes)
-
-- /billing/audit-trail rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-PARTNERS: rule 2 broken in PartysetCommon.tsx, ManifestInbox.tsx, PenaltyEvents.tsx
-- /billing/cbms rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-PARTNERS: rule 2 broken in PartysetCommon.tsx, ManifestInbox.tsx, PenaltyEvents.tsx
-- /billing/credit-parties rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-PARTNERS: rule 2 broken in PartysetCommon.tsx, ManifestInbox.tsx, PenaltyEvents.tsx
-- /billing/credit-parties/[credit_party_id] rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-PARTNERS: rule 2 broken in PartysetCommon.tsx, ManifestInbox.tsx, PenaltyEvents.tsx
-- /billing/dues rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-PARTNERS: rule 2 broken in PartysetCommon.tsx, ManifestInbox.tsx, PenaltyEvents.tsx
-- /billing/invoices rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-PARTNERS: rule 2 broken in PartysetCommon.tsx, ManifestInbox.tsx, PenaltyEvents.tsx
-- /billing/invoices/[invoice_id] rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-PARTNERS: rule 2 broken in PartysetCommon.tsx, ManifestInbox.tsx, PenaltyEvents.tsx
-- /billing/registers rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-PARTNERS: rule 2 broken in PartysetCommon.tsx, ManifestInbox.tsx, PenaltyEvents.tsx
-- /billing/settings rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-PARTNERS: rule 2 broken in PartysetCommon.tsx, ManifestInbox.tsx, PenaltyEvents.tsx
-- /billing/worklist rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-PARTNERS: rule 2 broken in PartysetCommon.tsx, ManifestInbox.tsx, PenaltyEvents.tsx
-- /catalog/icd rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-PARTNERS: rule 2 broken in PartysetCommon.tsx, ManifestInbox.tsx, PenaltyEvents.tsx
-- /partners/[partner_id] rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-PARTNERS: rule 2 broken in PartysetCommon.tsx, ManifestInbox.tsx, PenaltyEvents.tsx
-- /partners/manifests rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-PARTNERS: rule 2 broken in PartysetCommon.tsx, ManifestInbox.tsx, PenaltyEvents.tsx
-- /partners/onboarding rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-PARTNERS: rule 2 broken in PartysetCommon.tsx, ManifestInbox.tsx, PenaltyEvents.tsx
-- /partners/penalties rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-PARTNERS: rule 2 broken in PartysetCommon.tsx, ManifestInbox.tsx, PenaltyEvents.tsx
-- /partners/penalty-events rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-PARTNERS: rule 2 broken in PartysetCommon.tsx, ManifestInbox.tsx, PenaltyEvents.tsx
-- /partners/tickets rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-PARTNERS: rule 2 broken in TicketInbox.tsx (breach came from T0D-MSGDESK-1 after UIGUARD-1)
-- /partners/tickets/[ticket_id] rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-PARTNERS: rule 2 broken in TicketInbox.tsx (breach came from T0D-MSGDESK-1 after UIGUARD-1)
-
 ## T0D-UIGUARD-1-QUALITY (7 entries, 7 routes)
 
 - /quality rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-QUALITY: rule 2 broken in DecisionsView.tsx, LjView.tsx
@@ -48,31 +27,6 @@ Other groups = LD-434 legacy baseline (CR-C0-0D-UIGUARD-1 option A); the heading
 ## STANDING (catch-all)
 
 - /[...slug] rule 7: catch-all placeholder for module routes without a page; not a screen (CR T0D-14): raw h1 in page.tsx
-
-## T0D-UIGUARD-1-ANATOMIC (rule 7: 8 entries)
-
-- /anatomic rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ANATOMIC: rule 7 broken in AnatomicForbidden.tsx
-- /anatomic/batches rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ANATOMIC: rule 7 broken in AnatomicForbidden.tsx
-- /anatomic/batches/[batch_id] rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ANATOMIC: rule 7 broken in AnatomicForbidden.tsx, BatchDetailScreen.tsx
-- /anatomic/cases/[case_id] rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ANATOMIC: rule 7 broken in AnatomicForbidden.tsx, CaseWorkspace.tsx, ImagesTab.tsx, BlocksSlidesTab.tsx, ReportEditor.tsx, ...
-- /anatomic/cases/[case_id]/labels rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ANATOMIC: rule 7 broken in AnatomicForbidden.tsx
-- /anatomic/config rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ANATOMIC: rule 7 broken in config-shared.tsx, AssaysTab.tsx
-- /anatomic/config/templates/[template_id] rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ANATOMIC: rule 7 broken in config-shared.tsx, TemplateEditor.tsx, TemplatePreview.tsx
-- /anatomic/tracking rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ANATOMIC: rule 7 broken in AnatomicForbidden.tsx, TrackingScreen.tsx, MovementDialog.tsx
-
-## T0D-UIGUARD-1-MICRO (rule 7: 6 entries)
-
-- /micro/breakpoint-sets rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-MICRO: rule 7 broken in MicroForbidden.tsx
-- /micro/breakpoint-sets/[breakpoint_set_id] rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-MICRO: rule 7 broken in MicroForbidden.tsx
-- /micro/cultures/[culture_id] rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-MICRO: rule 7 broken in MicroForbidden.tsx, ReportDrawer.tsx, ReadsTab.tsx, ChooseCultureDialog.tsx
-- /micro/instrument-records rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-MICRO: rule 7 broken in MicroForbidden.tsx
-- /micro/settings rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-MICRO: rule 7 broken in MicroForbidden.tsx, DictionariesTab.tsx, MappingsTab.tsx, PanelsTab.tsx, ProtocolsTab.tsx
-- /micro/worklist rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-MICRO: rule 7 broken in MicroForbidden.tsx, ChooseCultureDialog.tsx
-
-## T0D-UIGUARD-1-PARTNERS (rule 7: 2 entries)
-
-- /partners/sales/representatives rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-PARTNERS: rule 7 broken in SalesRepresentatives.tsx
-- /partners/tickets/[ticket_id] rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-PARTNERS: rule 7 broken in TicketThread.tsx
 
 ## T0D-UIGUARD-1-PAYMENTS (rule 7: 2 entries)
 

@@ -2,6 +2,7 @@
 // 04-UI-UX §4.2.7 Preview: read-only plain rendering of what the draft will print: Gross, Microscopy, Diagnosis, Comment, Synoptic, Ancillary, Slides, Images, Codes.
 // Everything is text (REQ-SEC-088). LD-140 (2026-11-13, binding): kit Card and token class names only.
 import { Card } from '@lims/ui/components/Card';
+import { Stack } from '@lims/ui/components/Stack';
 import type { Definition } from '../../server/config.types';
 import type { DiagnosisCode, SynopticValue } from '../../server/report.types';
 import type { CaseImage, Slide } from '../../server/types';
@@ -15,11 +16,11 @@ export interface PreviewData {
   images: readonly Pick<CaseImage, 'id' | 'caption'>[]; codes: readonly DiagnosisCode[];
 }
 
+// LD-439 (a), LD-436 rule 7: each block is a Card title row (kit h2) and its lines a Stack, not raw h3 / ul / ol.
 export const Block = ({ title, text }: { title: string; text: string }) => (
-  <section>
-    <h3 className="lims-card-title">{title}</h3>
+  <Card title={title}>
     {text ? <p className="lims-report-text">{text}</p> : <p className="lims-description">Nothing entered.</p>}
-  </section>
+  </Card>
 );
 
 export function ReportPreview({ data }: { data: PreviewData }) {
@@ -29,8 +30,7 @@ export function ReportPreview({ data }: { data: PreviewData }) {
       <Block title="Microscopy" text={data.microscopy} />
       <Block title="Diagnosis" text={data.impression} />
       <Block title="Comment" text={data.comment} />
-      <section>
-        <h3 className="lims-card-title">Synoptic</h3>
+      <Card title="Synoptic">
         {data.synoptic.length === 0 ? <p className="lims-description">None.</p> : null}
         {data.synoptic.map((s, i) => {
           const def = data.defs[s.template_id];
@@ -38,31 +38,27 @@ export function ReportPreview({ data }: { data: PreviewData }) {
           return (
             <div key={`${s.template_id}-${i}`}>
               <p><strong>{s.title}</strong></p>
-              <ul>{lines.map((l) => <li key={l.key}>{l.text}</li>)}</ul>
+              <Stack gap={1}>{lines.map((l) => <p key={l.key}>{l.text}</p>)}</Stack>
             </div>
           );
         })}
-      </section>
-      <section>
-        <h3 className="lims-card-title">Ancillary</h3>
+      </Card>
+      <Card title="Ancillary">
         {data.ancillary.length === 0 ? <p className="lims-description">None.</p> : null}
-        <ul>{data.ancillary.map((a) => <li key={a.label}><strong>{a.label}</strong>: <span className="lims-report-text">{a.text}</span></li>)}</ul>
-      </section>
-      <section>
-        <h3 className="lims-card-title">Slides</h3>
+        <Stack gap={1}>{data.ancillary.map((a) => <p key={a.label}><strong>{a.label}</strong>: <span className="lims-report-text">{a.text}</span></p>)}</Stack>
+      </Card>
+      <Card title="Slides">
         {data.slides.length === 0 ? <p className="lims-description">None.</p> : null}
-        <ul>{data.slides.map((s) => <li key={s.id}>{s.label}{s.stain_display ? ` — ${s.stain_display}` : ''}</li>)}</ul>
-      </section>
-      <section>
-        <h3 className="lims-card-title">Images</h3>
+        <Stack gap={1}>{data.slides.map((s) => <p key={s.id}>{s.label}{s.stain_display ? ` — ${s.stain_display}` : ''}</p>)}</Stack>
+      </Card>
+      <Card title="Images">
         {data.images.length === 0 ? <p className="lims-description">None.</p> : null}
-        <ol>{data.images.map((i, n) => <li key={i.id}>{i.caption || `Image ${n + 1}`}</li>)}</ol>
-      </section>
-      <section>
-        <h3 className="lims-card-title">Codes</h3>
+        <Stack gap={1}>{data.images.map((i, n) => <p key={i.id}>{i.caption || `Image ${n + 1}`}</p>)}</Stack>
+      </Card>
+      <Card title="Codes">
         {data.codes.length === 0 ? <p className="lims-description">None.</p> : null}
-        <ul>{data.codes.map((c) => <li key={c.code}>{c.code}</li>)}</ul>
-      </section>
+        <Stack gap={1}>{data.codes.map((c) => <p key={c.code}>{c.code}</p>)}</Stack>
+      </Card>
     </Card>
   );
 }

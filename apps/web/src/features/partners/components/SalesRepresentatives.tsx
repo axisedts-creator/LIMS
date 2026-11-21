@@ -112,7 +112,7 @@ function RepresentativeDialog({ row, designations, tree, onClose, onDone }: {
 function ManagerTree({ nodes }: { nodes: readonly SalesTreeNode[] }) {
   const [closed, setClosed] = useState<ReadonlySet<string>>(() => new Set());
   const [focus, setFocus] = useState<string | undefined>(nodes[0]?.id);
-  const refs = useRef(new Map<string, HTMLLIElement>());
+  const refs = useRef(new Map<string, HTMLDivElement>());
   const byId = useMemo(() => new Map(nodes.map((n) => [n.id, n])), [nodes]);
   const parents = useMemo(() => new Set(nodes.flatMap((n) => (n.manager_id ? [n.manager_id] : []))), [nodes]);
   const hidden = (n: SalesTreeNode) => {
@@ -124,7 +124,7 @@ function ManagerTree({ nodes }: { nodes: readonly SalesTreeNode[] }) {
   if (nodes.length === 0) return <p className="lims-description">{t('partners.sales.reps.tree_empty')}</p>;
 
   const move = (id: string | undefined) => { if (!id) return; setFocus(id); refs.current.get(id)?.focus(); };
-  const onKey = (e: KeyboardEvent<HTMLUListElement>) => {
+  const onKey = (e: KeyboardEvent<HTMLDivElement>) => {
     const id = (e.target as HTMLElement).dataset['id'];
     const i = shown.findIndex((n) => n.id === id);
     if (i < 0) return;
@@ -140,22 +140,23 @@ function ManagerTree({ nodes }: { nodes: readonly SalesTreeNode[] }) {
     e.preventDefault();
   };
   const current = shown.some((n) => n.id === focus) ? focus : shown[0]?.id;
-  // nested role=group lists (APG tree): the nesting indents each team; a collapsed node renders no group
+  // nested role=group lists (APG tree): the nesting indents each team (shell.css .lims-tree-group); a collapsed node renders no group.
+  // T0D-UIGUARD-1-PARTNERS (LD-436/LD-439 rule 7): ARIA tree roles on div, no raw ul for page structure; roles and keys unchanged.
   const item = (n: SalesTreeNode): ReactNode => (
-    <li
+    <div
       key={n.id} role="treeitem" data-id={n.id} aria-level={n.depth} tabIndex={n.id === current ? 0 : -1}
       {...(parents.has(n.id) ? { 'aria-expanded': !closed.has(n.id) } : {})}
       ref={(el) => { if (el) refs.current.set(n.id, el); else refs.current.delete(n.id); }}
       onFocus={(e) => { if (e.target === e.currentTarget) setFocus(n.id); }}
     >
       <span>{n.name}{n.is_active ? null : <span className="lims-description"> ({t('partners.sales.inactive')})</span>}</span>
-      {parents.has(n.id) && !closed.has(n.id) ? <ul role="group">{shown.filter((c) => c.manager_id === n.id).map(item)}</ul> : null}
-    </li>
+      {parents.has(n.id) && !closed.has(n.id) ? <div role="group" className="lims-tree-group">{shown.filter((c) => c.manager_id === n.id).map(item)}</div> : null}
+    </div>
   );
   return (
-    <ul role="tree" aria-label={t('partners.sales.reps.tree')} className="lims-tree" onKeyDown={onKey}>
+    <div role="tree" aria-label={t('partners.sales.reps.tree')} className="lims-tree" onKeyDown={onKey}>
       {shown.filter((n) => !n.manager_id || !byId.has(n.manager_id)).map(item)}
-    </ul>
+    </div>
   );
 }
 

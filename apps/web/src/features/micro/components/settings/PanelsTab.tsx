@@ -6,7 +6,8 @@ import { useState } from 'react';
 import { Button } from '@lims/ui/components/Button';
 import { Checkbox } from '@lims/ui/components/Checkbox';
 import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
-import { Drawer } from '@lims/ui/components/Drawer';
+import { Card } from '@lims/ui/components/Card';
+import { Drawer, DrawerSection } from '@lims/ui/components/Drawer';
 import { Form } from '@lims/ui/components/Form';
 import { RadioGroup } from '@lims/ui/components/RadioGroup';
 import { Select } from '@lims/ui/components/Select';
@@ -40,11 +41,13 @@ export function PanelsTab({ canManage }: { canManage: boolean }) {
     ...(canManage ? [{ id: 'edit', header: 'Actions', cell: (p: AstPanelDto) => <Button size="sm" variant="ghost" onPress={() => setEditing(p)}>Edit<VisuallyHidden> {p.code}</VisuallyHidden></Button> }] : []),
   ];
   return (
-    <section aria-labelledby="micro-panels">
-      <h2 id="micro-panels">AST panels</h2>
+    // T0D-UIGUARD-1-MICRO (LD-436, LD-439): Card title row + DataTable, no raw h2; the region keeps its name.
+    <section aria-label="AST panels">
+      <Card title="AST panels">
       <FailNotice fail={fail} />
       {canManage ? <div><Button onPress={() => setEditing('new')}>Add panel</Button></div> : null}
       <DataTable<AstPanelDto> caption="AST panels" columns={columns} rows={rows} getRowId={(p) => p.id} isLoading={!loaded} emptyState={{ title: 'No AST panels.' }} />
+      </Card>
       {editing ? <PanelDrawer key={editing === 'new' ? 'new' : editing.id} base={editing === 'new' ? undefined : editing} onClose={() => setEditing(undefined)} onSaved={reload} /> : null}
     </section>
   );
@@ -106,7 +109,8 @@ function PanelDrawer({ base, onClose, onSaved }: { base: AstPanelDto | undefined
         {scope !== 'any' ? <TextField label={scope === 'organism' ? 'Organism code' : 'Organism group code'} name="organism" isRequired maxLength={64} value={organism} {...(errors['organism'] ? { error: errors['organism'] } : {})} onChange={setOrganism} /> : null}
         <TextField label="Site code" name="specimen_site_code" maxLength={64} value={site} {...(errors['site'] ? { error: errors['site'] } : {})} onChange={setSite} />
         <Select<AstMethod> label="Default method" name="default_method" value={method} onChange={setMethod} options={METHODS} />
-        <h3>Antibiotics</h3>
+        {/* T0D-UIGUARD-1-MICRO (LD-436, LD-439): kit DrawerSection title, no raw h3 */}
+        <DrawerSection title="Antibiotics">
         {errors['items'] ? <p className="lims-error">{errors['items']}</p> : null}
         {items.map((it, i) => (
           <div key={i} className="lims-inline">
@@ -119,6 +123,7 @@ function PanelDrawer({ base, onClose, onSaved }: { base: AstPanelDto | undefined
           </div>
         ))}
         <div><Button isDisabled={items.length >= 60} onPress={() => setItems((cur) => [...cur, { code: '', method: 'default', reported: true }])}>Add antibiotic</Button></div>
+        </DrawerSection>
         <Button type="submit" variant="primary">Save</Button>
       </Form>
     </Drawer>

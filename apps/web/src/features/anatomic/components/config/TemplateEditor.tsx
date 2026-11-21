@@ -171,10 +171,9 @@ export function TemplateEditor({ template }: { template?: SynopticTemplate }) {
           )}
           {sections.map((s, i) => (
             <div key={s.uid} data-section-index={i} data-section-key={keys[i]}>
-              <Card>
-                {readOnly ? (
-                  <h3>{s.heading}</h3>
-                ) : (
+              {/* LD-439 (a), LD-436 rule 7: read-only section heading is the Card title row, not a raw h3. */}
+              <Card {...(readOnly ? { title: s.heading } : {})}>
+                {readOnly ? null : (
                   <>
                     <TextField label="Section heading" name={`section_heading_${s.uid}`} maxLength={200} value={s.heading} onChange={(v) => edit(sections.map((x) => (x === s ? { ...x, heading: v } : x)))} {...(msgs(`/definition/sections/${i}/heading`) ? { error: msgs(`/definition/sections/${i}/heading`) } : {})} />
                     <Button size="sm" variant="ghost" isDisabled={!canMove(i, -1)} onPress={() => edit(swap(sections, i, i - 1))}>Move section up</Button>

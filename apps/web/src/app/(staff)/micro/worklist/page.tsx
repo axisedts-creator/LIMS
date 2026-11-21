@@ -46,7 +46,7 @@ async function worklist(sp: SearchParams) {
   const session = await getShellSession();
 
   const list = await orForbidden(() => listCultures(worklistQuery(tab, sp, days)));
-  if (!list) return <MicroForbidden />;
+  if (!list) return <MicroForbidden helpKey="micro.worklist" />;
 
   const filters = worklistFilters(sp);
   const others = COUNTED_TABS.filter((t) => t !== tab);

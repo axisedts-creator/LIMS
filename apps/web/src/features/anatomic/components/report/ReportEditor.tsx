@@ -8,10 +8,12 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type MutableRefObject } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@lims/ui/components/Button';
+import { Card } from '@lims/ui/components/Card';
 import { Checkbox } from '@lims/ui/components/Checkbox';
 import { ConfirmDialog } from '@lims/ui/components/ConfirmDialog';
 import { Form } from '@lims/ui/components/Form';
 import { RadioGroup } from '@lims/ui/components/RadioGroup';
+import { Stack } from '@lims/ui/components/Stack';
 import { TextArea } from '@lims/ui/components/TextArea';
 import { useToast } from '@lims/ui/components/Toast';
 import { discardChangeAction, saveReportDraftAction, signOutAction } from '../../server/actions.report';
@@ -212,18 +214,21 @@ export function ReportEditor({ detail, draft, initialDefs, canWork, canSignOut, 
 
           <SynopticSection kind={detail.case_kind} instances={s.synoptic} defs={defs} readOnly={ro} onChange={(synoptic) => patch({ synoptic })} onDef={(id, def: Definition) => setDefs((d) => ({ ...d, [id]: def }))} onFail={report} />
 
-          <section aria-labelledby="report-ancillary">
-            <h3 id="report-ancillary" className="lims-card-title">Ancillary results</h3>
+          {/* LD-439 (a), LD-436 rule 7: Card title rows and a Stack instead of raw h3 / ul. */}
+          <section aria-label="Ancillary results">
+            <Card title="Ancillary results">
             {completed.length === 0 ? <p className="lims-description">No completed special stains or IHC yet.</p> : null}
             {completed.map((o) => (
               <TextArea key={o.id} label={stainLabel(o)} name={`ancillary_${o.id}`} rows={3} maxLength={MAX.ancillary} showCount isReadOnly={ro} value={s.ancillary[o.id] ?? ''} onChange={(v) => patch({ ancillary: { ...s.ancillary, [o.id]: v } })} />
             ))}
+            </Card>
           </section>
 
-          <section aria-labelledby="report-slides">
-            <h3 id="report-slides" className="lims-card-title">Slide assessments</h3>
+          <section aria-label="Slide assessments">
+            <Card title="Slide assessments">
             {included.length === 0 ? <p className="lims-description">No slides are included in the report.</p> : null}
-            <ul>{included.map((x) => <li key={x.id}>{x.label}{x.finding_text ? ` — ${x.finding_text}` : ''}</li>)}</ul>
+            <Stack gap={1}>{included.map((x) => <p key={x.id}>{x.label}{x.finding_text ? ` — ${x.finding_text}` : ''}</p>)}</Stack>
+            </Card>
           </section>
 
           <ImagePicker images={detail.images} selected={s.imageIds} max={maxImages} readOnly={ro} onChange={(imageIds) => patch({ imageIds })} />

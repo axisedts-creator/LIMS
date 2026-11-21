@@ -29,9 +29,8 @@ export function CreditPartiesScreen({ creditParties, permissions }: { creditPart
   const [editing, setEditing] = useState<CreditParty | 'new' | null>(null);
   const openNew = manage ? () => setEditing('new') : undefined;
   // T0D-UILIST-3 (LD-353 template 1): the shared search + status filter row, plus Kind.
-  const [kind, setKind] = useState<PartyKind | 'all'>('all');
-  const kindSelect = <Select<PartyKind | 'all'> label="Kind" name="kind" value={kind} onChange={setKind} options={[{ value: 'all', label: 'All' }, ...KINDS]} />;
-  const { shown, toolbar, search } = useListFilter(creditParties, (r) => r.name, kindSelect, (r) => r.party_code);
+  const { shown, toolbar, search, values } = useListFilter(creditParties, (r) => r.name, [{ id: 'kind', label: 'Kind', options: [{ value: 'all', label: 'All' }, ...KINDS] }], (r) => r.party_code);
+  const kind = values['kind'] ?? 'all';
   const rows = shown.filter((r) => kind === 'all' || r.kind === kind);
   useListShortcuts(search, openNew);
   const cols: Col<CreditParty>[] = [

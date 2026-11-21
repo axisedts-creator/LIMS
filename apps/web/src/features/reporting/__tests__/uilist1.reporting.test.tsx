@@ -55,10 +55,12 @@ function expectOneFilterRow(root: HTMLElement) {
   const search = screen.getByLabelText(/registration no/i);
   expect(bar.contains(search), 'the registration no. / barcode search is a field of the FilterBar, not a separate form row').toBe(true);
   for (const label of [/centre/i, /family/i, /registered/i, /review flag/i]) expect(txt(bar), `FilterBar holds ${String(label)}`).toMatch(label);
-  expect(txt(bar), 'the status tabs live in the FilterBar').toMatch(/ready to release/i);
-  expect(txt(bar)).toMatch(/awaiting content/i);
-  const outside = [...root.querySelectorAll('[role="tablist"]')].filter((el) => !bar.contains(el));
-  expect(outside.length, 'no tab bar outside the FilterBar (a third row)').toBe(0);
+  // T0D-UIGUARD-1-REPORTING (LD-436 worklist mock, LD-437): the status is ALSO a Tabs bar above the FilterBar (was: tabs folded into the bar). The Status select stays in the bar.
+  expect(txt(bar), 'the Status select stays in the FilterBar').toMatch(/status/i);
+  const tabLists = [...root.querySelectorAll('[role="tablist"]')];
+  expect(tabLists.length, 'ONE Tabs bar (the kit Tabs), holding the statuses').toBe(1);
+  expect(tabLists[0]!.contains(bar), 'the tab bar is not inside the FilterBar').toBe(false);
+  expect(txt(tabLists[0]), 'the six statuses are tabs').toMatch(/awaiting content.*ready to release.*held.*render failed.*released today.*all/i);
   expect(root.querySelectorAll('form').length, 'no separate search form row').toBe(0);
 }
 

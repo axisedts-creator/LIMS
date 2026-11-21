@@ -187,7 +187,9 @@ describe('page header, table headers, empty state', () => {
     expect(screen.getByLabelText(/search/i)).toBeTruthy();
     expect(screen.getByLabelText(/^department/i)).toBeTruthy();
     expect(screen.getByLabelText(/^specimen/i)).toBeTruthy();
-    for (const s of ['All', 'Active', 'Inactive']) expect(screen.queryByRole('radio', { name: s }) ?? screen.queryByRole('option', { name: s }) ?? screen.queryByText(s, { selector: 'label,button,span' })).toBeTruthy();
+    expect(screen.getByLabelText(/^status/i)).toBeTruthy(); // the kit FilterBar select (T0D-UIGUARD-1-CATALOG ruling)
+    await userEvent.click(screen.getByLabelText(/^status/i));
+    for (const s of ['All', 'Active', 'Inactive']) expect(await screen.findByRole('option', { name: s })).toBeTruthy(); // not getByText: row StatusChips also say Active
   });
 
   it('with ZERO tests: column headers are drawn; the first row says "No tests yet. Add a test" and repeats the New test button (done_when 1, 3)', async () => {

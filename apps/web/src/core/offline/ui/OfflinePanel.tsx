@@ -3,7 +3,14 @@
 // Conflicts), Sync now, Retry, Discard with a typed reason (an audited operation sent at the next sync), the conflict inbox
 // (keep_server, apply_local or field merge, both versions side by side, online only) and the PIN change.
 // Personal data in the rows is masked until the user opens a row. Buttons the user cannot press are disabled and say why.
+// T0D-UIGUARD-1-OFFLINE (LD-353 rules 1, 4, 7; LD-436 Worklist mock; LD-438; LD-439 a): kit PageHeader (Sync now in its actions), each list a
+// kit Card with a title row, NotAvailable without a snapshot. Display only: every control, gate and controller call is unchanged.
+// [CONV] the tables stay hand drawn lims-table (kit classes) because each row opens an inline detail row DataTable has no slot for.
 import { Fragment, useEffect, useId, useState, type FormEvent, type ReactNode } from 'react';
+import { Card } from '@lims/ui/components/Card';
+import { NotAvailable } from '@lims/ui/components/NotAvailable';
+import { PageHeader } from '@lims/ui/components/PageHeader';
+import { Stack } from '@lims/ui/components/Stack';
 import { t } from '../../i18n/messages';
 import type { OfflineSnapshot } from '../controller';
 import type { Operation } from '../outbox';
@@ -13,6 +20,7 @@ import { attemptsText, Modal } from './OfflineShell';
 type Row = Operation & { code?: string | undefined; conflict_id?: string };
 type Obj = Record<string, unknown>;
 const MAX_REASON = 1000;
+const HELP = 'offline.panel';
 const PERSONAL = /name|phone|mobile|email|address/i;
 
 const obj = (x: unknown): Obj => (x && typeof x === 'object' && !Array.isArray(x) ? (x as Obj) : {});
@@ -42,14 +50,12 @@ function Gated({ why, onClick, children, primary, busy }: { why: { id: string; t
 const Why = ({ why }: { why: { id: string; text: string | null } }) => (why.text ? <p id={why.id} className="lims-offline-why">{why.text}</p> : null);
 
 function DataTable({ title, cols, empty, rows, note, cells }: { title: string; cols: string[]; empty: string; rows: Row[]; note?: ReactNode; cells: (r: Row) => ReactNode }) {
-  const id = useId();
   const [open, setOpen] = useState<string | null>(null);
   return (
-    <section className="lims-offline-section">
-      <h2 id={id} className="lims-offline-h2">{title}</h2>
+    <Card title={title}>
       {note}
       <div className="lims-table-scroll">
-        <table className="lims-table" aria-labelledby={id}>
+        <table className="lims-table lims-table-compact" aria-label={title}>
           <thead><tr>{cols.map((c) => <th key={c} scope="col">{c}</th>)}</tr></thead>
           <tbody>
             {rows.length === 0 ? <tr><td colSpan={cols.length}>{empty}</td></tr> : rows.map((r) => {
@@ -74,7 +80,7 @@ function DataTable({ title, cols, empty, rows, note, cells }: { title: string; c
           </tbody>
         </table>
       </div>
-    </section>
+    </Card>
   );
 }
 
@@ -148,7 +154,7 @@ function ResolveDialog({ conflictId, s, onClose }: { conflictId: string; s: Offl
   };
   const side = (id: string, title: string, o: Obj) => (
     <section aria-labelledby={id} className="lims-offline-side">
-      <h3 id={id} className="lims-offline-h3">{title}</h3>
+      <p role="heading" aria-level={3} id={id} className="lims-card-title">{title}</p>
       <dl className="lims-offline-fields">{Object.entries(o).map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{show(v)}</dd></div>)}</dl>
     </section>
   );
@@ -208,15 +214,14 @@ function PinChange({ s }: { s: OfflineSnapshot }) {
       <input id={ids[k]} type="password" inputMode="numeric" autoComplete={k === 'cur' ? 'current-password' : 'new-password'} className="lims-input" value={v[k]} onChange={(e) => setV({ ...v, [k]: e.target.value })} /></div>
   );
   return (
-    <section className="lims-offline-section">
-      <h2 className="lims-offline-h2">{t('offline.pin.title')}</h2>
+    <Card title={t('offline.pin.title')}>
       <form className="lims-form lims-offline-pin" onSubmit={submit}>
         {input('cur', t('offline.pin.current'))}{input('next', t('offline.setup.new'))}{input('again', t('offline.setup.confirm'))}
         <button type="submit" className="lims-btn lims-btn-primary" disabled={why.text !== null || busy} aria-describedby={why.text ? why.id : undefined}>{t('offline.pin.change')}</button>
       </form>
       <Why why={why} />
       {msg ? <p role={msg.alert ? 'alert' : 'status'}>{msg.text}</p> : null}
-    </section>
+    </Card>
   );
 }
 
@@ -226,17 +231,16 @@ export function OfflinePanel() {
   const ids = { sync: useId(), use: useId(), resolve: useId() };
   const [discarding, setDiscarding] = useState<string | null>(null);
   const [resolving, setResolving] = useState<string | null>(null);
-  if (!s || !c) return <section className="lims-offline-page"><h1 className="lims-page-title">{t('offline.title')}</h1><p>{t('offline.unavailable')}</p></section>;
+  if (!s || !c) return <section className="lims-offline-page"><NotAvailable title={t('offline.title')} helpKey={HELP} body={t('offline.unavailable')} /></section>;
   const syncWhy = { id: ids.sync, text: blocked(s, 'sync.use') ?? (s.conn === 'syncing' ? t('offline.busy') : s.conn !== 'online' ? t('offline.need_online') : null) };
   const useWhy = { id: ids.use, text: blocked(s, 'sync.use') };
   const resolveWhy = { id: ids.resolve, text: blocked(s, 'sync.conflict.resolve') };
   const cols = (...k: string[]) => ['time', 'type', 'reference', ...k].map((x) => t(`offline.col.${x}`));
   return (
     <section className="lims-offline-page">
-      <header className="lims-offline-header">
-        <h1 className="lims-page-title">{t('offline.title')}</h1>
-        <Gated why={syncWhy} primary busy={s.conn === 'syncing'} onClick={() => { void c.syncNow(); }}>{t('offline.sync_now')}</Gated>
-      </header>
+      <Stack>
+      <PageHeader title={t('offline.title')} helpKey={HELP}
+        actions={<Gated why={syncWhy} primary busy={s.conn === 'syncing'} onClick={() => { void c.syncNow(); }}>{t('offline.sync_now')}</Gated>} />
       <Why why={syncWhy} />
       <DataTable title={t('offline.pending')} cols={cols('status')} empty={t('offline.empty.pending')} rows={s.pending}
         cells={() => <td>{t('offline.status.queued')}</td>} />
@@ -260,6 +264,7 @@ export function OfflinePanel() {
           </>
         )} />
       <PinChange s={s} />
+      </Stack>
       {discarding ? <DiscardDialog opId={discarding} onClose={() => setDiscarding(null)} /> : null}
       {resolving ? <ResolveDialog conflictId={resolving} s={s} onClose={() => setResolving(null)} /> : null}
     </section>

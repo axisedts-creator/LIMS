@@ -278,8 +278,9 @@ describe('Filters (R1: due range ≤ 92 days)', () => {
     const g = screen.getByRole('group', { name: /due date range/i });
     const [a, b] = within(g).getAllByRole('textbox');
     const d = (x: Date) => kathmandu(x).slice(0, 10);
-    await userEvent.clear(a!); await userEvent.type(a!, d(from));
-    await userEvent.clear(b!); await userEvent.type(b!, d(to));
+    // kit DatePicker commits on blur (T0D-UIGUARD-1-ENGAGEMENT, FilterBar date_range)
+    await userEvent.clear(a!); await userEvent.type(a!, d(from)); await userEvent.tab();
+    await userEvent.clear(b!); await userEvent.type(b!, d(to)); await userEvent.tab();
   };
 
   it('a range of 93+ days shows an error and does not change the URL', async () => {
@@ -319,8 +320,8 @@ describe('Server page (R1 wiring)', () => {
 
   it('always sends due_from and due_to to R1, default span ≤ 92 days, and renders the rows', async () => {
     wrap(await page());
-    const get = calls.find((c) => c.method === 'GET')!;
-    expect(get.url.pathname).toBe('/v1/engagement/reminders');
+    const get = calls.find((c) => c.method === 'GET' && c.url.pathname === '/v1/engagement/reminders')!; // call order is not pinned (loadOr, LD-353 rule 4)
+    expect(get).toBeTruthy();
     const [f, t] = [get.url.searchParams.get('due_from'), get.url.searchParams.get('due_to')];
     const ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/; // R1 accepts only instants, never date-only (else 400 common.validation_failed)
     expect(f).toMatch(ISO); expect(t).toMatch(ISO);

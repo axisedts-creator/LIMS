@@ -1,0 +1,8 @@
+# T0D-UIGUARD-1-INVENTORY impl (writer)
+- Files: inventory/components RulesView.tsx (rule 2: kit FilterBar, item Combobox + Show history in its children slot, "Clear filters"), ReportBody.tsx (rule 6: BarChart in ChartCard; rule 7: two reconciliation blocks are Cards with title rows), BenchView.tsx (two forms in Cards, raw h2 gone), UnresolvedView.tsx (detail = Card titled by kind), consoleParts.tsx (History = kit Timeline), StockView.tsx + IssueDrawer.tsx (raw ul -> one p per line, same text); notes/T0D-UIGUARD-1-exceptions.md (both INVENTORY sections deleted).
+- Kit props added (LD-441, additive, default markup unchanged): FilterBar `children` (extra controls before reset); Timeline `title` (h3 + list in one block) and `labelFirst` (label then time).
+- [CONV] in-transit and issued-per-lot stay paragraphs, not DataTable: a second grid broke the "one grid per page" pins in t23.stock. Same URL keys/actions: display only.
+- Green: vitest.uiguard1-inventory 98/98; all 33 inventory test files 1379/1381; packages/ui kit component tests green; tsc clean for inventory + kit. No rs-cN snapshot covers inventory (none re-recorded).
+- OPEN (pre-existing, files not touched): t20.alerts "API 500 -> page throws" (AlertsView/page untouched); t23.stock "In transit Card lists transfers" uses closest(div) from the Card h2, which lands in lims-card-head since T0D-UIKIT-2 (tester-owned pin of old card markup).
+- OPEN (pre-existing, not this area): packages/ui font/token tests and no-raw-style-literals (instruments/quality test files) fail.
+- Not done: LD-439 (a) full restyle of the other inventory screens beyond the guard's rules (no per-screen mock check run).

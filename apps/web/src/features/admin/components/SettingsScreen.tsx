@@ -4,6 +4,7 @@
 import { useRef, useState, type ReactNode } from 'react';
 import { Banner } from '@lims/ui/components/Banner';
 import { Button } from '@lims/ui/components/Button';
+import { PageHeader } from '@lims/ui/components/PageHeader';
 import { Switch } from '@lims/ui/components/Switch';
 import { useToast } from '@lims/ui/components/Toast';
 import { setFeatureFlag, updateSettings, uploadBrandingAsset } from '../actions';
@@ -96,7 +97,7 @@ export function SettingsScreen({ settings: initial, flags, annexes }: { settings
   const [tab, setTab] = useState('General');
   return (
     <main className="lims-page">
-      <header className="lims-page-header"><h1>Lab settings</h1></header>
+      <PageHeader title="Lab settings" helpKey="admin.settings" />
       <Tabs items={TAB_NAMES} selected={tab} onChange={setTab} label="Settings sections">
         {tab === 'Features' ? <FlagsTab flags={flags} /> : <TabForm key={tab} tab={tab} settings={settings} onSaved={setSettings} annexes={annexes} />}
       </Tabs>

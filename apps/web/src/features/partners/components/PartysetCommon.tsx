@@ -8,6 +8,7 @@
 import { useId, useState, type ReactNode } from 'react';
 import { Button } from '@lims/ui/components/Button';
 import { Dialog } from '@lims/ui/components/Dialog';
+import { FilterBar } from '@lims/ui/components/FilterBar';
 import { StatusChip } from '@lims/ui/components/StatusChip';
 import { TextArea } from '@lims/ui/components/TextArea';
 import { t } from '@/core/i18n/messages';
@@ -65,15 +66,18 @@ export function SearchBar({ q, children }: { q: string | undefined; children?: R
   const id = useId();
   const [text, setText] = useState(q ?? '');
   return (
-    <form role="search" className="lims-filter-bar" onSubmit={(e) => { e.preventDefault(); url.go({ q: text.trim() || undefined, cursor: undefined }, true); }}>
-      <div className="lims-filter-search">
-        <div className="lims-field">
-          <label htmlFor={id} className="lims-label">{t('partners.partyset.search')}</label>
-          <input id={id} type="search" className="lims-input" maxLength={64} value={text} onChange={(e) => setText(e.target.value)} />
+    // T0D-UIGUARD-1-BILLING (LD-353 rule 2): the kit FilterBar holds the row; the form only carries Enter-to-search.
+    <form onSubmit={(e) => { e.preventDefault(); url.go({ q: text.trim() || undefined, cursor: undefined }, true); }}>
+      <FilterBar>
+        <div className="lims-filter-search">
+          <div className="lims-field">
+            <label htmlFor={id} className="lims-label">{t('partners.partyset.search')}</label>
+            <input id={id} type="search" className="lims-input" maxLength={64} value={text} onChange={(e) => setText(e.target.value)} />
+          </div>
+          <Button type="submit">{t('partners.partyset.search')}</Button>
         </div>
-        <Button type="submit">{t('partners.partyset.search')}</Button>
-      </div>
-      {children}
+        {children}
+      </FilterBar>
     </form>
   );
 }

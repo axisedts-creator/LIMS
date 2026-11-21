@@ -1,0 +1,7 @@
+# T0D-UIGUARD-1-OFFLINE tests (tester)
+Run: `.orchestra/notes/T0D-UIGUARD-1-OFFLINE-verify.cmd` (build:nav, the uiguard1 guard config, then the offline config).
+1. Registry (LD-441 step 1): deleted the 3 OFFLINE entries (rule 1, rule 4, rule 7, route /offline) from `apps/web/src/core/__tests__/uiguard1.exceptions.ts`. Guard now red: rule 1 (no PageHeader), rule 4, rule 7 (raw h1/h2/h3 in OfflinePanel.tsx, h2 in OfflineShell.tsx).
+2. WRITER: delete the 3 lines under both "T0D-UIGUARD-1-OFFLINE" headings in `notes/T0D-UIGUARD-1-exceptions.md` (tester may not edit notes/).
+3. New `app/(staff)/offline/__tests__/uiguard1-offline.panel.test.tsx` (+ `vitest.uiguard1-offline.config.ts`): PageHeader import+render, one h1 in `.lims-page-header` with Sync now and Help in its actions, header before tables; four kit Cards (`.lims-card-head` h2: Pending, Needs attention, Conflicts, PIN), tables keep names and headers when empty; no snapshot/controller shows kit state (`.lims-state`, NotAvailable or ErrorState) under the h1; rule 7 scan of OfflinePanel/OfflineShell/OfflineParts. Red now: 8 tests; 3 green regressions.
+4. Existing offline2/3/4 tests stay the behaviour pin; only tests that pinned old markup (`lims-offline-h2`, the bare unavailable paragraph) may change, by the writer. Dialog title h2 in OfflineShell.tsx must also leave raw markup (kit Dialog or equivalent).
+Not tested: pixel match to the Worklist mock (no browser), rs-cN snapshots (writer, LD-440), rule 7 for T0D-OFFLINE-* owned files (none listed as not done found).

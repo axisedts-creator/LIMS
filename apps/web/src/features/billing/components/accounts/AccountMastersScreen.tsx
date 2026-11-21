@@ -4,6 +4,7 @@
 // The lab accountant confirms the groups and particulars before go-live (LD-313 e).
 import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Card } from '@lims/ui/components/Card';
 import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
 import { Dialog } from '@lims/ui/components/Dialog';
 import { Form } from '@lims/ui/components/Form';
@@ -64,12 +65,15 @@ export function AccountMastersScreen({ groups, particulars, permissions }: Accou
     <section aria-label={t('billing.accounts.masters.title')}>
       <PageHeader title={t('billing.accounts.masters.title')} helpKey="billing.accounts" />
       {blocked ? <p id={REASON_ID} className="lims-description">{blocked}</p> : null}
-      <h2>{t('billing.accounts.masters.groups')}</h2>
-      <GatedButton variant="primary" label={t('billing.accounts.masters.new_group')} blocked={blocked} reasonId={REASON_ID} onPress={() => setEditing({ kind: 'group' })} />
-      <DataTable caption={t('billing.accounts.masters.groups')} density="compact" columns={groupColumns} rows={groups} getRowId={(g) => g.id} emptyState={{ title: t('billing.accounts.masters.empty_groups') }} />
-      <h2>{t('billing.accounts.masters.particulars')}</h2>
-      <GatedButton variant="primary" label={t('billing.accounts.masters.new_particular')} blocked={blocked} reasonId={REASON_ID} onPress={() => setEditing({ kind: 'particular' })} />
-      <DataTable caption={t('billing.accounts.masters.particulars')} density="compact" columns={particularColumns} rows={particulars} getRowId={(p) => p.id} emptyState={{ title: t('billing.accounts.masters.empty_particulars') }} />
+      {/* T0D-UIGUARD-1-BILLING (LD-436 R7, LD-439): each master list is a Card with its title row, not a raw h2. */}
+      <Card title={t('billing.accounts.masters.groups')}>
+        <GatedButton variant="primary" label={t('billing.accounts.masters.new_group')} blocked={blocked} reasonId={REASON_ID} onPress={() => setEditing({ kind: 'group' })} />
+        <DataTable caption={t('billing.accounts.masters.groups')} density="compact" columns={groupColumns} rows={groups} getRowId={(g) => g.id} emptyState={{ title: t('billing.accounts.masters.empty_groups') }} />
+      </Card>
+      <Card title={t('billing.accounts.masters.particulars')}>
+        <GatedButton variant="primary" label={t('billing.accounts.masters.new_particular')} blocked={blocked} reasonId={REASON_ID} onPress={() => setEditing({ kind: 'particular' })} />
+        <DataTable caption={t('billing.accounts.masters.particulars')} density="compact" columns={particularColumns} rows={particulars} getRowId={(p) => p.id} emptyState={{ title: t('billing.accounts.masters.empty_particulars') }} />
+      </Card>
       {editing ? <MasterDialog editing={editing} groups={groups.filter((g) => g.is_active)} onClose={() => setEditing(null)} onDone={done} onFail={fail} /> : null}
     </section>
   );

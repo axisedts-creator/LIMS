@@ -4,6 +4,7 @@
 // the API re-checks). Write controls need lab.config.manage; the API enforces it too.
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '@lims/ui/components/Button';
+import { EmptyRow } from '@lims/ui/components/DataTable';
 import { Dialog } from '@lims/ui/components/Dialog';
 import { IdText } from '@lims/ui/components/IdText';
 import { useToast } from '@lims/ui/components/Toast';
@@ -99,12 +100,13 @@ export function DeltaRulesTab({ canManage }: { canManage: boolean }) {
     <div>
       {inDialog ? null : <AlertText text={err} />}
       {canManage ? <Button variant="primary" onPress={openCreate}>New rule</Button> : null}
-      {rules.length === 0 ? <p>No delta rules.</p> : (
-        <table className="lims-table">
+      {/* T0D-UIGUARD-1-LAB (LD-353 rule 5): the header row stays when there are no rules; the empty line is a body row */}
+      <table className="lims-table">
           <thead>
             <tr><th scope="col">Analyte</th><th scope="col">Window</th><th scope="col">Abs</th><th scope="col">Pct</th><th scope="col">Unit</th><th scope="col">Version</th><th scope="col">Effective from</th><th scope="col">Active</th>{canManage ? <th scope="col">Actions</th> : null}</tr>
           </thead>
           <tbody>
+            {rules.length ? null : <EmptyRow colSpan={canManage ? 9 : 8}>No delta rules.</EmptyRow>}
             {rules.map((r) => (
               <tr key={r.id}>
                 <td><IdText value={r.analyte_id} /></td><td>{windowText(r.window_seconds)}</td><td>{r.abs_threshold ?? '—'}</td><td>{r.pct_threshold ?? '—'}</td><td>{r.unit_code}</td>
@@ -119,7 +121,6 @@ export function DeltaRulesTab({ canManage }: { canManage: boolean }) {
             ))}
           </tbody>
         </table>
-      )}
 
       <Dialog
         title={dlg?.kind === 'version' ? 'New rule version' : 'New delta rule'}

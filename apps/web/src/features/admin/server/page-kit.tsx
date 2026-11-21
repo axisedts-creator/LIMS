@@ -2,6 +2,7 @@
 import 'server-only';
 import type { ReactNode } from 'react';
 import { ErrorState } from '@lims/ui/components/ErrorState';
+import { PageHeader } from '@lims/ui/components/PageHeader';
 import { PermissionDenied } from '@/core/errors/PermissionDenied';
 import type { Fail } from './api';
 import { permissions } from './api';
@@ -19,13 +20,16 @@ export function LoadError({ fail, what }: { fail: Fail; what: string }) {
   );
 }
 
-export function Frame({ title, actions, children }: { title: string; actions?: ReactNode; children: ReactNode }) {
+/** T0D-UIGUARD-1-ADMIN (LD-436 R16): a failed read of a screen that draws its own header still keeps the page title row. */
+export function FailedPage({ title, helpKey, fail, what }: { title: string; helpKey: string; fail: Fail; what: string }) {
+  return <Frame title={title} helpKey={helpKey}><LoadError fail={fail} what={what} /></Frame>;
+}
+
+/** T0D-UIGUARD-1-ADMIN (LD-436 title row, LD-439): the heading is the kit PageHeader (title, one caption line, actions, help). */
+export function Frame({ title, caption, actions, helpKey, children }: { title: string; caption?: string; actions?: ReactNode; helpKey: string; children: ReactNode }) {
   return (
     <main className="lims-page">
-      <header className="lims-page-header">
-        <h1>{title}</h1>
-        {actions ? <div className="lims-page-actions">{actions}</div> : null}
-      </header>
+      <PageHeader title={title} helpKey={helpKey} {...(caption ? { caption } : {})} {...(actions ? { actions } : {})} />
       {children}
     </main>
   );

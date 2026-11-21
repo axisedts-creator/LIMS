@@ -248,7 +248,7 @@ export function ParameterForm({ testId, analyte, siblings, units, methods, value
           <div className="lims-stack catalog-gap-1">
             <TextField label="Formula" name="formula_expression" maxLength={500} isRequired isDisabled={clinicalOff} description="Written over the short names of the other parameters, for example TG/5" value={c.formula_expression} onChange={setCf('formula_expression')} {...(formulaError ? { error: formulaError } : {})} />
             <p className="lims-description">{`Parameters this formula may use: ${usable.length ? usable.join(', ') : 'none yet'}`}</p>
-            {check && !check.valid && check.errors.length ? <ul className="lims-error" role="status">{check.errors.map((x, i) => <li key={i}>{x.message}</li>)}</ul> : null}
+            {check && !check.valid && check.errors.length ? <div className="lims-error" role="status">{check.errors.map((x, i) => <p key={i}>{x.message}</p>)}</div> : null}
             {check?.valid ? <p role="status" className="lims-description">{`Formula is valid${check.codes.length ? `; it uses ${check.codes.join(', ')}` : ''}.`}</p> : null}
           </div>
         ) : null}

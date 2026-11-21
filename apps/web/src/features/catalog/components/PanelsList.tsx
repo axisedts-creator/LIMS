@@ -24,10 +24,9 @@ type KindFilter = 'all' | Panel['panel_kind'];
 export function PanelsList({ panels, departments, permissions }: { panels: readonly Panel[]; departments: readonly Department[]; permissions: readonly string[] }) {
   const manage = canManage(permissions);
   const [creating, setCreating] = useState(false);
-  const [kind, setKind] = useState<KindFilter>('all');
-  // T0D-UILIST-3 (LD-353 rule 2): Kind is a select in the one filter row.
-  const kindSelect = <Select<KindFilter> label="Kind" name="kind" value={kind} onChange={setKind} options={[{ value: 'all', label: 'All' }, { value: 'clinical', label: 'Clinical panel' }, { value: 'package', label: 'Package' }]} />;
-  const { shown, toolbar, search } = useListFilter(panels, (r) => r.name, kindSelect);
+  // T0D-UILIST-3 (LD-353 rule 2): Kind is a select in the one filter row (T0D-UIGUARD-1-CATALOG: a FilterBar filter).
+  const { shown, toolbar, search, values } = useListFilter(panels, (r) => r.name, [{ id: 'kind', label: 'Kind', options: [{ value: 'all', label: 'All' }, { value: 'clinical', label: 'Clinical panel' }, { value: 'package', label: 'Package' }] }]);
+  const kind = (values['kind'] ?? 'all') as KindFilter;
   const openNew = manage ? () => setCreating(true) : undefined;
   useListShortcuts(search, openNew);
   const rows = shown.filter((p) => kind === 'all' || p.panel_kind === kind);

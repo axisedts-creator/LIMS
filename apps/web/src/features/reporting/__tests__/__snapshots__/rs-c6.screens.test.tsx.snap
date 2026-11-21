@@ -7,6 +7,7 @@ span Failed
 button Resend
 button Help
 a Back to delivery log
+h2 Delivery
 a Open report
 h2 Attempts
 span Failed"
@@ -76,9 +77,9 @@ button Select an item
 button Open calendar for From
 button Open calendar for To
 button Select an item
-button Reset filters
-input Select all rows
-input Select R2611050001
+button Clear filters
+input Select All
+input Select
 a R2611050001
 span Ready to release"
 `;

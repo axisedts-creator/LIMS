@@ -75,13 +75,12 @@ export function ProfileImages({ images: initial, canManage, canUpload, searchPro
       </div>
       {q.trim() ? (
         hits.length ? (
-          <ul className="lims-inline lims-plain-list" aria-label={t('engagement.content.profile.results')}>
+          // T0D-UIGUARD-1-ENGAGEMENT (LD-436 R7): the search hits are a group of toggle buttons, not a raw list
+          <div role="group" className="lims-inline" aria-label={t('engagement.content.profile.results')}>
             {hits.map((h) => (
-              <li key={h.id}>
-                <button type="button" className="lims-btn lims-btn-secondary lims-btn-sm" aria-pressed={picked?.hit.id === h.id} onClick={() => { setPicked({ kind, hit: h }); setFailure(undefined); }}>{h.name}</button>
-              </li>
+              <button key={h.id} type="button" className="lims-btn lims-btn-secondary lims-btn-sm" aria-pressed={picked?.hit.id === h.id} onClick={() => { setPicked({ kind, hit: h }); setFailure(undefined); }}>{h.name}</button>
             ))}
-          </ul>
+          </div>
         ) : <p className="lims-description">{t('engagement.content.profile.no_results')}</p>
       ) : null}
       {picked ? (

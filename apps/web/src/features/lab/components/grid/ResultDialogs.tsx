@@ -20,14 +20,15 @@ export function VerifyPrompt({ rows, analytes, onCancel, onVerify }: {
   return (
     <Dialog title="Review flagged results" isOpen onClose={onCancel}
       footer={<><Button variant="ghost" onPress={onCancel}>Cancel</Button><Button variant="primary" isDisabled={!done} onPress={() => onVerify(ticked)}>Verify</Button></>}>
-      <ul>
+      {/* T0D-UIGUARD-1-LAB (LD-436 rule 7): list semantics without a raw ul */}
+      <div role="list">
         {rows.map(({ result, flags }) => (
-          <li key={result.id}>
+          <div role="listitem" key={result.id}>
             <strong>{`${nameOf(result, analytes)} ${result.analyte_code}: ${valueOf(result)}`}</strong>
             {flags.map((f) => <Checkbox key={f} label={ACK_LABEL[f]} isSelected={ticked[result.id]?.includes(f) ?? false} onChange={(on) => flip(result.id, f, on)} />)}
-          </li>
+          </div>
         ))}
-      </ul>
+      </div>
     </Dialog>
   );
 }

@@ -10,6 +10,7 @@ import { Button } from '@lims/ui/components/Button';
 import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
 import { DateText } from '@lims/ui/components/DateText';
 import { Dialog } from '@lims/ui/components/Dialog';
+import { FilterBar } from '@lims/ui/components/FilterBar';
 import { Form } from '@lims/ui/components/Form';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { PrintFrame } from '@lims/ui/components/PrintFrame';
@@ -127,7 +128,8 @@ export function AccountEntriesScreen({ entries, particulars, parties, centres, m
         helpKey="billing.accounts"
         actions={<GatedButton variant="primary" label={t('billing.accounts.entries.new')} blocked={canCreate ? undefined : t('billing.accounts.reason.no_create')} onPress={() => setCreating(true)} />}
       />
-      <div role="search" aria-label={t('billing.accounts.entries.filters')} className="lims-filter-bar">
+      {/* T0D-UIGUARD-1-BILLING (LD-353 rule 2): the kit FilterBar holds the row; the controls stay as they were (live selects, dates applied by Search). */}
+      <FilterBar aria-label={t('billing.accounts.entries.filters')} onReset={() => apply({})} resetLabel={t('billing.accounts.filter.reset')}>
         <Select label={t('billing.accounts.filter.centre')} name="centre_id" options={centres.map((c) => ({ value: c.id, label: c.name }))} {...opt('centre_id')} onChange={setNow('centre_id')} />
         <Select label={t('billing.accounts.filter.party')} name="party" options={partyOptions} {...opt('party')} onChange={setNow('party')} />
         <Select label={t('billing.accounts.filter.particular')} name="account_particular_id" options={particulars.map((p) => ({ value: p.id, label: p.name }))} {...opt('account_particular_id')} onChange={setNow('account_particular_id')} />
@@ -137,8 +139,7 @@ export function AccountEntriesScreen({ entries, particulars, parties, centres, m
         <TextField label={t('billing.accounts.filter.to')} name="entry_date_to" maxLength={10} description={t('billing.accounts.field.date_hint')} value={f.entry_date_to ?? ''} onChange={(v) => setF({ ...f, entry_date_to: v })} />
         <TextField label={t('billing.accounts.filter.fiscal_year')} name="fiscal_year_label" maxLength={7} description={t('billing.accounts.filter.fiscal_year_hint')} value={f.fiscal_year_label ?? ''} onChange={(v) => setF({ ...f, fiscal_year_label: v })} />
         <Button variant="primary" onPress={() => apply(Object.fromEntries(Object.entries(f).filter(([k, v]) => (k.startsWith('entry_date') ? ISO_DATE.test(v ?? '') : k === 'fiscal_year_label' ? FY.test(v ?? '') : true))))}>{t('billing.accounts.filter.search')}</Button>
-        <Button variant="ghost" onPress={() => apply({})}>{t('billing.accounts.filter.reset')}</Button>
-      </div>
+      </FilterBar>
       <p className="lims-inline"><span>{t('billing.accounts.entries.held_total')}</span><strong>{formatNpr(heldTotal)}</strong></p>
       {/* T0D-UILIST-2 (LD-353 rule 5, done_when 2): 15 columns scroll inside the table box, with a column chooser and a sticky first column. */}
       <DataTable

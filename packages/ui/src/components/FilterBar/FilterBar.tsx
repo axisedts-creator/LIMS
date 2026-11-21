@@ -1,30 +1,37 @@
 'use client';
 // 04-UI-UX §2.5 FilterBar. date_range values are [from, to] A.D. IsoDates ([CONV]: the value map only holds string | string[]).
-import { useId } from 'react';
+import { useId, type ReactNode } from 'react';
 import { Label, ListBox, ListBoxItem, type Selection } from 'react-aria-components';
 import { Button } from '../Button/Button';
 import { DateRangePicker } from '../DateRangePicker/DateRangePicker';
 import { Select } from '../Select/Select';
 import { TextField } from '../TextField/TextField';
+import { TextInputBase } from '../_shared/TextInputBase';
 import type { IsoDate } from '../_shared/dates';
 
 export type FilterDef = { id: string; label: string } & (
   | { kind: 'select'; options: readonly { value: string; label: string }[]; multiple?: boolean }
-  | { kind: 'date_range' }
-  | { kind: 'text'; maxLength: number }
+  | { kind: 'date_range'; /** T0D-UIGUARD-1-ENGAGEMENT (additive, LD-441): longest span, both ends inclusive (DateRangePicker maxDays). */ maxDays?: number }
+  /** `search` (T0D-UIGUARD-1-CATALOG, additive, LD-441): the input is a searchbox and Enter runs onSearch, like a search form. */
+  | { kind: 'text'; maxLength: number; search?: boolean }
   | { kind: 'coded'; codedSet: string; options: readonly { code: string; display: string }[] }
 );
 export type FilterValue = Readonly<Record<string, string | readonly string[] | undefined>>;
 
 export interface FilterBarProps {
-  filters: readonly FilterDef[];
-  value: FilterValue;
-  onChange: (v: FilterValue) => void;
-  onReset: () => void;
+  /** T0D-UIGUARD-1-BILLING (LD-441 additive): filters, value and onChange may be left out when the row is all `children`. */
+  filters?: readonly FilterDef[];
+  value?: FilterValue;
+  onChange?: (v: FilterValue) => void;
+  /** T0D-UIGUARD-1-BILLING (LD-441 additive): optional; without it the row has no reset button. */
+  onReset?: () => void;
   /** T0D-UIKIT-1, LD-353 rule 2: a "Search" button right after the (first) text filter, inside `.lims-filter-search`. */
   onSearch?: () => void;
   /** T0D-UIDASH-2 (LD-436 worklist mock "Clear filters"). Default "Reset filters". */
   resetLabel?: string;
+  /** T0D-UIGUARD-1-BILLING (LD-441 additive): screen controls the defs cannot express (single date, live select, apply button), drawn after the defs and before the reset button. */
+  children?: ReactNode;
+  'aria-label'?: string;
   'data-testid'?: string;
 }
 
@@ -53,7 +60,9 @@ function MultiSelect({ label, options, value, onChange }: { label: string; optio
   );
 }
 
-export function FilterBar({ filters, value, onChange, onReset, onSearch, resetLabel = 'Reset filters', ...rest }: FilterBarProps) {
+const NO_FILTERS: readonly FilterDef[] = [];
+const noop = () => {};
+export function FilterBar({ filters = NO_FILTERS, value = {}, onChange = noop, onReset, onSearch, resetLabel = 'Reset filters', children, ...rest }: FilterBarProps) {
   const set = (id: string, v: string | readonly string[] | undefined) => onChange({ ...value, [id]: v });
   const str = (id: string) => (typeof value[id] === 'string' ? (value[id] as string) : undefined);
   const arr = (id: string) => (Array.isArray(value[id]) ? (value[id] as readonly string[]) : []);
@@ -66,7 +75,20 @@ export function FilterBar({ filters, value, onChange, onReset, onSearch, resetLa
           // LD-353 rule 2: a search is a short label plus a control (kit.css caps .lims-filter-search) with its button next to it
           return (
             <div key={key} className="lims-filter-search">
-              <TextField label={f.label} name={f.id} maxLength={f.maxLength} value={str(f.id) ?? ''} onChange={(v) => set(f.id, v === '' ? undefined : v)} />
+              {f.search ? (
+                <TextInputBase
+                  label={f.label}
+                  name={f.id}
+                  maxLength={f.maxLength}
+                  autoComplete="off"
+                  inputProps={{ type: 'search' }}
+                  text={str(f.id) ?? ''}
+                  onText={(v) => set(f.id, v === '' ? undefined : v.normalize('NFC'))}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); onSearch?.(); } }}
+                />
+              ) : (
+                <TextField label={f.label} name={f.id} maxLength={f.maxLength} value={str(f.id) ?? ''} onChange={(v) => set(f.id, v === '' ? undefined : v)} />
+              )}
               {onSearch && f.id === firstText ? <Button onPress={onSearch}>Search</Button> : null}
             </div>
           );
@@ -78,6 +100,7 @@ export function FilterBar({ filters, value, onChange, onReset, onSearch, resetLa
               key={key}
               label={f.label}
               name={f.id}
+              {...(f.maxDays !== undefined ? { maxDays: f.maxDays } : {})}
               {...(from && to ? { value: { from, to } } : {})}
               onChange={(r) => set(f.id, r ? [r.from, r.to] : undefined)}
             />
@@ -91,9 +114,12 @@ export function FilterBar({ filters, value, onChange, onReset, onSearch, resetLa
         const v = str(f.id);
         return <Select key={key} label={f.label} name={f.id} options={f.options} {...(v ? { value: v } : {})} onChange={(x) => set(f.id, x)} />;
       })}
-      <Button variant="ghost" onPress={onReset}>
-        {resetLabel}
-      </Button>
+      {children}
+      {onReset ? (
+        <Button variant="ghost" onPress={onReset}>
+          {resetLabel}
+        </Button>
+      ) : null}
     </div>
   );
 }

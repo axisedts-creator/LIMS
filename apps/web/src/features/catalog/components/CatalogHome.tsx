@@ -1,7 +1,10 @@
 'use client';
 // SCR-01 Catalog home (04-UI-UX §4; 03-APP-FLOW §5). health === null = the load failed: tiles show "—", Reference + Retry.
+import { Fragment } from 'react';
 import { useRouter } from 'next/navigation';
+import { ActionList } from '@lims/ui/components/ActionList';
 import { Button } from '@lims/ui/components/Button';
+import { Card } from '@lims/ui/components/Card';
 import { EmptyState } from '@lims/ui/components/EmptyState';
 import { ErrorState } from '@lims/ui/components/ErrorState';
 import { PageHeader } from '@lims/ui/components/PageHeader';
@@ -64,16 +67,13 @@ export function CatalogHome({ health, counts, revision, permissions, requestId }
         <>
           <ErrorState title="The catalog summary could not be loaded." {...(requestId ? { requestId } : {})} onRetry={() => router.refresh()} />
           {tests ? (
-            <section aria-labelledby="catalog-attention">
-              <h2 id="catalog-attention">Needs attention</h2>
-              <ul>
+            <Card title="Needs attention">
+              <dl className="lims-dl">
                 {ATTENTION.map((a) => (
-                  <li key={a.key}>
-                    {a.label} <span>—</span>
-                  </li>
+                  <Fragment key={a.key}><dt>{a.label}</dt><dd>—</dd></Fragment>
                 ))}
-              </ul>
-            </section>
+              </dl>
+            </Card>
           ) : null}
         </>
       ) : empty ? (
@@ -85,18 +85,17 @@ export function CatalogHome({ health, counts, revision, permissions, requestId }
           </p>
         </>
       ) : tests ? (
-        <section aria-labelledby="catalog-attention">
-          <h2 id="catalog-attention">Needs attention</h2>
+        // T0D-UIGUARD-1-CATALOG (LD-436 Today mock "Needs you"): a Card with title row and the kit ActionList, no raw h2/ul.
+        <Card title="Needs attention" caption={`Tax default configured: ${health.tax_default_configured ? 'Yes' : 'No'}`}>
           {health.truncated ? <p role="note">Each check lists at most the first 200 items; there are more.</p> : null}
-          <ul>
-            {ATTENTION.map((a) => (
-              <li key={a.key}>
-                <a className="lims-link" href={a.href}>{`${a.label} (${(health[a.key] as readonly string[]).length})`}</a>
-              </li>
-            ))}
-            <li>{`Tax default configured: ${health.tax_default_configured ? 'Yes' : 'No'}`}</li>
-          </ul>
-        </section>
+          <ActionList
+            label="Needs attention"
+            items={ATTENTION.map((a) => {
+              const count = (health[a.key] as readonly string[]).length;
+              return { id: a.key, title: a.label, detail: count ? 'Open the filtered list.' : 'Nothing to fix.', count, tone: count ? 'warning' : 'success', icon: count ? 'warning' : 'success', href: a.href } as const;
+            })}
+          />
+        </Card>
       ) : null}
     </section>
   );

@@ -6,8 +6,10 @@ import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Badge } from '@lims/ui/components/Badge';
 import { Button } from '@lims/ui/components/Button';
+import { Card } from '@lims/ui/components/Card';
 import { PermissionMatrix } from '@lims/ui/components/PermissionMatrix';
 import { RadioGroup } from '@lims/ui/components/RadioGroup';
+import { Grid } from '../Grid';
 import { useFailure } from '../ui';
 import type { Permission, Role } from '../lib';
 import { applyRolePack, type ApplyRolePackResult } from './actions';
@@ -61,24 +63,26 @@ export function RolePackApply({ packs, roles, catalog }: { packs: RolePack[]; ro
         options={packs.map((p) => ({ value: p.pack_code, label: p.name }))}
       />
       {pack ? (
-        <section aria-labelledby="rm-pack-diff" className="lims-card">
-          <h2 id="rm-pack-diff">Diff against current roles</h2>
-          {toCreate === 0 ? <p>No changes: every role in this pack already exists. Nothing to apply.</p> : null}
-          <ul>
-            {rows.map(({ r, isNew, missing }) => (
-              <li key={r.code}>
-                <Button variant="ghost" size="sm" onPress={() => setOpen(r.code === open ? undefined : r.code)}>
-                  <code>{r.code}</code> {r.name}
-                </Button>{' '}
-                {r.mfa_required ? <Badge tone="warning">MFA required</Badge> : null}{' '}
-                {isNew
-                  ? <span>New role: will be created with {r.permission_codes.length} permissions.</span>
-                  : missing.length
-                    ? <span>Exists: kept as your lab edited it. Pack permissions not added: {missing.join(', ')}.</span>
-                    : <span>Unchanged.</span>}
-              </li>
-            ))}
-          </ul>
+        // T0D-UIGUARD-1-ADMIN (LD-436 Card title row, LD-439): the diff is a kit Card holding a table (was a raw h2 + ul); the region keeps its name
+        <section aria-label="Diff against current roles">
+          <Card title="Diff against current roles">
+            {toCreate === 0 ? <p>No changes: every role in this pack already exists. Nothing to apply.</p> : null}
+            <Grid label="Pack roles" columns={['Role', 'MFA', 'Change']}
+              rows={rows.map(({ r, isNew, missing }) => ({
+                key: r.code,
+                cells: [
+                  <Button key="r" variant="ghost" size="sm" onPress={() => setOpen(r.code === open ? undefined : r.code)}>
+                    <code>{r.code}</code> {r.name}
+                  </Button>,
+                  r.mfa_required ? <Badge key="m" tone="warning">MFA required</Badge> : '',
+                  isNew
+                    ? `New role: will be created with ${r.permission_codes.length} permissions.`
+                    : missing.length
+                      ? `Exists: kept as your lab edited it. Pack permissions not added: ${missing.join(', ')}.`
+                      : 'Unchanged.',
+                ],
+              }))} />
+          </Card>
         </section>
       ) : null}
       {openRole ? (

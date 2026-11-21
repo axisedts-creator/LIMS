@@ -8,7 +8,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@lims/ui/components/Button';
 import { EmptyRow, PlaceholderRows } from '@lims/ui/components/DataTable';
 import { PageHeader } from '@lims/ui/components/PageHeader';
-import { Select } from '@lims/ui/components/Select';
+import { FilterBar } from '@lims/ui/components/FilterBar';
 import { t } from '@/core/i18n/messages';
 import type { PriceComparisonRow } from '../server/priceTools.server';
 import { comparePriceListsAction } from '../server/pricingActions';
@@ -100,9 +100,15 @@ export function PriceCompare({ lists, a, b, state, rows: first, next: firstNext,
   return (
     <section aria-label={k('title')} className="lims-stack">
       <PageHeader title={k('title')} helpKey="catalog.price_lists" actions={<a className="lims-link" href="/catalog/price-lists">{k('back')}</a>} />
-      <div className="lims-filter-bar">
-        <Select<string> label={k('a')} name="version_a" {...(a ? { value: a } : {})} onChange={(v) => go(v, b)} options={options} />
-        <Select<string> label={k('b')} name="version_b" {...(b ? { value: b } : {})} onChange={(v) => go(a, v)} options={options} />
+      {/* T0D-UIGUARD-1-CATALOG (LD-353 rule 2, LD-436 worklist mock): the two version pickers are the kit FilterBar; print and CSV follow it */}
+      <FilterBar
+        filters={[{ id: 'version_a', label: k('a'), kind: 'select', options }, { id: 'version_b', label: k('b'), kind: 'select', options }]}
+        value={{ version_a: a, version_b: b }}
+        onChange={(v) => { const va = typeof v['version_a'] === 'string' ? v['version_a'] : undefined; const vb = typeof v['version_b'] === 'string' ? v['version_b'] : undefined; if (va !== a || vb !== b) go(va, vb); }}
+        onReset={() => go(undefined, undefined)}
+        resetLabel="Clear filters"
+      />
+      <div className="lims-inline catalog-gap-2">
         <Button variant="secondary" isDisabled={rows.length === 0} onPress={() => window.print()}>{k('print')}</Button>
         <Button variant="secondary" isDisabled={rows.length === 0} isLoading={busy} onPress={() => void exportCsv()}>{k('csv')}</Button>
       </div>

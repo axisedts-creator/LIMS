@@ -2,6 +2,8 @@
 // The panels are given ready data: the grid loads first and opens after, so an open panel is never half empty.
 import { useState } from 'react';
 import { Button } from '@lims/ui/components/Button';
+import { ChartCard } from '@lims/ui/components/ChartCard';
+import { EmptyRow } from '@lims/ui/components/DataTable';
 import { Dialog } from '@lims/ui/components/Dialog';
 import { Drawer } from '@lims/ui/components/Drawer';
 import { FlagBadge, type ResultFlag } from '@lims/ui/components/FlagBadge';
@@ -20,14 +22,13 @@ export function HistoryPanel({ analyte, rows, onClose }: { analyte: string; rows
   const groups = [...new Set(list.map((r) => year(r.approved_at)))];
   return (
     <Drawer title={`History — ${analyte}`} isOpen onClose={onClose}>
-      {list.length === 0 ? (
-        <p>No previous results for this patient.</p>
-      ) : (
-        <table>
+      {/* T0D-UIGUARD-1-LAB (LD-353 rule 5): the header row stays when there is no history; the empty line is a body row */}
+      <table>
           <caption className="lims-visually-hidden">Last approved results of {analyte}</caption>
           <thead>
             <tr><th scope="col">Date</th><th scope="col">Value</th><th scope="col">Unit</th><th scope="col">Flag</th><th scope="col">Version</th></tr>
           </thead>
+          {list.length ? null : <tbody><EmptyRow colSpan={5}>No previous results for this patient.</EmptyRow></tbody>}
           {groups.map((y) => (
             <tbody key={y}>
               <tr><th scope="colgroup" colSpan={5}>{y}</th></tr>
@@ -42,8 +43,7 @@ export function HistoryPanel({ analyte, rows, onClose }: { analyte: string; rows
               ))}
             </tbody>
           ))}
-        </table>
-      )}
+      </table>
     </Drawer>
   );
 }
@@ -62,7 +62,10 @@ export function TrendDialog({ analyte, unit, data, onClose }: { analyte: string;
         <p>Not enough history to draw a trend (needs 2 results).</p>
       ) : (
         <>
-          <TimeSeriesChart title={`${analyte} trend`} series={[{ id: 'v', label: analyte, points: plotted.map((p) => ({ at: p.at, value: p.value })) }]} {...(band ? { referenceBand: band } : {})} {...(u ? { unit: u } : {})} />
+          {/* T0D-UIGUARD-1-LAB (LD-353 rule 6): the chart sits in the kit ChartCard */}
+          <ChartCard title={`${analyte} trend`}>
+            <TimeSeriesChart title={`${analyte} trend`} series={[{ id: 'v', label: analyte, points: plotted.map((p) => ({ at: p.at, value: p.value })) }]} {...(band ? { referenceBand: band } : {})} {...(u ? { unit: u } : {})} />
+          </ChartCard>
           <Button variant="ghost" onPress={() => setAsTable((v) => !v)}>{asTable ? 'Hide table' : 'Show as table'}</Button>
           {asTable ? (
             <table>
@@ -75,7 +78,7 @@ export function TrendDialog({ analyte, unit, data, onClose }: { analyte: string;
       )}
       {other.length ? (
         <section>
-          <h3>Not plotted (different unit)</h3>
+          <p role="heading" aria-level={3} className="lims-card-title">Not plotted (different unit)</p>
           <table>
             <thead><tr><th scope="col">Date</th><th scope="col">Value</th><th scope="col">Unit</th></tr></thead>
             <tbody>{other.map((p) => <tr key={p.result_id}><td>{formatDateTime(p.at)}</td><td>{p.value}</td><td>{p.unit_code ?? ''}</td></tr>)}</tbody>

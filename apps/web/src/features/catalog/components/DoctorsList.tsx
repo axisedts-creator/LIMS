@@ -2,12 +2,13 @@
 // SCR-11 Doctors list (04-UI-UX §4). Verified / Status / Source filters travel as URL params (the page re-fetches); the search box
 // POSTs to /doctors/search so a name never appears in a URL (D-C3-06). Summaries carry no phone/email, so the list shows none.
 // Columns Source and Price list from the spec are not in DoctorSummary [CONV: omitted].
-import { useRef, useState, type FormEvent } from 'react';
+import { useRef, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Badge } from '@lims/ui/components/Badge';
 import { Banner } from '@lims/ui/components/Banner';
 import { Button } from '@lims/ui/components/Button';
 import { CodeField } from '@lims/ui/components/CodeField';
+import { FilterBar } from '@lims/ui/components/FilterBar';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { Select } from '@lims/ui/components/Select';
 import { TextArea } from '@lims/ui/components/TextArea';
@@ -44,8 +45,7 @@ export function DoctorsList({ doctors, permissions }: { doctors: readonly Doctor
   const active = params.get('is_active') === 'true' ? 'true' : params.get('is_active') === 'false' ? 'false' : 'all';
   const source = ['back_office', 'quick_add', 'import'].includes(params.get('source') ?? '') ? params.get('source')! : 'all';
 
-  const search = async (e: FormEvent) => {
-    e.preventDefault();
+  const search = async () => {
     setSearchError(false);
     if (!q.trim()) return setResults(null);
     const r = await searchDoctorsAction(q.trim());
@@ -76,30 +76,39 @@ export function DoctorsList({ doctors, permissions }: { doctors: readonly Doctor
       {dupes.length ? (
         <div role="status">
           <Banner tone="warning" title="Possible duplicate: a doctor with the same name already exists. The new doctor was saved.">
-            <ul>
+            {/* T0D-UIGUARD-1-CATALOG (LD-436 R7): a list of links without a raw ul (list semantics kept by role) */}
+            <div role="list" className="lims-stack">
               {dupes.map((d) => (
-                <li key={d.id}>
+                <div role="listitem" key={d.id}>
                   <a className="lims-link" href={`/catalog/doctors/${d.id}`}>{`${d.doctor_code} — ${d.display_name}`}</a>
-                </li>
+                </div>
               ))}
-            </ul>
+            </div>
           </Banner>
         </div>
       ) : null}
       {searchError ? <div role="alert"><Banner tone="danger" title="The search could not be run. Try again." /></div> : null}
-      {/* T0D-UNSLOP-1 (LD-344, LD-353 rule 2): search and the radio groups in ONE filter row; the Search button sits next to its input. */}
-      <div className="lims-filter-bar">
-        <form role="search" onSubmit={(e) => void search(e)}>
-          <label className="lims-label" htmlFor="doctor-search">Search doctors</label>
-          <input id="doctor-search" className="lims-input" type="search" maxLength={64} autoComplete="off" value={q} onChange={(e) => setQ(e.target.value)} />
-          <Button type="submit">Search</Button>
-          {results ? <Button variant="ghost" onPress={() => { setResults(null); setQ(''); }}>Clear search</Button> : null}
-        </form>
-        {/* T0D-UILIST-3 (LD-353 rule 2): selects, not radio groups, so every control in the row has one height */}
-        <Select label="Verified" name="is_verified" value={verified} onChange={(v) => setParam('is_verified', v)} options={[{ value: 'all', label: 'All' }, { value: 'true', label: 'Verified' }, { value: 'false', label: 'Unverified' }]} />
-        <Select label="Status" name="is_active" value={active} onChange={(v) => setParam('is_active', v)} options={[{ value: 'all', label: 'All' }, { value: 'true', label: 'Active' }, { value: 'false', label: 'Inactive' }]} />
-        <Select label="Source" name="source" value={source} onChange={(v) => setParam('source', v)} options={[{ value: 'all', label: 'All' }, { value: 'back_office', label: 'Back office' }, { value: 'quick_add', label: 'Quick add' }, { value: 'import', label: 'Import' }]} />
-      </div>
+      {/* T0D-UNSLOP-1 (LD-344, LD-353 rule 2): search and the selects in ONE filter row; the Search button sits next to its input.
+          T0D-UIGUARD-1-CATALOG (LD-436 worklist mock): the row is the kit FilterBar; the search stays a POST (D-C3-06), never a URL param. */}
+      <FilterBar
+        filters={[
+          { id: 'q', label: 'Search doctors', kind: 'text', maxLength: 64, search: true },
+          { id: 'is_verified', label: 'Verified', kind: 'select', options: [{ value: 'all', label: 'All' }, { value: 'true', label: 'Verified' }, { value: 'false', label: 'Unverified' }] },
+          { id: 'is_active', label: 'Status', kind: 'select', options: [{ value: 'all', label: 'All' }, { value: 'true', label: 'Active' }, { value: 'false', label: 'Inactive' }] },
+          { id: 'source', label: 'Source', kind: 'select', options: [{ value: 'all', label: 'All' }, { value: 'back_office', label: 'Back office' }, { value: 'quick_add', label: 'Quick add' }, { value: 'import', label: 'Import' }] },
+        ]}
+        value={{ q, is_verified: verified, is_active: active, source }}
+        onChange={(v) => {
+          setQ(typeof v['q'] === 'string' ? v['q'] : '');
+          for (const k of ['is_verified', 'is_active', 'source'] as const) {
+            const next = typeof v[k] === 'string' ? (v[k] as string) : 'all';
+            if (next !== { is_verified: verified, is_active: active, source }[k]) setParam(k, next);
+          }
+        }}
+        onSearch={() => void search()}
+        onReset={() => { setQ(''); setResults(null); router.replace(pathname); }}
+        resetLabel="Clear filters"
+      />
       <MasterTable caption="Doctors" cols={cols} rows={rows} empty="No doctors in Doctor Management yet." emptyAction={openNew ? { label: 'New doctor', onPress: openNew } : undefined} codeOf={(r) => r.doctor_code} />
       {creating ? <DoctorDialog onClose={() => setCreating(false)} onDuplicates={setDupes} /> : null}
     </section>

@@ -5,6 +5,7 @@
 // a "Pending by department" ChartCard that shows NotAvailable (PendingItem carries no department and this screen does not read getPendingTestsSummary).
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ChartCard } from '@lims/ui/components/ChartCard';
+import { FilterBar } from '@lims/ui/components/FilterBar';
 import { NotAvailable } from '@lims/ui/components/NotAvailable';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { StatTile, StatTileRow } from '@lims/ui/components/StatTile';
@@ -41,12 +42,13 @@ export function PendingPage({ permissions: _permissions }: { permissions?: reado
       {/* T0D-ELABMENU-3 (LD-340): heading = ElabAssist menu label, drawn by the shared PageHeader */}
       <PageHeader title={t('lab.nav.pending')} helpKey="lab.pending" />
       {/* T0D-UILIST-1 (LD-353 rule 2): the one filter sits in the filter row */}
-      <div role="search" className="lims-filter-bar">
+      {/* T0D-UIGUARD-1-LAB (LD-353 rule 2, LD-441): the kit FilterBar draws the same role=search row around the screen's own control */}
+      <FilterBar>
         {/* a button switch, not the bare checkbox */}
         <button type="button" role="switch" aria-checked={overOnly} className="lims-btn lims-btn-ghost lims-btn-sm" onClick={() => setOverOnly((v) => !v)}>
           Over target only
         </button>
-      </div>
+      </FilterBar>
       <StatTileRow>
         <StatTile label="Pending" value={` ${rows.length}`} />
         <StatTile label="Overdue" value={` ${rows.filter((r) => r.over_target).length}`} />

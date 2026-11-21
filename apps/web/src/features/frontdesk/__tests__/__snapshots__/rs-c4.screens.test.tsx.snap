@@ -108,9 +108,9 @@ exports[`RS-C4 key-screen snapshots > Daily cash (open shift) 1`] = `
 </div>
 <div role="search" class="lims-filter-bar">
 <div class="lims-field lims-date-field">
-<label class="lims-label" for="_r_sb_">Business date</label>
+<label class="lims-label" for="_r_4_">Business date</label>
 <div class="lims-input-group">
-<input id="_r_sb_" class="lims-input" placeholder="DD/MM/YYYY" autocomplete="off" type="text" value="07/11/2026" name="date">
+<input id="_r_4_" class="lims-input" placeholder="DD/MM/YYYY" autocomplete="off" type="text" value="07/11/2026" name="date">
 <button type="button" class="lims-btn lims-btn-ghost lims-icon-btn" aria-label="Open calendar for Business date" aria-expanded="false">
 <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 <rect x="4" y="5" width="16" height="15">
@@ -140,14 +140,14 @@ exports[`RS-C4 key-screen snapshots > Daily cash (open shift) 1`] = `
 <span class="lims-stat-value">No variance</span>
 </div>
 </div>
-<section class="lims-chart-card" aria-labelledby="_r_sc_">
+<section class="lims-chart-card" aria-labelledby="_r_5_">
 <header class="lims-chart-card-header">
-<h2 id="_r_sc_" class="lims-chart-card-title">Net by payment method</h2>
+<h2 id="_r_5_" class="lims-chart-card-title">Net by payment method</h2>
 </header>
 <div class="lims-chart-frame">
 <figure class="lims-chart">
-<figcaption id="_r_sd_-t" class="lims-chart-title">Net by payment method</figcaption>
-<svg role="img" aria-labelledby="_r_sd_-t" viewBox="0 0 600 240" width="100%" height="240" class="lims-chart-svg">
+<figcaption id="_r_6_-t" class="lims-chart-title">Net by payment method</figcaption>
+<svg role="img" aria-labelledby="_r_6_-t" viewBox="0 0 600 240" width="100%" height="240" class="lims-chart-svg">
 <line class="lims-chart-axis" x1="56" y1="204" x2="588" y2="204">
 </line>
 <text class="lims-chart-tick" x="52" y="12" text-anchor="end">Rs. 3,277.00</text>
@@ -185,13 +185,40 @@ exports[`RS-C4 key-screen snapshots > Daily cash (open shift) 1`] = `
 </div>
 </section>
 <section aria-label="My shift">
-<h2>My shift</h2>
-<ul>
-<li>Cash: NPR 100.00</li>
-</ul>
+<div class="lims-card">
+<div class="lims-card-head">
+<h2 class="lims-card-title">My shift</h2>
+</div>
+<div class="lims-data-table">
+<div class="lims-table-scroll">
+<template>
+</template>
+<span data-focus-scope-start="true" hidden="">
+</span>
+<table class="lims-table lims-table-compact lims-table-sticky" data-rac="" aria-label="Expected by method" id="ID" role="grid" tabindex="0" aria-describedby="" data-collection="aria-id">
+<thead role="rowgroup" class="aria-id" data-rac="">
+<tr role="row">
+<th tabindex="-1" data-collection="aria-id" data-key="method" id="ID" role="columnheader" aria-colindex="1" data-aria-id="true" class="lims-col lims-align-start" data-rac="">Method</th>
+<th tabindex="-1" data-collection="aria-id" data-key="expected" id="ID" role="columnheader" aria-colindex="2" data-aria-id="true" class="lims-col lims-align-end" data-rac="">Expected</th>
+</tr>
+</thead>
+<tbody class="aria-id" data-rac="" role="rowgroup">
+<tr data-row-id="cash" data-row-index="0" class="lims-row" style="--table-row-level: 1;" data-rac="" role="row" tabindex="-1" data-collection="aria-id" data-key="cash" id="ID" aria-labelledby="ID" data-level="1">
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="rowheader" data-column-index="0" data-level="1">Cash</td>
+<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="1" data-level="1">NPR 100.00</td>
+</tr>
+</tbody>
+</table>
+<span data-focus-scope-end="true" hidden="">
+</span>
+</div>
+<div role="status" class="lims-visually-hidden">
+</div>
+</div>
 <button class="lims-btn lims-btn-primary lims-btn-md" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID">
 <span class="lims-btn-label">Close shift</span>
 </button>
+</div>
 </section>
 <div class="lims-data-table">
 <div class="lims-table-scroll">
@@ -243,7 +270,10 @@ exports[`RS-C4 key-screen snapshots > Daily cash (open shift) 1`] = `
 <div role="status" class="lims-visually-hidden">
 </div>
 </div>
-<h2>Sessions</h2>
+<div class="lims-card">
+<div class="lims-card-head">
+<h2 class="lims-card-title">Sessions</h2>
+</div>
 <div class="lims-data-table">
 <div class="lims-table-scroll">
 <template>
@@ -267,7 +297,7 @@ exports[`RS-C4 key-screen snapshots > Daily cash (open shift) 1`] = `
 <td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="1" data-level="1">
 <time class="lims-date-text" datetime="2026-11-07T04:00:00.000Z">07/11/2026 09:45 AM</time>
 </td>
-<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="2" data-level="1">Open</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="2" data-level="1">Open </td>
 <td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="3" data-level="1">NPR 100.00</td>
 <td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="4" data-level="1">—</td>
 <td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="5" data-level="1">No variance</td>
@@ -278,6 +308,7 @@ exports[`RS-C4 key-screen snapshots > Daily cash (open shift) 1`] = `
 </span>
 </div>
 <div role="status" class="lims-visually-hidden">
+</div>
 </div>
 </div>
 </section>

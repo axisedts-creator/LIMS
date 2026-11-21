@@ -1,0 +1,1 @@
+pnpm --dir apps/web run build:nav && pnpm --dir apps/web exec vitest run -c src/core/__tests__/vitest.uiguard1.config.ts --maxWorkers=1 && pnpm --dir apps/web exec vitest run -c src/features/admin/__tests__/vitest.rs-c2.config.ts --maxWorkers=1 && pnpm --dir apps/web exec vitest run -c src/features/admin/__tests__/vitest.t20.config.ts --maxWorkers=1

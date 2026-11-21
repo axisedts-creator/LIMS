@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Banner } from '@lims/ui/components/Banner';
 import { Button } from '@lims/ui/components/Button';
 import { Dialog } from '@lims/ui/components/Dialog';
+import { PageHeader } from '@lims/ui/components/PageHeader';
 import { useToast } from '@lims/ui/components/Toast';
 import { createAuditExport } from '../actions';
 import { Grid, Time } from '../Grid';
@@ -30,13 +31,12 @@ export function ExportsScreen({ exports, me, defaultRange }: { exports: AuditExp
   }, [pending, router]);
   return (
     <main className="lims-page">
-      <header className="lims-page-header">
-        <h1>Exports</h1>
-        <Button variant="primary" onPress={() => setOpen(true)}>New export</Button>
-      </header>
-      {exports.length ? (
+      {/* T0D-UIGUARD-1-ADMIN (LD-436 worklist mock, LD-439): PageHeader title row; an empty list keeps its header row */}
+      <PageHeader title="Exports" helpKey="admin.exports" caption="Audit, access and sign-in exports (CSV)"
+        actions={<Button variant="primary" onPress={() => setOpen(true)}>New export</Button>} />
         <Grid
           label="Exports"
+          empty="No exports yet."
           columns={['Created', 'Requested by', 'Source', 'Range', 'Status', 'Rows', 'Expires', 'Downloads left', 'File']}
           rows={exports.map((e) => ({
             key: e.export_id,
@@ -55,7 +55,6 @@ export function ExportsScreen({ exports, me, defaultRange }: { exports: AuditExp
             ],
           }))}
         />
-      ) : <p>No exports yet.</p>}
       {open ? <NewExport defaultRange={defaultRange} onClose={() => setOpen(false)} onCreated={() => { setOpen(false); router.refresh(); }} /> : null}
     </main>
   );

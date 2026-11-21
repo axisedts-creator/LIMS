@@ -3,6 +3,7 @@ import 'server-only';
 import { notFound } from 'next/navigation';
 import { ApiError } from '@/core/api/server-fetch';
 import { getShellSession } from '@/core/session/server';
+import { loadOr } from '@/core/shell/NotAvailable';
 import { UUID_RE, getEnquiry } from '../enquiries.server';
 import { EnquiryThread } from '../EnquiryThread';
 
@@ -12,7 +13,8 @@ export default async function EnquiryThreadPage({ params }: { params: Promise<{ 
   const { enquiry_id } = await params;
   if (!UUID_RE.test(enquiry_id)) notFound();
   try {
-    return <EnquiryThread enquiry={await getEnquiry(enquiry_id)} permissions={permissions} />;
+    // T0D-UIGUARD-1-ENGAGEMENT (LD-353 rule 4, LD-436): 501 pending -> NotAvailable, 5xx -> ErrorState in the page (title kept); 4xx still throw.
+    return await loadOr('Enquiry', undefined, async () => <EnquiryThread enquiry={await getEnquiry(enquiry_id)} permissions={permissions} />);
   } catch (e) {
     if (e instanceof ApiError && (e.status === 404 || e.status === 400)) notFound();
     throw e;

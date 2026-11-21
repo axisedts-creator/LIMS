@@ -30,7 +30,8 @@ export function InvoiceDocument({ document: d, plain = false }: { document: Invo
           {b.phones?.length ? <p>{b.phones.join(', ')}</p> : null}
         </header>
       ) : null}
-      <h2>{title}</h2>
+      {/* T0D-UIGUARD-1-BILLING (LD-436 R7, LD-439): document headings use the kit card title style with heading semantics, not a raw h2/h3. */}
+      <p role="heading" aria-level={2} className="lims-card-title">{title}</p>
       {showCopy ? <p className="lims-copy-mark"><strong>{d.copy_mark}</strong></p> : null}
       {d.cancelled_banner ? <p className="lims-cancelled-banner"><strong>{d.cancelled_banner}</strong></p> : null}
       <dl className="lims-invoice-meta">
@@ -64,7 +65,7 @@ export function InvoiceDocument({ document: d, plain = false }: { document: Invo
       <p>Amount in words: {amountInWords(d.totals.net.amount_paisa)}</p>
       {d.payment_block ? (
         <section aria-label="Payment summary">
-          <h3>Payment summary (not part of the invoice)</h3>
+          <p role="heading" aria-level={3} className="lims-card-title">Payment summary (not part of the invoice)</p>
           <dl>
             <dt>Paid</dt><dd>{npr(d.payment_block.paid)}</dd>
             <dt>Balance due</dt><dd>{npr(d.payment_block.balance_due)}</dd>

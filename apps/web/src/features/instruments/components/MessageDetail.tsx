@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react';
 import { Banner } from '@lims/ui/components/Banner';
 import { Button } from '@lims/ui/components/Button';
+import { Card } from '@lims/ui/components/Card';
 import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
 import { DateText } from '@lims/ui/components/DateText';
 import { DescriptionList } from '@lims/ui/components/DescriptionList';
@@ -125,8 +126,9 @@ export function MessageDetail({ message: m, permissions }: { message: MessageDet
       />
 
       {att ? (
+        // T0D-UIGUARD-1-INSTRUMENTS (LD-436 R7, LD-439 a): kit Card title rows replace the raw h2.
         <section aria-label="Attachment">
-          <h2>Attachment</h2>
+          <Card title="Attachment">
           <DescriptionList
             columns={3}
             items={[
@@ -138,11 +140,12 @@ export function MessageDetail({ message: m, permissions }: { message: MessageDet
           />
           {/* AC-12.6: a same-origin link to the streaming route — the browser downloads through the BFF; no Storage URL ever reaches the page. Clean files only. */}
           {att.scan_state === 'clean' ? <a className="lims-link" href={`/instruments/messages/${m.id}/attachment`}>Open</a> : null}
+          </Card>
         </section>
       ) : null}
 
       <section aria-label="Runs">
-        <h2>Runs</h2>
+        <Card title="Runs">
         <Timeline
           items={m.runs.map((r) => ({
             at: r.created_at,
@@ -150,10 +153,11 @@ export function MessageDetail({ message: m, permissions }: { message: MessageDet
             actor: r.actor_display ?? r.actor_type,
           }))}
         />
+        </Card>
       </section>
 
       <section aria-label="Records">
-        <h2>Records</h2>
+        <Card title="Records">
         {m.records_expired && !preview ? (
           <>
             <Banner tone="info" title={EXPIRED} />
@@ -166,6 +170,7 @@ export function MessageDetail({ message: m, permissions }: { message: MessageDet
           </>
         ) : null}
         <DataTable caption="Records" columns={columns} rows={records} getRowId={(r) => r.id} emptyState={{ title: 'This message has no result records.' }} />
+        </Card>
       </section>
 
       {raw ? <RawMessageDrawer messageId={m.id} onClose={() => setRaw(false)} /> : null}

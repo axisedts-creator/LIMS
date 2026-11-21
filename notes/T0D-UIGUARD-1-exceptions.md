@@ -131,7 +131,7 @@ Other groups = LD-434 legacy baseline (CR-C0-0D-UIGUARD-1 option A); the heading
 - /offline rule 1: legacy baseline LD-434, fix in T0D-UIGUARD-1-OFFLINE: rule 1 broken in the page itself
 - /offline rule 4: legacy baseline LD-434, fix in T0D-UIGUARD-1-OFFLINE: rule 4 broken in the page itself
 
-## T0D-UIGUARD-1-PARTNERS (16 entries, 16 routes)
+## T0D-UIGUARD-1-PARTNERS (18 entries, 18 routes)
 
 - /billing/audit-trail rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-PARTNERS: rule 2 broken in PartysetCommon.tsx, ManifestInbox.tsx, PenaltyEvents.tsx
 - /billing/cbms rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-PARTNERS: rule 2 broken in PartysetCommon.tsx, ManifestInbox.tsx, PenaltyEvents.tsx
@@ -149,6 +149,8 @@ Other groups = LD-434 legacy baseline (CR-C0-0D-UIGUARD-1 option A); the heading
 - /partners/onboarding rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-PARTNERS: rule 2 broken in PartysetCommon.tsx, ManifestInbox.tsx, PenaltyEvents.tsx
 - /partners/penalties rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-PARTNERS: rule 2 broken in PartysetCommon.tsx, ManifestInbox.tsx, PenaltyEvents.tsx
 - /partners/penalty-events rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-PARTNERS: rule 2 broken in PartysetCommon.tsx, ManifestInbox.tsx, PenaltyEvents.tsx
+- /partners/tickets rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-PARTNERS: rule 2 broken in TicketInbox.tsx (breach came from T0D-MSGDESK-1 after UIGUARD-1)
+- /partners/tickets/[ticket_id] rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-PARTNERS: rule 2 broken in TicketInbox.tsx (breach came from T0D-MSGDESK-1 after UIGUARD-1)
 
 ## T0D-UIGUARD-1-QUALITY (7 entries, 7 routes)
 

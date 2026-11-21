@@ -79,11 +79,6 @@ Other groups = LD-434 legacy baseline (CR-C0-0D-UIGUARD-1 option A); the heading
 - /lab/settings rule 5: legacy baseline LD-434, fix in T0D-UIGUARD-1-LAB: rule 5 broken in ResultPanels.tsx, DeltaRulesTab.tsx, QcHoldsTab.tsx
 - /lab/orders/[order_id]/results rule 6: legacy baseline LD-434, fix in T0D-UIGUARD-1-LAB: rule 6 broken in ResultPanels.tsx
 
-## T0D-UIGUARD-1-OFFLINE (2 entries, 1 routes)
-
-- /offline rule 1: legacy baseline LD-434, fix in T0D-UIGUARD-1-OFFLINE: rule 1 broken in the page itself
-- /offline rule 4: legacy baseline LD-434, fix in T0D-UIGUARD-1-OFFLINE: rule 4 broken in the page itself
-
 ## T0D-UIGUARD-1-PARTNERS (18 entries, 18 routes)
 
 - /billing/audit-trail rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-PARTNERS: rule 2 broken in PartysetCommon.tsx, ManifestInbox.tsx, PenaltyEvents.tsx
@@ -185,10 +180,6 @@ Other groups = LD-434 legacy baseline (CR-C0-0D-UIGUARD-1 option A); the heading
 - /micro/instrument-records rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-MICRO: rule 7 broken in MicroForbidden.tsx
 - /micro/settings rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-MICRO: rule 7 broken in MicroForbidden.tsx, DictionariesTab.tsx, MappingsTab.tsx, PanelsTab.tsx, ProtocolsTab.tsx
 - /micro/worklist rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-MICRO: rule 7 broken in MicroForbidden.tsx, ChooseCultureDialog.tsx
-
-## T0D-UIGUARD-1-OFFLINE (rule 7: 1 entries)
-
-- /offline rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-OFFLINE: rule 7 broken in OfflinePanel.tsx, OfflineShell.tsx
 
 ## T0D-UIGUARD-1-PARTNERS (rule 7: 2 entries)
 

@@ -63,15 +63,6 @@ export const EXCEPTIONS: GuardException[] = [
     '/lab/verification',
     '/lab/worklists/[department_id]',
   ]),
-  ...legacy('PARTNERS', 2, 'PartysetCommon.tsx, ManifestInbox.tsx, PenaltyEvents.tsx', [
-    '/partners/manifests',
-    '/partners/penalty-events',
-  ]),
-  // LD-441: TicketInbox.tsx hand builds its filter row (breach arrived with T0D-MSGDESK-1, after UIGUARD-1).
-  ...legacy('PARTNERS', 2, 'TicketInbox.tsx', [
-    '/partners/tickets',
-    '/partners/tickets/[ticket_id]',
-  ]),
   ...legacy('QUALITY', 2, 'DecisionsView.tsx, LjView.tsx', [
     '/quality',
     '/quality/autoverify/decisions',
@@ -188,10 +179,6 @@ export const EXCEPTIONS: GuardException[] = [
     ['/micro/instrument-records', 'MicroForbidden.tsx'],
     ['/micro/settings', 'MicroForbidden.tsx, DictionariesTab.tsx, MappingsTab.tsx, PanelsTab.tsx, ProtocolsTab.tsx'],
     ['/micro/worklist', 'MicroForbidden.tsx, ChooseCultureDialog.tsx'],
-  ]),
-  ...legacy7('PARTNERS', [
-    ['/partners/sales/representatives', 'SalesRepresentatives.tsx'],
-    ['/partners/tickets/[ticket_id]', 'TicketThread.tsx'],
   ]),
   ...legacy7('PAYMENTS', [
     ['/payments/refunds', 'RefundsList.tsx, consoleParts.tsx'],

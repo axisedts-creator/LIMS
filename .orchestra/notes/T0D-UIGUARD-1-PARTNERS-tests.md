@@ -1,0 +1,7 @@
+# T0D-UIGUARD-1-PARTNERS tests (tester)
+Run: `.orchestra/notes/T0D-UIGUARD-1-PARTNERS-verify.cmd` (build:nav, the uiguard1 guard config, then the partners source config).
+1. Registry (LD-441 step 1): deleted all PARTNERS entries from `apps/web/src/core/__tests__/uiguard1.exceptions.ts`: rule 2 (PartysetCommon/ManifestInbox/PenaltyEvents), rule 2 (TicketInbox), rule 7 (SalesRepresentatives, TicketThread). Guard red now: rule 2 on ManifestInbox, PenaltyEvents, TicketInbox (/partners/manifests, penalty-events, tickets, tickets/[ticket_id]); rule 7 on SalesRepresentatives (raw ul), TicketThread (raw h2, ol).
+2. WRITER: delete the matching PARTNERS lines in `notes/T0D-UIGUARD-1-exceptions.md` (tester may not edit notes/) and never re-add a registry entry.
+3. New `features/partners/__tests__/uiguard1-partners.source.test.ts` (+ `vitest.uiguard1-partners.config.ts`): FilterBar import+render and no hand built row in PartysetCommon, ManifestInbox, PenaltyEvents, TicketInbox; rule 7 scan of every partners component file. Red now: 5 tests; 20 green regressions.
+4. PartysetCommon already uses FilterBar (BILLING lane). Existing partners t16/partyset1/sales1/uilist3/uiset1/msgdesk1 tests stay the behaviour pin; only tests that pinned old markup may change, by the writer.
+Not tested: pixel match to the Worklist mock (no browser), rs-cN snapshots (writer, LD-440), ownership of files listed by T0D-SALES-1 / T0D-PARTYSET-1 / T0D-MSGDESK-1 (writer checks their status before touching).

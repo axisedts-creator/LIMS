@@ -1,0 +1,4 @@
+# T0D-UIGUARD-1-ANATOMIC dispute (writer)
+Test: apps/web/src/features/anatomic/__tests__/t19.worklist.test.tsx:167-173 ("%s: ... with [Reset filters]", 3 cases) and :164.
+Why wrong: review item 3 and the worklist mock (LD-436-look.md line 24: "FilterBar (search, two selects, Clear filters)") require the FilterBar label "Clear filters"; the writer applied `resetLabel="Clear filters"` (WorklistScreen.tsx, BatchesScreen.tsx). The test pins the old kit default label `/^reset filters$/i`, so it now fails (3 failed). Line 164 (`queryByRole(... /reset filters/i)).toBeNull()`) passes vacuously with the new label.
+Fix (TESTER, LD-441 ownership): change both regexes to `/^clear filters$/i` (and the test title); keep the click and the URL assertion unchanged. No behaviour change: same button, same onReset.

@@ -1,17 +1,16 @@
 'use client';
 // Shared pieces of the SCR-02…05 master screens (04-UI-UX §3/§4): list table, toolbar (search + status), list shortcuts
 // (`/`, `n`), and the editor dialog (Ctrl+S, one Idempotency-Key per open, 409 handling). Manage affordances are a UI hint; the API enforces.
-import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { Badge } from '@lims/ui/components/Badge';
 import { Banner } from '@lims/ui/components/Banner';
 import { Button } from '@lims/ui/components/Button';
 import { EmptyRow, PlaceholderRows } from '@lims/ui/components/DataTable';
-import { Drawer } from '@lims/ui/components/Drawer';
+import { Drawer, DrawerSection } from '@lims/ui/components/Drawer';
 import { EmptyState } from '@lims/ui/components/EmptyState';
+import { FilterBar, type FilterDef, type FilterValue } from '@lims/ui/components/FilterBar';
 import { Form } from '@lims/ui/components/Form';
-import { Select } from '@lims/ui/components/Select';
-import { TextField } from '@lims/ui/components/TextField';
 import { useToast } from '@lims/ui/components/Toast';
 import { VisuallyHidden } from '@lims/ui/components/VisuallyHidden';
 import type { ActionResult } from '../server/types';
@@ -56,33 +55,36 @@ export function useListShortcuts(search: { current: HTMLElement | null }, onNew:
 
 export type StatusFilter = 'all' | 'active' | 'inactive';
 
+/** A further select of the one filter row: its first option is the "all" value (the default and the reset value). */
+export type ExtraFilter = { id: string; label: string; options: readonly { value: string; label: string }[] };
+const STATUS_OPTIONS = [{ value: 'all', label: 'All' }, { value: 'active', label: 'Active' }, { value: 'inactive', label: 'Inactive' }] as const;
+
 /** Search (code/name, client-side over the loaded ≤ 200 rows [CONV]) + Status filter. */
-// T0D-UILIST-3: `extra` = further filter controls of the screen, drawn in the same one-row bar (LD-353 template 1).
-export function useListFilter<R extends { is_active: boolean }>(rows: readonly R[], text: (r: R) => string, extra?: ReactNode, code: (r: R) => string = (r) => (r as { code?: string }).code ?? '') {
-  const [q, setQ] = useState('');
-  const [status, setStatus] = useState<StatusFilter>('all');
+// T0D-UILIST-3: `extra` = further filters of the screen, drawn in the same one-row bar (LD-353 template 1).
+// T0D-UIGUARD-1-CATALOG (LD-353 rule 2, LD-436 worklist mock): the row is the kit FilterBar (search, selects, "Clear filters").
+// `values[id]` is the chosen value of each extra filter; the caller filters its rows by it.
+export function useListFilter<R extends { is_active: boolean }>(rows: readonly R[], text: (r: R) => string, extra: readonly ExtraFilter[] = [], code: (r: R) => string = (r) => (r as { code?: string }).code ?? '') {
+  const initial = (): FilterValue => Object.fromEntries([['status', 'all'], ...extra.map((f) => [f.id, f.options[0]?.value])]);
+  const [value, setValue] = useState<FilterValue>(initial);
   const search = useRef<HTMLDivElement>(null);
-  const needle = q.trim().toLowerCase();
+  const str = (id: string) => (typeof value[id] === 'string' ? (value[id] as string) : '');
+  const status = (str('status') || 'all') as StatusFilter;
+  const needle = str('q').trim().toLowerCase();
   const shown = rows.filter(
     (r) => (status === 'all' || r.is_active === (status === 'active')) && (!needle || code(r).toLowerCase().includes(needle) || text(r).toLowerCase().includes(needle)),
   );
+  const filters: FilterDef[] = [
+    { id: 'q', label: 'Search', kind: 'text', maxLength: 100 },
+    { id: 'status', label: 'Status', kind: 'select', options: STATUS_OPTIONS },
+    ...extra.map((f): FilterDef => ({ id: f.id, label: f.label, kind: 'select', options: f.options })),
+  ];
+  const values: Record<string, string> = Object.fromEntries(extra.map((f) => [f.id, str(f.id) || (f.options[0]?.value ?? '')]));
   const toolbar = (
-    <div className="lims-filter-bar">
-      <div ref={search}>
-        <TextField label="Search" name="q" maxLength={100} value={q} onChange={setQ} />
-      </div>
-      {/* T0D-UILIST-3, LD-353 rule 2: a select keeps the row's control height (a radio group is taller) */}
-      <Select<StatusFilter>
-        label="Status"
-        name="status"
-        value={status}
-        onChange={setStatus}
-        options={[{ value: 'all', label: 'All' }, { value: 'active', label: 'Active' }, { value: 'inactive', label: 'Inactive' }]}
-      />
-      {extra}
+    <div ref={search}>
+      <FilterBar filters={filters} value={value} onChange={setValue} onReset={() => setValue(initial())} resetLabel="Clear filters" />
     </div>
   );
-  return { shown, toolbar, search };
+  return { shown, toolbar, search, values };
 }
 
 export interface Col<R> { header: string; cell: (r: R) => ReactNode }
@@ -256,17 +258,9 @@ export function SaveForm({ savedText, onDone, check, save, onSaved, onDuplicate,
  * is a plain "Save" (the chunk tests find it by that exact name) and it submits the surrounding form, so Ctrl+S and the button
  * share one path. `action` is the Save button.
  */
+// T0D-UIGUARD-1-CATALOG (LD-436 R7): the kit DrawerSection draws the section heading; `action` (additive kit prop) carries the submit Save.
 export function FormSection({ title, action, children }: { title: string; action: ReactNode; children: ReactNode }) {
-  const id = useId();
-  return (
-    <section className="lims-drawer-section" aria-labelledby={id}>
-      <div className="lims-drawer-section-header">
-        <h3 id={id} className="lims-drawer-section-title">{title}</h3>
-        {action}
-      </div>
-      {children}
-    </section>
-  );
+  return <DrawerSection title={title} action={action}>{children}</DrawerSection>;
 }
 
 /** Editor drawer (LD-140, 10-DESIGN-SYSTEM §4 Masters): SaveForm in a kit Drawer, one section with its own Save; Esc / close = onClose. */

@@ -5,6 +5,7 @@
 import { useEffect, useState } from 'react';
 import { Button } from '@lims/ui/components/Button';
 import { Card } from '@lims/ui/components/Card';
+import { Stack } from '@lims/ui/components/Stack';
 import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
 import { getVersionAction, listVersionsAction } from '../../server/actions.report';
 import type { Addendum, VersionFull, VersionSummary } from '../../server/report.types';
@@ -27,8 +28,7 @@ function Snapshot({ v }: { v: VersionFull }) {
       <Block title="Microscopy" text={v.microscopy_text} />
       <Block title="Diagnosis" text={v.impression_text} />
       <Block title="Comment" text={v.comment_text} />
-      <section>
-        <h3 className="lims-card-title">Synoptic</h3>
+      <Card title="Synoptic">
         {v.synoptic.length === 0 ? <p className="lims-description">None.</p> : null}
         {v.synoptic.map((s, i) => (
           <div key={`${s.template_key}-${i}`}>
@@ -36,31 +36,27 @@ function Snapshot({ v }: { v: VersionFull }) {
             {s.sections.map((x, j) => (
               <div key={j}>
                 <p>{x.heading}</p>
-                <ul>{x.items.map((it, k) => <li key={k}>{it.label}: {it.value}</li>)}</ul>
+                <Stack gap={1}>{x.items.map((it, k) => <p key={k}>{it.label}: {it.value}</p>)}</Stack>
               </div>
             ))}
           </div>
         ))}
-      </section>
-      <section>
-        <h3 className="lims-card-title">Ancillary</h3>
+      </Card>
+      <Card title="Ancillary">
         {v.ancillary.length === 0 ? <p className="lims-description">None.</p> : null}
-        <ul>{v.ancillary.map((a, i) => <li key={i}><strong>{[a.stain_display, a.block_label].filter(Boolean).join(' on ')}</strong>: <span className="lims-report-text">{a.result_text}</span></li>)}</ul>
-      </section>
-      <section>
-        <h3 className="lims-card-title">Slides</h3>
-        <ul>{v.slides.map((s, i) => <li key={i}>{s.label}{s.stain_display ? ` — ${s.stain_display}` : ''}</li>)}</ul>
-      </section>
-      <section>
-        <h3 className="lims-card-title">Images</h3>
+        <Stack gap={1}>{v.ancillary.map((a, i) => <p key={i}><strong>{[a.stain_display, a.block_label].filter(Boolean).join(' on ')}</strong>: <span className="lims-report-text">{a.result_text}</span></p>)}</Stack>
+      </Card>
+      <Card title="Slides">
+        <Stack gap={1}>{v.slides.map((s, i) => <p key={i}>{s.label}{s.stain_display ? ` — ${s.stain_display}` : ''}</p>)}</Stack>
+      </Card>
+      <Card title="Images">
         {v.images.length === 0 ? <p className="lims-description">None.</p> : null}
-        <ol>{v.images.map((i, n) => <li key={n}>{i.caption || `Image ${n + 1}`}</li>)}</ol>
-      </section>
-      <section>
-        <h3 className="lims-card-title">Codes</h3>
+        <Stack gap={1}>{v.images.map((i, n) => <p key={n}>{i.caption || `Image ${n + 1}`}</p>)}</Stack>
+      </Card>
+      <Card title="Codes">
         {v.diagnosis_codes.length === 0 ? <p className="lims-description">None.</p> : null}
-        <ul>{v.diagnosis_codes.map((c) => <li key={c.code}>{c.code} — {c.display}</li>)}</ul>
-      </section>
+        <Stack gap={1}>{v.diagnosis_codes.map((c) => <p key={c.code}>{c.code} — {c.display}</p>)}</Stack>
+      </Card>
     </Card>
   );
 }
@@ -68,11 +64,12 @@ function Snapshot({ v }: { v: VersionFull }) {
 function AddendaList({ addenda, canWork, onEdit }: { addenda: readonly Addendum[]; canWork: boolean; onEdit: (a: Addendum) => void }) {
   if (addenda.length === 0) return null;
   return (
-    <section aria-labelledby="report-addenda">
-      <h2 id="report-addenda" className="lims-card-title">Addenda</h2>
-      <ul>
+    // LD-439 (a), LD-436 rule 7: Card title row and a Stack of addendum Cards instead of raw h2 / ul.
+    <section aria-label="Addenda">
+      <Card title="Addenda">
+      <Stack gap={2}>
         {addenda.map((a) => (
-          <li key={a.id}>
+          <div key={a.id}>
             <Card title={ADDENDUM_KINDS.find((k) => k.value === a.kind)?.label ?? a.kind}>
               <Chip size="sm" tone={a.status === 'signed' ? 'success' : 'neutral'} label={a.status === 'signed' ? 'Signed' : 'Draft'} />
               <p className="lims-report-text">{a.text}</p>
@@ -82,9 +79,10 @@ function AddendaList({ addenda, canWork, onEdit }: { addenda: readonly Addendum[
                 <Button variant="ghost" onPress={() => onEdit(a)}>Edit addendum</Button>
               ) : null}
             </Card>
-          </li>
+          </div>
         ))}
-      </ul>
+      </Stack>
+      </Card>
     </section>
   );
 }
@@ -134,8 +132,8 @@ export function VersionViewer({ detail, canWork, canSignOut, reasonDisplay, onCh
         {can('createAnatomicAddendum') ? <Button onPress={() => setDrawer({})}>Add addendum</Button> : null}
       </div>
       {snapshot ? <Snapshot v={snapshot} /> : <p role="status" className="lims-description">Loading version…</p>}
-      <section aria-labelledby="report-versions">
-        <h2 id="report-versions" className="lims-card-title">Versions</h2>
+      <section aria-label="Versions">
+        <Card title="Versions">
         <DataTable<VersionSummary>
           caption="Versions"
           columns={columns}
@@ -144,6 +142,7 @@ export function VersionViewer({ detail, canWork, canSignOut, reasonDisplay, onCh
           emptyState={{ title: 'No versions yet.' }}
           selection={{ mode: 'single', selectedIds: new Set([String(shown)]), onChange: (ids) => { const n = Number([...ids][0]); if (n >= 1) setShown(n); } }}
         />
+        </Card>
       </section>
       <AddendaList addenda={detail.addenda ?? []} canWork={canWork} onEdit={(a) => setDrawer({ addendum: a })} />
       {drawer ? <AddendumDrawer key={drawer.addendum?.id ?? 'new'} detail={detail} addendum={drawer.addendum} canSign={canSignOut} isOpen onClose={() => setDrawer(undefined)} onFail={onFail} onMfa={onMfa} /> : null}

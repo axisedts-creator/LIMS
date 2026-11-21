@@ -7,12 +7,14 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Banner } from '@lims/ui/components/Banner';
 import { Button } from '@lims/ui/components/Button';
+import { Card } from '@lims/ui/components/Card';
 import { ConfirmDialog } from '@lims/ui/components/ConfirmDialog';
 import { Dialog } from '@lims/ui/components/Dialog';
 import { DescriptionList } from '@lims/ui/components/DescriptionList';
 import { IdText } from '@lims/ui/components/IdText';
 import { Menu } from '@lims/ui/components/Menu';
 import { PageHeader } from '@lims/ui/components/PageHeader';
+import { Stack } from '@lims/ui/components/Stack';
 import { Tabs } from '@lims/ui/components/Tabs';
 import { Timeline } from '@lims/ui/components/Timeline';
 import { useToast } from '@lims/ui/components/Toast';
@@ -85,14 +87,15 @@ function Details({ detail }: { detail: CaseDetail }) {
         {
           term: 'Tests',
           value: (
-            <ul>
+            // LD-439 (a), LD-436 rule 7: a Stack of lines, not a raw ul.
+            <Stack gap={1}>
               {detail.items.map((i) => (
-                <li key={i.case_item_id}>
+                <div key={i.case_item_id}>
                   {i.test_name}
                   {i.lab_status ? <> <Chip size="sm" tone={LAB_TONE[i.lab_status] ?? 'neutral'} label={`Lab: ${i.lab_status}`} /></> : null}
-                </li>
+                </div>
               ))}
-            </ul>
+            </Stack>
           ),
         },
         { term: 'Current version', value: detail.current_version_no > 0 ? String(detail.current_version_no) : 'None yet' },
@@ -104,15 +107,18 @@ function Details({ detail }: { detail: CaseDetail }) {
 function Overview({ detail }: { detail: CaseDetail }) {
   return (
     <>
+      {/* LD-439 (a), LD-436 rule 7: Card title rows instead of raw h2. */}
       {detail.clinical_history_text ? (
-        <section aria-labelledby="anatomic-history">
-          <h2 id="anatomic-history" className="lims-card-title">Clinical history</h2>
-          <p>{detail.clinical_history_text}</p>
+        <section aria-label="Clinical history">
+          <Card title="Clinical history">
+            <p>{detail.clinical_history_text}</p>
+          </Card>
         </section>
       ) : null}
-      <section aria-labelledby="anatomic-timeline">
-        <h2 id="anatomic-timeline" className="lims-card-title">Status history</h2>
-        <Timeline items={detail.transitions.map((t) => ({ at: t.at, label: STATUS[t.to_status]?.[1] ?? t.to_status, actor: t.by_display_name }))} />
+      <section aria-label="Status history">
+        <Card title="Status history">
+          <Timeline items={detail.transitions.map((t) => ({ at: t.at, label: STATUS[t.to_status]?.[1] ?? t.to_status, actor: t.by_display_name }))} />
+        </Card>
       </section>
     </>
   );

@@ -1,9 +1,11 @@
+import type { ReactNode } from 'react';
 import { formatDateTime } from '../_shared/time';
 import { msg, type Tone } from '../_shared/messages';
 
 export interface TimelineProps {
   /** Shown in the order given (callers sort). */
-  items: readonly { at: string; label: string; actor?: string; tone?: Tone }[];
+  /** T0D-UIGUARD-1-REPORTING (LD-441 additive): `extra` is drawn after the label and actor in the same row (a StatusChip, a Download link). */
+  items: readonly { at: string; label: string; actor?: string; tone?: Tone; extra?: ReactNode }[];
   /** T0D-UIGUARD-1-INVENTORY (LD-436 R7, LD-441 additive): a heading drawn above the list, in one block with it (e.g. a console "History"). */
   title?: string;
   /** T0D-UIGUARD-1-INVENTORY: the label leads each row, then the time (a console History reads "Occurred: <time>"). */
@@ -34,6 +36,7 @@ export function Timeline({ items, title, labelFirst, 'aria-label': ariaLabel, ..
                 <span className="lims-timeline-actor">{it.actor}</span>
               </>
             ) : null}
+            {it.extra != null ? <>{' '}{it.extra}</> : null}
           </li>
         );
       })}

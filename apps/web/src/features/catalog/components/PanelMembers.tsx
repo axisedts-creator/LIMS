@@ -4,6 +4,7 @@
 // added/removed; order = row order.
 import { useEffect, useState } from 'react';
 import { Banner } from '@lims/ui/components/Banner';
+import { Card } from '@lims/ui/components/Card';
 import { Button } from '@lims/ui/components/Button';
 import { Combobox } from '@lims/ui/components/Combobox';
 import { VisuallyHidden } from '@lims/ui/components/VisuallyHidden';
@@ -113,8 +114,8 @@ export function ExpandedTests({ ids }: { ids: readonly string[] }) {
   }, [key]);
   const tests = new Map((state.data?.tests ?? []).map((t) => [t.id, t]));
   return (
-    <section aria-label="Expanded tests">
-      <h2 className="lims-section-title">Expanded tests</h2>
+    // T0D-UIGUARD-1-CATALOG (LD-436 R7): a kit Card region with its title row; the two lists keep list semantics by role (no raw ul).
+    <Card title="Expanded tests" region>
       {state.code ? (
         <div role="alert">
           <Banner tone="danger" title={PREVIEW_ERRORS[state.code] ?? 'The preview could not be loaded.'} />
@@ -123,18 +124,18 @@ export function ExpandedTests({ ids }: { ids: readonly string[] }) {
         <p>{key ? 'Loading…' : 'No members.'}</p>
       ) : (
         <>
-          <ul>
+          <div role="list" aria-label="Tests" className="lims-stack">
             {[...tests.values()].map((t) => (
-              <li key={t.id}>{`${t.code} — ${t.name}${t.is_active === false ? ' (inactive)' : ''}`}</li>
+              <div role="listitem" key={t.id}>{`${t.code} — ${t.name}${t.is_active === false ? ' (inactive)' : ''}`}</div>
             ))}
-          </ul>
-          <ul aria-label="Specimen groups">
+          </div>
+          <div role="list" aria-label="Specimen groups" className="lims-stack">
             {state.data.specimen_requirements.map((s) => (
-              <li key={`${s.specimen_type_code}/${s.container_code ?? ''}`}>{`Specimen ${s.specimen_type_code}${s.container_code ? ` · Container ${s.container_code}` : ''} — ${s.test_ids.length} ${s.test_ids.length === 1 ? 'test' : 'tests'}`}</li>
+              <div role="listitem" key={`${s.specimen_type_code}/${s.container_code ?? ''}`}>{`Specimen ${s.specimen_type_code}${s.container_code ? ` · Container ${s.container_code}` : ''} — ${s.test_ids.length} ${s.test_ids.length === 1 ? 'test' : 'tests'}`}</div>
             ))}
-          </ul>
+          </div>
         </>
       )}
-    </section>
+    </Card>
   );
 }

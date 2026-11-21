@@ -5,6 +5,7 @@
 import type { ReactNode } from 'react';
 import { Button } from '@lims/ui/components/Button';
 import { EmptyState } from '@lims/ui/components/EmptyState';
+import { PageHeader } from '@lims/ui/components/PageHeader';
 import type { TemplateStatus } from '../../server/config.types';
 import { Chip, failText, type Fail } from '../common';
 
@@ -42,9 +43,12 @@ export function TemplateStatusChip({ status }: { status: TemplateStatus }) {
 
 export function ConfigForbidden() {
   return (
-    <section className="lims-state" aria-labelledby="anatomic-config-forbidden">
-      <h1 id="anatomic-config-forbidden" className="lims-state-title">You don&apos;t have permission to change pathology setup</h1>
-      <p className="lims-state-body"><a className="lims-link" href="/">Back to home</a></p>
+    // LD-439 (a), LD-436 rule 7: PageHeader owns the h1; the state keeps the header row.
+    <section aria-label="No access">
+      <PageHeader title="You don't have permission to change pathology setup" helpKey="anatomic.config" />
+      <div className="lims-state">
+        <p className="lims-state-body"><a className="lims-link" href="/">Back to home</a></p>
+      </div>
     </section>
   );
 }

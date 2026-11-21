@@ -62,6 +62,7 @@ export function BatchesScreen({ batches, assays, canWork, status, assayCode, nex
         value={{ status: status ?? ALL, assay: assayCode ?? ALL }}
         onChange={(v) => go({ status: pick(typeof v['status'] === 'string' ? v['status'] : ALL), assay_code: pick(typeof v['assay'] === 'string' ? v['assay'] : ALL) })}
         onReset={() => go({})}
+        resetLabel="Clear filters"
       />
       {/* T0D-EMPTYTBL-2 (LD-310, LD-336): the table is always drawn; the empty message (and New batch with work rights) sit in its body. */}
       <DataTable

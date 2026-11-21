@@ -129,7 +129,8 @@ export function PopularView({ tests, permissions }: { tests: readonly PopularRow
     <section aria-label="Popular tests">
       {header('Popular tests')}
       {manage ? (
-        <div className="lims-filter-bar">
+        // T0D-UIGUARD-1-CATALOG: "Add popular test" is a form row (pick + Add), not a filter row
+        <div className="lims-inline catalog-gap-2">
           <Select label="Add popular test" name="add_popular" {...(pick ? { value: pick } : {})} onChange={setPick} options={others.map((x) => ({ value: x.id, label: `${x.name} (${x.code})` }))} />
           <Button isDisabled={!pick} onPress={() => { const r = others.find((x) => x.id === pick); if (r) void mark(r, true); }}>Add</Button>
         </div>

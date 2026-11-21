@@ -63,7 +63,8 @@ export function CriticalValueList({ items, status, nextCursor }: { items: readon
   const ack = sel?.first_confirmed_notification_at;
   const detail = sel ? (
     <>
-      <h2>{sel.analyte_code}</h2>
+      {/* T0D-UIGUARD-1-LAB (LD-436 rule 7): heading semantics without a raw h2 */}
+      <p role="heading" aria-level={2} className="lims-card-title">{sel.analyte_code}</p>
       <Facts items={[
         ['Direction', DIRECTION[sel.direction] ?? sel.direction],
         ['Status', STATUS[sel.status] ?? sel.status],

@@ -154,11 +154,12 @@ function Body({ batch, canWork }: { batch: BatchDetail; canWork: boolean }) {
         </>
       ) : null}
       {members.length === 0 ? <p className="lims-description">No samples in this batch yet.</p> : null}
-      <ol className="lims-plate" aria-label="Batch positions">
+      {/* LD-439 (a), LD-436 rule 7: the plate is a grid of position cells, not a raw ol. */}
+      <div className="lims-plate" role="group" aria-label="Batch positions">
         {positions.map((n) => {
           const m = byPosition.get(n);
           return (
-            <li key={n} data-position={n} className={chosen === n ? 'lims-plate-cell lims-plate-chosen' : 'lims-plate-cell'}>
+            <div key={n} data-position={n} className={chosen === n ? 'lims-plate-cell lims-plate-chosen' : 'lims-plate-cell'}>
               <Card>
                 <span className="lims-plate-pos">{n}</span>{' '}
                 {m ? (
@@ -170,10 +171,10 @@ function Body({ batch, canWork }: { batch: BatchDetail; canWork: boolean }) {
                   <Button variant={chosen === n ? 'secondary' : 'ghost'} size="sm" onPress={() => setChosen(chosen === n ? undefined : n)}>{`Use position ${n}`}</Button>
                 ) : null}
               </Card>
-            </li>
+            </div>
           );
         })}
-      </ol>
+      </div>
       <ConfirmDialog
         title="Remove from batch"
         tone="danger"

@@ -7,8 +7,10 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Banner } from '@lims/ui/components/Banner';
 import { Button } from '@lims/ui/components/Button';
+import { Card } from '@lims/ui/components/Card';
 import { DataTable } from '@lims/ui/components/DataTable';
 import { Drawer } from '@lims/ui/components/Drawer';
+import { Stack } from '@lims/ui/components/Stack';
 import { listAdequacyAction, markSlidesReadyAction } from '../../server/actions.material';
 import type { CaseDetail, CodedValue, Slide } from '../../server/types';
 import { useToast } from '@lims/ui/components/Toast';
@@ -81,8 +83,9 @@ export function BlocksSlidesTab({ detail, canWork, onFail, onMfa }: { detail: Ca
   const oneBlock = blockSel.size === 1 ? [...blockSel][0] : undefined;
   return (
     <>
-      <section aria-labelledby="blocks-title">
-        <h2 id="blocks-title" className="lims-card-title">Blocks</h2>
+      {/* LD-439 (a), LD-436 rule 7: Card title rows instead of raw h2; the skipped list is a Stack, not a raw ul. */}
+      <section aria-label="Blocks">
+        <Card title="Blocks">
         {canWork ? (
           <div role="toolbar" aria-label="Block actions">
             <Button onPress={() => setDialog({ kind: 'blocks' })}>Add blocks</Button>
@@ -106,10 +109,11 @@ export function BlocksSlidesTab({ detail, canWork, onFail, onMfa }: { detail: Ca
             { id: 'note', header: 'Note', cell: (b) => b.note ?? '—' },
           ]}
         />
+        </Card>
       </section>
 
-      <section aria-labelledby="slides-title">
-        <h2 id="slides-title" className="lims-card-title">Slides</h2>
+      <section aria-label="Slides">
+        <Card title="Slides">
         {canWork ? (
           <div role="toolbar" aria-label="Slide actions">
             {cytology || detail.blocks.length === 0 ? <Button onPress={() => setDialog({ kind: 'slides' })}>Add slides from part</Button> : null}
@@ -155,6 +159,7 @@ export function BlocksSlidesTab({ detail, canWork, onFail, onMfa }: { detail: Ca
               : []),
           ]}
         />
+        </Card>
       </section>
 
       {dialog?.kind === 'blocks' ? <AddBlocksDialog detail={detail} onClose={close} onMfa={onMfa} onDone={done} /> : null}
@@ -168,9 +173,9 @@ export function BlocksSlidesTab({ detail, canWork, onFail, onMfa }: { detail: Ca
         onDone={moved}
       />
       <Drawer title="Skipped slides" isOpen={showSkipped} onClose={() => setShowSkipped(false)}>
-        <ul>
-          {(result?.skipped ?? []).map((s, i) => <li key={i}><span className="lims-mono">{s.label}</span> — {s.reason}</li>)}
-        </ul>
+        <Stack gap={1}>
+          {(result?.skipped ?? []).map((s, i) => <p key={i}><span className="lims-mono">{s.label}</span> — {s.reason}</p>)}
+        </Stack>
       </Drawer>
     </>
   );

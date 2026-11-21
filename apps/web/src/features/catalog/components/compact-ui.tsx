@@ -5,6 +5,7 @@
 // MiniSelect is the APG select-only combobox: a button with role=combobox named by its label only (the value is its content), a listbox popup.
 import { useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { Button } from '@lims/ui/components/Button';
+import { Card } from '@lims/ui/components/Card';
 import './catalog.css';
 
 export interface Opt { value: string; label: string }
@@ -63,9 +64,9 @@ export function MiniSelect({ label, value, options, onChange, isRequired, isDisa
         {current?.label ?? placeholder}
       </button>
       {open ? (
-        <ul id={`${id}-lb`} role="listbox" aria-labelledby={`${id}-l`} className="lims-listbox catalog-mini-listbox">
+        <div id={`${id}-lb`} role="listbox" aria-labelledby={`${id}-l`} className="lims-listbox catalog-mini-listbox">
           {options.map((o, i) => (
-            <li
+            <div
               key={o.value}
               id={`${id}-o${i}`}
               role="option"
@@ -75,9 +76,9 @@ export function MiniSelect({ label, value, options, onChange, isRequired, isDisa
               onClick={() => pick(o)}
             >
               {o.label}
-            </li>
+            </div>
           ))}
-        </ul>
+        </div>
       ) : null}
       {error ? <span id={`${id}-e`} className="lims-error">{error}</span> : null}
     </div>
@@ -96,13 +97,12 @@ export function Check({ label, checked, onChange, isDisabled }: { label: string;
 
 /** One form section: heading + a grid of `columns` equal columns (data-columns drives the CSS and the one-screen budget). */
 export function GridSection({ title, columns, note, children }: { title: string; columns: 3 | 4 | 5 | 6; note?: string; children: ReactNode }) {
-  const id = useId();
+  // T0D-UIGUARD-1-CATALOG (LD-436 R7): a kit Card region with its title row (no raw h2); data-columns stays on the section for the form budget.
   return (
-    <section className="catalog-grid-section" aria-labelledby={id} data-columns={columns}>
-      <h2 id={id} className="catalog-grid-title">{title}</h2>
+    <Card title={title} region data-columns={columns}>
       {note ? <p className="lims-description">{note}</p> : null}
       <div className="catalog-grid" data-columns={columns}>{children}</div>
-    </section>
+    </Card>
   );
 }
 
@@ -110,10 +110,8 @@ export interface PreviewRow { name: string; value: string; unit: string; range: 
 
 /** Report preview built from SAMPLE data only (never a real patient): patient header block + Test Name · Value · Unit · Reference Range. */
 export function ReportPreview({ title, rows }: { title?: string | undefined; rows: readonly PreviewRow[] }) {
-  const id = useId();
   return (
-    <section className="catalog-preview" aria-labelledby={id}>
-      <h2 id={id} className="catalog-grid-title">Report preview</h2>
+    <Card title="Report preview" region>
       <dl className="catalog-preview-header">
         <div><dt>Patient</dt><dd>SAMPLE PATIENT (synthetic)</dd></div>
         <div><dt>Age / Sex</dt><dd>35 Y / Female</dd></div>
@@ -131,7 +129,7 @@ export function ReportPreview({ title, rows }: { title?: string | undefined; row
           ))}
         </tbody>
       </table>
-    </section>
+    </Card>
   );
 }
 
@@ -151,11 +149,11 @@ export interface PickItem { id: string; label: string }
 function ListBox({ label, items, picked, onPick, onMove }: { label: string; items: readonly PickItem[]; picked: string | undefined; onPick: (id: string) => void; onMove: (id: string) => void }) {
   return (
     <div className="lims-stack catalog-gap-1">
-      <h3 className="catalog-grid-title">{label}</h3>
+      <span className="catalog-grid-title" aria-hidden="true">{label}</span>
       {items.length === 0 ? <p className="lims-description">None</p> : null}
-      <ul role="listbox" aria-label={label} className="catalog-plain-list catalog-pick-list">
+      <div role="listbox" aria-label={label} className="catalog-plain-list catalog-pick-list">
         {items.map((it) => (
-          <li
+          <div
             key={it.id}
             role="option"
             tabIndex={0}
@@ -166,9 +164,9 @@ function ListBox({ label, items, picked, onPick, onMove }: { label: string; item
             onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); onMove(it.id); } else if (e.key === ' ') { e.preventDefault(); onPick(it.id); } }}
           >
             {it.label}
-          </li>
+          </div>
         ))}
-      </ul>
+      </div>
     </div>
   );
 }

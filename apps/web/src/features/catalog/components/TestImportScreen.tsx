@@ -6,11 +6,12 @@
 import { useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@lims/ui/components/Button';
+import { Card } from '@lims/ui/components/Card';
 import { Dialog } from '@lims/ui/components/Dialog';
 import { FileUpload, type FileUploadProps } from '@lims/ui/components/FileUpload';
+import { FilterBar } from '@lims/ui/components/FilterBar';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { RadioGroup } from '@lims/ui/components/RadioGroup';
-import { TextField } from '@lims/ui/components/TextField';
 import type { TestImportBatch, TestImportCommitResult, TestImportError, TestImportMode, TestImportValidation } from '../server/testImport.server';
 import { commitTestImportAction, testImportErrorsAction, testImportTemplateAction, validateTestImportAction } from '../server/testImportActions';
 import { MasterTable, type Col } from './master-ui';
@@ -147,15 +148,16 @@ export function TestImportScreen({ history }: { history: readonly TestImportBatc
     <section aria-label="Import tests" className="lims-stack">{/* density: compact comes from the shell wrapper (T0D-DENSITY-1) */}
       <PageHeader title="Import tests" helpKey="catalog.imports" />
 
-      <section aria-labelledby="ti-template" className="lims-stack">
-        <h2 id="ti-template">Download template</h2>
+      <Card title="Download template" region>
+        <div className="lims-stack">
         <p className="lims-description">Fill the template in Excel: the same fields as the Add Test, Add Test Parameter and Reference Range forms. File: {TEMPLATE_FILE}</p>
         <div><Button variant="secondary" onPress={() => void downloadTemplate()}>Download template</Button></div>
         {tplFail ? <Alert text={tplFail} /> : null}
-      </section>
+        </div>
+      </Card>
 
-      <section aria-labelledby="ti-choose" className="lims-stack">
-        <h2 id="ti-choose">Choose file</h2>
+      <Card title="Choose file" region>
+        <div className="lims-stack">
         <RadioGroup<TestImportMode>
           label="Mode"
           name="mode"
@@ -180,19 +182,25 @@ export function TestImportScreen({ history }: { history: readonly TestImportBatc
         />
         {upFail ? <Alert text={upFail} /> : null}
         {batch && batch.mode !== mode ? <p className="lims-description">This file was checked as {MODE_LABEL[batch.mode]}. Choose the file again to check it as {MODE_LABEL[mode]}.</p> : null}
-      </section>
+        </div>
+      </Card>
 
-      <section aria-labelledby="ti-validate" className="lims-stack">
-        <h2 id="ti-validate">Validate</h2>
+      <Card title="Validate" region>
+        <div className="lims-stack">
         <dl className="lims-inline catalog-gap-3">
           {([['Tests', counts?.tests], ['Parameters', counts?.analytes], ['Ranges', counts?.ranges], ['Panels', counts?.panels], ['Errors', counts?.errors]] as const).map(([l, v]) => (
             <div key={l}><dt>{l}</dt><dd>{v ?? 0}</dd></div>
           ))}
         </dl>
-        <div className="lims-filter-bar">
-          <TextField label="Filter errors" name="error_filter" maxLength={100} value={q} onChange={(v) => { setQ(v); setPage(0); }} />
-          <Button variant="secondary" isDisabled={errors.length === 0} onPress={() => void downloadErrors()}>Download errors file</Button>
-        </div>
+        {/* T0D-UIGUARD-1-CATALOG (LD-353 rule 2): the error filter is the kit FilterBar; the download sits after it */}
+        <FilterBar
+          filters={[{ id: 'error_filter', label: 'Filter errors', kind: 'text', maxLength: 100 }]}
+          value={{ error_filter: q }}
+          onChange={(v) => { setQ(typeof v['error_filter'] === 'string' ? v['error_filter'] : ''); setPage(0); }}
+          onReset={() => { setQ(''); setPage(0); }}
+          resetLabel="Clear filters"
+        />
+        <div><Button variant="secondary" isDisabled={errors.length === 0} onPress={() => void downloadErrors()}>Download errors file</Button></div>
         {errFail ? <Alert text={errFail} /> : null}
         <MasterTable caption="Problems found in the file" cols={errCols} rows={shown.slice(at * PAGE, at * PAGE + PAGE)} empty={emptyErrors} />
         <div className="lims-inline catalog-gap-2">
@@ -200,14 +208,16 @@ export function TestImportScreen({ history }: { history: readonly TestImportBatc
           <span>Page {at + 1} of {pages}</span>
           <Button size="sm" variant="ghost" isDisabled={at >= pages - 1} onPress={() => setPage(at + 1)}>Next</Button>
         </div>
-      </section>
+        </div>
+      </Card>
 
-      <section aria-labelledby="ti-commit" className="lims-stack">
-        <h2 id="ti-commit">Commit</h2>
+      <Card title="Commit" region>
+        <div className="lims-stack">
         <p className="lims-description">Commit is possible once the file has no errors. Everything is created as drafts. {PUBLISH}</p>
         <div><Button variant="primary" isDisabled={!canCommit} onPress={() => setOpen(true)}>Commit</Button></div>
         {commitFail ? <Alert text={commitFail} /> : null}
-      </section>
+        </div>
+      </Card>
 
       <Dialog title="Create drafts from this file" isOpen={open} onClose={() => setOpen(false)} size="md"
         footer={<>
@@ -219,23 +229,26 @@ export function TestImportScreen({ history }: { history: readonly TestImportBatc
       </Dialog>
 
       {committed ? (
-        <section aria-labelledby="ti-result" className="lims-stack">
-          <h2 id="ti-result">Import result</h2>
+        <Card title="Import result" region>
+          <div className="lims-stack">
           <p role="status">
             Created as drafts: {n(committed.created.tests, 'test')}, {n(committed.created.analytes, 'parameter')}, {n(committed.created.ranges, 'reference range')}, {n(committed.created.panels, 'panel')}. {PUBLISH}
           </p>
-          <ul>
+          {/* T0D-UIGUARD-1-CATALOG (LD-436 R7): list semantics by role, no raw ul */}
+          <div role="list" className="lims-stack">
             {(result?.preview.tests ?? []).map((t) => (
-              <li key={t.code}><a className="lims-link" href={`/catalog/tests?q=${encodeURIComponent(t.code)}`}>{t.code}</a> {t.name}</li>
+              <div role="listitem" key={t.code}><a className="lims-link" href={`/catalog/tests?q=${encodeURIComponent(t.code)}`}>{t.code}</a> {t.name}</div>
             ))}
-          </ul>
-        </section>
+          </div>
+          </div>
+        </Card>
       ) : null}
 
-      <section aria-labelledby="ti-history" className="lims-stack">
-        <h2 id="ti-history">Import history</h2>
+      <Card title="Import history" region>
+        <div className="lims-stack">
         <MasterTable caption="Import history" cols={histCols} rows={history} empty="No test imports yet." />
-      </section>
+        </div>
+      </Card>
     </section>
   );
 }

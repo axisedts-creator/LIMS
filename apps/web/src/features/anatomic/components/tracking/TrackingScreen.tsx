@@ -7,6 +7,7 @@ import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useScanCapture } from '@lims/ui/components/BarcodeInput';
 import { Button } from '@lims/ui/components/Button';
+import { Card } from '@lims/ui/components/Card';
 import { DataTable } from '@lims/ui/components/DataTable';
 import { DescriptionList } from '@lims/ui/components/DescriptionList';
 import { Dialog } from '@lims/ui/components/Dialog';
@@ -77,8 +78,10 @@ function Result({ f, movements }: { f: Found; movements: readonly Movement[] }) 
           { term: 'Last movement', value: last ? <>{MOVE_LABEL[last.movement]}, <When value={last.at} time /></> : '—' },
         ]}
       />
-      <h2 className="lims-card-title">Movement history</h2>
-      {newest.length ? <Timeline items={newest.map((m) => ({ at: m.at, label: movementText(m), actor: m.by_display_name }))} /> : <p className="lims-description">No movements recorded yet.</p>}
+      {/* LD-439 (a), LD-436 rule 7: Card title row instead of a raw h2. */}
+      <Card title="Movement history">
+        {newest.length ? <Timeline items={newest.map((m) => ({ at: m.at, label: movementText(m), actor: m.by_display_name }))} /> : <p className="lims-description">No movements recorded yet.</p>}
+      </Card>
     </>
   );
 }

@@ -4,7 +4,9 @@
 // Everything is rendered as TEXT by React: markup in a label or heading never becomes an element (REQ-SEC-088, 07-SECURITY "malicious template"). Nothing typed here is kept or sent.
 // LD-140 (2026-11-13, binding): kit components only.
 import { useState } from 'react';
+import { Card } from '@lims/ui/components/Card';
 import { Checkbox } from '@lims/ui/components/Checkbox';
+import { Stack } from '@lims/ui/components/Stack';
 import { DatePicker, type IsoDate } from '@lims/ui/components/DatePicker';
 import { Select } from '@lims/ui/components/Select';
 import { TextArea } from '@lims/ui/components/TextArea';
@@ -53,16 +55,19 @@ export function TemplatePreview({ definition }: { definition: Definition }) {
   };
 
   return (
-    <section data-preview aria-labelledby="synoptic-preview-title">
-      <h2 id="synoptic-preview-title" className="lims-section-title">Preview</h2>
-      <p className="lims-description">{definition.title}</p>
-      {definition.sections.map((s, si) => (
-        <div key={si}>
-          <h3>{s.heading}</h3>
-          {s.fields.map((f, fi) => (visible.has(f.key) ? <div key={`${si}-${fi}-${f.key}`}>{control(f, `preview_${si}_${fi}`)}</div> : null))}
-        </div>
-      ))}
-      <p aria-live="polite" className="lims-description">{revealed > 0 ? `${revealed} more fields shown` : ''}</p>
+    // LD-439 (a), LD-436 rule 7: Card title rows (kit h2) instead of raw h2 / h3; headings stay plain text (REQ-SEC-088).
+    <section data-preview aria-label="Preview">
+      <Card title="Preview">
+        <Stack gap={3}>
+          <p className="lims-description">{definition.title}</p>
+          {definition.sections.map((s, si) => (
+            <Card key={si} title={s.heading}>
+              {s.fields.map((f, fi) => (visible.has(f.key) ? <div key={`${si}-${fi}-${f.key}`}>{control(f, `preview_${si}_${fi}`)}</div> : null))}
+            </Card>
+          ))}
+          <p aria-live="polite" className="lims-description">{revealed > 0 ? `${revealed} more fields shown` : ''}</p>
+        </Stack>
+      </Card>
     </section>
   );
 }

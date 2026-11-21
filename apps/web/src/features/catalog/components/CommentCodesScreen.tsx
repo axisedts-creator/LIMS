@@ -4,6 +4,7 @@
 import { useRef, useState } from 'react';
 import { Button } from '@lims/ui/components/Button';
 import { CodeField } from '@lims/ui/components/CodeField';
+import { FilterBar } from '@lims/ui/components/FilterBar';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { Select } from '@lims/ui/components/Select';
 import { Switch } from '@lims/ui/components/Switch';
@@ -42,11 +43,18 @@ export function CommentCodesScreen({ commentCodes, departments, permissions }: {
   return (
     <section aria-label="Comment codes">
       <PageHeader title={t('catalog.nav.comment_codes')} helpKey="catalog.comment_codes" actions={openNew ? <Button variant="primary" onPress={openNew}>New comment code</Button> : null} />
-      <div className="lims-filter-bar">
-        <div ref={search}>
-          <TextField label="Search" name="q" maxLength={16} description="Code prefix" value={q} onChange={setQ} />
-        </div>
-        <Select label="Department" name="department_filter" options={[{ value: ALL, label: 'All departments' }, ...departments.map((d) => ({ value: d.id, label: d.name }))]} value={dept} onChange={setDept} />
+      {/* T0D-UIGUARD-1-CATALOG (LD-353 rule 2, LD-436 worklist mock): the kit FilterBar; the search is a code prefix */}
+      <div ref={search}>
+        <FilterBar
+          filters={[
+            { id: 'q', label: 'Search', kind: 'text', maxLength: 16 },
+            { id: 'department_filter', label: 'Department', kind: 'select', options: [{ value: ALL, label: 'All departments' }, ...departments.map((d) => ({ value: d.id, label: d.name }))] },
+          ]}
+          value={{ q, department_filter: dept }}
+          onChange={(v) => { setQ(typeof v['q'] === 'string' ? v['q'] : ''); setDept(typeof v['department_filter'] === 'string' ? v['department_filter'] : ALL); }}
+          onReset={() => { setQ(''); setDept(ALL); }}
+          resetLabel="Clear filters"
+        />
       </div>
       <MasterTable
         caption="Comment codes"

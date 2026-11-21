@@ -4,7 +4,9 @@
 // also shows as a read-only field named `image_ids/{k}`, so a server error about /image_ids/{k} becomes a summary link that focuses it.
 // LD-140 (2026-11-13, binding): kit components and token class names only.
 import { Checkbox } from '@lims/ui/components/Checkbox';
+import { Card } from '@lims/ui/components/Card';
 import { IconButton } from '@lims/ui/components/IconButton';
+import { Stack } from '@lims/ui/components/Stack';
 import { TextField } from '@lims/ui/components/TextField';
 import type { CaseImage } from '../../server/types';
 
@@ -22,14 +24,15 @@ export function ImagePicker({ images, selected, max, readOnly, onChange }: { ima
     onChange(next);
   };
   return (
-    <section aria-labelledby="report-images">
-      <h3 id="report-images" className="lims-card-title">Images in report</h3>
+    // LD-439 (a), LD-436 rule 7: Card title row and Stacks instead of raw h3 / ul / ol.
+    <section aria-label="Images in report">
+      <Card title="Images in report">
       {ready.length === 0 ? <p className="lims-description">No ready images on this case.</p> : null}
-      <ul className="lims-image-list">
+      <Stack gap={2}>
         {ready.map((i, n) => {
           const on = selected.includes(i.id);
           return (
-            <li key={i.id}>
+            <div key={i.id}>
               {/* eslint-disable-next-line @next/next/no-img-element -- same-origin BFF stream (D-67), not a static asset */}
               <img src={`/anatomic/images/${i.id}/content`} alt="" width={64} height={64} loading="lazy" />
               <Checkbox
@@ -39,14 +42,14 @@ export function ImagePicker({ images, selected, max, readOnly, onChange }: { ima
                 isDisabled={readOnly || (!on && full)}
                 onChange={(c) => onChange(c ? [...selected, i.id] : selected.filter((x) => x !== i.id))}
               />
-            </li>
+            </div>
           );
         })}
-      </ul>
+      </Stack>
       {selected.length ? <p className="lims-description">Print order, top to bottom ({selected.length} of {max}).</p> : null}
-      <ol>
+      <Stack gap={2}>
         {selected.map((id, k) => (
-          <li key={id}>
+          <div key={id}>
             <TextField label={`Print position ${k + 1}`} name={`image_ids/${k}`} maxLength={200} isReadOnly value={byId.get(id) ?? 'Image no longer available'} />
             {readOnly ? null : (
               <>
@@ -54,9 +57,10 @@ export function ImagePicker({ images, selected, max, readOnly, onChange }: { ima
                 <IconButton label={`Move down ${byId.get(id) ?? `image ${k + 1}`}`} icon="arrow-down" onPress={() => move(k, 1)} />
               </>
             )}
-          </li>
+          </div>
         ))}
-      </ol>
+      </Stack>
+      </Card>
     </section>
   );
 }

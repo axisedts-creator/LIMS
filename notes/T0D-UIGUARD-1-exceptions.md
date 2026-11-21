@@ -12,72 +12,12 @@ Other groups = LD-434 legacy baseline (CR-C0-0D-UIGUARD-1 option A); the heading
 - /anatomic/cases/[case_id]/labels rule 3: label sheet: print layout of a physical label (label-sheet.css) needs a bold first line
 - /[...slug] rule 1: catch-all placeholder for module routes without a page; not a screen (CR T0D-14)
 
-## T0D-UIGUARD-1-CATALOG (44 entries, 22 routes)
-
-- /catalog/credit-parties/[credit_party_id] rule 1: legacy baseline LD-434, fix in T0D-UIGUARD-1-CATALOG: rule 1 broken in the page itself
-- /catalog/tests/[test_id] rule 1: legacy baseline LD-434, fix in T0D-UIGUARD-1-CATALOG: rule 1 broken in the page itself
-- /catalog/comment-codes rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-CATALOG: rule 2 broken in CommentCodesScreen.tsx, master-ui.tsx, DoctorsList.tsx, ImportsScreen.tsx, TestImportScreen.tsx, PriceListDetail.tsx, PriceVersionEditor.tsx, PriceCompare.tsx, TestMgmtViews.tsx, TestsList.tsx
-- /catalog/credit-parties rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-CATALOG: rule 2 broken in CommentCodesScreen.tsx, master-ui.tsx, DoctorsList.tsx, ImportsScreen.tsx, TestImportScreen.tsx, PriceListDetail.tsx, PriceVersionEditor.tsx, PriceCompare.tsx, TestMgmtViews.tsx, TestsList.tsx
-- /catalog/departments rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-CATALOG: rule 2 broken in CommentCodesScreen.tsx, master-ui.tsx, DoctorsList.tsx, ImportsScreen.tsx, TestImportScreen.tsx, PriceListDetail.tsx, PriceVersionEditor.tsx, PriceCompare.tsx, TestMgmtViews.tsx, TestsList.tsx
-- /catalog/doctors rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-CATALOG: rule 2 broken in CommentCodesScreen.tsx, master-ui.tsx, DoctorsList.tsx, ImportsScreen.tsx, TestImportScreen.tsx, PriceListDetail.tsx, PriceVersionEditor.tsx, PriceCompare.tsx, TestMgmtViews.tsx, TestsList.tsx
-- /catalog/doctors/[doctor_id] rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-CATALOG: rule 2 broken in CommentCodesScreen.tsx, master-ui.tsx, DoctorsList.tsx, ImportsScreen.tsx, TestImportScreen.tsx, PriceListDetail.tsx, PriceVersionEditor.tsx, PriceCompare.tsx, TestMgmtViews.tsx, TestsList.tsx
-- /catalog/doctors/verify rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-CATALOG: rule 2 broken in CommentCodesScreen.tsx, master-ui.tsx, DoctorsList.tsx, ImportsScreen.tsx, TestImportScreen.tsx, PriceListDetail.tsx, PriceVersionEditor.tsx, PriceCompare.tsx, TestMgmtViews.tsx, TestsList.tsx
-- /catalog/imports rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-CATALOG: rule 2 broken in CommentCodesScreen.tsx, master-ui.tsx, DoctorsList.tsx, ImportsScreen.tsx, TestImportScreen.tsx, PriceListDetail.tsx, PriceVersionEditor.tsx, PriceCompare.tsx, TestMgmtViews.tsx, TestsList.tsx
-- /catalog/imports/[import_id] rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-CATALOG: rule 2 broken in CommentCodesScreen.tsx, master-ui.tsx, DoctorsList.tsx, ImportsScreen.tsx, TestImportScreen.tsx, PriceListDetail.tsx, PriceVersionEditor.tsx, PriceCompare.tsx, TestMgmtViews.tsx, TestsList.tsx
-- /catalog/methods rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-CATALOG: rule 2 broken in CommentCodesScreen.tsx, master-ui.tsx, DoctorsList.tsx, ImportsScreen.tsx, TestImportScreen.tsx, PriceListDetail.tsx, PriceVersionEditor.tsx, PriceCompare.tsx, TestMgmtViews.tsx, TestsList.tsx
-- /catalog/panels rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-CATALOG: rule 2 broken in CommentCodesScreen.tsx, master-ui.tsx, DoctorsList.tsx, ImportsScreen.tsx, TestImportScreen.tsx, PriceListDetail.tsx, PriceVersionEditor.tsx, PriceCompare.tsx, TestMgmtViews.tsx, TestsList.tsx
-- /catalog/panels/[panel_id] rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-CATALOG: rule 2 broken in CommentCodesScreen.tsx, master-ui.tsx, DoctorsList.tsx, ImportsScreen.tsx, TestImportScreen.tsx, PriceListDetail.tsx, PriceVersionEditor.tsx, PriceCompare.tsx, TestMgmtViews.tsx, TestsList.tsx
-- /catalog/price-lists rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-CATALOG: rule 2 broken in CommentCodesScreen.tsx, master-ui.tsx, DoctorsList.tsx, ImportsScreen.tsx, TestImportScreen.tsx, PriceListDetail.tsx, PriceVersionEditor.tsx, PriceCompare.tsx, TestMgmtViews.tsx, TestsList.tsx
-- /catalog/price-lists/[price_list_id] rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-CATALOG: rule 2 broken in CommentCodesScreen.tsx, master-ui.tsx, DoctorsList.tsx, ImportsScreen.tsx, TestImportScreen.tsx, PriceListDetail.tsx, PriceVersionEditor.tsx, PriceCompare.tsx, TestMgmtViews.tsx, TestsList.tsx
-- /catalog/price-lists/[price_list_id]/versions/[version_id] rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-CATALOG: rule 2 broken in CommentCodesScreen.tsx, master-ui.tsx, DoctorsList.tsx, ImportsScreen.tsx, TestImportScreen.tsx, PriceListDetail.tsx, PriceVersionEditor.tsx, PriceCompare.tsx, TestMgmtViews.tsx, TestsList.tsx
-- /catalog/price-simulator rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-CATALOG: rule 2 broken in CommentCodesScreen.tsx, master-ui.tsx, DoctorsList.tsx, ImportsScreen.tsx, TestImportScreen.tsx, PriceListDetail.tsx, PriceVersionEditor.tsx, PriceCompare.tsx, TestMgmtViews.tsx, TestsList.tsx
-- /catalog/specimens rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-CATALOG: rule 2 broken in CommentCodesScreen.tsx, master-ui.tsx, DoctorsList.tsx, ImportsScreen.tsx, TestImportScreen.tsx, PriceListDetail.tsx, PriceVersionEditor.tsx, PriceCompare.tsx, TestMgmtViews.tsx, TestsList.tsx
-- /catalog/surcharges rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-CATALOG: rule 2 broken in CommentCodesScreen.tsx, master-ui.tsx, DoctorsList.tsx, ImportsScreen.tsx, TestImportScreen.tsx, PriceListDetail.tsx, PriceVersionEditor.tsx, PriceCompare.tsx, TestMgmtViews.tsx, TestsList.tsx
-- /catalog/tax rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-CATALOG: rule 2 broken in CommentCodesScreen.tsx, master-ui.tsx, DoctorsList.tsx, ImportsScreen.tsx, TestImportScreen.tsx, PriceListDetail.tsx, PriceVersionEditor.tsx, PriceCompare.tsx, TestMgmtViews.tsx, TestsList.tsx
-- /catalog/tests rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-CATALOG: rule 2 broken in CommentCodesScreen.tsx, master-ui.tsx, DoctorsList.tsx, ImportsScreen.tsx, TestImportScreen.tsx, PriceListDetail.tsx, PriceVersionEditor.tsx, PriceCompare.tsx, TestMgmtViews.tsx, TestsList.tsx
-- /catalog/units rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-CATALOG: rule 2 broken in CommentCodesScreen.tsx, master-ui.tsx, DoctorsList.tsx, ImportsScreen.tsx, TestImportScreen.tsx, PriceListDetail.tsx, PriceVersionEditor.tsx, PriceCompare.tsx, TestMgmtViews.tsx, TestsList.tsx
-- /catalog/comment-codes rule 3: legacy baseline LD-434, fix in T0D-UIGUARD-1-CATALOG: rule 3 broken in catalog.css
-- /catalog/credit-parties rule 3: legacy baseline LD-434, fix in T0D-UIGUARD-1-CATALOG: rule 3 broken in catalog.css
-- /catalog/departments rule 3: legacy baseline LD-434, fix in T0D-UIGUARD-1-CATALOG: rule 3 broken in catalog.css
-- /catalog/doctors rule 3: legacy baseline LD-434, fix in T0D-UIGUARD-1-CATALOG: rule 3 broken in catalog.css
-- /catalog/doctors/[doctor_id] rule 3: legacy baseline LD-434, fix in T0D-UIGUARD-1-CATALOG: rule 3 broken in catalog.css
-- /catalog/doctors/verify rule 3: legacy baseline LD-434, fix in T0D-UIGUARD-1-CATALOG: rule 3 broken in catalog.css
-- /catalog/imports rule 3: legacy baseline LD-434, fix in T0D-UIGUARD-1-CATALOG: rule 3 broken in catalog.css
-- /catalog/imports/[import_id] rule 3: legacy baseline LD-434, fix in T0D-UIGUARD-1-CATALOG: rule 3 broken in catalog.css
-- /catalog/methods rule 3: legacy baseline LD-434, fix in T0D-UIGUARD-1-CATALOG: rule 3 broken in catalog.css
-- /catalog/panels rule 3: legacy baseline LD-434, fix in T0D-UIGUARD-1-CATALOG: rule 3 broken in catalog.css
-- /catalog/panels/[panel_id] rule 3: legacy baseline LD-434, fix in T0D-UIGUARD-1-CATALOG: rule 3 broken in catalog.css
-- /catalog/price-lists rule 3: legacy baseline LD-434, fix in T0D-UIGUARD-1-CATALOG: rule 3 broken in catalog.css
-- /catalog/price-lists/[price_list_id] rule 3: legacy baseline LD-434, fix in T0D-UIGUARD-1-CATALOG: rule 3 broken in catalog.css
-- /catalog/price-lists/[price_list_id]/versions/[version_id] rule 3: legacy baseline LD-434, fix in T0D-UIGUARD-1-CATALOG: rule 3 broken in catalog.css
-- /catalog/price-simulator rule 3: legacy baseline LD-434, fix in T0D-UIGUARD-1-CATALOG: rule 3 broken in catalog.css
-- /catalog/specimens rule 3: legacy baseline LD-434, fix in T0D-UIGUARD-1-CATALOG: rule 3 broken in catalog.css
-- /catalog/surcharges rule 3: legacy baseline LD-434, fix in T0D-UIGUARD-1-CATALOG: rule 3 broken in catalog.css
-- /catalog/tax rule 3: legacy baseline LD-434, fix in T0D-UIGUARD-1-CATALOG: rule 3 broken in catalog.css
-- /catalog/tests rule 3: legacy baseline LD-434, fix in T0D-UIGUARD-1-CATALOG: rule 3 broken in catalog.css
-- /catalog/tests/[test_id] rule 3: legacy baseline LD-434, fix in T0D-UIGUARD-1-CATALOG: rule 3 broken in catalog.css
-- /catalog/units rule 3: legacy baseline LD-434, fix in T0D-UIGUARD-1-CATALOG: rule 3 broken in catalog.css
-- /catalog/tests/[test_id] rule 5: legacy baseline LD-434, fix in T0D-UIGUARD-1-CATALOG: rule 5 broken in AnalytesTab.tsx
-
 ## T0D-UIGUARD-1-FRONTDESK (4 entries, 2 routes)
 
 - /frontdesk/orders/[order_id] rule 4: legacy baseline LD-434, fix in T0D-UIGUARD-1-FRONTDESK: rule 4 broken in the page itself
 - /frontdesk/patients/[patient_id] rule 4: legacy baseline LD-434, fix in T0D-UIGUARD-1-FRONTDESK: rule 4 broken in the page itself
 - /frontdesk/orders/[order_id] rule 5: legacy baseline LD-434, fix in T0D-UIGUARD-1-FRONTDESK: rule 5 broken in OrderView.tsx, PatientView.tsx
 - /frontdesk/patients/[patient_id] rule 5: legacy baseline LD-434, fix in T0D-UIGUARD-1-FRONTDESK: rule 5 broken in OrderView.tsx, PatientView.tsx
-
-## T0D-UIGUARD-1-LAB (10 entries, 9 routes)
-
-- /lab/orders/[order_id]/labels rule 1: legacy baseline LD-434, fix in T0D-UIGUARD-1-LAB: rule 1 broken in the page itself
-- /lab/worksheets/[worksheet_id] rule 1: legacy baseline LD-434, fix in T0D-UIGUARD-1-LAB: rule 1 broken in the page itself
-- /lab/approval rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-LAB: rule 2 broken in QueueScreen.tsx, PendingPage.tsx, StatusBoard.tsx, WorklistPage.tsx
-- /lab/pending rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-LAB: rule 2 broken in QueueScreen.tsx, PendingPage.tsx, StatusBoard.tsx, WorklistPage.tsx
-- /lab/status-board rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-LAB: rule 2 broken in QueueScreen.tsx, PendingPage.tsx, StatusBoard.tsx, WorklistPage.tsx
-- /lab/verification rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-LAB: rule 2 broken in QueueScreen.tsx, PendingPage.tsx, StatusBoard.tsx, WorklistPage.tsx
-- /lab/worklists/[department_id] rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-LAB: rule 2 broken in QueueScreen.tsx, PendingPage.tsx, StatusBoard.tsx, WorklistPage.tsx
-- /lab/orders/[order_id]/results rule 5: legacy baseline LD-434, fix in T0D-UIGUARD-1-LAB: rule 5 broken in ResultPanels.tsx, DeltaRulesTab.tsx, QcHoldsTab.tsx
-- /lab/settings rule 5: legacy baseline LD-434, fix in T0D-UIGUARD-1-LAB: rule 5 broken in ResultPanels.tsx, DeltaRulesTab.tsx, QcHoldsTab.tsx
-- /lab/orders/[order_id]/results rule 6: legacy baseline LD-434, fix in T0D-UIGUARD-1-LAB: rule 6 broken in ResultPanels.tsx
 
 ## T0D-UIGUARD-1-QUALITY (7 entries, 7 routes)
 
@@ -95,42 +35,6 @@ Other groups = LD-434 legacy baseline (CR-C0-0D-UIGUARD-1 option A); the heading
 
 - /[...slug] rule 7: catch-all placeholder for module routes without a page; not a screen (CR T0D-14): raw h1 in page.tsx
 
-## T0D-UIGUARD-1-ANATOMIC (rule 7: 8 entries)
-
-- /anatomic rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ANATOMIC: rule 7 broken in AnatomicForbidden.tsx
-- /anatomic/batches rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ANATOMIC: rule 7 broken in AnatomicForbidden.tsx
-- /anatomic/batches/[batch_id] rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ANATOMIC: rule 7 broken in AnatomicForbidden.tsx, BatchDetailScreen.tsx
-- /anatomic/cases/[case_id] rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ANATOMIC: rule 7 broken in AnatomicForbidden.tsx, CaseWorkspace.tsx, ImagesTab.tsx, BlocksSlidesTab.tsx, ReportEditor.tsx, ...
-- /anatomic/cases/[case_id]/labels rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ANATOMIC: rule 7 broken in AnatomicForbidden.tsx
-- /anatomic/config rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ANATOMIC: rule 7 broken in config-shared.tsx, AssaysTab.tsx
-- /anatomic/config/templates/[template_id] rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ANATOMIC: rule 7 broken in config-shared.tsx, TemplateEditor.tsx, TemplatePreview.tsx
-- /anatomic/tracking rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ANATOMIC: rule 7 broken in AnatomicForbidden.tsx, TrackingScreen.tsx, MovementDialog.tsx
-
-## T0D-UIGUARD-1-CATALOG (rule 7: 22 entries)
-
-- /catalog rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-CATALOG: rule 7 broken in CatalogHome.tsx
-- /catalog/comment-codes rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-CATALOG: rule 7 broken in CatalogForbidden.tsx, master-ui.tsx
-- /catalog/credit-parties rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-CATALOG: rule 7 broken in CatalogForbidden.tsx, master-ui.tsx
-- /catalog/departments rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-CATALOG: rule 7 broken in CatalogForbidden.tsx, master-ui.tsx
-- /catalog/doctors rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-CATALOG: rule 7 broken in CatalogForbidden.tsx, DoctorsList.tsx, master-ui.tsx, DoctorMergeDialog.tsx
-- /catalog/doctors/[doctor_id] rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-CATALOG: rule 7 broken in CatalogForbidden.tsx, master-ui.tsx, DoctorMergeDialog.tsx
-- /catalog/doctors/verify rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-CATALOG: rule 7 broken in CatalogForbidden.tsx, master-ui.tsx, DoctorMergeDialog.tsx
-- /catalog/imports rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-CATALOG: rule 7 broken in CatalogForbidden.tsx, ImportsScreen.tsx, TestImportScreen.tsx, master-ui.tsx
-- /catalog/imports/[import_id] rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-CATALOG: rule 7 broken in CatalogForbidden.tsx, ImportDetail.tsx, master-ui.tsx
-- /catalog/methods rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-CATALOG: rule 7 broken in CatalogForbidden.tsx, master-ui.tsx
-- /catalog/panels rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-CATALOG: rule 7 broken in CatalogForbidden.tsx, master-ui.tsx, PanelMembers.tsx
-- /catalog/panels/[panel_id] rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-CATALOG: rule 7 broken in CatalogForbidden.tsx, PanelDetail.tsx, master-ui.tsx, PanelMembers.tsx, compact-ui.tsx
-- /catalog/price-lists rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-CATALOG: rule 7 broken in CatalogForbidden.tsx, master-ui.tsx
-- /catalog/price-lists/[price_list_id] rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-CATALOG: rule 7 broken in CatalogForbidden.tsx, PriceListDetail.tsx, master-ui.tsx, PriceListTools.tsx
-- /catalog/price-lists/[price_list_id]/versions/[version_id] rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-CATALOG: rule 7 broken in CatalogForbidden.tsx, master-ui.tsx
-- /catalog/price-simulator rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-CATALOG: rule 7 broken in PriceSimulator.tsx, CatalogForbidden.tsx, master-ui.tsx
-- /catalog/specimens rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-CATALOG: rule 7 broken in CatalogForbidden.tsx, master-ui.tsx
-- /catalog/surcharges rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-CATALOG: rule 7 broken in CatalogForbidden.tsx, master-ui.tsx
-- /catalog/tax rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-CATALOG: rule 7 broken in CatalogForbidden.tsx, master-ui.tsx
-- /catalog/tests rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-CATALOG: rule 7 broken in CatalogForbidden.tsx, TestDetailsView.tsx, compact-ui.tsx, master-ui.tsx
-- /catalog/tests/[test_id] rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-CATALOG: rule 7 broken in ParameterForm.tsx, RangesTab.tsx, TestHeader.tsx, compact-ui.tsx
-- /catalog/units rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-CATALOG: rule 7 broken in CatalogForbidden.tsx, master-ui.tsx
-
 ## T0D-UIGUARD-1-FRONTDESK (rule 7: 5 entries)
 
 - /frontdesk/discount-approvals rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-FRONTDESK: rule 7 broken in DiscountApprovalsInbox.tsx
@@ -138,18 +42,6 @@ Other groups = LD-434 legacy baseline (CR-C0-0D-UIGUARD-1 option A); the heading
 - /frontdesk/patients/[patient_id] rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-FRONTDESK: rule 7 broken in PatientView.tsx
 - /frontdesk/registrations/new rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-FRONTDESK: rule 7 broken in RegistrationForm.tsx, ReceiptPrintView.tsx, accountsShared.tsx, InvoiceDocument.tsx
 - /frontdesk/settings rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-FRONTDESK: rule 7 broken in SettingsView.tsx
-
-## T0D-UIGUARD-1-LAB (rule 7: 9 entries)
-
-- /lab/approval rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-LAB: rule 7 broken in QueueScreen.tsx, consoleParts.tsx, ResultDialogs.tsx
-- /lab/critical-values rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-LAB: rule 7 broken in CriticalValueList.tsx, consoleParts.tsx
-- /lab/ingest-exceptions rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-LAB: rule 7 broken in IngestExceptionList.tsx, consoleParts.tsx
-- /lab/orders/[order_id]/labels rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-LAB: rule 7 broken in LabelPage.tsx
-- /lab/orders/[order_id]/results rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-LAB: rule 7 broken in CommentCell.tsx, ResultDialogs.tsx, ResultPanels.tsx
-- /lab/settings rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-LAB: rule 7 broken in VerificationPolicyTab.tsx
-- /lab/specimens/[specimen_id] rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-LAB: rule 7 broken in SpecimenDetail.tsx
-- /lab/verification rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-LAB: rule 7 broken in QueueScreen.tsx, consoleParts.tsx, ResultDialogs.tsx
-- /lab/worksheets/[worksheet_id] rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-LAB: rule 7 broken in WorksheetPrintPage.tsx
 
 ## T0D-UIGUARD-1-MICRO (rule 7: 6 entries)
 
@@ -180,12 +72,3 @@ Other groups = LD-434 legacy baseline (CR-C0-0D-UIGUARD-1 option A); the heading
 - /quality/setup/plans rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-QUALITY: rule 7 broken in MaterialsView.tsx, TargetsView.tsx
 - /quality/setup/targets rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-QUALITY: rule 7 broken in MaterialsView.tsx, TargetsView.tsx
 
-## T0D-UIGUARD-1-REPORTING (rule 7: 7 entries)
-
-- /reporting rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-REPORTING: rule 7 broken in CriticalAlertsPanel.tsx, ReportsWorklist.tsx
-- /reporting/deliveries/[delivery_id] rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-REPORTING: rule 7 broken in DeliveryDetail.tsx
-- /reporting/messages rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-REPORTING: rule 7 broken in MessagesChannels.tsx
-- /reporting/narratives/[narrative_id] rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-REPORTING: rule 7 broken in NarrativeEditor.tsx
-- /reporting/reports/[report_id] rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-REPORTING: rule 7 broken in ReportDetailView.tsx
-- /reporting/settings rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-REPORTING: rule 7 broken in PrintStationery.tsx, ReportingSettingsForm.tsx, SignatoryProfiles.tsx
-- /reporting/templates/[template_id] rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-REPORTING: rule 7 broken in TemplateEditor.tsx

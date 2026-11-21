@@ -204,7 +204,7 @@ export function WorklistScreen({ queue, cases, nextCursor }: WorklistScreenProps
         selectedId={queue}
         onChange={(id) => id !== queue && router.push(`/anatomic?${new URLSearchParams({ queue: id, ...Object.fromEntries(Object.entries(current()).filter(([, v]) => v)) } as Record<string, string>).toString()}`)}
       >
-        {workEmpty ? null : <FilterBar filters={filters} value={filterValue} onChange={onFilters} onReset={() => go({})} />}
+        {workEmpty ? null : <FilterBar filters={filters} value={filterValue} onChange={onFilters} onReset={() => go({})} resetLabel="Clear filters" />}
         <DataTable
           caption="Pathology cases"
           columns={columns}

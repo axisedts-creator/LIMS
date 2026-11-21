@@ -34,9 +34,6 @@ export const EXCEPTIONS: GuardException[] = [
     '/lab/orders/[order_id]/labels',
     '/lab/worksheets/[worksheet_id]',
   ]),
-  ...legacy('OFFLINE', 1, 'the page itself', [
-    '/offline',
-  ]),
   ...legacy('CATALOG', 2, 'CommentCodesScreen.tsx, master-ui.tsx, DoctorsList.tsx, ImportsScreen.tsx, TestImportScreen.tsx, PriceListDetail.tsx, PriceVersionEditor.tsx, PriceCompare.tsx, TestMgmtViews.tsx, TestsList.tsx', [
     '/catalog/comment-codes',
     '/catalog/credit-parties',
@@ -109,9 +106,6 @@ export const EXCEPTIONS: GuardException[] = [
   ...legacy('FRONTDESK', 4, 'the page itself', [
     '/frontdesk/orders/[order_id]',
     '/frontdesk/patients/[patient_id]',
-  ]),
-  ...legacy('OFFLINE', 4, 'the page itself', [
-    '/offline',
   ]),
   ...legacy('CATALOG', 5, 'AnalytesTab.tsx', [
     '/catalog/tests/[test_id]',
@@ -194,9 +188,6 @@ export const EXCEPTIONS: GuardException[] = [
     ['/micro/instrument-records', 'MicroForbidden.tsx'],
     ['/micro/settings', 'MicroForbidden.tsx, DictionariesTab.tsx, MappingsTab.tsx, PanelsTab.tsx, ProtocolsTab.tsx'],
     ['/micro/worklist', 'MicroForbidden.tsx, ChooseCultureDialog.tsx'],
-  ]),
-  ...legacy7('OFFLINE', [
-    ['/offline', 'OfflinePanel.tsx, OfflineShell.tsx'],
   ]),
   ...legacy7('PARTNERS', [
     ['/partners/sales/representatives', 'SalesRepresentatives.tsx'],

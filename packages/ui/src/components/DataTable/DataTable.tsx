@@ -73,6 +73,9 @@ export interface DataTableProps<Row> {
   columnChooser?: boolean;
   /** T0D-UIKIT-1, LD-353 rule 5: text cells carry title = their text, so a cut off cell can be read. */
   cellTitle?: boolean;
+  /** T0D-UIGUARD-1-PAYMENTS (LD-439, LD-441 additive): a SplitConsole queue. Each row carries data-console-item = its id (SplitConsole j / k);
+   *  a click or Enter selects it (aria-selected and data-selected on the row); no checkbox column; a click on the selected row keeps it selected. */
+  consoleSelection?: { selectedId: string | undefined; onSelect: (id: string) => void };
   'data-testid'?: string;
 }
 
@@ -129,6 +132,7 @@ export function DataTable<Row>({
   stickyFirstColumn,
   columnChooser,
   cellTitle,
+  consoleSelection,
   ...rest
 }: DataTableProps<Row>) {
   const [menu, setMenu] = useState<{ row: Row } | null>(null);
@@ -175,7 +179,11 @@ export function DataTable<Row>({
     if (role !== 'gridcell' && role !== 'rowheader' && role !== 'row') return;
     const row = rowOf(e.target);
     if (!row) return;
-    if (e.key === 'Enter' && onRowAction) {
+    if (e.key === 'Enter' && consoleSelection) {
+      e.preventDefault();
+      e.stopPropagation();
+      consoleSelection.onSelect(getRowId(row));
+    } else if (e.key === 'Enter' && onRowAction) {
       e.preventDefault();
       e.stopPropagation();
       onRowAction(row);
@@ -211,8 +219,12 @@ export function DataTable<Row>({
       ref={grid}
       aria-label={caption}
       className={`lims-table lims-table-${density}${stickyHeader ? ' lims-table-sticky' : ''}`}
-      selectionMode={selection?.mode ?? 'none'}
+      selectionMode={selection?.mode ?? (consoleSelection ? 'single' : 'none')}
       {...(selection ? { selectedKeys: new Set(selection.selectedIds), onSelectionChange } : {})}
+      {...(!selection && consoleSelection ? {
+        selectedKeys: new Set(consoleSelection.selectedId ? [consoleSelection.selectedId] : []),
+        onSelectionChange: (keys: Selection) => { const id = keys === 'all' ? undefined : [...keys][0]; if (id !== undefined) consoleSelection.onSelect(String(id)); },
+      } : {})}
       {...(sort ? { onSortChange: (d: SortDescriptor) => { const c = columns.find((x) => x.id === d.column); if (c?.sortKey) sort.onChange(d.direction === 'descending' ? `-${c.sortKey}` : c.sortKey); } } : {})}
       {...(sortDescriptor ? { sortDescriptor } : {})}
     >
@@ -247,7 +259,7 @@ export function DataTable<Row>({
           const id = getRowId(r);
           const st = rowStatus?.(r);
           return (
-            <RacRow key={id} id={id} data-row-id={id} data-row-index={first + i} className="lims-row" {...(st ? { 'data-tone': statusOf(st.kind, String(st.status ?? ''), st.tone, st.label)[0] } : {})}>
+            <RacRow key={id} id={id} data-row-id={id} data-row-index={first + i} className="lims-row" {...(consoleSelection ? { 'data-console-item': id } : {})} {...(st ? { 'data-tone': statusOf(st.kind, String(st.status ?? ''), st.tone, st.label)[0] } : {})}>
               {selection ? (
                 <Cell className="lims-cell-select">
                   <RacCheckbox slot="selection" className="lims-checkbox" />

@@ -17,7 +17,7 @@ import { Tabs } from '@lims/ui/components/Tabs';
 import { Timeline } from '@lims/ui/components/Timeline';
 import { useToast } from '@lims/ui/components/Toast';
 import { cancelAction, recheckAction, resolveAction, type ActionResult } from '../server/actions';
-import { gatewayLabel, hasPerm, humanize, lower, nprText, refundStatus, statusLabel, statusTone } from '../labels';
+import { amt, gatewayLabel, hasPerm, humanize, lower, nprText, refundStatus, statusLabel, statusTone } from '../labels';
 import { RefundRequestDialog } from './RefundRequestDialog';
 import type { CodedValue, IntentCodes, PaymentCallback, PaymentGatewayCheck, PaymentIntentDetail, PaymentMoney, PaymentRefund } from '../types';
 
@@ -135,17 +135,17 @@ export function IntentDetailView({ intent, permissions, codes, overpaid }: { int
   const terms = [
     { term: 'Order', value: <a href={`/frontdesk/orders/${intent.order_id}`}><IdText value={intent.order_id} truncate={64} /></a> },
     { term: 'Centre', value: <IdText value={intent.centre_id} truncate={64} /> },
-    { term: 'Amount', value: nprText(intent.amount) },
+    { term: 'Amount', value: amt(intent.amount) },
     { term: 'Provider reference', value: intent.gateway_txn_ref ? <IdText value={intent.gateway_txn_ref} truncate={64} copyable /> : '—' },
     { term: 'Provider transaction', value: intent.gateway_secondary_ref ? <IdText value={intent.gateway_secondary_ref} truncate={64} /> : '—' },
     { term: 'Created', value: when(intent.created_at) },
     { term: 'Expires', value: intent.expires_at ? when(intent.expires_at) : '—' },
     { term: 'Paid at', value: intent.settled_at ? when(intent.settled_at) : '—' },
-    { term: 'Verified amount', value: nprText(intent.verified_amount) },
+    { term: 'Verified amount', value: amt(intent.verified_amount) },
     { term: 'Verification', value: intent.verification_method ? `${gatewayLabel(intent.gateway)} ${lower(intent.verification_method)}` : '—' },
     { term: 'Hold reason', value: intent.hold_reason ? humanize(intent.hold_reason) : '—' },
     { term: 'Ledger entry', value: intent.ledger_entry_id ? <a href={`/frontdesk/orders/${intent.order_id}`}><IdText value={intent.ledger_entry_id} /></a> : '—' },
-    { term: 'Refunded', value: nprText(intent.refunded_amount) },
+    { term: 'Refunded', value: amt(intent.refunded_amount) },
   ];
 
   const checkCols: ColumnDef<PaymentGatewayCheck & { _id: string }>[] = [
@@ -201,8 +201,8 @@ export function IntentDetailView({ intent, permissions, codes, overpaid }: { int
 
   return (
     <>
-      <PageHeader title="Payment" helpKey="payments.intent" status={<StatusChip kind="payment_intent" status={intent.status} />} actions={actions} />
-      <p>{nprText(intent.amount)} · {gatewayLabel(intent.gateway)}</p>
+      {/* T0D-UIGUARD-1-PAYMENTS (LD-439, Today mock title row): the amount and gateway are the one caption line; amounts through kit MoneyText (done_when 2). */}
+      <PageHeader title="Payment" helpKey="payments.intent" status={<StatusChip kind="payment_intent" status={intent.status} />} actions={actions} caption={<>{amt(intent.amount)} · {gatewayLabel(intent.gateway)}</>} />
       {banner ? (
         <div role="alert">
           <Banner tone={banner.tone} title={banner.title} {...(banner.reload ? { action: { label: 'Reload', onPress: () => router.refresh() } } : {})} />

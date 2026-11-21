@@ -9,11 +9,10 @@ import { Banner } from '@lims/ui/components/Banner';
 import { Button } from '@lims/ui/components/Button';
 import { Card } from '@lims/ui/components/Card';
 import { ConfirmDialog } from '@lims/ui/components/ConfirmDialog';
-import { EmptyRow, PlaceholderRows } from '@lims/ui/components/DataTable';
+import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
 import { DateText, type DateTextProps } from '@lims/ui/components/DateText';
 import { DatePicker, type IsoDate } from '@lims/ui/components/DatePicker';
 import { Dialog } from '@lims/ui/components/Dialog';
-import { EmptyState } from '@lims/ui/components/EmptyState';
 import { FilterBar, type FilterDef, type FilterValue } from '@lims/ui/components/FilterBar';
 import { IdText } from '@lims/ui/components/IdText';
 import { PageHeader } from '@lims/ui/components/PageHeader';
@@ -21,19 +20,15 @@ import { SplitConsole } from '@lims/ui/components/SplitConsole';
 import { StatTile, StatTileRow } from '@lims/ui/components/StatTile';
 import { StatusChip } from '@lims/ui/components/StatusChip';
 import { t } from '@/core/i18n/messages';
-import { Facts, History, ShortcutKey, hhmm, itemProps, oldest, useNow } from './consoleParts';
+import { Facts, History, ShortcutKey, hhmm, oldest, useNow } from './consoleParts';
 import { TextField } from '@lims/ui/components/TextField';
 import { useToast } from '@lims/ui/components/Toast';
 import { SECOND_PERSON, failText } from '../errors';
-import { MoneyText } from '@lims/ui/components/MoneyText';
-import { dayNpt, dayOfInstant, gatewayLabel, hasPerm, humanize, kitMoney, nprText, refundStatus } from '../labels';
+import { amt, dayNpt, dayOfInstant, gatewayLabel, hasPerm, humanize, nprText, refundStatus } from '../labels';
 import {
   approveRefundAction, confirmRefundAction, failRefundAction, recheckRefundAction, rejectRefundAction, type ActionResult,
 } from '../server/actions';
-import type { PaymentMoney, RefundCodes, RefundDto } from '../types';
-
-/** Standalone amount via kit MoneyText (04-UI-UX:21); em dash when absent. */
-const amt = (m: PaymentMoney | undefined) => { const k = kitMoney(m); return k ? <MoneyText value={k} /> : <span className="lims-money">—</span>; };
+import type { RefundCodes, RefundDto } from '../types';
 
 type Iso = DateTextProps['value'];
 type Fail = Extract<ActionResult, { ok: false }>;
@@ -42,7 +37,6 @@ const BASE = '/payments/refunds';
 const REF = /^[A-Za-z0-9_.:/-]{1,100}$/;
 const OPEN_STATES = ['requested', 'held_for_review'];
 const WITH_PROVIDER = ['approved', 'requested', 'held_for_review'];
-const HEADERS = ['Age', 'Requested', 'Gateway', 'Amount', 'Status'];
 const STATUS_OPTIONS = ['pending_approval', 'approved', 'requested', 'held_for_review', 'completed', 'failed', 'rejected'].map((s) => ({ value: s, label: refundStatus(s)[1] }));
 const GATEWAY_OPTIONS = [{ value: ALL, label: 'All' }, { value: 'esewa', label: 'eSewa' }, { value: 'khalti', label: 'Khalti' }];
 
@@ -134,10 +128,10 @@ export function RefundsList({ refunds, permissions, currentMembershipId, codes, 
     ...(canRecheck && OPEN_STATES.includes(r.status) ? [{ key: 'R', label: 'Re-check', run: () => void recheck(r) }] : []),
     ...(canApprove && OPEN_STATES.includes(r.status) ? [{ key: 'M', label: 'Mark refund failed', variant: 'danger' as const, run: () => open('fail', r) }] : []),
   ];
-  const actions = (r: RefundDto) => (
+  const actions = (r: RefundDto, inBar = true) => (
     <div className="lims-row-actions">
       {actsOf(r).map((a, i) => {
-        const label = i === 0 ? `${a.label} (${a.key})` : a.label;
+        const label = inBar && i === 0 ? `${a.label} (${a.key})` : a.label;
         return a.blocked
           ? <SecondPersonHint key={a.label} label={label} />
           : <Button key={a.label} size="sm" {...(a.variant ? { variant: a.variant } : {})} onPress={a.run}>{label}</Button>;
@@ -153,26 +147,23 @@ export function RefundsList({ refunds, permissions, currentMembershipId, codes, 
   const pending = refunds.filter((r) => r.status === 'pending_approval');
   const statusChip = (r: RefundDto) => { const [tone, label] = refundStatus(r.status); return <StatusChip kind="generic" status={r.status} tone={tone} label={label} />; };
 
+  // T0D-UIGUARD-1-PAYMENTS (LD-439 done_when 2, Front-desk worklist mock): the queue is the kit DataTable; rows are the console items (consoleSelection).
+  // The Actions cell keeps the row actions of the table (same gates and dialogs as the bar; RS-C15 s3: never primary), like the row control of the worklist mock.
+  const columns: ColumnDef<RefundDto>[] = [
+    { id: 'age', header: 'Age', numeric: true, cell: (r) => <span suppressHydrationWarning>{hhmm(age(r))}</span> },
+    { id: 'requested', header: 'Requested', isRowHeader: true, cell: (r) => <DateText value={r.requested_at as Iso} withTime /> },
+    { id: 'gateway', header: 'Gateway', cell: (r) => gatewayLabel(r.gateway) },
+    { id: 'amount', header: 'Amount', numeric: true, cell: (r) => amt(r.amount) },
+    { id: 'status', header: 'Status', cell: (r) => statusChip(r) },
+    { id: 'actions', header: 'Actions', cell: (r) => actions(r, false) },
+  ];
   const list = (
-    <div className="lims-data-table"><div className="lims-table-scroll">
-      <table className="lims-table">
-        <caption className="lims-visually-hidden">Gateway refunds</caption>
-        <thead><tr>{HEADERS.map((h) => <th key={h} scope="col" {...(h === 'Amount' ? { className: 'lims-align-end' } : {})}>{h}</th>)}</tr></thead>
-        <tbody>
-          {refunds.length === 0 ? <EmptyRow colSpan={HEADERS.length}><EmptyState title="No refunds." body="Refund requests appear here until they are completed." /></EmptyRow> : null}
-          {refunds.map((r) => (
-            <tr key={r.id} {...itemProps(r.id, selectedId, setSelectedId)}>
-              <td suppressHydrationWarning>{hhmm(age(r))}</td>
-              <td><DateText value={r.requested_at as Iso} withTime /></td>
-              <td>{gatewayLabel(r.gateway)}</td>
-              <td className="lims-align-end lims-num">{amt(r.amount)}</td>
-              <td>{statusChip(r)}</td>
-            </tr>
-          ))}
-        </tbody>
-        {refunds.length === 0 ? <PlaceholderRows colSpan={HEADERS.length} /> : null}
-      </table>
-    </div></div>
+    <DataTable<RefundDto>
+      columns={columns} rows={refunds} getRowId={(r) => r.id} density="compact" caption="Gateway refunds"
+      emptyState={{ title: 'No refunds.', body: 'Refund requests appear here until they are completed.' }}
+      consoleSelection={{ selectedId, onSelect: setSelectedId }}
+      {...(nextCursor || hasPrevious ? { page: { hasNext: !!nextCursor, hasPrevious: !!hasPrevious, onNext: () => nextCursor && go(value, nextCursor), onPrevious: () => router.back(), limit: refunds.length } } : {})}
+    />
   );
 
   const detail = sel ? (
@@ -225,12 +216,6 @@ export function RefundsList({ refunds, permissions, currentMembershipId, codes, 
       <ShortcutKey letter={first?.key} run={first && !first.blocked ? first.run : undefined}>
         <SplitConsole list={list} detail={detail} listLabel="Refund queue" detailLabel="Refund" actions={sel ? actions(sel) : undefined} />
       </ShortcutKey>
-      {nextCursor || hasPrevious ? (
-        <div className="lims-pager">
-          <Button size="sm" variant="secondary" isDisabled={!hasPrevious} onPress={() => router.back()}>Previous</Button>
-          <Button size="sm" variant="secondary" isDisabled={!nextCursor} onPress={() => nextCursor && go(value, nextCursor)}>Next</Button>
-        </div>
-      ) : null}
       {dlg?.kind === 'approve' ? (
         <ConfirmDialog
           key={dlg.key} isOpen title={`Approve refund of ${nprText(dlg.refund.amount)}?`} confirmLabel="Approve" onCancel={close} onConfirm={() => approve(dlg)}

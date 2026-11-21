@@ -1,6 +1,7 @@
 // Display helpers for the payment screens: lakh-grouped NPR text, plain-words codes, status label from the kit mapping.
 import { statusOf } from '@lims/ui/components/StatusChip';
 import type { Money } from '@lims/ui/components/MoneyField';
+import { MoneyText } from '@lims/ui/components/MoneyText';
 import type { PaymentMoney } from './types';
 
 /** `NPR 1,23,456.00` from integer paisa. String maths only (no float division): the server amount is authoritative. */
@@ -17,6 +18,9 @@ export function nprText(m: PaymentMoney | undefined): string {
 /** DTO money → kit Money for MoneyText (04-UI-UX:21); undefined when absent/invalid. */
 export const kitMoney = (m: PaymentMoney | undefined): Money | undefined =>
   m && Number.isSafeInteger(m.amount_paisa) ? { amountPaisa: m.amount_paisa, currency: 'NPR' } : undefined;
+
+/** Standalone amount via kit MoneyText (04-UI-UX:21, LD-439 done_when 2); em dash when absent. */
+export const amt = (m: PaymentMoney | undefined) => { const k = kitMoney(m); return k ? <MoneyText value={k} /> : <span className="lims-money">—</span>; };
 
 /** T0D-UILIST-2 (LD-353 rule 3): a money TABLE cell, lakh grouping and two decimals like MoneyText, no currency word (the header carries "(NPR)").
  *  String slicing on the integer paisa, no rupee maths (pg-t18.source). */

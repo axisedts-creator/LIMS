@@ -5,11 +5,9 @@
 // queue at left (Age first, API order), detail at right (the columns the table had plus History), bar = the existing link to the payment ("(O)", key O). No new action.
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button } from '@lims/ui/components/Button';
 import { Card } from '@lims/ui/components/Card';
-import { EmptyRow, PlaceholderRows } from '@lims/ui/components/DataTable';
+import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
 import { DateText, type DateTextProps } from '@lims/ui/components/DateText';
-import { EmptyState } from '@lims/ui/components/EmptyState';
 import { FilterBar, type FilterDef, type FilterValue } from '@lims/ui/components/FilterBar';
 import { IdText } from '@lims/ui/components/IdText';
 import { PageHeader } from '@lims/ui/components/PageHeader';
@@ -17,8 +15,8 @@ import { SplitConsole } from '@lims/ui/components/SplitConsole';
 import { StatTile, StatTileRow } from '@lims/ui/components/StatTile';
 import { StatusChip } from '@lims/ui/components/StatusChip';
 import { t } from '@/core/i18n/messages';
-import { gatewayLabel, humanize, nprText } from '../labels';
-import { Facts, History, ShortcutKey, hhmm, itemProps, oldest, useNow } from './consoleParts';
+import { amt, gatewayLabel, humanize } from '../labels';
+import { Facts, History, ShortcutKey, hhmm, oldest, useNow } from './consoleParts';
 import type { ReviewFilter } from '../query';
 import type { CodedValue, PaymentCentre, PaymentIntentSummary } from '../types';
 
@@ -32,7 +30,6 @@ const GATEWAY_OPTIONS = [
   { value: 'fonepay', label: 'Fonepay — not available yet', isDisabled: true },
 ];
 const BASE = '/payments/review';
-const HEADERS = ['Age', 'Created', 'Gateway', 'Amount', 'Status', 'Reason'];
 
 export interface ReviewQueueProps {
   intents: readonly PaymentIntentSummary[];
@@ -97,27 +94,24 @@ export function ReviewQueue({ intents, centres, holdReasons, filter, nextCursor,
   const intentHref = (r: PaymentIntentSummary) => `/payments/intents/${r.id}`;
   const orderHref = (r: PaymentIntentSummary) => `/frontdesk/orders/${r.order_id}`;
 
+  // T0D-UIGUARD-1-PAYMENTS (LD-439 done_when 2, Front-desk worklist mock): the queue is the kit DataTable; rows are the console items (consoleSelection).
+  // The Payment column is the link to the payment (mono id, like the accession number of the mock), so the keyboard reaches it inside the grid (RS-C15 s8).
+  const columns: ColumnDef<PaymentIntentSummary>[] = [
+    { id: 'age', header: 'Age', numeric: true, cell: (r) => <span suppressHydrationWarning>{hhmm(age(r))}</span> },
+    { id: 'payment', header: 'Payment', isRowHeader: true, cell: (r) => <a href={intentHref(r)} aria-label={`Payment ${r.id.slice(0, 8)}`}><IdText value={r.id} /></a> },
+    { id: 'created', header: 'Created', cell: (r) => <DateText value={r.created_at as Iso} withTime /> },
+    { id: 'gateway', header: 'Gateway', cell: (r) => gatewayLabel(r.gateway) },
+    { id: 'amount', header: 'Amount', numeric: true, cell: (r) => amt(r.amount) },
+    { id: 'status', header: 'Status', cell: (r) => <StatusChip kind="payment_intent" status={r.status} /> },
+    { id: 'reason', header: 'Reason', cell: (r) => reason(r) },
+  ];
   const list = (
-    <div className="lims-data-table"><div className="lims-table-scroll">
-      <table className="lims-table">
-        <caption className="lims-visually-hidden">Payments needing review</caption>
-        <thead><tr>{HEADERS.map((h) => <th key={h} scope="col" {...(h === 'Amount' ? { className: 'lims-align-end' } : {})}>{h}</th>)}</tr></thead>
-        <tbody>
-          {intents.length === 0 ? <EmptyRow colSpan={HEADERS.length}><EmptyState title="No payments need review." body="Held payments appear here when a provider answer needs a person." /></EmptyRow> : null}
-          {intents.map((r) => (
-            <tr key={r.id} {...itemProps(r.id, selectedId, setSelectedId)}>
-              <td suppressHydrationWarning>{hhmm(age(r))}</td>
-              <td><DateText value={r.created_at as Iso} withTime /></td>
-              <td>{gatewayLabel(r.gateway)}</td>
-              <td className="lims-align-end lims-num"><span className="lims-money">{nprText(r.amount)}</span></td>
-              <td><StatusChip kind="payment_intent" status={r.status} /></td>
-              <td>{reason(r)}</td>
-            </tr>
-          ))}
-        </tbody>
-        {intents.length === 0 ? <PlaceholderRows colSpan={HEADERS.length} /> : null}
-      </table>
-    </div></div>
+    <DataTable<PaymentIntentSummary>
+      columns={columns} rows={intents} getRowId={(r) => r.id} density="compact" caption="Payments needing review"
+      emptyState={{ title: 'No payments need review.', body: 'Held payments appear here when a provider answer needs a person.' }}
+      consoleSelection={{ selectedId, onSelect: setSelectedId }}
+      {...(nextCursor || hasPrevious ? { page: { hasNext: !!nextCursor, hasPrevious: !!hasPrevious, onNext: () => nextCursor && go(value, nextCursor), onPrevious: () => router.back(), limit: intents.length } } : {})}
+    />
   );
 
   const detail = sel ? (
@@ -125,7 +119,7 @@ export function ReviewQueue({ intents, centres, holdReasons, filter, nextCursor,
     <Card title={reason(sel)}>
       <Facts items={[
         ['Gateway', gatewayLabel(sel.gateway)],
-        ['Amount', <span key="a" className="lims-money">{nprText(sel.amount)}</span>],
+        ['Amount', amt(sel.amount)],
         ['Status', <StatusChip key="s" kind="payment_intent" status={sel.status} />],
         ['Reason', reason(sel)],
         ['Last checked', sel.last_checked_at ? <DateText key="c" value={sel.last_checked_at as Iso} withTime /> : '—'],
@@ -152,12 +146,6 @@ export function ReviewQueue({ intents, centres, holdReasons, filter, nextCursor,
         <SplitConsole list={list} detail={detail} listLabel="Payments needing review" detailLabel="Payment"
           actions={sel ? <a href={intentHref(sel)}>Open payment (O)</a> : undefined} />
       </ShortcutKey>
-      {nextCursor || hasPrevious ? (
-        <div className="lims-pager">
-          <Button size="sm" variant="secondary" isDisabled={!hasPrevious} onPress={() => router.back()}>Previous</Button>
-          <Button size="sm" variant="secondary" isDisabled={!nextCursor} onPress={() => nextCursor && go(value, nextCursor)}>Next</Button>
-        </div>
-      ) : null}
     </div>
   );
 }

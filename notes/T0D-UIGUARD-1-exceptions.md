@@ -66,11 +66,6 @@ Other groups = LD-434 legacy baseline (CR-C0-0D-UIGUARD-1 option A); the heading
 - /frontdesk/orders/[order_id] rule 5: legacy baseline LD-434, fix in T0D-UIGUARD-1-FRONTDESK: rule 5 broken in OrderView.tsx, PatientView.tsx
 - /frontdesk/patients/[patient_id] rule 5: legacy baseline LD-434, fix in T0D-UIGUARD-1-FRONTDESK: rule 5 broken in OrderView.tsx, PatientView.tsx
 
-## T0D-UIGUARD-1-HOMECOLLECTION (2 entries, 1 routes)
-
-- /homecollection/dispatch rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-HOMECOLLECTION: rule 2 broken in DispatchBoard.tsx
-- /homecollection/dispatch rule 5: legacy baseline LD-434, fix in T0D-UIGUARD-1-HOMECOLLECTION: rule 5 broken in DispatchBoard.tsx
-
 ## T0D-UIGUARD-1-INVENTORY (4 entries, 3 routes)
 
 - /inventory/reports rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-INVENTORY: rule 2 broken in RulesView.tsx

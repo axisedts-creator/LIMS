@@ -7,6 +7,7 @@ import { useId, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Banner } from '@lims/ui/components/Banner';
 import { Button } from '@lims/ui/components/Button';
+import { Card } from '@lims/ui/components/Card';
 import { ConfirmDialog } from '@lims/ui/components/ConfirmDialog';
 import { EmptyRow, PlaceholderRows } from '@lims/ui/components/DataTable';
 import { DateText, type DateTextProps } from '@lims/ui/components/DateText';
@@ -175,8 +176,8 @@ export function RefundsList({ refunds, permissions, currentMembershipId, codes, 
   );
 
   const detail = sel ? (
-    <>
-      <h2>{`Refund of ${nprText(sel.amount)}`}</h2>
+    // T0D-UIGUARD-1-PAYMENTS (LD-436 R7, LD-439): the detail is a kit Card with a title row, no raw h2.
+    <Card title={`Refund of ${nprText(sel.amount)}`}>
       <Facts items={[
         ['Gateway', gatewayLabel(sel.gateway)],
         ['Amount', amt(sel.amount)],
@@ -188,7 +189,7 @@ export function RefundsList({ refunds, permissions, currentMembershipId, codes, 
         ['Payment', <a key="p" href={paymentHref(sel)} aria-label={`Payment ${sel.intent_id.slice(0, 8)}`}><IdText value={sel.intent_id} /></a>],
       ]} />
       <History events={[['Requested', sel.requested_at] as const, ...(sel.approved_at ? [['Approved', sel.approved_at] as const] : [])]} />
-    </>
+    </Card>
   ) : <p>Select a refund to see it here.</p>;
 
   const f: RefundsFilter = filter ?? { status: [] };

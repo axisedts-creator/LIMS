@@ -78,11 +78,6 @@ Other groups = LD-434 legacy baseline (CR-C0-0D-UIGUARD-1 option A); the heading
 - /partners/sales/representatives rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-PARTNERS: rule 7 broken in SalesRepresentatives.tsx
 - /partners/tickets/[ticket_id] rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-PARTNERS: rule 7 broken in TicketThread.tsx
 
-## T0D-UIGUARD-1-PAYMENTS (rule 7: 2 entries)
-
-- /payments/refunds rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-PAYMENTS: rule 7 broken in RefundsList.tsx, consoleParts.tsx
-- /payments/review rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-PAYMENTS: rule 7 broken in ReviewQueue.tsx, consoleParts.tsx
-
 ## T0D-UIGUARD-1-QUALITY (rule 7: 12 entries)
 
 - /quality rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-QUALITY: rule 7 broken in LjView.tsx, RunDetailView.tsx

@@ -1,0 +1,7 @@
+# T0D-UIGUARD-1-PAYMENTS impl (writer)
+- Pages (6): /payments/review, /payments/refunds (LD-353 console: PageHeader, FilterBar, StatTiles, SplitConsole), /payments/reconciliation, /payments/static-qr, /payments/settings, /payments/intents/[intent_id] (already on kit parts, no rule 7 finding, not changed).
+- Files: consoleParts.tsx (History = kit Timeline title+labelFirst, unused `when` dropped), ReviewQueue.tsx + RefundsList.tsx (detail = kit Card title row, no raw h2); notes/T0D-UIGUARD-1-exceptions.md PAYMENTS section deleted. No kit prop, token, route, permission, API or registry change. [CONV] same pattern as T0D-UIGUARD-1-INVENTORY.
+- Checks: uiguard1 36/36; uiconsole1 128/128; pg-t18 89/89; uilist2 9/9; uiset1 5/5; nav-complete 10/10; rs-c15 screens snapshot unchanged (no re-record needed); tsc: no payments errors.
+- PRE-EXISTING red (same before and after this task, from T0D-UICONSOLE-1): pg-t19.source 1 (raw <table> in RefundsList) and rs-c15.behaviour 5 (role grid expected on review/refunds). They conflict with uiconsole1 (console rows with data-console-item, not kit DataTable grid) -> lead/debugger to arbitrate; the worklist DataTable rebuild of review/refunds is blocked on that.
+- OPEN: MoneyText prints "Rs." but pg-t18/pg-t19 pin "NPR 1,23,456.00" text, so review/refunds/intent amounts stay on nprText (lakh, right aligned, lims-num tabular) -> tester/lead.
+- Not done: no further visual rebuild of recon/static-qr/settings/intent beyond the guard; eslint not installed in apps/web (not run).

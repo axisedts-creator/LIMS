@@ -6,6 +6,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@lims/ui/components/Button';
+import { Card } from '@lims/ui/components/Card';
 import { EmptyRow, PlaceholderRows } from '@lims/ui/components/DataTable';
 import { DateText, type DateTextProps } from '@lims/ui/components/DateText';
 import { EmptyState } from '@lims/ui/components/EmptyState';
@@ -120,8 +121,8 @@ export function ReviewQueue({ intents, centres, holdReasons, filter, nextCursor,
   );
 
   const detail = sel ? (
-    <>
-      <h2>{reason(sel)}</h2>
+    // T0D-UIGUARD-1-PAYMENTS (LD-436 R7, LD-439): the detail is a kit Card with a title row, no raw h2.
+    <Card title={reason(sel)}>
       <Facts items={[
         ['Gateway', gatewayLabel(sel.gateway)],
         ['Amount', <span key="a" className="lims-money">{nprText(sel.amount)}</span>],
@@ -135,7 +136,7 @@ export function ReviewQueue({ intents, centres, holdReasons, filter, nextCursor,
         ...(sel.last_checked_at ? [['Checked', sel.last_checked_at] as const] : []),
         ...(sel.settled_at ? [['Paid', sel.settled_at] as const] : []),
       ]} />
-    </>
+    </Card>
   ) : <p>Select a payment to see it here.</p>;
 
   return (

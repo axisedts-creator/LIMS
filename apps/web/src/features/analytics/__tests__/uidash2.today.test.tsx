@@ -292,7 +292,9 @@ describe('Today structure and look rules (done_when (1), (3); LD-353 rules)', ()
     const { container } = mount(withData());
     expect(container.innerHTML).not.toMatch(/#[0-9a-f]{3,8}\b|rgba?\(|hsl\(|gradient/i);
     for (const el of container.querySelectorAll<HTMLElement>('[style]')) {
-      expect(el.getAttribute('style'), `inline style on <${el.tagName.toLowerCase()}>`).not.toMatch(/font-weight|color|background|border|box-shadow|height|width/i);
+      const style = el.getAttribute('style') ?? '';
+      if (/clip:\s*rect\(0/i.test(style)) continue; // ruling: react-aria visually hidden pattern (HiddenSelect) is exempt
+      expect(style, `inline style on <${el.tagName.toLowerCase()}>`).not.toMatch(/font-weight|color|background|border|box-shadow|height|width/i);
     }
   });
 

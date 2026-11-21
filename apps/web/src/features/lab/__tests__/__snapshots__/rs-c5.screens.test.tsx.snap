@@ -598,7 +598,9 @@ exports[`RS-C5 key screens (DOM snapshots) > worklist: table with the right pane
 </div>
 <aside aria-label="Result entry">
 <div class="lims-card">
+<div class="lims-card-head">
 <h2 class="lims-card-title">Result entry</h2>
+</div>
 <dl>
 <dt>Reg no</dt>
 <dd>R2611050001</dd>

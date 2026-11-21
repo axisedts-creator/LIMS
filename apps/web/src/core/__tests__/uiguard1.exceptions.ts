@@ -16,9 +16,6 @@ const legacy7 = (area: (typeof AREAS)[number], rows: Array<[route: string, files
   rows.map(([route, files]) => ({ route, rule: 7 as Rule, reason: `legacy baseline LD-436, fix in T0D-UIGUARD-1-${area}: rule 7 broken in ${files}` }));
 
 export const EXCEPTIONS: GuardException[] = [
-  // Pinned by rs-c2.static: the admin screens draw their heading through features/admin/server/page-kit Frame (a bare h1), which may not be edited.
-  { route: '/admin/*', rule: 2, reason: 'pinned: access-log, audit, sessions and users build their own filter row under app/(staff)/admin on the pinned page-kit (rs-c2.static pins features/admin); only shared kit fixes apply' },
-  { route: '/admin/*', rule: 1, reason: 'pinned: heading comes from features/admin/server/page-kit Frame (rs-c2.static pins features/admin); only shared kit fixes apply' },
   // The registration entry form (template 6) keeps its bold totals and its line table that swaps for a hint; its CSS is shared with the order view.
   { route: '/frontdesk/registrations/new', rule: 3, reason: 'registration entry form: frontdesk.css bold totals and registration number (template 6)' },
   { route: '/frontdesk/registrations/new', rule: 5, reason: 'registration entry form: the test line grid is an entry grid, not a list (template 6)' },
@@ -201,26 +198,6 @@ export const EXCEPTIONS: GuardException[] = [
   // The area is the sidebar group of the route (LD-439 a); the area task rebuilds every screen of its area, so when it ends none of its entries may remain (LD-439 b).
   // Nothing under app/(auth), app/(platform), features/platform or features/admin/auth is walked, so no pinned rule 7 entry is needed (a finding there would fail the pinned test).
   { route: '/[...slug]', rule: 7, reason: 'catch-all placeholder for module routes without a page; not a screen (CR T0D-14): raw h1 in page.tsx' },
-  ...legacy7('ADMIN', [
-    ['/admin/access-log', 'page-kit.tsx, ui.tsx'],
-    ['/admin/access-review', 'page-kit.tsx'],
-    ['/admin/audit', 'page-kit.tsx, ui.tsx'],
-    ['/admin/audit/[audit_id]', 'page-kit.tsx'],
-    ['/admin/branches', 'page-kit.tsx, OrgUnits.tsx, ui.tsx'],
-    ['/admin/centres', 'page-kit.tsx, OrgUnits.tsx, ui.tsx'],
-    ['/admin/exports', 'page-kit.tsx, ExportsScreen.tsx, ui.tsx'],
-    ['/admin/me', 'page-kit.tsx, MyAccount.tsx, ui.tsx'],
-    ['/admin/roles', 'page-kit.tsx'],
-    ['/admin/roles/[role_id]', 'page-kit.tsx, RoleEditor.tsx, ui.tsx'],
-    ['/admin/roles/new', 'page-kit.tsx, RoleEditor.tsx, ui.tsx'],
-    ['/admin/roles/packs', 'page-kit.tsx'],
-    ['/admin/sessions', 'page-kit.tsx, ui.tsx'],
-    ['/admin/settings', 'page-kit.tsx, SettingsScreen.tsx, ui.tsx'],
-    ['/admin/support-access', 'page-kit.tsx, SupportAccess.tsx, ui.tsx'],
-    ['/admin/users', 'page-kit.tsx, ui.tsx'],
-    ['/admin/users/[membership_id]', 'page-kit.tsx, UserDetailView.tsx, ui.tsx'],
-    ['/admin/users/new', 'page-kit.tsx, ui.tsx'],
-  ]),
   ...legacy7('ANATOMIC', [
     ['/anatomic', 'AnatomicForbidden.tsx'],
     ['/anatomic/batches', 'AnatomicForbidden.tsx'],

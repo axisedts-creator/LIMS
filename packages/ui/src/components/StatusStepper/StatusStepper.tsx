@@ -1,8 +1,13 @@
 import { Icon } from '../Icon/Icon';
+import type { Tone } from '../_shared/messages';
 
 export interface StatusStep {
   id: string;
   label: string;
+  /** T0D-UIDASH-2 (LD-436 pipeline): the count under the label (already formatted); absent = no number. */
+  count?: string;
+  /** T0D-UIDASH-2: one short line beside the count in a tone, e.g. "6 overdue" in danger. */
+  note?: { text: string; tone: Tone };
 }
 
 export interface StatusStepperProps {
@@ -38,6 +43,13 @@ export function StatusStepper({ steps, currentId, outcome, mostWaitingId, ...res
                   <span className="lims-step-marker" aria-hidden="true" />
                   <span className="lims-step-waiting">Most waiting</span>
                 </>
+              ) : null}
+              {s.count !== undefined || s.note ? ' ' : null}
+              {s.count !== undefined || s.note ? (
+                <span className="lims-step-figures">
+                  {s.count !== undefined ? <span className="lims-step-count">{s.count}</span> : null}
+                  {s.note ? <> <span className={`lims-step-note lims-tone-${s.note.tone}`} data-tone={s.note.tone}>{s.note.text}</span></> : null}
+                </span>
               ) : null}
             </li>
           );

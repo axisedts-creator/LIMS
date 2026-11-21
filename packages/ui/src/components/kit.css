@@ -385,3 +385,15 @@ div.lims-row-placeholder { min-height: 32px; border-bottom: 1px solid var(--lims
 .lims-table th, .lims-egrid-table th { font-weight: var(--lims-font-weight-medium); }
 /* LD-344: the selected radio (5 px ring on a content-box) was 26 px against 18 px unselected; one box size for both */
 .lims-check-box, .lims-radio-dot { box-sizing: border-box; }
+/* T0D-UIDASH-2 (LD-436 look, LD-437 mock): additive kit props. PageHeader caption line under the title; StatusStepper count + toned note;
+   BarChart current category in accent; DataTable pager total. Tokens only. */
+.lims-page-heading { display: flex; flex-direction: column; gap: var(--lims-space-0-5); min-width: 0; }
+.lims-page-caption { margin: 0; color: var(--lims-neutral-500); font-size: var(--lims-font-size-xs-size); font-weight: var(--lims-font-weight-regular); }
+.lims-step-figures { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--lims-space-2); flex-basis: 100%; }
+.lims-step-count { color: var(--lims-neutral-900); font-size: var(--lims-font-size-lg-size); font-weight: var(--lims-font-weight-semibold); font-variant-numeric: tabular-nums; }
+.lims-step-note { font-size: var(--lims-font-size-xs-size); font-weight: var(--lims-font-weight-medium); background: transparent; }
+.lims-step-note[data-tone='danger'] { color: var(--lims-tone-danger-fg); }
+.lims-chart-svg:has([data-current='true']) .lims-chart-bar { color: var(--lims-neutral-300); }
+.lims-chart-svg .lims-chart-bar[data-current='true'] { color: var(--lims-accent); }
+.lims-pager { align-items: center; }
+.lims-pager-total { margin-inline-end: auto; color: var(--lims-neutral-700); font-size: var(--lims-font-size-sm-size); font-variant-numeric: tabular-nums; }

@@ -306,3 +306,19 @@ a.lims-menuitem { display: block; color: inherit; text-decoration: none; }
 .lims-rail-user-name, .lims-rail-user-role { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .lims-rail-user-role { opacity: 0.85; }
 .lims-shell-top .lims-breadcrumb { font-size: var(--lims-font-size-base-size); }
+/* T0D-UIDASH-2 (LD-436 Today mock): pipeline card, then Needs you (5) beside Money (7), then the two charts (7 beside 5). Tokens only. */
+.lims-dash { display: flex; flex-direction: column; gap: var(--lims-space-4); }
+.lims-dash-row { display: grid; grid-template-columns: 5fr 7fr; gap: var(--lims-space-4); align-items: stretch; }
+.lims-dash-charts { grid-template-columns: 7fr 5fr; }
+@media (max-width: 64rem) { .lims-dash-row, .lims-dash-charts { grid-template-columns: 1fr; } }
+.lims-dash-money { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: 0.0625rem; background: var(--lims-neutral-200); }
+.lims-dash-money > .lims-stat { border: 0; border-radius: 0; }
+.lims-dash-money .lims-stat-value { font-weight: var(--lims-font-weight-semibold); }
+.lims-dash-ratio { display: flex; flex-direction: column; gap: var(--lims-space-2); margin-top: var(--lims-space-3); }
+.lims-dash-ratio-label { display: flex; justify-content: space-between; color: var(--lims-neutral-700); font-size: var(--lims-font-size-xs-size); font-weight: var(--lims-font-weight-medium); font-variant-numeric: tabular-nums; }
+.lims-progress { appearance: none; width: 100%; height: var(--lims-space-2); border: 0; border-radius: var(--lims-radius-full); background: var(--lims-neutral-100); overflow: hidden; }
+.lims-progress::-webkit-progress-bar { background: var(--lims-neutral-100); }
+.lims-progress::-webkit-progress-value { background: var(--lims-accent); border-radius: var(--lims-radius-full); }
+.lims-progress::-moz-progress-bar { background: var(--lims-accent); border-radius: var(--lims-radius-full); }
+.lims-card-note, .lims-na { margin: var(--lims-space-2) 0 0; color: var(--lims-neutral-500); font-size: var(--lims-font-size-xs-size); }
+.lims-na { margin: 0; }

@@ -45,6 +45,8 @@ export interface DataTableProps<Row> {
   error?: { title: string; requestId?: string; onRetry?: () => void };
   emptyState: EmptyStateProps;
   /** Cursor pagination only (CV §4.3): no page numbers, no totals. */
+  /** T0D-UIDASH-2 (LD-436 worklist pager): the row total of the list; draws "Showing 1 to n of total" in the pager. */
+  total?: number;
   page?: { hasNext: boolean; hasPrevious: boolean; onNext: () => void; onPrevious: () => void; limit: number };
   /** value like 'received_at' or '-received_at' (descending). */
   sort?: { value: string; onChange: (v: string) => void };
@@ -111,6 +113,7 @@ export function DataTable<Row>({
   error,
   emptyState,
   page,
+  total,
   sort,
   selection,
   density = 'regular',
@@ -320,14 +323,19 @@ export function DataTable<Row>({
       <div role="status" className="lims-visually-hidden">
         {isLoading ? 'Loading results' : ''}
       </div>
-      {page ? (
+      {page || total !== undefined ? (
         <div className="lims-pager">
-          <button type="button" className="lims-btn lims-btn-secondary lims-btn-sm" disabled={!page.hasPrevious} onClick={page.onPrevious}>
-            Previous
-          </button>
-          <button type="button" className="lims-btn lims-btn-secondary lims-btn-sm" disabled={!page.hasNext} onClick={page.onNext}>
-            Next
-          </button>
+          {total !== undefined ? <span className="lims-pager-total">{shown.length > 0 ? `Showing 1 to ${shown.length} of ${total}` : `0 of ${total}`}</span> : null}
+          {page ? (
+            <>
+              <button type="button" className="lims-btn lims-btn-secondary lims-btn-sm" disabled={!page.hasPrevious} onClick={page.onPrevious}>
+                Previous
+              </button>
+              <button type="button" className="lims-btn lims-btn-secondary lims-btn-sm" disabled={!page.hasNext} onClick={page.onNext}>
+                Next
+              </button>
+            </>
+          ) : null}
         </div>
       ) : null}
       {menu && rowActions ? (

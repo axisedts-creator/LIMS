@@ -178,13 +178,6 @@ export const EXCEPTIONS: GuardException[] = [
     '/lab/orders/[order_id]/results',
     '/lab/settings',
   ]),
-  ...legacy('ANALYTICS', 6, 'ReportView.tsx', [
-    '/analytics/collections',
-    '/analytics/referral-incentive',
-    '/analytics/report-runs/[report_run_id]',
-    '/analytics/reports',
-    '/analytics/reports/[reportCode]',
-  ]),
   ...legacy('INVENTORY', 6, 'ReportBody.tsx', [
     '/inventory/reports',
   ]),
@@ -218,11 +211,6 @@ export const EXCEPTIONS: GuardException[] = [
     ['/admin/users', 'page-kit.tsx, ui.tsx'],
     ['/admin/users/[membership_id]', 'page-kit.tsx, UserDetailView.tsx, ui.tsx'],
     ['/admin/users/new', 'page-kit.tsx, ui.tsx'],
-  ]),
-  ...legacy7('ANALYTICS', [
-    ['/analytics/schedules', 'ScheduleEditor.tsx'],
-    ['/analytics/schedules/[schedule_id]', 'ScheduleEditor.tsx'],
-    ['/analytics/schedules/new', 'ScheduleEditor.tsx'],
   ]),
   ...legacy7('ANATOMIC', [
     ['/anatomic', 'AnatomicForbidden.tsx'],

@@ -603,7 +603,12 @@ describe('synoptic templates tab (K13, K17-K19; AC-08.3, AC-08.4)', () => {
     api.use(http.get(`${ORIGIN}/v1/anatomic/synoptic-templates`, () => page([])));
     await open();
     expect(text()).toContain('No templates yet.');
-    expect(screen.getByRole('link', { name: /new template/i }).getAttribute('href')).toBe('/anatomic/config/templates/new');
+    expect(screen.getAllByRole('columnheader').length).toBeGreaterThan(0); // LD-436 rule 5: header row stays
+    // the kit empty state carries its own [New template] action, next to the one in the tab header
+    const state = document.querySelector('.lims-state') as HTMLElement;
+    expect(state.textContent).toContain('No templates yet.');
+    expect(within(state).getByRole('link', { name: /new template/i }).getAttribute('href')).toBe('/anatomic/config/templates/new');
+    expect(screen.getAllByRole('link', { name: /new template/i }).every((a) => a.getAttribute('href') === '/anatomic/config/templates/new')).toBe(true);
   });
 
   it('[New template] links to the blank builder; the key links to the editor /anatomic/config/templates/{id}', async () => {

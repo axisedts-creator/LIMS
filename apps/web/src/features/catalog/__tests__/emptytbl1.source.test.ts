@@ -30,7 +30,7 @@ const HAS_TABLE = /<table|<DataTable|<SimpleTable|<MasterTable/;
 /** file (relative to features/) -> why it may keep an empty state instead of a table. Keep it SHORT; a list screen never belongs here. */
 // T0D-EMPTYTBL-2 (LD-336): the 11 DEFERRED list screens are fixed and removed from the list; only screens that are not tables stay.
 const ALLOW: Record<string, string> = {
-  'lab/components/CollectDispatch.tsx': 'scan screens: "Scan a label to start" / "Scan collected specimens…" (no columns before a scan)',
+  'lab/components/shared.tsx': 'ListTable (T0D-UILIST-1, LD-353 rule 5): the EmptyState is rendered inside <tbody> via EmptyRow, not instead of the table',
   // (DepartmentIndex is a link picker and does not match the pattern, so it needs no entry)
 };
 /** rs-c2.static pins these trees; this task may not touch them. */
@@ -82,7 +82,7 @@ describe('T0D-EMPTYTBL-1 no list screen swaps its table for an empty-state card'
     ];
     expect(eleven.filter((n) => n in ALLOW)).toEqual([]);
     for (const n of eleven) expect(() => statSync(join(FEATURES, n)), `${n} must still exist`).not.toThrow();
-    expect(Object.keys(ALLOW)).toEqual(['lab/components/CollectDispatch.tsx']); // only the scan screen is left
+    expect(Object.keys(ALLOW)).toEqual(['lab/components/shared.tsx']); // only the shared ListTable body state is left
   });
 
   it('does not scan or require anything under admin / platform (off limits, rs-c2.static)', () => {

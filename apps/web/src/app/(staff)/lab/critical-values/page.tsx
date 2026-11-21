@@ -18,8 +18,8 @@ export default async function CriticalValuesPage({ searchParams }: { searchParam
     return <CriticalValueList items={page.items} status={status} nextCursor={page.nextCursor} />;
   } catch (e) {
     if (e instanceof ApiError && e.status === 403) return <PermissionDenied />;
-    // T0D-UILIST-1 (LD-353 rule 6): 501 operation_pending keeps the title and the header row
-    if (isPending(e)) return <NotAvailable title="Critical values" columns={['Detected at', 'Age since detected', 'Analyte', 'Direction', 'Status']} />;
+    // T0D-UILIST-1, T0D-UICONSOLE-1 (LD-353 rule 6): 501 operation_pending keeps the title and the console header row
+    if (isPending(e)) return <NotAvailable title="Critical values" columns={['Age since detected', 'Detected at', 'Analyte', 'Direction', 'Status']} />;
     throw e;
   }
 }

@@ -3,6 +3,7 @@
 import { LimsError } from '../../../core/errors.js';
 import type { Handler, HandlerContext, HandlerRequest } from '../../../core/module.js';
 import { createExportsService, type ExportsCtx } from '../service/exports.service.js';
+import { guarded } from './_guard.js';
 
 type Svc = ReturnType<typeof createExportsService>;
 type Ports = { IdentityPort?: Parameters<typeof createExportsService>[0]['identity'] };
@@ -22,17 +23,17 @@ const etag = (b: Record<string, unknown>) => ({ etag: `"${String(b['version'])}"
 const safeName = (n: string) => n.replace(/["\\\x00-\x1f\x7f]/g, '_');
 
 export const exportsHandlers: Readonly<Record<string, Handler>> = Object.freeze({
-  createExport: bind(async (s, ctx, req) => {
+  createExport: guarded('catalog.test.read', bind(async (s, ctx, req) => {
     const b = obj(req.body);
     const out = await s.createExport(ctx, { kind: b['kind'], priceListVersionId: b['price_list_version_id'] });
     return { status: out.status, body: out.body, headers: etag(out.body) };
-  }),
-  listExports: bind(async (s, ctx, req) => {
+  })),
+  listExports: guarded('catalog.test.read', bind(async (s, ctx, req) => {
     const q = obj(req.query);
     return { status: 200, body: await s.listExports(ctx, { kind: q['kind'], status: q['status'], cursor: q['cursor'], limit: q['limit'] }) };
-  }),
-  getExport: bind(async (s, ctx, req) => { const b = await s.getExport(ctx, obj(req.params)['export_id']); return { status: 200, body: b, headers: etag(b) }; }),
-  downloadExportFile: bind(async (s, ctx, req) => {
+  })),
+  getExport: guarded('catalog.test.read', bind(async (s, ctx, req) => { const b = await s.getExport(ctx, obj(req.params)['export_id']); return { status: 200, body: b, headers: etag(b) }; })),
+  downloadExportFile: guarded('catalog.test.read', bind(async (s, ctx, req) => {
     const f = await s.downloadExportFile(ctx, obj(req.params)['export_id']);
     return {
       status: 200, body: f.bytes,
@@ -41,5 +42,5 @@ export const exportsHandlers: Readonly<Record<string, Handler>> = Object.freeze(
         'cache-control': 'no-store', 'x-content-type-options': 'nosniff',                       // S-10
       },
     };
-  }),
+  })),
 });

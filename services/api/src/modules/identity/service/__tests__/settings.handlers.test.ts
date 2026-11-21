@@ -17,14 +17,14 @@ const { manifest } = await import('../../index.js');
 const h = (op: string): any => (manifest.handlers as any)[op];
 
 const noop = { info() {}, warn() {}, error() {} };
-const hctx = (operationId: string) => ({ operationId, clientIp: '203.0.113.9', log: noop, tenantId: TENANT_A, actor: { type: 'user', id: idN(0xd1), membershipId: idN(0xd2) }, requestId: idN(0xe1), tx: { __tx: 1 } });
+const hctx = (operationId: string) => ({ operationId, clientIp: '203.0.113.9', log: noop, tenantId: TENANT_A, actor: { type: 'user', id: idN(0xd1), membershipId: idN(0xd2) }, requestId: idN(0xe1), tx: { __tx: 1 }, ports: { IdentityPort: { assertRole: async () => undefined } } });   // SEC-AUTHZ-4 ruling: guard needs the port
 const req = (o: { params?: object; query?: object; headers?: object; body?: unknown } = {}) => ({ params: {}, query: {}, headers: {}, body: undefined, ...o });
 beforeEach(() => { for (const op of OPS) svc[op] = vi.fn(async () => ({ status: 200, body: { ok: op }, version: 5 })); });
 const file = { filename: 'logo.png', mimeType: 'image/png', bytes: new Uint8Array([1, 2, 3]) };
 
 describe('no longer stubs; fail closed without an authenticated request context', () => {
   it.each(OPS)('%s: no context -> auth.unauthenticated (the stub answers common.internal); service never called', async (op) => {
-    const e = await rejection(h(op)(req(), { operationId: op, clientIp: '203.0.113.9', log: noop }));
+    const e = await rejection(h(op)(req(), { operationId: op, clientIp: '203.0.113.9', log: noop, ports: { IdentityPort: { assertRole: async () => undefined } } }));
     expect(e?.code).toBe('auth.unauthenticated'); expect(svc[op]).not.toHaveBeenCalled();
   });
   it('service errors propagate unchanged and echo no request input', async () => {

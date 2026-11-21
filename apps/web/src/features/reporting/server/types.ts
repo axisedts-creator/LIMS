@@ -74,3 +74,38 @@ export interface ReportingSettings {
 }
 export interface CentreContact { id: string; centre_id: string; channel: string; address_masked: string; label?: string; is_active: boolean; version: number }
 export interface BulkResult { results: { id: string; outcome: string; release_basis?: string }[] }
+
+// ── T0D-PRINTCFG-1 (LD-316, LD-319): print profiles and signer profiles (contracts/openapi/reporting.yaml PrintProfile, SignatoryProfile).
+export type DocumentKind = 'report' | 'invoice' | 'credit_note';
+export type PaperMode = 'letterhead_image' | 'typed_header_footer' | 'preprinted_paper' | 'plain';
+export const DOCUMENT_KINDS: readonly DocumentKind[] = ['report', 'invoice', 'credit_note'];
+export const PAPER_MODES: readonly PaperMode[] = ['letterhead_image', 'typed_header_footer', 'preprinted_paper', 'plain'];
+/** Plain words for the paper modes (done_when 1). */
+export const PAPER_LABEL: Record<PaperMode, string> = {
+  letterhead_image: 'My own letterhead image', typed_header_footer: 'Type my header and footer', preprinted_paper: 'I print on my own pre-printed pad', plain: 'Plain with no header and no footer',
+};
+/** Editable fields of PrintProfileInput. [CONV] recipient_type (LD-319(1)) is not edited here: done_when (1) lists no recipient picker. */
+export interface PrintProfileFields {
+  paper_mode: PaperMode; header_text: string; footer_text: string; reserve_top_mm: number; reserve_bottom_mm: number;
+  show_logo: boolean; show_seller_pan: boolean; grayscale: boolean; font_size_pt: number;
+}
+export interface PrintProfileInput extends PrintProfileFields { branch_id?: string; document_kind: DocumentKind }
+export interface PrintProfile extends PrintProfileInput { id: string; recipient_type?: string; is_active: boolean; updated_at: string; updated_by: string }
+export interface Branch { branch_id: string; name: string; is_active?: boolean }
+export interface SignatoryInput { display_name: string; title?: string; registration_no?: string; signature_asset_id?: string; is_active: boolean }
+export interface SignatoryProfile extends SignatoryInput { user_id: string; updated_at: string; updated_by: string }
+/** One staff user holding lab.result.approve, with the signer profile when one exists. */
+export interface SignatoryRow { user_id: string; user_name: string; profile?: SignatoryProfile }
+
+const CONTROL_RE = /[\u0000-\u0009\u000b-\u001f\u007f]/; // eslint-disable-line no-control-regex
+/** Contract pattern of header_text / footer_text (LD-316): at most 8 lines of 120 characters, no < or >, no control characters. */
+export function typedTextError(v: string): string | undefined {
+  if (/[<>]/.test(v)) return 'Use plain text: < and > are not allowed.';
+  if (CONTROL_RE.test(v)) return 'Use plain text: control characters are not allowed.';
+  const lines = v.split('\n');
+  if (lines.length > 8) return 'At most 8 lines.';
+  if (lines.some((l) => l.length > 120)) return 'Each line can have at most 120 characters.';
+  return undefined;
+}
+/** Contract pattern of the signer text fields: no < or >, no control characters (newline included). */
+export const plainError = (v: string) => (/[<>\n]/.test(v) || CONTROL_RE.test(v) ? 'Use plain text: < and > are not allowed.' : undefined);

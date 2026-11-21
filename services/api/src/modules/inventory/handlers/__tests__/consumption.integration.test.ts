@@ -239,13 +239,14 @@ describe.skipIf(!live)('T-15 #70 createConsumptionRule', () => {
     await s.call(A, 'supersedeConsumptionRule', { params: { rule_id: r2.id }, headers: ifm(r2.version), body: supersedeBody('4') });
     await untouched(s, () => mk(s, 'per_test', IT2, '9', { test_id: TA }), (e) => expect(e.code).toBe('inventory.rule_conflict'));
   });
-  run('unknown item_id / instrument_id => 400 at the field (P-1 pattern), nothing written', async (s) => {
-    await untouched(s, () => mk(s, 'per_test', uid(99998), '1', { test_id: TA }), (e) => { expect(e.code).toBe('common.validation_failed'); expect(JSON.stringify(e.errors ?? e.detail)).toContain('/item_id'); });
-    await untouched(s, () => mk(s, 'per_test', IT2, '1', { test_id: TA, instrument_id: uid(99997) }), (e) => { expect(e.code).toBe('common.validation_failed'); expect(JSON.stringify(e.errors ?? e.detail)).toContain('/instrument_id'); });
+  // T-26 ruling (02-CONVENTIONS §11.3.1, 07 P-T1/P-T3): an unknown id gets the same 404 as a tenant-B id (no existence oracle).
+  run('unknown item_id / instrument_id => 404 common.not_found, nothing written', async (s) => {
+    await untouched(s, () => mk(s, 'per_test', uid(99998), '1', { test_id: TA }), (e) => expect(e.code).toBe('common.not_found'));
+    await untouched(s, () => mk(s, 'per_test', IT2, '1', { test_id: TA, instrument_id: uid(99997) }), (e) => expect(e.code).toBe('common.not_found'));
   });
   run('permission: item.read only => 403 and nothing written; tenant B items cannot be ruled by tenant A', async (s) => {
     await untouched(s, () => mk(s, 'per_test', IT2, '1', { test_id: TA }, READER), (e) => expect(e.code).toBe('auth.forbidden'));
-    await untouched(s, () => mk(s, 'per_test', uid(2101), '1', { test_id: TA }), (e) => expect(e.code).toBe('common.validation_failed'));
+    await untouched(s, () => mk(s, 'per_test', uid(2101), '1', { test_id: TA }), (e) => expect(e.code).toBe('common.not_found'));
   });
 });
 

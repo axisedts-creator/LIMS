@@ -172,6 +172,8 @@ export function ImportsScreen({ imports, exports: initialExports, priceLists, pe
       <PageHeader title={t('catalog.nav.imports')} helpKey="catalog.imports" />
       {fail ? <ImportNotice tone={fail.code === 'auth.mfa_required' ? 'warning' : 'danger'} text={failText(fail)} /> : null}
       {notReady ? <Banner tone="info" title="Still preparing — try again shortly" /> : null}
+      {/* T0D-TESTIMPORT-1 (LD-318): the Excel test import lives on this route (?view=tests); every test-import operation needs catalog.test.manage */}
+      {permissions.includes('catalog.test.manage') ? <p><a className="lims-link" href="/catalog/imports?view=tests">Import tests</a></p> : null}
 
       {kinds.length > 0 ? (
         <section aria-labelledby="imp-new" className="lims-stack">

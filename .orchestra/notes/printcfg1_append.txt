@@ -1,0 +1,17 @@
+
+----
+LEAD ITEM, LD-428 (2026-11-20): the block above is lifted.
+
+The founder applied a run.ps1 fix this round (commit 237927bb4) that stops this lane from
+re-merging main while T0D-OFFLINE-3 or T0D-PRINTCFG-1 is in progress - this was the actual cause
+of the snapshot being wiped before commit on every prior attempt.
+
+TESTER: apply the one line worklist snapshot insert exactly as already described above in this
+file under LD-399 (button Ready to release, between the existing button Search and button Select
+an item lines). Commit it as your own test-file edit.
+
+WRITER: nothing for you to do here. The content fix landed already; only the test snapshot was
+ever the open item.
+
+If this does not land after this one attempt, that is new information worth a fresh debug round,
+not a reason to repeat a third prose attempt.

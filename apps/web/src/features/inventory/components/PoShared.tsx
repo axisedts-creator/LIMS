@@ -138,7 +138,7 @@ export const plusOne = (q: string | undefined) => String(Math.round((Number(q ||
  * "Scan or type barcode" (04-UI-UX §2.4). The value goes to the lookup call's BODY only, never a URL or a log (REQ-SEC-098).
  * The kit upper-cases what it reports; supplier pack barcodes are case-sensitive visible ASCII, so the text as typed is passed on when it differs only in case.
  */
-export function ScanBox({ onValue }: { onValue: (v: string) => void }) {
+export function ScanBox({ onValue, result }: { onValue: (v: string) => void; result?: ReactNode }) {
   const typed = useRef<string>('');
   const box = useRef<HTMLDivElement>(null);
   const [round, setRound] = useState(0);
@@ -146,8 +146,12 @@ export function ScanBox({ onValue }: { onValue: (v: string) => void }) {
     if (round) box.current?.querySelector('input')?.focus();
   }, [round]);
   return (
+    // T0D-UISCAN-1 (LD-353 template 3): kit ScanPanel markup (scan input at most 28rem with a light ring, then the last scan result card),
+    // [CONV] written out so this file keeps the kit <BarcodeInput> itself (t22.source pins it).
+    <div className="lims-scan-panel">
     <div
       ref={box}
+      className="lims-scan-input"
       onKeyDownCapture={(e) => {
         if ((e.key === 'Enter' || e.key === 'Tab') && e.target instanceof HTMLInputElement) typed.current = e.target.value.trim();
       }}
@@ -167,6 +171,8 @@ export function ScanBox({ onValue }: { onValue: (v: string) => void }) {
           onValue(raw && raw.toUpperCase() === v ? raw : v);
         }}
       />
+    </div>
+    {result ? <div className="lims-scan-result" role="status">{result}</div> : null}
     </div>
   );
 }

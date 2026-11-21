@@ -12,7 +12,7 @@ vi.mock('next/navigation', async () => (await import('./t21.harness')).navigatio
 vi.mock('server-only', () => ({}));
 vi.mock('@/core/session/server', async () => (await import('./t21.harness')).sessionMock);
 
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 beforeEach(() => { resetHits(); state.permissions = PERM_WORK; useAst(); });
 afterEach(() => { cleanup(); api.resetHandlers(); dropSyntheticCategory(); });
 afterAll(() => api.close());

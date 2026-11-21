@@ -1,0 +1,376 @@
+[core] WARNING: Executable file detection not yet supported on 'win32'.
+Schema updated
+psql:/repo/db/migrations/20261105001300_identity__create_identity_schema.sql:7: NOTICE:  schema "identity" already exists, skipping
+psql:/repo/db/migrations/20261105001500_catalog__create_catalog_schema.sql:10: NOTICE:  schema "catalog" already exists, skipping
+psql:/repo/db/migrations/20261105001600_frontdesk__create_frontdesk_schema.sql:7: NOTICE:  schema "frontdesk" already exists, skipping
+psql:/repo/db/migrations/20261105001700_billing__create_billing_schema.sql:7: NOTICE:  schema "billing" already exists, skipping
+psql:/repo/db/migrations/20261105001800_lab__create_lab_schema.sql:10: NOTICE:  schema "lab" already exists, skipping
+psql:/repo/db/migrations/20261105001900_reporting__create_reporting_schema.sql:145: NOTICE:  identifier "message_template_texts__tenant_id_template_code_channel_language__uq" will be truncated to "message_template_texts__tenant_id_template_code_channel_languag"
+psql:/repo/db/migrations/20261105001900_reporting__create_reporting_schema.sql:177: NOTICE:  identifier "report_template_versions__tenant_id_template_id__published__p_uq" will be truncated to "report_template_versions__tenant_id_template_id__published__p_u"
+psql:/repo/db/migrations/20261105001900_reporting__create_reporting_schema.sql:443: NOTICE:  identifier "deliveries__tenant_id_channel_account_id_provider_message_id__p_uq" will be truncated to "deliveries__tenant_id_channel_account_id_provider_message_id__p"
+psql:/repo/db/migrations/20261105001900_reporting__create_reporting_schema.sql:682: NOTICE:  identifier "narrative_versions__tenant_id_narrative_report_id_version_no__uq" will be truncated to "narrative_versions__tenant_id_narrative_report_id_version_no__u"
+psql:/repo/db/migrations/20261115192000_identity__add_provisioning_schema.sql:47: NOTICE:  identifier "tenant_contract_acceptances__tenant_id_document_accepted_at__idx" will be truncated to "tenant_contract_acceptances__tenant_id_document_accepted_at__id"
+                                                       set_config                                                        
+-------------------------------------------------------------------------------------------------------------------------
+ {"tenant_id":"01a1a98a-ac40-7000-8000-00000000a001","sub":"01a1b34e-1000-7eee-9d29-d7ca59a102b5","actor_type":"system"}
+(1 row)
+
+                                                       set_config                                                        
+-------------------------------------------------------------------------------------------------------------------------
+ {"tenant_id":"01a1a98a-ac40-7000-8000-00000000b001","sub":"01a1b34e-1000-7eee-9d29-d7ca59a102b5","actor_type":"system"}
+(1 row)
+
+ set_config 
+------------
+ 
+(1 row)
+
+                                                       set_config                                                        
+-------------------------------------------------------------------------------------------------------------------------
+ {"tenant_id":"01a1a98a-ac40-7000-8000-00000000a001","sub":"01a1b34e-1004-782c-a681-49b1ce74d717","actor_type":"system"}
+(1 row)
+
+                                                       set_config                                                        
+-------------------------------------------------------------------------------------------------------------------------
+ {"tenant_id":"01a1a98a-ac40-7000-8000-00000000b001","sub":"01a1b34e-1004-782c-a681-49b1ce74d717","actor_type":"system"}
+(1 row)
+
+
+ RUN  v5.1.0 C:/LIMS-lanes/C0-0H/services/api
+
+{"level":"warn","ts":"2026-11-18T15:20:01.851Z","service":"api","env":"ci","version":"0.0.0","event":"pending_operation_stale","module":"reporting","operationId":"listPrintProfiles","msg":"module reporting: pending operation listPrintProfiles has a handler; remove it from pendingOperations"}
+{"level":"warn","ts":"2026-11-18T15:20:07.471Z","service":"api","env":"ci","version":"0.0.0","event":"pending_operation_stale","module":"reporting","operationId":"listPrintProfiles","msg":"module reporting: pending operation listPrintProfiles has a handler; remove it from pendingOperations"}
+{"level":"warn","ts":"2026-11-18T15:20:01.854Z","service":"api","env":"ci","version":"0.0.0","event":"pending_operation_stale","module":"reporting","operationId":"upsertPrintProfile","msg":"module reporting: pending operation upsertPrintProfile has a handler; remove it from pendingOperations"}
+{"level":"warn","ts":"2026-11-18T15:20:01.855Z","service":"api","env":"ci","version":"0.0.0","event":"pending_operation_stale","module":"reporting","operationId":"previewPrintProfile","msg":"module reporting: pending operation previewPrintProfile has a handler; remove it from pendingOperations"}
+{"level":"warn","ts":"2026-11-18T15:20:01.855Z","service":"api","env":"ci","version":"0.0.0","event":"pending_operation_stale","module":"reporting","operationId":"listSignatoryProfiles","msg":"module reporting: pending operation listSignatoryProfiles has a handler; remove it from pendingOperations"}
+{"level":"warn","ts":"2026-11-18T15:20:01.855Z","service":"api","env":"ci","version":"0.0.0","event":"pending_operation_stale","module":"reporting","operationId":"upsertSignatoryProfile","msg":"module reporting: pending operation upsertSignatoryProfile has a handler; remove it from pendingOperations"}
+{"level":"warn","ts":"2026-11-18T15:20:04.805Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:05.240Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:05.240Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:05.240Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/csv' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:05.240Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:06.828Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:06.828Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:06.828Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:06.828Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:08.591Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:08.591Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:08.591Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/xml' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:08.591Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:10.656Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:10.656Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:10.656Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:12.585Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:12.585Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:12.586Z","service":"api","env":"ci","version":"0.0.0","msg":"Handlers for some security requirements were missing: patientPreAuth, queueDisplayToken"}
+{"level":"warn","ts":"2026-11-18T15:20:14.251Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:14.251Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:14.251Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:14.251Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:14.251Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:15.383Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:16.229Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:16.229Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:16.229Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:16.229Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:16.229Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/csv' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:16.229Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:17.364Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:17.364Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:17.364Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/octet-stream' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:17.364Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:17.364Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:17.364Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:17.364Z","service":"api","env":"ci","version":"0.0.0","msg":"Handlers for some security requirements were missing: deviceToken"}
+{"level":"warn","ts":"2026-11-18T15:20:18.534Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:18.534Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/csv' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:20.185Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:21.754Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:21.754Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:21.754Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/csv' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:22.775Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:22.775Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:24.178Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:24.178Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/html' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:24.178Z","service":"api","env":"ci","version":"0.0.0","msg":"Handlers for some security requirements were missing: paymentCallbackToken"}
+{"level":"warn","ts":"2026-11-18T15:20:25.208Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:26.617Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:26.617Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:26.617Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:26.617Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:26.617Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:26.617Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for '*/*' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:26.617Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/plain' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:26.617Z","service":"api","env":"ci","version":"0.0.0","msg":"Handlers for some security requirements were missing: portalSession"}
+{"level":"warn","ts":"2026-11-18T15:20:27.802Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"info","ts":"2026-11-18T15:20:36.031Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ef3e-d95f-7906-a45e-ea33716fd1a2","module":"billing","operation_id":"listInvoices","route":"/v1/billing/invoices","status":401,"duration_ms":94,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-18T15:20:36.036Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ef3e-d9c1-7419-9a83-df282a059e2d","module":"billing","operation_id":"getInvoice","route":"/v1/billing/invoices/{invoice_id}","status":401,"duration_ms":2,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-18T15:20:36.039Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ef3e-d9c5-77f8-a8ad-e95a5ad329ac","module":"billing","operation_id":"listInvoicePrints","route":"/v1/billing/invoices/{invoice_id}/prints","status":401,"duration_ms":2,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-18T15:20:36.046Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ef3e-d9c7-7588-bf93-460402a6d583","module":"billing","operation_id":"printInvoice","route":"/v1/billing/invoices/{invoice_id}/print","status":400,"duration_ms":7,"db_count":0,"db_ms":0,"error_code":"common.validation_failed","msg":"request"}
+{"level":"info","ts":"2026-11-18T15:20:36.149Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ef3e-d9cf-7edf-8a1e-43e78fa908c4","module":"billing","operation_id":"cancelInvoice","route":"/v1/billing/invoices/{invoice_id}/cancel","status":400,"duration_ms":102,"db_count":0,"db_ms":0,"error_code":"common.validation_failed","msg":"request"}
+ ❯ src/modules/billing/__tests__/unit/boot.test.ts (9 tests | 1 failed) 64338ms
+   ❯ BL-T01 core boots with the module (default modulesDir, real contracts) (1)
+     × bootstrap resolves and every billing operation is mounted, none answers 2xx without credentials 63752ms
+{"level":"warn","ts":"2026-11-18T15:20:07.473Z","service":"api","env":"ci","version":"0.0.0","event":"pending_operation_stale","module":"reporting","operationId":"upsertPrintProfile","msg":"module reporting: pending operation upsertPrintProfile has a handler; remove it from pendingOperations"}
+{"level":"warn","ts":"2026-11-18T15:20:07.473Z","service":"api","env":"ci","version":"0.0.0","event":"pending_operation_stale","module":"reporting","operationId":"previewPrintProfile","msg":"module reporting: pending operation previewPrintProfile has a handler; remove it from pendingOperations"}
+{"level":"warn","ts":"2026-11-18T15:20:07.473Z","service":"api","env":"ci","version":"0.0.0","event":"pending_operation_stale","module":"reporting","operationId":"listSignatoryProfiles","msg":"module reporting: pending operation listSignatoryProfiles has a handler; remove it from pendingOperations"}
+{"level":"warn","ts":"2026-11-18T15:20:07.473Z","service":"api","env":"ci","version":"0.0.0","event":"pending_operation_stale","module":"reporting","operationId":"upsertSignatoryProfile","msg":"module reporting: pending operation upsertSignatoryProfile has a handler; remove it from pendingOperations"}
+{"level":"warn","ts":"2026-11-18T15:20:09.122Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:09.800Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:09.800Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:09.800Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/csv' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:09.800Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:11.230Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:11.231Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:11.231Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:11.231Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:12.823Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:12.823Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:12.823Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/xml' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:12.823Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:14.970Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:14.970Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:14.970Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:16.688Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:16.688Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:16.689Z","service":"api","env":"ci","version":"0.0.0","msg":"Handlers for some security requirements were missing: patientPreAuth, queueDisplayToken"}
+{"level":"warn","ts":"2026-11-18T15:20:18.041Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:18.041Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:18.041Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:18.041Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:18.041Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:19.019Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:19.939Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:19.939Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:19.939Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:19.939Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:19.939Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/csv' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:19.939Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:21.418Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:21.418Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:21.418Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/octet-stream' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:21.418Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:21.418Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:21.418Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:21.418Z","service":"api","env":"ci","version":"0.0.0","msg":"Handlers for some security requirements were missing: deviceToken"}
+{"level":"warn","ts":"2026-11-18T15:20:22.390Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:22.390Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/csv' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:24.080Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:25.681Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:25.682Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:25.682Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/csv' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:27.079Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:27.079Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:28.612Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:28.612Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/html' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:28.612Z","service":"api","env":"ci","version":"0.0.0","msg":"Handlers for some security requirements were missing: paymentCallbackToken"}
+{"level":"warn","ts":"2026-11-18T15:20:29.202Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:30.136Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:30.137Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:30.137Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:30.137Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:30.137Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:30.137Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for '*/*' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:30.137Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/plain' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:30.137Z","service":"api","env":"ci","version":"0.0.0","msg":"Handlers for some security requirements were missing: portalSession"}
+{"level":"warn","ts":"2026-11-18T15:20:31.093Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:48.751Z","service":"api","env":"ci","version":"0.0.0","event":"pending_operation_stale","module":"reporting","operationId":"listPrintProfiles","msg":"module reporting: pending operation listPrintProfiles has a handler; remove it from pendingOperations"}
+{"level":"warn","ts":"2026-11-18T15:20:48.751Z","service":"api","env":"ci","version":"0.0.0","event":"pending_operation_stale","module":"reporting","operationId":"upsertPrintProfile","msg":"module reporting: pending operation upsertPrintProfile has a handler; remove it from pendingOperations"}
+{"level":"warn","ts":"2026-11-18T15:20:48.751Z","service":"api","env":"ci","version":"0.0.0","event":"pending_operation_stale","module":"reporting","operationId":"previewPrintProfile","msg":"module reporting: pending operation previewPrintProfile has a handler; remove it from pendingOperations"}
+{"level":"warn","ts":"2026-11-18T15:20:48.751Z","service":"api","env":"ci","version":"0.0.0","event":"pending_operation_stale","module":"reporting","operationId":"listSignatoryProfiles","msg":"module reporting: pending operation listSignatoryProfiles has a handler; remove it from pendingOperations"}
+{"level":"warn","ts":"2026-11-18T15:20:48.751Z","service":"api","env":"ci","version":"0.0.0","event":"pending_operation_stale","module":"reporting","operationId":"upsertSignatoryProfile","msg":"module reporting: pending operation upsertSignatoryProfile has a handler; remove it from pendingOperations"}
+{"level":"warn","ts":"2026-11-18T15:20:49.921Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:50.327Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:50.327Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:50.327Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/csv' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:50.327Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:51.588Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:51.588Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:51.588Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:51.588Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:53.312Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:53.312Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:53.312Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/xml' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:53.312Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:55.501Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:55.501Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:55.501Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:57.383Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:57.383Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:57.383Z","service":"api","env":"ci","version":"0.0.0","msg":"Handlers for some security requirements were missing: patientPreAuth, queueDisplayToken"}
+{"level":"warn","ts":"2026-11-18T15:20:58.862Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:58.862Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:58.862Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:58.862Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:58.862Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-18T15:20:59.936Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T15:21:01.260Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T15:21:01.260Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-18T15:21:01.260Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-18T15:21:01.260Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-18T15:21:01.260Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/csv' not found"}
+{"level":"warn","ts":"2026-11-18T15:21:01.260Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-18T15:21:02.258Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T15:21:02.258Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-18T15:21:02.258Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/octet-stream' not found"}
+{"level":"warn","ts":"2026-11-18T15:21:02.258Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-18T15:21:02.258Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-18T15:21:02.258Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-18T15:21:02.258Z","service":"api","env":"ci","version":"0.0.0","msg":"Handlers for some security requirements were missing: deviceToken"}
+{"level":"warn","ts":"2026-11-18T15:21:03.328Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T15:21:03.328Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/csv' not found"}
+{"level":"warn","ts":"2026-11-18T15:21:05.059Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T15:21:06.281Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T15:21:06.281Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-18T15:21:06.281Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/csv' not found"}
+{"level":"warn","ts":"2026-11-18T15:21:07.415Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T15:21:07.415Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-18T15:21:08.746Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T15:21:08.746Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/html' not found"}
+{"level":"warn","ts":"2026-11-18T15:21:08.746Z","service":"api","env":"ci","version":"0.0.0","msg":"Handlers for some security requirements were missing: paymentCallbackToken"}
+{"level":"warn","ts":"2026-11-18T15:21:09.563Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T15:21:10.895Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T15:21:10.895Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-18T15:21:10.895Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-18T15:21:10.895Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-18T15:21:10.895Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-18T15:21:10.895Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for '*/*' not found"}
+{"level":"warn","ts":"2026-11-18T15:21:10.895Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/plain' not found"}
+{"level":"warn","ts":"2026-11-18T15:21:10.895Z","service":"api","env":"ci","version":"0.0.0","msg":"Handlers for some security requirements were missing: portalSession"}
+{"level":"warn","ts":"2026-11-18T15:21:11.753Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"info","ts":"2026-11-18T15:21:20.081Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ef3f-856c-7a8c-98b7-35083323ee1b","module":"frontdesk","operation_id":"searchPatients","route":"/v1/frontdesk/patients/search","status":401,"duration_ms":98,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-18T15:21:20.087Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ef3f-85d4-7a97-8e37-6df8ba41d156","module":"frontdesk","operation_id":"createPatient","route":"/v1/frontdesk/patients","status":400,"duration_ms":2,"db_count":0,"db_ms":0,"error_code":"common.validation_failed","msg":"request"}
+{"level":"info","ts":"2026-11-18T15:21:20.093Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ef3f-85da-7f9d-977f-4d2299266e63","module":"frontdesk","operation_id":"listPossibleDuplicatePatients","route":"/v1/frontdesk/patients/possible-duplicates","status":401,"duration_ms":2,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-18T15:21:20.097Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ef3f-85df-78d6-9902-7535dd84ec90","module":"frontdesk","operation_id":"getPatient","route":"/v1/frontdesk/patients/{patient_id}","status":401,"duration_ms":2,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-18T15:21:20.100Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ef3f-85e2-7688-a062-3d636ee8e278","module":"frontdesk","operation_id":"updatePatient","route":"/v1/frontdesk/patients/{patient_id}","status":400,"duration_ms":2,"db_count":0,"db_ms":0,"error_code":"common.validation_failed","msg":"request"}
+{"level":"info","ts":"2026-11-18T15:21:20.105Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ef3f-85e5-70f8-975a-e41c4c1034a3","module":"frontdesk","operation_id":"recordPatientConsent","route":"/v1/frontdesk/patients/{patient_id}/consents","status":400,"duration_ms":3,"db_count":0,"db_ms":0,"error_code":"common.validation_failed","msg":"request"}
+{"level":"info","ts":"2026-11-18T15:21:20.108Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ef3f-85ea-7e49-bc59-60c2675425c4","module":"frontdesk","operation_id":"listPatientOrders","route":"/v1/frontdesk/patients/{patient_id}/orders","status":401,"duration_ms":2,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-18T15:21:20.112Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ef3f-85ed-7104-aea9-fc61d5b97320","module":"frontdesk","operation_id":"anonymisePatient","route":"/v1/frontdesk/patients/{patient_id}/anonymise","status":400,"duration_ms":2,"db_count":0,"db_ms":0,"error_code":"common.validation_failed","msg":"request"}
+{"level":"info","ts":"2026-11-18T15:21:20.115Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ef3f-85f1-7242-8862-4bd67dc6f33c","module":"frontdesk","operation_id":"quoteRegistration","route":"/v1/frontdesk/registrations/quote","status":401,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-18T15:21:20.118Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ef3f-85f4-7377-ba7c-aba512bc1a09","module":"frontdesk","operation_id":"createRegistration","route":"/v1/frontdesk/registrations","status":400,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"common.validation_failed","msg":"request"}
+{"level":"info","ts":"2026-11-18T15:21:20.123Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ef3f-85f7-7e6d-b0d8-0bc7fa50cca1","module":"frontdesk","operation_id":"listOrders","route":"/v1/frontdesk/orders","status":401,"duration_ms":4,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-18T15:21:20.126Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ef3f-85fd-729a-a884-5ed8a38dbe10","module":"frontdesk","operation_id":"getOrder","route":"/v1/frontdesk/orders/{order_id}","status":401,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-18T15:21:20.129Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ef3f-85ff-7d90-96a4-c51fdead318a","module":"frontdesk","operation_id":"quoteOrderItemsChange","route":"/v1/frontdesk/orders/{order_id}/items-changes/quote","status":401,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-18T15:21:20.131Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ef3f-8602-7963-8542-c99ef9bb21b1","module":"frontdesk","operation_id":"confirmPreRegisteredOrder","route":"/v1/frontdesk/orders/{order_id}/confirm","status":400,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"common.validation_failed","msg":"request"}
+{"level":"info","ts":"2026-11-18T15:21:20.135Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ef3f-8604-7812-afa5-4c4ea2ad917d","module":"frontdesk","operation_id":"changeOrderItems","route":"/v1/frontdesk/orders/{order_id}/items-changes","status":400,"duration_ms":2,"db_count":0,"db_ms":0,"error_code":"common.validation_failed","msg":"request"}
+{"level":"info","ts":"2026-11-18T15:21:20.138Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ef3f-8608-716a-9e66-84d69480d2a5","module":"frontdesk","operation_id":"cancelOrder","route":"/v1/frontdesk/orders/{order_id}/cancel","status":400,"duration_ms":2,"db_count":0,"db_ms":0,"error_code":"common.validation_failed","msg":"request"}
+{"level":"info","ts":"2026-11-18T15:21:20.142Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ef3f-860c-7f25-a076-31434f0f2245","module":"frontdesk","operation_id":"listDiscountApprovals","route":"/v1/frontdesk/discount-approvals","status":401,"duration_ms":2,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-18T15:21:20.145Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ef3f-860f-7439-abf7-b8581be03d8a","module":"frontdesk","operation_id":"requestDiscountApproval","route":"/v1/frontdesk/discount-approvals","status":400,"duration_ms":2,"db_count":0,"db_ms":0,"error_code":"common.validation_failed","msg":"request"}
+{"level":"info","ts":"2026-11-18T15:21:20.147Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ef3f-8612-7da0-95ff-bd897163f7fc","module":"frontdesk","operation_id":"getDiscountApproval","route":"/v1/frontdesk/discount-approvals/{approval_id}","status":401,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-18T15:21:20.150Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ef3f-8614-7869-a804-dfb89853e7bf","module":"frontdesk","operation_id":"approveDiscount","route":"/v1/frontdesk/discount-approvals/{approval_id}/approve","status":400,"duration_ms":2,"db_count":0,"db_ms":0,"error_code":"common.validation_failed","msg":"request"}
+{"level":"info","ts":"2026-11-18T15:21:20.153Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ef3f-8617-7724-80bb-8d329c9f47e6","module":"frontdesk","operation_id":"rejectDiscount","route":"/v1/frontdesk/discount-approvals/{approval_id}/reject","status":400,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"common.validation_failed","msg":"request"}
+{"level":"info","ts":"2026-11-18T15:21:20.158Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ef3f-861b-78a0-bf0e-ef2da61a33c5","module":"frontdesk","operation_id":"uploadTrf","route":"/v1/frontdesk/trf-attachments","status":400,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"common.validation_failed","msg":"request"}
+{"level":"info","ts":"2026-11-18T15:21:20.161Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ef3f-861f-7f9b-9ea0-b19c159ea553","module":"frontdesk","operation_id":"getTrfAttachment","route":"/v1/frontdesk/trf-attachments/{attachment_id}","status":401,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-18T15:21:20.165Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ef3f-8623-7363-9263-02a019116c9e","module":"frontdesk","operation_id":"getTrfAttachmentContent","route":"/v1/frontdesk/trf-attachments/{attachment_id}/content","status":401,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-18T15:21:20.168Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ef3f-8626-7f4f-8cda-308cc2970e0a","module":"frontdesk","operation_id":"listOrderFlags","route":"/v1/frontdesk/order-flags","status":401,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-18T15:21:20.174Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ef3f-8629-7cb3-82d8-d13e201af816","module":"frontdesk","operation_id":"resolveOrderFlag","route":"/v1/frontdesk/order-flags/{flag_id}/resolve","status":400,"duration_ms":5,"db_count":0,"db_ms":0,"error_code":"common.validation_failed","msg":"request"}
+{"level":"info","ts":"2026-11-18T15:21:20.177Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ef3f-862f-7b92-9644-8ef7ccd45e67","module":"frontdesk","operation_id":"getFrontdeskSettings","route":"/v1/frontdesk/settings","status":401,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-18T15:21:20.180Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ef3f-8632-7fa9-950e-25d9d4ab7121","module":"frontdesk","operation_id":"updateFrontdeskSettings","route":"/v1/frontdesk/settings","status":400,"duration_ms":2,"db_count":0,"db_ms":0,"error_code":"common.validation_failed","msg":"request"}
+{"level":"info","ts":"2026-11-18T15:21:20.183Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ef3f-8635-72c8-8dc8-d057fcf10bed","module":"frontdesk","operation_id":"listFrontdeskCodes","route":"/v1/frontdesk/coded-sets/{set_name}","status":400,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"common.validation_failed","msg":"request"}
+{"level":"info","ts":"2026-11-18T15:21:20.188Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ef3f-8638-7a1d-bf44-12e1c6392099","module":"frontdesk","operation_id":"listRegistrationDrafts","route":"/v1/frontdesk/registration-drafts","status":401,"duration_ms":3,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-18T15:21:20.193Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ef3f-863e-78e0-99a0-4c9dc347edfa","module":"frontdesk","operation_id":"createRegistrationDraft","route":"/v1/frontdesk/registration-drafts","status":400,"duration_ms":2,"db_count":0,"db_ms":0,"error_code":"common.validation_failed","msg":"request"}
+{"level":"info","ts":"2026-11-18T15:21:20.196Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ef3f-8642-7b8b-8bf0-c0925ea66d19","module":"frontdesk","operation_id":"getRegistrationDraft","route":"/v1/frontdesk/registration-drafts/{draft_id}","status":401,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-18T15:21:20.199Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ef3f-8645-774f-8a11-9a94bcfc5e6a","module":"frontdesk","operation_id":"deleteRegistrationDraft","route":"/v1/frontdesk/registration-drafts/{draft_id}","status":401,"duration_ms":2,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-18T15:21:20.201Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ef3f-8648-7d4b-855a-70a4c02e5243","module":"frontdesk","operation_id":"listFavouriteTests","route":"/v1/frontdesk/favourite-tests","status":401,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-18T15:21:20.206Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ef3f-864b-7fd0-a493-f01b6b52c186","module":"frontdesk","operation_id":"addFavouriteTest","route":"/v1/frontdesk/favourite-tests","status":400,"duration_ms":2,"db_count":0,"db_ms":0,"error_code":"common.validation_failed","msg":"request"}
+{"level":"info","ts":"2026-11-18T15:21:20.209Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ef3f-864f-7cb6-86df-28812072e594","module":"frontdesk","operation_id":"removeFavouriteTest","route":"/v1/frontdesk/favourite-tests/{orderable_id}","status":401,"duration_ms":2,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-18T15:21:20.212Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ef3f-8652-7b6a-a05b-f959060d5191","module":"frontdesk","operation_id":"previewRegistrationNumbers","route":"/v1/frontdesk/registrations/number-preview","status":400,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"common.validation_failed","msg":"request"}
+{"level":"info","ts":"2026-11-18T15:21:20.215Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ef3f-8655-7d84-b328-ae22a102b0d5","module":"frontdesk","operation_id":"listCustomFieldDefinitions","route":"/v1/frontdesk/custom-field-definitions","status":401,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-18T15:21:20.217Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ef3f-8658-7642-b0f6-b9fc8438949f","module":"frontdesk","operation_id":"createCustomFieldDefinition","route":"/v1/frontdesk/custom-field-definitions","status":400,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"common.validation_failed","msg":"request"}
+{"level":"info","ts":"2026-11-18T15:21:20.223Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ef3f-865b-754d-8170-4ff86e891e6d","module":"frontdesk","operation_id":"updateCustomFieldDefinition","route":"/v1/frontdesk/custom-field-definitions/{definition_id}","status":400,"duration_ms":4,"db_count":0,"db_ms":0,"error_code":"common.validation_failed","msg":"request"}
+{"level":"info","ts":"2026-11-18T15:21:20.226Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ef3f-8660-7b79-a1e6-8c52507fd9e0","module":"frontdesk","operation_id":"listCoupons","route":"/v1/frontdesk/coupons","status":401,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-18T15:21:20.227Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ef3f-8662-7a48-853e-f2724d4db12b","module":"frontdesk","operation_id":"createCoupon","route":"/v1/frontdesk/coupons","status":400,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"common.validation_failed","msg":"request"}
+{"level":"info","ts":"2026-11-18T15:21:20.230Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ef3f-8665-7307-846f-f444ef3900d6","module":"frontdesk","operation_id":"updateCoupon","route":"/v1/frontdesk/coupons/{coupon_id}","status":400,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"common.validation_failed","msg":"request"}
+{"level":"info","ts":"2026-11-18T15:21:20.233Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ef3f-8667-7f77-bf63-a1306bb3ce6b","module":"frontdesk","operation_id":"listIcdCodes","route":"/v1/frontdesk/icd-codes","status":401,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-18T15:21:20.236Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ef3f-866a-7bd1-a262-198d4a8ae168","module":"frontdesk","operation_id":"createIcdCode","route":"/v1/frontdesk/icd-codes","status":400,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"common.validation_failed","msg":"request"}
+{"level":"info","ts":"2026-11-18T15:21:20.241Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ef3f-866d-7fc9-9e79-22108fe7aafe","module":"frontdesk","operation_id":"updateIcdCode","route":"/v1/frontdesk/icd-codes/{icd_code_id}","status":400,"duration_ms":3,"db_count":0,"db_ms":0,"error_code":"common.validation_failed","msg":"request"}
+{"level":"info","ts":"2026-11-18T15:21:20.244Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ef3f-8672-7156-886b-7431da6d6d37","module":"frontdesk","operation_id":"getPatientRewards","route":"/v1/frontdesk/patients/{patient_id}/rewards","status":401,"duration_ms":2,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-18T15:21:20.249Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ef3f-8675-7d32-9791-14180e7cf396","module":"frontdesk","operation_id":"getFrontdeskSettings","route":"/v1/frontdesk/settings","status":401,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"warn","ts":"2026-11-18T15:21:26.115Z","service":"api","env":"ci","version":"0.0.0","event":"pending_operation_stale","module":"reporting","operationId":"listPrintProfiles","msg":"module reporting: pending operation listPrintProfiles has a handler; remove it from pendingOperations"}
+{"level":"warn","ts":"2026-11-18T15:21:26.115Z","service":"api","env":"ci","version":"0.0.0","event":"pending_operation_stale","module":"reporting","operationId":"upsertPrintProfile","msg":"module reporting: pending operation upsertPrintProfile has a handler; remove it from pendingOperations"}
+{"level":"warn","ts":"2026-11-18T15:21:26.115Z","service":"api","env":"ci","version":"0.0.0","event":"pending_operation_stale","module":"reporting","operationId":"previewPrintProfile","msg":"module reporting: pending operation previewPrintProfile has a handler; remove it from pendingOperations"}
+{"level":"warn","ts":"2026-11-18T15:21:26.115Z","service":"api","env":"ci","version":"0.0.0","event":"pending_operation_stale","module":"reporting","operationId":"listSignatoryProfiles","msg":"module reporting: pending operation listSignatoryProfiles has a handler; remove it from pendingOperations"}
+{"level":"warn","ts":"2026-11-18T15:21:26.115Z","service":"api","env":"ci","version":"0.0.0","event":"pending_operation_stale","module":"reporting","operationId":"upsertSignatoryProfile","msg":"module reporting: pending operation upsertSignatoryProfile has a handler; remove it from pendingOperations"}
+{"level":"warn","ts":"2026-11-18T15:21:27.566Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T15:21:27.982Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T15:21:27.982Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' not found"}
+{"level":"warn","ts":"2026-11-18T15:21:27.982Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/csv' not found"}
+{"level":"warn","ts":"2026-11-18T15:21:27.982Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-18T15:21:29.262Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T15:21:29.262Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-18T15:21:29.262Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-18T15:21:29.262Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-18T15:21:30.990Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T15:21:30.990Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' not found"}
+{"level":"warn","ts":"2026-11-18T15:21:30.990Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/xml' not found"}
+{"level":"warn","ts":"2026-11-18T15:21:30.990Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-18T15:21:32.935Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T15:21:32.935Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' not found"}
+{"level":"warn","ts":"2026-11-18T15:21:32.935Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-18T15:21:35.058Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T15:21:35.058Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-18T15:21:35.058Z","service":"api","env":"ci","version":"0.0.0","msg":"Handlers for some security requirements were missing: patientPreAuth, queueDisplayToken"}
+{"level":"warn","ts":"2026-11-18T15:21:36.494Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T15:21:36.494Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-18T15:21:36.494Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-18T15:21:36.494Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-18T15:21:36.494Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-18T15:21:37.675Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T15:21:38.404Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T15:21:38.404Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-18T15:21:38.404Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-18T15:21:38.404Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-18T15:21:38.404Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/csv' not found"}
+{"level":"warn","ts":"2026-11-18T15:21:38.404Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-18T15:21:39.367Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T15:21:39.367Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-18T15:21:39.367Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/octet-stream' not found"}
+{"level":"warn","ts":"2026-11-18T15:21:39.367Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-18T15:21:39.367Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-18T15:21:39.367Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-18T15:21:39.367Z","service":"api","env":"ci","version":"0.0.0","msg":"Handlers for some security requirements were missing: deviceToken"}
+{"level":"warn","ts":"2026-11-18T15:21:40.269Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T15:21:40.269Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/csv' not found"}
+{"level":"warn","ts":"2026-11-18T15:21:41.711Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T15:21:42.665Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T15:21:42.665Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-18T15:21:42.665Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/csv' not found"}
+{"level":"warn","ts":"2026-11-18T15:21:43.735Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T15:21:43.735Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-18T15:21:44.877Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T15:21:44.877Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/html' not found"}
+{"level":"warn","ts":"2026-11-18T15:21:44.877Z","service":"api","env":"ci","version":"0.0.0","msg":"Handlers for some security requirements were missing: paymentCallbackToken"}
+{"level":"warn","ts":"2026-11-18T15:21:45.344Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T15:21:46.042Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T15:21:46.043Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-18T15:21:46.043Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-18T15:21:46.043Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-18T15:21:46.043Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-18T15:21:46.043Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for '*/*' not found"}
+{"level":"warn","ts":"2026-11-18T15:21:46.043Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/plain' not found"}
+{"level":"warn","ts":"2026-11-18T15:21:46.043Z","service":"api","env":"ci","version":"0.0.0","msg":"Handlers for some security requirements were missing: portalSession"}
+{"level":"warn","ts":"2026-11-18T15:21:46.710Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"info","ts":"2026-11-18T15:21:52.468Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ef40-0452-7a30-97d4-a05193870b07","module":"core","operation_id":"unmatched","status":404,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"common.not_found","msg":"request"}
+{"level":"info","ts":"2026-11-18T15:21:52.469Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ef40-0455-7e15-ae82-149c4ea53c9d","module":"core","operation_id":"unmatched","status":404,"duration_ms":0,"db_count":0,"db_ms":0,"error_code":"common.not_found","msg":"request"}
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/modules/billing/__tests__/unit/boot.test.ts > BL-T01 core boots with the module (default modulesDir, real contracts) > bootstrap resolves and every billing operation is mounted, none answers 2xx without credentials
+Error: Test timed out in 60000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ src/modules/billing/__tests__/unit/boot.test.ts:55:3
+     53|
+     54| describe('BL-T01 core boots with the module (default modulesDir, real …
+     55|   it('bootstrap resolves and every billing operation is mounted, none …
+       |   ^
+     56|     // core requires the bearerJwt verifier config to mount bearerJwt …
+     57|     const config = loadConfig({
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 25 passed (26)
+      Tests  1 failed | 753 passed (754)
+   Start at  21:04:28
+   Duration  144.62s (tests 91%, import 7%, transform 1%)
+

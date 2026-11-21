@@ -2,6 +2,8 @@
 // T0D-ACCT-2 (LD-313, LD-310): ElabAssist Daily Payment Collection on billing/daily-cash = totals by payment mode for a centre and day, and the
 // deposit entry (Save). A deposit records a debit on the centre pocket (party_kind user_pocket, party_id = centre) with the BANK_DEPOSIT particular,
 // payment mode cash, entry date = the day. It only records: no money moves. A refund only day shows negative totals (LD-334).
+// T0D-FINCTRL-1 (LD-321): Previous Outstanding Cash and Deposit come from the cash sessions of the selected centre (getDailyCash().sessions,
+// summed over the sessions of that centre); carried forward = max(0, previous outstanding + the cash row of the summary - deposit).
 import { useRef, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { Button } from '@lims/ui/components/Button';
@@ -21,6 +23,8 @@ const D = (k: string) => t(`billing.daily_summary.${k}`);
 const CREATE = 'billing.account_entry.create';
 const DEPOSIT_CODE = 'BANK_DEPOSIT';
 type Row = DailyCollectionSummary['rows'][number];
+/** The CashSessionDto fields this screen reads (T0C-FINCTRL-1 previous_outstanding_cash_paisa, deposit_paisa; absent = 0). */
+export interface CollectionSession { centre_id: string; previous_outstanding_cash_paisa?: number | undefined; deposit_paisa?: number | undefined }
 
 export interface DailyCollectionScreenProps {
   summary: DailyCollectionSummary | null;
@@ -29,9 +33,11 @@ export interface DailyCollectionScreenProps {
   day: string;
   particulars: readonly AccountParticular[];
   permissions: readonly string[];
+  /** Cash sessions of the day (optional: existing callers pass none, the figures then show 0.00; null = the read was refused, figures show "—"). */
+  sessions?: readonly CollectionSession[] | null | undefined;
 }
 
-export function DailyCollectionScreen({ summary, centres, centreId, day, particulars, permissions }: DailyCollectionScreenProps) {
+export function DailyCollectionScreen({ summary, centres, centreId, day, particulars, permissions, sessions = [] }: DailyCollectionScreenProps) {
   const router = useRouter();
   const pathname = usePathname();
   const toast = useToast();
@@ -42,6 +48,11 @@ export function DailyCollectionScreen({ summary, centres, centreId, day, particu
   const [pending, setPending] = useState(false);
   const inFlight = useRef(false);
   const key = useRef(newKey());
+  const mine = (sessions ?? []).filter((x) => x.centre_id === centreId);
+  const previous = mine.reduce((sum, x) => sum + (x.previous_outstanding_cash_paisa ?? 0), 0);
+  const deposited = mine.reduce((sum, x) => sum + (x.deposit_paisa ?? 0), 0);
+  const cash = summary?.rows.find((r) => r.payment_mode === 'cash')?.total_paisa ?? 0;
+  const carried = Math.max(0, previous + cash - deposited);
   const bank = particulars.find((p) => p.code === DEPOSIT_CODE && p.is_active);
   const blocked = !hasPerm(permissions, CREATE) ? D('reason.no_create') : !bank ? D('reason.no_particular') : !centreId || !ISO_DATE.test(day) ? D('reason.no_centre')
     // Review fix: the deposit posts to the loaded summary (props), so unsearched Lab/Day edits must block Save (no entry on the wrong pocket).
@@ -88,6 +99,12 @@ export function DailyCollectionScreen({ summary, centres, centreId, day, particu
       </div>
       <DataTable caption={D('title')} density="compact" columns={columns} rows={summary?.rows ?? []} getRowId={(r) => r.payment_mode} emptyState={{ title: D('empty') }} />
       {summary ? <p className="lims-inline"><span>{D('total')}</span><strong>{formatNpr(summary.total_paisa)}</strong></p> : null}
+      <div className="lims-inline">
+        <p className="lims-inline"><span>{D('previous_outstanding')}</span><strong>{sessions === null ? '—' : formatNpr(previous)}</strong></p>
+        <p className="lims-inline"><span>{D('deposited')}</span><strong>{sessions === null ? '—' : formatNpr(deposited)}</strong></p>
+        <p className="lims-inline"><span>{D('carried_forward')}</span><strong>{sessions === null ? '—' : formatNpr(carried)}</strong></p>
+      </div>
+      {sessions === null ? <p className="lims-description">{D('sessions_unavailable')}</p> : null}
       <div className="lims-inline">
         <TextField label={D('deposit')} name="deposit" inputMode="decimal" maxLength={17} value={deposit} isDisabled={!!blocked} onChange={(v) => { setDeposit(v); setError(undefined); }} {...(error ? { error } : {})} />
         {blocked ? <GatedButton variant="primary" label={D('save')} blocked={blocked} onPress={() => undefined} /> : <Button variant="primary" isLoading={pending} onPress={() => void save()}>{D('save')}</Button>}

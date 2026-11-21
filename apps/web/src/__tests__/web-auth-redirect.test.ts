@@ -164,7 +164,7 @@ describe('the redirect keeps the security headers and CSP (REQ-SEC-089)', () => 
     ['expired', COOKIE],
   ])('%s: CSP (report-only, with nonce), nosniff, referrer-policy, no-store', async (reason, cookie) => {
     if (reason === 'expired') resolveMock.mockResolvedValue(unauthResolution('auth.session_expired'));
-    const res = await middleware(req('/', { cookie }));
+    const res = await middleware(req('/', cookie === undefined ? {} : { cookie }));
     expect(res.status).toBe(307);
     const csp = res.headers.get('content-security-policy-report-only') ?? '';
     expect(csp).toMatch(/script-src 'self' 'nonce-[A-Za-z0-9+/=]+'/);

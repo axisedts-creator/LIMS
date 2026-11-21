@@ -68,11 +68,11 @@ describe('anatomic TestProfilesTab (empty)', () => {
 
 describe('anatomic BatchesScreen (empty)', () => {
   const base = { batches: [], assays: [], hasCursor: false } as const;
-  it('with work rights: headers + message + 4 placeholder rows; "New batch" in the page header and in the message row', () => {
+  it('with work rights: headers + message + 4 placeholder rows; "New batch" once', () => {
     const { container } = wrap(<BatchesScreen {...base} canWork />);
     const t = tableOf(container);
     expectEmptyTable(t, /No batches yet/, ['Batch no', 'Assay', 'Status']);
-    expectCreateTwice(container, t, /^new batch$/i);
+    expect(within(container).getAllByRole('button', { name: /^new batch$/i })).toHaveLength(1); // LD-353 rules 4, 6
     expectNoCardOutsideTables(container);
   });
   it('without work rights there is no "New batch" button anywhere, but the headers and placeholders are drawn', () => {

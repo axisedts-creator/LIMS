@@ -4,7 +4,7 @@
 //   pnpm --dir apps/web exec vitest run --config src/features/payments/__tests__/vitest.rs-c15.config.ts -u rs-c15.screens
 // into __snapshots__/rs-c15.screens.test.tsx.snap (LD-170 lets the writer/debugger keep that file). With CI=true a missing snapshot FAILS, which is the state today.
 // Do not edit a test or the implementation just to make a snapshot match. DOM is serialised (not pixels): react-aria generated ids are normalised.
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { cleanup, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {
@@ -25,6 +25,9 @@ vi.mock('@/core/session/server', () => ({
 }));
 
 afterEach(cleanup);
+// T0D-UICONSOLE-1 review item 1: the console screens show wall-clock ages (useNow); freeze Date so the snapshot is stable.
+beforeAll(() => { vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(new Date('2026-11-18T06:00:00.000Z')); });
+afterAll(() => vi.useRealTimers());
 const ALL = ['payments.reconciliation.read', 'payments.intent.resolve', 'payments.refund.request', 'payments.refund.approve', 'payments.merchant_config.manage'];
 const snap = (el: Element) => expect(norm(el.innerHTML)).toMatchSnapshot();
 

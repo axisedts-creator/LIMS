@@ -76,7 +76,7 @@ const api = setupServer(
   http.get(`${ORIGIN}/v1/catalog/revision`, () => HttpResponse.json({ catalog_revision: 12, global_release_seen: 3 })),
   http.get(`${ORIGIN}/v1/catalog/*`, () => HttpResponse.json({ data: [], page: { limit: 1 } })), // any other read the home page makes for its tile counts
 );
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { cleanup(); api.resetHandlers(); calls.length = 0; push.mockReset(); replace.mockReset(); refresh.mockReset(); localStorage.clear(); sessionStorage.clear(); session.permissions = MANAGE; });
 afterAll(() => api.close());
 beforeEach(() => { document.body.innerHTML = ''; });

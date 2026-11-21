@@ -78,7 +78,7 @@ const api = setupServer(
   http.get(`${ORIGIN}/v1/lab/orders/${ORDER}/results`, async ({ request }) => { await rec(request); return HttpResponse.json({ order: { id: ORDER }, items: [
     { order_item_id: id(0x700), test: { id: id(0x701), code: 'CBC', name: 'CBC' }, results: [resultDto(R_HGB, 'HGB'), resultDto(R_WBC, 'WBC'), resultDto(id(0x603), 'PLT', 'cancelled')] }] }); }),
 );
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => {
   cleanup(); api.resetHandlers(); calls.length = 0; push.mockReset(); refresh.mockReset(); reapplyDelay = 0;
   reapplyReply = () => HttpResponse.json({ exception: { ...exc(1), status: 'resolved', resolution: 'applied', resolved_at: '2026-06-15T05:00:00.000Z' }, outcome: 'applied' });
@@ -132,9 +132,11 @@ describe('C5.T-23 list /lab/ingest-exceptions', () => {
   it('filters: choosing a reason / status navigates with reason= / status=; the URL carries no barcode or value (REQ-SEC-028)', async () => {
     const user = userEvent.setup();
     wrap(<IngestExceptionList items={[exc(1)] as never} permissions={READ} />);
-    await user.selectOptions(screen.getByRole('combobox', { name: /reason/i }), 'unmapped_code');
+    await user.click(screen.getByRole('button', { name: /reason/i }));
+    await user.click(await screen.findByRole('option', { name: 'Code not mapped' }));
     expect(String(push.mock.calls.at(-1)![0])).toMatch(/reason=unmapped_code/);
-    await user.selectOptions(screen.getByRole('combobox', { name: /status/i }), 'resolved');
+    await user.click(screen.getByRole('button', { name: /status/i }));
+    await user.click(await screen.findByRole('option', { name: 'Resolved' }));
     const target = String(push.mock.calls.at(-1)![0]);
     expect(target).toMatch(/status=resolved/);
     expect(target).not.toMatch(/SN0001|13\.4|HGB/);

@@ -69,7 +69,7 @@ const api = setupServer(
 );
 const setItem = vi.spyOn(Storage.prototype, 'setItem');
 const consoleSpies = (['log', 'info', 'warn', 'error', 'debug'] as const).map((k) => vi.spyOn(console, k).mockImplementation(() => {}));
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => {
   expect(setItem).not.toHaveBeenCalled(); // 04-UI-UX §1: nothing about patients in browser storage
   expect(JSON.stringify(consoleSpies.flatMap((s) => s.mock.calls.map((c) => c.map(String))))).not.toContain(SECRET_BODY); // P3 text is never logged

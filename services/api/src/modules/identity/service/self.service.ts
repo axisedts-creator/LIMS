@@ -52,6 +52,8 @@ export interface SelfCtx {
   readonly now?: () => Date;
   readonly commitOnError: () => void;
   readonly log?: { warn(o: object, m?: string): void };
+  /** SEC-ABUSE-1 (LD-237 (2)): ctx.rateLimit of the pipeline; changeOwnPassword consumes its declared `login` tier. */
+  readonly rateLimit?: { consume(tier: 'login', key: string): Promise<void> };
   readonly audit: { access(entry: { action: string; entityType: string; entityId?: string; outcome: 'allowed' | 'denied' }): Promise<void> };
 }
 export interface Result { status: number; body?: unknown }
@@ -162,6 +164,9 @@ export function createSelfService(deps: SelfDeps = {}) {
       const cur = input?.['currentPassword'], next = input?.['newPassword'];
       if (typeof cur !== 'string' || cur.length < 1 || cur.length > PASSWORD_MAX) failAt('/current_password');
       if (typeof next !== 'string' || next.length < 1 || next.length > PASSWORD_MAX) failAt('/new_password');
+      // SEC-ABUSE-1 (LD-237 (2)): the declared `login` tier, per caller, before the verifying GoTrue sign-in; fail closed.
+      if (!ctx.rateLimit) throw new LimsError('common.dependency_unavailable');
+      await ctx.rateLimit.consume('login', `a:self:${w.userId}`);
       const p = await profile(ctx, w);
       const gt = need(deps.gotrue);
       // GoTrue has no verify-only call: a password sign-in proves the current password.

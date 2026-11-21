@@ -8,25 +8,32 @@ import { Banner } from '@lims/ui/components/Banner';
 import { BarcodeInput, useScanCapture, type OnScan } from '@lims/ui/components/BarcodeInput';
 import { Button } from '@lims/ui/components/Button';
 import { Checkbox } from '@lims/ui/components/Checkbox';
+import { EmptyRow, PlaceholderRows } from '@lims/ui/components/DataTable';
 import { Dialog } from '@lims/ui/components/Dialog';
+import { EmptyState } from '@lims/ui/components/EmptyState';
+import { FilterBar } from '@lims/ui/components/FilterBar';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { RadioGroup } from '@lims/ui/components/RadioGroup';
 import { Select } from '@lims/ui/components/Select';
 import { Switch } from '@lims/ui/components/Switch';
-import { Tabs } from '@lims/ui/components/Tabs';
 import { TextArea } from '@lims/ui/components/TextArea';
 import { useToast } from '@lims/ui/components/Toast';
 import { lookupSpecimenAction, receiveSpecimenAction, rejectSpecimenAction } from '../server/actions';
 import type { RejectionReason, Specimen } from '../server/types';
-import { FAILED, NOT_FOUND, call, enterOnEmptyBox, newKey } from './shared';
+import { FAILED, NOT_FOUND, call, enterOnEmptyBox, newKey, rowError } from './shared';
 import { useSerial } from './useSerial';
 import { t } from '@/core/i18n/messages';
+// T0D-OFFLINE-3 (LD-322; done_when 3): offline, Accept queues accession.receive and the specimen carries the Pending sync badge
+import { OfflineError } from '@/core/offline/store';
+import { isOnline, useOfflineFlows, useOfflineSnapshot } from '@/core/offline/ui/OfflineProvider';
+import { PendingSyncBadge } from '@/core/offline/ui/OfflineParts';
 
 const LOCATION_KEY = 'lims.lab.receive.location'; // value = centre id only
 const LOG_MAX = 50; // [CONV] 03-APP-FLOW §3.3
 const COMMENT_MAX = 500;
-type Entry = { n: number; barcode: string; text: string };
+type Entry = { n: number; barcode: string; text: string; reason?: string };
 type LogTab = 'all' | 'received' | 'rejected' | 'errors';
+const LOG_TABS = ['all', 'received', 'rejected', 'errors'] as const;
 const tabOf = (e: Entry): LogTab => (e.text === 'Received' ? 'received' : e.text === 'Rejected' ? 'rejected' : 'errors'); // RS-C5 (LD-140): counts come from the in-memory session log only
 type Errs = { reason?: string; comment?: string; form?: string };
 
@@ -40,7 +47,13 @@ export interface ReceiveScreenProps {
 const day = (iso?: string) => (iso ? new Date(iso).toLocaleDateString('en-GB', { dateStyle: 'medium' }) : '');
 
 export function ReceiveScreen(props: ReceiveScreenProps) {
-  return props.permissions.includes('lab.specimen.receive') ? <Screen {...props} /> : <p role="alert">{"You don't have access to this screen."}</p>;
+  // T0D-UISCAN-1 (LD-353 rule 6): the denial keeps the page title
+  return props.permissions.includes('lab.specimen.receive') ? <Screen {...props} /> : (
+    <section aria-label="Receive specimens">
+      <PageHeader title={t('lab.nav.receive')} helpKey="lab.receive" />
+      <p role="alert">{"You don't have access to this screen."}</p>
+    </section>
+  );
 }
 
 function Screen({ centres, rejectionReasons, recollectionDefault, permissions }: ReceiveScreenProps) {
@@ -52,11 +65,15 @@ function Screen({ centres, rejectionReasons, recollectionDefault, permissions }:
   const [auto, setAuto] = useState(false);
   const [current, setCurrent] = useState<Specimen | null>(null);
   const [log, setLog] = useState<Entry[]>([]);
+  const [last, setLast] = useState<Entry | null>(null); // outcome of the current scan, shown in the result card
   const [logTab, setLogTab] = useState<LogTab>('all');
   const [msg, setMsg] = useState('');
   const [busy, setBusy] = useState(false);
   const busyRef = useRef(false);
   const seq = useRef(0);
+  const flows = useOfflineFlows();
+  const snap = useOfflineSnapshot();
+  const offline = !!flows?.receiveSpecimen && !!snap && !isOnline(snap);
   const box = useRef<HTMLDivElement>(null);
   // Scan jobs run later than the render that queued them: they read the latest choices from here.
   const live = useRef({ centreId, auto });
@@ -85,7 +102,11 @@ function Screen({ centres, rejectionReasons, recollectionDefault, permissions }:
   }, [auto]);
 
   const focusBox = () => box.current?.querySelector('input')?.focus();
-  const addLog = (barcode: string, text: string) => setLog((p) => [{ n: ++seq.current, barcode, text }, ...p].slice(0, LOG_MAX));
+  const addLog = (barcode: string, text: string, reason?: string) => {
+    const e: Entry = { n: ++seq.current, barcode, text, ...(reason ? { reason } : {}) };
+    setLast(e);
+    setLog((p) => [e, ...p].slice(0, LOG_MAX));
+  };
   const choose = (id: string) => {
     setCentreId(id);
     setLocErr('');
@@ -103,6 +124,15 @@ function Screen({ centres, rejectionReasons, recollectionDefault, permissions }:
     if (busyRef.current) return;
     busyRef.current = true;
     setBusy(true);
+    if (offline) {
+      try {
+        await flows!.receiveSpecimen!({ specimen_id: s.id, version: s.version, processing_centre_id: centre });
+        addLog(s.barcode, 'Received');
+      } catch (e) { addLog(s.barcode, `Error: ${e instanceof OfflineError ? rowError(e.code) : FAILED}`); }
+      busyRef.current = false;
+      setBusy(false);
+      return focusBox();
+    }
     const r = await call(receiveSpecimenAction(s.id, s.version, centre, newKey()));
     busyRef.current = false;
     setBusy(false);
@@ -116,6 +146,7 @@ function Screen({ centres, rejectionReasons, recollectionDefault, permissions }:
   const onScan: OnScan = (v) =>
     serial(async () => {
       setMsg('');
+      setLast(null);
       const r = await call(lookupSpecimenAction({ barcode: v }));
       if (!r.ok) return setMsg(r.status === 404 ? NOT_FOUND : (r.title ?? FAILED));
       const s = r.data[0];
@@ -156,7 +187,7 @@ function Screen({ centres, rejectionReasons, recollectionDefault, permissions }:
     setDialog(false);
     setCloseHint('');
     setCurrent(r.data.specimen);
-    addLog(current.barcode, 'Rejected');
+    addLog(current.barcode, 'Rejected', reasonText(reason));
     const fresh = r.data.recollection_specimen?.barcode;
     toast.show({ tone: 'success', title: fresh ? `Specimen rejected. New barcode ${fresh} created for recollection.` : 'Specimen rejected.' });
     setTimeout(focusBox, 0);
@@ -164,30 +195,14 @@ function Screen({ centres, rejectionReasons, recollectionDefault, permissions }:
 
   const shown = logTab === 'all' ? log : log.filter((e) => tabOf(e) === logTab);
   const reasonText = (code?: string) => rejectionReasons.find((r) => r.code === code)?.display ?? code ?? '';
-  return (
-    <section aria-label="Receive specimens">
-      <PageHeader title={t('lab.nav.receive')} helpKey="lab.receive" />
-      <div ref={bar}>
-        <Select
-          label="Receiving location"
-          name="location"
-          isRequired
-          placeholder="Choose a location"
-          options={centres.map((c) => ({ value: c.id, label: c.name }))}
-          value={centreId}
-          onChange={choose}
-          {...(locErr ? { error: locErr } : {})}
-        />
-        <Switch label="Auto-accept" isSelected={auto} onChange={setAuto} />
-      </div>
-      <div ref={box} onKeyDown={(e) => { if (enterOnEmptyBox(e) && current && canAccept) void receive(current); }}>
-        <BarcodeInput label="Scan barcode" name="scan" onScan={onScan} />
-      </div>
-      <p role="status" className="lims-description">{msg}</p>
-
+  const count = (k: LogTab) => (k === 'all' ? log.length : log.filter((e) => tabOf(e) === k).length);
+  // T0D-UISCAN-1 (LD-353 template 3): the last scan result card = message, current specimen, then the outcome of this scan.
+  const result = msg || current ? (
+    <>
+      {msg ? <p className="lims-description">{msg}</p> : null}
       {current ? (
         <section aria-label="Current specimen">
-          <p><strong>{current.barcode}</strong></p>
+          <p><strong>{current.barcode}</strong> <PendingSyncBadge id={current.id} /></p>
           <dl>
             <dt>Registration no</dt>
             <dd>{current.registration_no}</dd>
@@ -205,30 +220,57 @@ function Screen({ centres, rejectionReasons, recollectionDefault, permissions }:
           {permissions.includes('lab.specimen.read') ? <Button variant="ghost" onPress={() => router.push(`/lab/specimens/${current.id}`)}>Open specimen</Button> : null}
         </section>
       ) : null}
-
-      <Tabs
-        aria-label="Session log"
-        items={(['all', 'received', 'rejected', 'errors'] as const).map((t) => ({ id: t, label: t[0]!.toUpperCase() + t.slice(1), count: t === 'all' ? log.length : log.filter((e) => tabOf(e) === t).length }))}
-        selectedId={logTab}
-        onChange={(id) => setLogTab(id as LogTab)}
-      >
-        {shown.length ? (
-          <table className="lims-table">
-            <caption className="lims-visually-hidden">Session log</caption>
-            <thead>
-              <tr><th scope="col">Barcode</th><th scope="col">Outcome</th></tr>
-            </thead>
-            <tbody>
-              {shown.map((e) => (
-                <tr key={e.n}>
-                  <td>{e.barcode}</td>
-                  <td>{e.text}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        ) : null}
-      </Tabs>
+      {last ? <p className="lims-description">{last.barcode}: {last.text}{last.reason ? ` (${last.reason})` : ''}</p> : null}
+    </>
+  ) : null;
+  return (
+    <section aria-label="Receive specimens">
+      {/* T0D-UISCAN-1 (LD-353 template 3): Auto-accept stays a switch, in the header slot */}
+      <PageHeader title={t('lab.nav.receive')} helpKey="lab.receive" actions={<span ref={bar}><Switch label="Auto-accept" isSelected={auto} onChange={setAuto} /></span>} />
+      <Select
+        label="Receiving location"
+        name="location"
+        isRequired
+        placeholder="Choose a location"
+        options={centres.map((c) => ({ value: c.id, label: c.name }))}
+        value={centreId}
+        onChange={choose}
+        {...(locErr ? { error: locErr } : {})}
+      />
+      {/* T0D-UISCAN-1 (LD-353 template 3): one ScanPanel = scan input, result card, queue; the session-log tabs became status pills with counts in one FilterBar. */}
+      <div ref={box} onKeyDown={(e) => { if (enterOnEmptyBox(e) && current && canAccept) void receive(current); }}>
+        {/* [CONV] kit ScanPanel markup written out so the screen keeps the kit <BarcodeInput> itself (lab-t11.static pins it) */}
+        <div className="lims-scan-panel">
+          <div className="lims-scan-input"><BarcodeInput label="Scan barcode" name="scan" onScan={onScan} /></div>
+          {result ? <div className="lims-scan-result" role="status">{result}</div> : null}
+          <div className="lims-scan-queue">
+          <FilterBar
+            filters={[{ id: 'outcome', label: 'Session log', kind: 'select', multiple: true, options: LOG_TABS.map((k) => ({ value: k, label: `${k[0]!.toUpperCase()}${k.slice(1)} ${count(k)}` })) }]}
+            value={{ outcome: [logTab] }}
+            onChange={(v) => setLogTab(((v['outcome'] as readonly string[] | undefined)?.find((x) => x !== logTab) ?? 'all') as LogTab)}
+            onReset={() => setLogTab('all')}
+          />
+          <div className="lims-data-table"><div className="lims-table-scroll">
+            <table className="lims-table">
+              <caption className="lims-visually-hidden">Session log</caption>
+              <thead>
+                <tr><th scope="col">Barcode</th><th scope="col">Outcome</th></tr>
+              </thead>
+              <tbody>
+                {shown.length === 0 ? <EmptyRow colSpan={2}><EmptyState title={log.length ? 'No scans with this outcome' : 'Scan a label to start'} /></EmptyRow> : null}
+                {shown.map((e) => (
+                  <tr key={e.n}>
+                    <td>{e.barcode}</td>
+                    <td>{e.text}</td>
+                  </tr>
+                ))}
+              </tbody>
+              {shown.length === 0 ? <PlaceholderRows colSpan={2} /> : null}
+            </table>
+          </div></div>
+          </div>
+        </div>
+      </div>
 
       {dialog && current ? (
         <Dialog

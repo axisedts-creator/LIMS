@@ -2,7 +2,9 @@
 // SCR-11 doctor detail: edit form + Verify + "Merge into…". Phone and Email (contact fields) are rendered ONLY with
 // catalog.referrer.manage — the API omits them otherwise, and this component drops them even if the object carries them (AC-11.4).
 // Without manage, or for a merged-away doctor, the form is read-only text inputs.
-import { useState } from 'react';
+// T0D-PARTYSET-1 (LD-321): Speciality, Hospital and the National ID number. The API sends the number masked; "Show" asks the server (audited,
+// partners.party_id_number.read) and the full value stays in component state. The masked value is never sent back: only a number the user typed.
+import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Badge } from '@lims/ui/components/Badge';
 import { Banner } from '@lims/ui/components/Banner';
@@ -18,10 +20,13 @@ import { updateDoctorAction, verifyDoctorAction } from '../server/catalogActions
 import { PARTY_CODE_RE, emailError, phoneError, type Doctor, type DoctorSummary } from '../server/types';
 import { CONFLICT, SaveForm } from './master-ui';
 import { DoctorMergeDialog } from './DoctorMergeDialog';
+import { useReveal } from '@/features/partners/components/MaskedId';
+import { t } from '@/core/i18n/messages';
 
 export const canManageDoctors = (permissions: readonly string[]) => permissions.includes('catalog.referrer.manage');
 const COUNCILS = [{ value: 'none', label: 'None' }, { value: 'NMC', label: 'NMC' }, { value: 'Other', label: 'Other' }] as const;
-type Optional = 'qualification' | 'registration_council' | 'registration_no' | 'phone_e164' | 'email' | 'notes';
+type Optional = 'qualification' | 'registration_council' | 'registration_no' | 'phone_e164' | 'email' | 'notes' | 'speciality' | 'hospital';
+const NATIONAL_ID = /^[A-Za-z0-9-]{1,32}$/;
 
 export function DoctorDetail({ doctor, mergeTargets, permissions }: { doctor: Doctor; mergeTargets: readonly DoctorSummary[]; permissions: readonly string[] }) {
   const manage = canManageDoctors(permissions);
@@ -39,6 +44,14 @@ export function DoctorDetail({ doctor, mergeTargets, permissions }: { doctor: Do
   const [active, setActive] = useState(doctor.is_active);
   const [phoneErr, setPhoneErr] = useState<string>();
   const [emailErr, setEmailErr] = useState<string>();
+  const [speciality, setSpeciality] = useState(doctor.speciality ?? '');
+  const [hospital, setHospital] = useState(doctor.hospital ?? '');
+  const [nid, setNid] = useState<string>();
+  const [nidErr, setNidErr] = useState<string>();
+  const [specErr, setSpecErr] = useState<string>();
+  const [hospErr, setHospErr] = useState<string>();
+  const reveal = useReveal('doctor', doctor.id, 'national_id_number', permissions);
+  const inflight = useRef<ReturnType<typeof updateDoctorAction> | undefined>(undefined);
   const [merging, setMerging] = useState(false);
   const [verifyBanner, setVerifyBanner] = useState<string>();
   const [verifying, setVerifying] = useState(false);
@@ -47,14 +60,20 @@ export function DoctorDetail({ doctor, mergeTargets, permissions }: { doctor: Do
   const check = () => {
     const p = phoneError(phone.trim());
     const e = emailError(email.trim());
+    const n = nid !== undefined && nid.trim() !== '' && !NATIONAL_ID.test(nid.trim()) ? t('partners.idnumber.error.format') : undefined;
+    const sp = speciality.trim().length > 120 ? t('partners.idnumber.error.long') : undefined;
+    const ho = hospital.trim().length > 200 ? t('partners.idnumber.error.long') : undefined;
     setPhoneErr(p);
     setEmailErr(e);
-    return !p && !e;
+    setNidErr(n);
+    setSpecErr(sp);
+    setHospErr(ho);
+    return !p && !e && !n && !sp && !ho;
   };
   /** PATCH carries only what changed; an optional field cleared by the user goes into `unset`. */
   const save = () => {
     const body: Record<string, unknown> = {};
-    const unset: Optional[] = [];
+    const unset: string[] = [];
     const field = (k: Optional, v: string) => {
       const after = v.trim();
       if (after === (doctor[k] ?? '')) return;
@@ -70,9 +89,17 @@ export function DoctorDetail({ doctor, mergeTargets, permissions }: { doctor: Do
       field('email', email);
     }
     field('notes', notes);
+    field('speciality', speciality);
+    field('hospital', hospital);
+    if (nid !== undefined) {
+      if (nid.trim() !== '') body['national_id_number'] = nid.trim();
+      else if (doctor.national_id_number) unset.push('national_id_number');
+    }
     if (active !== doctor.is_active) body['is_active'] = active;
     if (unset.length) body['unset'] = unset;
-    return updateDoctorAction(doctor.id, doctor.version, body);
+    // one request at a time: a second Save while one runs gets the same answer (T0D-PARTYSET-1 double submit guard)
+    inflight.current ??= updateDoctorAction(doctor.id, doctor.version, body).finally(() => { inflight.current = undefined; });
+    return inflight.current;
   };
 
   const verify = async () => {
@@ -103,6 +130,14 @@ export function DoctorDetail({ doctor, mergeTargets, permissions }: { doctor: Do
       <TextField label="Registration no." name="registration_no" maxLength={30} isReadOnly={ro} value={regNo} onChange={setRegNo} />
       {manage ? <TextField label="Phone" name="phone_e164" maxLength={16} inputMode="tel" isReadOnly={ro} description="International format, for example +9779801234567." value={phone} onChange={(v) => { setPhone(v); setPhoneErr(undefined); }} {...(phoneErr ? { error: phoneErr } : {})} /> : null}
       {manage ? <TextField label="Email" name="email" maxLength={254} inputMode="email" isReadOnly={ro} value={email} onChange={(v) => { setEmail(v); setEmailErr(undefined); }} {...(emailErr ? { error: emailErr } : {})} /> : null}
+      <TextField label="Speciality" name="speciality" maxLength={300} isReadOnly={ro} value={speciality} onChange={(v) => { setSpeciality(v); setSpecErr(undefined); }} {...(specErr ? { error: specErr } : {})} />
+      <TextField label="Hospital" name="hospital" maxLength={300} isReadOnly={ro} value={hospital} onChange={(v) => { setHospital(v); setHospErr(undefined); }} {...(hospErr ? { error: hospErr } : {})} />
+      <div className="lims-inline">
+        <TextField label={t('partners.idnumber.national_id')} name="national_id_number" maxLength={64} isReadOnly={ro}
+          value={nid ?? reveal.full ?? doctor.national_id_number ?? ''} onChange={(v) => { setNid(v); setNidErr(undefined); }} {...(nidErr ? { error: nidErr } : {})} />
+        {doctor.national_id_number && nid === undefined ? reveal.button : null}
+        {doctor.national_id_number ? reveal.notes : null}
+      </div>
       <TextArea label="Notes" name="notes" maxLength={500} isReadOnly={ro} value={notes} onChange={setNotes} />
       {!ro ? <Switch label="Active" isSelected={active} onChange={setActive} /> : null}
       <p>{doctor.price_list_id ? <a className="lims-link" href={`/catalog/price-lists/${doctor.price_list_id}`}>Price list</a> : 'Price list: none assigned (assign it in Price lists).'}</p>

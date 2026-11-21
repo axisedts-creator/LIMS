@@ -97,7 +97,8 @@ describe('route rows, navigation entries, strings', () => {
     const was = (parse(git('show', `${BASE}:contracts/routes.yaml`)) as { routes: { id: string }[] }).routes.map((r) => r.id);
     const now = routes.map((r) => r.id);
     expect(was.filter((i) => !now.includes(i))).toEqual([]);
-    expect(now.filter((i) => !was.includes(i)).sort()).toEqual(['staff.lab.critical_values', 'staff.lab.worklists']);
+    // LD-432: main-landed rows may also be new since BASE; this task's two rows must be among them
+    expect(now.filter((i) => !was.includes(i))).toEqual(expect.arrayContaining(['staff.lab.critical_values', 'staff.lab.worklists']));
   });
 
   it.each(PAGES)('lab nav manifest entry $navId: label key $label resolves to the spec wording "$name", group laboratory, order $order, section daily work', async (p) => {
@@ -117,7 +118,8 @@ describe('route rows, navigation entries, strings', () => {
 
 describe('no registry or contract change (LD-255: no new permission, no invented operation)', () => {
   it('contracts/permissions.yaml and contracts/openapi/* are byte-identical to the tree before this task', () => {
-    expect(git('diff', '--name-only', BASE, '--', 'contracts/permissions.yaml', 'contracts/openapi').trim()).toBe('');
+    // LD-432: compared against main (did this task touch them), not the frozen BASE (did anyone since BASE)
+    expect(git('diff', '--name-only', 'main', '--', 'contracts/permissions.yaml', 'contracts/openapi').trim()).toBe('');
   });
 });
 

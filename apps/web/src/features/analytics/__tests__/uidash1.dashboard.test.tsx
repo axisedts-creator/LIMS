@@ -1,14 +1,16 @@
 // @vitest-environment jsdom
 // T0D-UIDASH-1 (1) /analytics as template 5 REPORT (LD-353 rules 8 and 10; done_when (1)). Renders DashboardView with fake data twice: an empty period and one row of data.
-// Contract: h1 = menu label (t('analytics.nav.dashboard')); ONE `.lims-stat-row` holding exactly four equal tiles, labelled in this order
-//   "Patient visits", "Reports pending", "Net sales", "Cash collected" (money tiles only when the API sent them); the "Needs you" card and the pipeline stepper stay;
-//   then ChartCards titled "Net sales per day" and "Top departments" side by side (same parent, nothing else in that row); each frame ALWAYS draws its chart
-//   and says "No data yet" when the period is empty OR the role may not read money (then no department name or amount leaks); "Show yesterday" stays on an empty period.
+// Contract: h1 = menu label (t('analytics.nav.dashboard')); the "Needs you" card and the pipeline stepper stay.
+// RE-PINNED by T0D-UIDASH-2 (LD-436 mock, LD-437 exact match; review item 1): the old four-tile header row (Patient visits, Reports pending, Net sales, Cash collected) is gone; the
+//   StatTile cells now live only in the Money card (Billed, Collected, Outstanding, Cash in drawer; none when the API sent no money tile). Charts are ChartCards titled
+//   "Billed per day" and "Tests by department" side by side (same parent, nothing else in that row); "Billed per day" ALWAYS draws its frame and says "No data yet" when the
+//   period is empty OR the role may not read money; "Tests by department" says "Not available yet" (the contract has no test count per department) and never leaks a
+//   department name or amount; "Show yesterday" stays on an empty period.
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/react';
 import { ToastProvider } from '@lims/ui/components/Toast';
 import { t } from '@/core/i18n/messages';
-import { cardByTitle, cards, cardTitle, frameDraws, frameSaysNoData, hasAlert, norm, tileLabel, tileRows, tiles, titles } from '@/__tests__/uidash1.helpers';
+import { cardByTitle, cardNotAvailable, cards, cardTitle, frameDraws, frameSaysNoData, hasAlert, norm, tileLabel, tileRows, tiles, titles } from '@/__tests__/uidash1.helpers';
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn(), refresh: vi.fn(), back: vi.fn() }),
@@ -60,24 +62,25 @@ describe('/analytics header and tiles (template 5)', () => {
     expect(titles(container)).toEqual([t('analytics.nav.dashboard')]);
   });
 
-  it('data: ONE row of exactly four equal tiles: Patient visits, Reports pending, Net sales, Cash collected', () => {
+  it('data: no header tile row; the only StatTile cells are the four of the Money card: Billed, Collected, Outstanding, Cash in drawer', () => {
     const { container } = mount(withData());
-    const rows = tileRows(container);
-    expect(rows, 'one StatTileRow').toHaveLength(1);
-    expect(tiles(container).map(tileLabel)).toEqual(['Patient visits', 'Reports pending', 'Net sales', 'Cash collected']);
-    expect([...rows[0]!.children].every((c) => c.classList.contains('lims-stat')), 'the row holds only tiles').toBe(true);
+    expect(tileRows(container), 'no StatTileRow').toHaveLength(0);
+    expect(tiles(container).map(tileLabel).map((l) => l.replace(/^(Cash in drawer).*/, '$1'))).toEqual(['Billed', 'Collected', 'Outstanding', 'Cash in drawer']);
+    for (const s of tiles(container)) expect(s.closest('.lims-card'), 'cell inside a kit Card').not.toBeNull();
   });
 
-  it('a role without money: the two money tiles are not drawn, the count tiles are', () => {
+  it('a role without money: no Money card and no tile at all', () => {
     const { container } = mount(noMoney());
-    expect(tiles(container).map(tileLabel)).toEqual(['Patient visits', 'Reports pending']);
+    expect(tiles(container).map(tileLabel)).toEqual([]);
   });
 
   it('data: "Needs you" card with its list and the pipeline stepper are kept', () => {
     const { container } = mount(withData());
     expect(screen.getByRole('heading', { name: 'Needs you' })).toBeTruthy();
-    expect(screen.getByRole('link', { name: /reports pending 5/i })).toBeTruthy();
-    expect(container.querySelector('ol.lims-stepper-list[aria-label="Sample pipeline"]')).not.toBeNull();
+    const row = [...container.querySelectorAll<HTMLAnchorElement>('ul.lims-action-list a.lims-action-row')].find((r) => /^reports pending$/i.test(norm(r.querySelector('.lims-action-title')?.textContent)));
+    expect(row, 'ActionList row "Reports pending"').toBeDefined();
+    expect(norm(row!.querySelector('.lims-chip')?.textContent)).toBe('5');
+    expect([...container.querySelectorAll('.lims-stepper li.lims-step .lims-step-label')].map((e) => norm(e.textContent))).toEqual(['Registered', 'Collected', 'Received', 'In testing', 'Verified', 'Released']);
   });
 
   it('empty period: "Needs you" says nothing needs you, and "Show yesterday" is still offered', () => {
@@ -98,14 +101,15 @@ describe('/analytics header and tiles (template 5)', () => {
 });
 
 describe('/analytics chart row (LD-353 rule 10: the frame ALWAYS draws)', () => {
-  it('data: "Net sales per day" then "Top departments", side by side in one row of two cards', () => {
+  it('data: "Billed per day" then "Tests by department", side by side in one row of two cards', () => {
     const { container } = mount(withData());
     const cs = cards(container);
-    expect(cs.map(cardTitle)).toEqual(['Net sales per day', 'Top departments']);
+    expect(cs.map(cardTitle)).toEqual(['Billed per day', 'Tests by department']);
     expect(cs[0]!.parentElement, 'same row').toBe(cs[1]!.parentElement);
     expect([...cs[0]!.parentElement!.children]).toEqual(cs);
-    for (const c of cs) { expect(frameDraws(c)).toBe(true); expect(frameSaysNoData(c)).toBe(false); }
-    expect(norm(container.textContent)).toContain(DEPT);
+    expect(frameDraws(cs[0]!)).toBe(true); expect(cardNotAvailable(cs[0]!), 'Billed per day: Not available yet (ruling T0D-UIDASH-2)').toBe(true);
+    expect(cardNotAvailable(cs[1]!), 'Tests by department: Not available yet').toBe(true);
+    expect(norm(container.textContent), 'department_top is net sales money, not a test count: not drawn as tests').not.toContain(DEPT);
   });
 
   it('the line chart is first in the DOM (two thirds) and the bar chart second (one third); the row is the one the stylesheet sizes', () => {
@@ -114,28 +118,30 @@ describe('/analytics chart row (LD-353 rule 10: the frame ALWAYS draws)', () => 
     expect(row.className, 'a named row class the kit/feature css sizes 2:1').toMatch(/lims-[a-z-]*(charts|chart-row)/);
   });
 
-  it('EMPTY period: both frames still draw and each says "No data yet" (today they are hidden)', () => {
+  it('EMPTY period: both frames still draw; "Billed per day" says "No data yet", "Tests by department" says "Not available yet"', () => {
     const { container } = mount(emptyPeriod());
     const cs = cards(container);
-    expect(cs.map(cardTitle)).toEqual(['Net sales per day', 'Top departments']);
-    for (const c of cs) { expect(frameDraws(c), `${cardTitle(c)} draws`).toBe(true); expect(frameSaysNoData(c), `${cardTitle(c)} says No data yet`).toBe(true); }
+    expect(cs.map(cardTitle)).toEqual(['Billed per day', 'Tests by department']);
+    expect(frameDraws(cs[0]!), 'Billed per day draws').toBe(true); expect(cardNotAvailable(cs[0]!), 'Billed per day says Not available yet').toBe(true);
+    expect(cardNotAvailable(cs[1]!)).toBe(true);
   });
 
-  it('a role that may not read money: both frames draw with "No data yet", no department name and no amount leaks', () => {
+  it('a role that may not read money: both frames draw ("No data yet" / "Not available yet"), no department name and no amount leaks', () => {
     const { container } = mount(noMoney());
     const cs = cards(container);
-    expect(cs.map(cardTitle)).toEqual(['Net sales per day', 'Top departments']);
-    for (const c of cs) { expect(frameDraws(c)).toBe(true); expect(frameSaysNoData(c)).toBe(true); }
+    expect(cs.map(cardTitle)).toEqual(['Billed per day', 'Tests by department']);
+    expect(frameDraws(cs[0]!)).toBe(true); expect(cardNotAvailable(cs[0]!)).toBe(true);
+    expect(cardNotAvailable(cs[1]!)).toBe(true);
     expect(container.textContent).not.toContain(DEPT);
     expect(container.textContent).not.toMatch(/Rs\.|NPR|225,000|123,456/);
   });
 
-  it('data with no departments yet: only the department frame says "No data yet"', () => {
+  it('data with no departments yet: "Billed per day" still draws, "Tests by department" still says "Not available yet"', () => {
     const d = withData();
     d.department_top = [];
     const { container } = mount(d);
-    expect(frameSaysNoData(cardByTitle(container, 'Net sales per day')!)).toBe(false);
-    expect(frameSaysNoData(cardByTitle(container, 'Top departments')!)).toBe(true);
+    expect(frameSaysNoData(cardByTitle(container, 'Billed per day')!)).toBe(false);
+    expect(cardNotAvailable(cardByTitle(container, 'Tests by department')!)).toBe(true);
   });
 
   it('charts use accent plus grey: no inline colour literal in the chart cards', () => {

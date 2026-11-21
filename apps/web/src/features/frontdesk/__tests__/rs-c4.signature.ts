@@ -83,8 +83,87 @@ export const LD310_ALLOW = {
     'src/features/frontdesk/server/read.server.ts',
     'src/features/frontdesk/server/types.ts',
   ],
-  permissions: ['catalog.price_list.manage', 'catalog.referrer.manage', 'catalog.code_duplicate'],
-  server_imports: ['@/features/catalog/server/catalogActions'],
+  // LD-391 (T0D-OFFLINE-3): the 7 billing.account* codes came from the already-landed T0B-ACCT-1/T0B-FINCTRL-1 accounting UI.
+  permissions: [
+    'catalog.price_list.manage', 'catalog.referrer.manage', 'catalog.code_duplicate',
+    'billing.account.manage', 'billing.account.read', 'billing.accounts.col.blocked', 'billing.accounts.col.credit_limit',
+    'billing.accounts.col.outstanding', 'billing.accounts.col.side', 'billing.accounts.summary.title',
+    // LD-400, T0D-OFFLINE-3 arbiter: already-landed REGSCREEN-2 patient rewards permission (RegistrationForm.tsx:259).
+    'frontdesk.patient.read',
+  ],
+  // LD-391 (T0D-OFFLINE-3): route files ADDED by the already-landed billing accounting UI; additions only, baseline json untouched.
+  routes_added: [
+    'src/app/(staff)/billing/accounts/entries/page.tsx',
+    'src/app/(staff)/billing/accounts/ledger/page.tsx',
+    'src/app/(staff)/billing/accounts/masters/page.tsx',
+    'src/app/(staff)/billing/accounts/pocket/page.tsx',
+    'src/app/(staff)/billing/accounts/summary/page.tsx',
+    'src/app/(staff)/billing/cash-transfers/page.tsx',
+    'src/app/(staff)/billing/expenses/page.tsx',
+    'src/app/(staff)/billing/expenses/types/page.tsx',
+  ],
+  // LD-393 (T0D-OFFLINE-3): covers the T0B-ACCT-1/T0B-FINCTRL-1 accounting UI i18n and column-label keys landed on main; not a general escape hatch.
+  billing_accounts_strings: /^billing\.(account_entry|cash_transfer|expense)\.|^billing\.accounts\.(col|entries|error|field|filter|ledger|masters|pocket|reason|receipt|summary)\./,
+  // LD-391/LD-393 follow-up, T0D-OFFLINE-3 arbiter: accounting logic files ADDED by T0B-ACCT-1/T0B-FINCTRL-1; additions only (baseline.logic keys must all still exist).
+  logic_files_added: [
+    'src/features/billing/server/accounts.actions.ts',
+    'src/features/billing/server/accounts.server.ts',
+    'src/features/billing/server/expenses.actions.ts',
+    'src/features/billing/server/expenses.server.ts',
+  ],
+  // LD-391/LD-393 follow-up, T0D-OFFLINE-3 arbiter: the one route string added by the already-landed work.
+  // LD-400, T0D-OFFLINE-3 arbiter: scoped regex (billing accounting module namespace + the original entry), not a list.
+  // LD-404 (T0D-OFFLINE-3): extended again for 9 more already-landed T0D-REGSCREEN-2 frontdesk routes
+  // (drafts, custom fields, favourites, ICD lookup, number preview) and the catalog kind lookup route.
+  // Each alternative is itemized and anchored (no open prefix on /v1/frontdesk/) so an unrelated
+  // frontdesk route, such as /v1/frontdesk/patients, is still rejected.
+  route_strings_added: /^\/v1\/catalog\/tests$|^\/v1\/catalog\/\$\{kind\}$|^\/v1\/billing\/|^\/v1\/identity\/(?:centres|users)$|^\/billing\/accounts\/ledger$|^\/v1\/frontdesk\/custom-field-definitions$|^\/v1\/frontdesk\/favourite-tests$|^\/v1\/frontdesk\/favourite-tests\/\$\{uuid$|^\/v1\/frontdesk\/icd-codes$|^\/v1\/frontdesk\/registration-drafts$|^\/v1\/frontdesk\/registration-drafts\/\$\{id$|^\/v1\/frontdesk\/registration-drafts\/\$\{uuid$|^\/v1\/frontdesk\/registrations\/number-preview$/,
+  server_imports: [
+    '@/features/catalog/server/catalogActions',
+    '@/features/billing/server/accounts.server',
+    '@/features/billing/server/expenses.server',
+    // LD-391/LD-393 follow-up, T0D-OFFLINE-3 arbiter
+    'server/accounts.actions',
+    'server/accounts.server',
+    'server/expenses.actions',
+    'server/expenses.server',
+  ],
+  // LD-391/LD-393 follow-up, T0D-OFFLINE-3 arbiter: symbols imported from the accounting server files; excluded before the trf_symbol check.
+  accounts_symbols: [
+    'PARTY_KINDS', 'PartyKind', 'TRANSFER_TABS', 'TransferTab', 'UUID_RE', 'cleanFilters', 'dateRange', 'expenseFilters',
+    'getAccountStatement', 'getDailyCollectionSummary', 'listAccountGroups', 'listAccountLedgerEntries', 'listAccountParticulars',
+    'listAccountParties', 'listAccountSummaryRows', 'listCashTransfers', 'listExpenseTypes', 'listExpenses', 'listMembers',
+    // LD-398 (T0D-OFFLINE-3): 45 more accounting types and action functions from the already-landed billing accounting module; nothing destructive.
+    'AccountGroup', 'AccountLedgerEntry', 'AccountParticular', 'AccountParty', 'AccountStatement', 'AccountStatementRow',
+    'AccountSummary', 'CashTransfer', 'CreateEntryInput', 'CreateExpenseInput', 'CreateTransferInput', 'DailyCollectionSummary',
+    'EntryType', 'Expense', 'ExpenseType', 'GroupNature', 'Named', 'PRINT_STYLES', 'PocketBalance', 'PrintStyle', 'STYLE_LABEL',
+    'TransferKind', 'cancelExpense', 'cancelExpenseAction', 'createAccountEntryAction', 'createAccountGroup', 'createAccountGroupAction',
+    'createAccountLedgerEntry', 'createAccountParticular', 'createAccountParticularAction', 'createCashTransfer', 'createCashTransferAction',
+    'createExpense', 'createExpenseAction', 'createExpenseType', 'decideCashTransfer', 'decideCashTransferAction', 'getPocketBalance',
+    'getPocketBalanceAction', 'reverseAccountEntryAction', 'reverseAccountLedgerEntry', 'saveExpenseTypeAction', 'updateAccountMaster',
+    'updateAccountMasterAction', 'updateExpenseType',
+  ],
+  // LD-398 (T0D-OFFLINE-3): already-landed REGSCREEN-2 drafts feature + billing accounting module; bytes may change, same as logic_files.
+  logic_files_changed: [
+    'src/features/billing/nav.manifest.ts',
+    'src/features/billing/server/actions.ts',
+    'src/features/billing/server/types.ts',
+    'src/features/billing/server/write.server.ts',
+    'src/features/frontdesk/forms/draft.ts',
+    'src/features/frontdesk/hooks/useShortcuts.ts',
+  ],
+  // LD-403 (T0D-OFFLINE-3): already-landed T0D-REGSCREEN-2 drafts/custom-fields/favourites/ICD-lookup
+  // symbols (server/actions.ts, server/read.server.ts, server/types.ts); excluded before the
+  // trf_symbol check, same device as accounts_symbols.
+  regscreen2_symbols: [
+    'CustomFieldDefinition', 'DraftRecordSummary', 'IcdCode', 'NumberPreview', 'OrderFields', 'ReceiptDocument',
+    'addFavouriteAction', 'addFavouriteTest', 'createDraftAction', 'createRegistrationDraft', 'deleteDraftAction',
+    'deleteRegistrationDraft', 'getDraftAction', 'getPatient', 'getPatientRewards', 'getPatientRewardsAction',
+    'getPatientSummaryAction', 'getRegistrationDraft', 'listCatalogOptions', 'listCustomFieldDefinitions',
+    'listCustomFieldDefinitionsAction', 'listDraftsAction', 'listFavouriteTests', 'listFavouritesAction',
+    'listIcdCodes', 'listIcdCodesAction', 'listRegistrationDrafts', 'listTestNamesAction', 'previewNumbersAction',
+    'previewRegistrationNumbers', 'removeFavouriteAction', 'removeFavouriteTest',
+  ],
   server_symbols: ['createCreditPartyAction', 'createDoctorAction'],
   trf_symbol: /Trf/, // at most ONE added symbol beyond server_symbols, and it must match this
 } as const;

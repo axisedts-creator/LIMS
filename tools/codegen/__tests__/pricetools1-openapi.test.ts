@@ -130,8 +130,8 @@ describe("T0C-PRICETOOLS-1 contract: catalog.yaml lint and additive baseline", (
   it("is additive: 110 operations before, exactly 7 new operations now, every old price list operation keeps method, path and permission", () => {
     const ids = allOps();
     // T0C-TESTIMPORT-1 (LD-318) adds 6 Excel test import operations on top (pinned in testimport1-openapi.test.ts): 117 + 6 = 123
-    expect(ids.length, "110 (107 + 3 category operations) + 7 price list tool operations + 6 test import operations").toBe(123);
-    expect(new Set(ids).size).toBe(123);
+    expect(ids.length, "110 (107 + 3 category operations) + 7 price list tool operations + 6 test import operations + 5 ICD master operations (T0C-PARTYSET-1)").toBe(128);
+    expect(new Set(ids).size).toBe(128);
     for (const id of Object.keys(NEW_OPS)) expect(opOf(id), `${id} missing`).toBeDefined();
     for (const [id, o] of Object.entries(OLD_PRICE_OPS)) {
       const f = opOf(id);

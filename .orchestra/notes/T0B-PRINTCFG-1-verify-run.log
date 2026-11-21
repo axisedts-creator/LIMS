@@ -1,0 +1,215 @@
+[core] WARNING: Executable file detection not yet supported on 'win32'.
+Schema updated
+psql:/repo/db/migrations/20261105001300_identity__create_identity_schema.sql:7: NOTICE:  schema "identity" already exists, skipping
+psql:/repo/db/migrations/20261105001500_catalog__create_catalog_schema.sql:10: NOTICE:  schema "catalog" already exists, skipping
+psql:/repo/db/migrations/20261105001600_frontdesk__create_frontdesk_schema.sql:7: NOTICE:  schema "frontdesk" already exists, skipping
+psql:/repo/db/migrations/20261105001700_billing__create_billing_schema.sql:7: NOTICE:  schema "billing" already exists, skipping
+psql:/repo/db/migrations/20261105001800_lab__create_lab_schema.sql:10: NOTICE:  schema "lab" already exists, skipping
+psql:/repo/db/migrations/20261105001900_reporting__create_reporting_schema.sql:145: NOTICE:  identifier "message_template_texts__tenant_id_template_code_channel_language__uq" will be truncated to "message_template_texts__tenant_id_template_code_channel_languag"
+psql:/repo/db/migrations/20261105001900_reporting__create_reporting_schema.sql:177: NOTICE:  identifier "report_template_versions__tenant_id_template_id__published__p_uq" will be truncated to "report_template_versions__tenant_id_template_id__published__p_u"
+psql:/repo/db/migrations/20261105001900_reporting__create_reporting_schema.sql:443: NOTICE:  identifier "deliveries__tenant_id_channel_account_id_provider_message_id__p_uq" will be truncated to "deliveries__tenant_id_channel_account_id_provider_message_id__p"
+psql:/repo/db/migrations/20261105001900_reporting__create_reporting_schema.sql:682: NOTICE:  identifier "narrative_versions__tenant_id_narrative_report_id_version_no__uq" will be truncated to "narrative_versions__tenant_id_narrative_report_id_version_no__u"
+psql:/repo/db/migrations/20261115192000_identity__add_provisioning_schema.sql:47: NOTICE:  identifier "tenant_contract_acceptances__tenant_id_document_accepted_at__idx" will be truncated to "tenant_contract_acceptances__tenant_id_document_accepted_at__id"
+                                                       set_config                                                        
+-------------------------------------------------------------------------------------------------------------------------
+ {"tenant_id":"01a1a98a-ac40-7000-8000-00000000a001","sub":"01a1b34e-1000-7eee-9d29-d7ca59a102b5","actor_type":"system"}
+(1 row)
+
+                                                       set_config                                                        
+-------------------------------------------------------------------------------------------------------------------------
+ {"tenant_id":"01a1a98a-ac40-7000-8000-00000000b001","sub":"01a1b34e-1000-7eee-9d29-d7ca59a102b5","actor_type":"system"}
+(1 row)
+
+ set_config 
+------------
+ 
+(1 row)
+
+                                                       set_config                                                        
+-------------------------------------------------------------------------------------------------------------------------
+ {"tenant_id":"01a1a98a-ac40-7000-8000-00000000a001","sub":"01a1b34e-1004-782c-a681-49b1ce74d717","actor_type":"system"}
+(1 row)
+
+                                                       set_config                                                        
+-------------------------------------------------------------------------------------------------------------------------
+ {"tenant_id":"01a1a98a-ac40-7000-8000-00000000b001","sub":"01a1b34e-1004-782c-a681-49b1ce74d717","actor_type":"system"}
+(1 row)
+
+
+ RUN  v5.1.0 C:/LIMS-lanes/C0-0G/services/api
+
+{"level":"warn","ts":"2026-11-18T09:58:40.539Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T09:58:40.917Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T09:58:40.917Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' not found"}
+{"level":"warn","ts":"2026-11-18T09:58:40.917Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/csv' not found"}
+{"level":"warn","ts":"2026-11-18T09:58:40.917Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-18T09:58:41.833Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T09:58:41.833Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-18T09:58:41.833Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-18T09:58:41.833Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-18T09:58:43.021Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T09:58:43.021Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' not found"}
+{"level":"warn","ts":"2026-11-18T09:58:43.021Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/xml' not found"}
+{"level":"warn","ts":"2026-11-18T09:58:43.021Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-18T09:58:44.398Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T09:58:44.398Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' not found"}
+{"level":"warn","ts":"2026-11-18T09:58:44.398Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-18T09:58:46.176Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T09:58:46.176Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-18T09:58:46.176Z","service":"api","env":"ci","version":"0.0.0","msg":"Handlers for some security requirements were missing: patientPreAuth, queueDisplayToken"}
+{"level":"warn","ts":"2026-11-18T09:58:47.269Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T09:58:47.269Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-18T09:58:47.269Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-18T09:58:47.269Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-18T09:58:47.269Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-18T09:58:48.129Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T09:58:48.918Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T09:58:48.918Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-18T09:58:48.918Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-18T09:58:48.919Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-18T09:58:48.919Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/csv' not found"}
+{"level":"warn","ts":"2026-11-18T09:58:48.919Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-18T09:58:50.008Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T09:58:50.008Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-18T09:58:50.008Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/octet-stream' not found"}
+{"level":"warn","ts":"2026-11-18T09:58:50.008Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-18T09:58:50.008Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-18T09:58:50.008Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-18T09:58:50.009Z","service":"api","env":"ci","version":"0.0.0","msg":"Handlers for some security requirements were missing: deviceToken"}
+{"level":"warn","ts":"2026-11-18T09:58:50.961Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T09:58:50.961Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/csv' not found"}
+{"level":"warn","ts":"2026-11-18T09:58:52.410Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T09:58:53.471Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T09:58:53.471Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-18T09:58:53.471Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/csv' not found"}
+{"level":"warn","ts":"2026-11-18T09:58:54.376Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T09:58:54.376Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-18T09:58:55.423Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T09:58:55.423Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/html' not found"}
+{"level":"warn","ts":"2026-11-18T09:58:55.423Z","service":"api","env":"ci","version":"0.0.0","msg":"Handlers for some security requirements were missing: paymentCallbackToken"}
+{"level":"warn","ts":"2026-11-18T09:58:55.896Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T09:58:56.690Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"warn","ts":"2026-11-18T09:58:56.690Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/pdf' not found"}
+{"level":"warn","ts":"2026-11-18T09:58:56.690Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'multipart/form-data' not found"}
+{"level":"warn","ts":"2026-11-18T09:58:56.690Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/png' not found"}
+{"level":"warn","ts":"2026-11-18T09:58:56.690Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'image/jpeg' not found"}
+{"level":"warn","ts":"2026-11-18T09:58:56.690Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for '*/*' not found"}
+{"level":"warn","ts":"2026-11-18T09:58:56.690Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'text/plain' not found"}
+{"level":"warn","ts":"2026-11-18T09:58:56.690Z","service":"api","env":"ci","version":"0.0.0","msg":"Handlers for some security requirements were missing: portalSession"}
+{"level":"warn","ts":"2026-11-18T09:58:57.473Z","service":"api","env":"ci","version":"0.0.0","msg":"ContentTypeParser for 'application/problem+json' not found"}
+{"level":"info","ts":"2026-11-18T09:59:03.158Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ee18-76b1-781e-b31e-ff15e2d90156","module":"billing","operation_id":"listInvoices","route":"/v1/billing/invoices","status":401,"duration_ms":67,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-18T09:59:03.162Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ee18-76f7-722b-8baa-bd0e734c0cd3","module":"billing","operation_id":"getInvoice","route":"/v1/billing/invoices/{invoice_id}","status":401,"duration_ms":2,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-18T09:59:03.164Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ee18-76fa-7f2d-8b9b-6b6e813ad7b2","module":"billing","operation_id":"listInvoicePrints","route":"/v1/billing/invoices/{invoice_id}/prints","status":401,"duration_ms":2,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-18T09:59:03.170Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ee18-76fd-7dd5-a667-4a741d3b738a","module":"billing","operation_id":"printInvoice","route":"/v1/billing/invoices/{invoice_id}/print","status":400,"duration_ms":5,"db_count":0,"db_ms":0,"error_code":"common.validation_failed","msg":"request"}
+{"level":"info","ts":"2026-11-18T09:59:03.173Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ee18-7702-753e-a5b3-a5e4324cb6d3","module":"billing","operation_id":"cancelInvoice","route":"/v1/billing/invoices/{invoice_id}/cancel","status":400,"duration_ms":2,"db_count":0,"db_ms":0,"error_code":"common.validation_failed","msg":"request"}
+{"level":"info","ts":"2026-11-18T09:59:03.176Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ee18-7705-778a-a41c-f3d90f722d1a","module":"billing","operation_id":"issuePartialCreditNote","route":"/v1/billing/invoices/{invoice_id}/credit-notes","status":400,"duration_ms":2,"db_count":0,"db_ms":0,"error_code":"common.validation_failed","msg":"request"}
+{"level":"info","ts":"2026-11-18T09:59:03.178Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ee18-7708-79e5-9997-139a49f8bfb8","module":"billing","operation_id":"listCreditNotes","route":"/v1/billing/credit-notes","status":401,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-18T09:59:03.180Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ee18-770a-7aaf-8024-900e84b3c746","module":"billing","operation_id":"getCreditNote","route":"/v1/billing/credit-notes/{credit_note_id}","status":401,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-18T09:59:03.183Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ee18-770c-7eac-9dba-ad10c63eccb4","module":"billing","operation_id":"printCreditNote","route":"/v1/billing/credit-notes/{credit_note_id}/print","status":400,"duration_ms":2,"db_count":0,"db_ms":0,"error_code":"common.validation_failed","msg":"request"}
+{"level":"info","ts":"2026-11-18T09:59:03.184Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ee18-770f-7a5d-835e-109b0ce2dff7","module":"billing","operation_id":"getOrderBilling","route":"/v1/billing/orders/{order_id}","status":401,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-18T09:59:03.187Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ee18-7711-70c9-92be-8ee67789c1b0","module":"billing","operation_id":"recordPayment","route":"/v1/billing/orders/{order_id}/payments","status":400,"duration_ms":2,"db_count":0,"db_ms":0,"error_code":"common.validation_failed","msg":"request"}
+{"level":"info","ts":"2026-11-18T09:59:03.189Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ee18-7713-7649-960f-03911a193cbe","module":"billing","operation_id":"requestRefund","route":"/v1/billing/orders/{order_id}/refund-requests","status":400,"duration_ms":2,"db_count":0,"db_ms":0,"error_code":"common.validation_failed","msg":"request"}
+{"level":"info","ts":"2026-11-18T09:59:03.191Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ee18-7716-79ed-bbed-4b1ec7e68236","module":"billing","operation_id":"createPaymentIntent","route":"/v1/billing/orders/{order_id}/payment-intents","status":400,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"common.validation_failed","msg":"request"}
+{"level":"info","ts":"2026-11-18T09:59:03.193Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ee18-7718-7bba-8117-455a7cc88e50","module":"billing","operation_id":"verifyPaymentIntent","route":"/v1/billing/orders/{order_id}/payment-intents/{intent_id}/verify","status":401,"duration_ms":2,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-18T09:59:03.195Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ee18-771a-70fe-9d2f-7bbe4862e205","module":"billing","operation_id":"createReleaseOverride","route":"/v1/billing/orders/{order_id}/release-overrides","status":400,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"common.validation_failed","msg":"request"}
+{"level":"info","ts":"2026-11-18T09:59:03.197Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ee18-771c-75b0-a10e-b66cea75e307","module":"billing","operation_id":"getReleaseEligibility","route":"/v1/billing/orders/{order_id}/release-eligibility","status":401,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-18T09:59:03.199Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ee18-771d-7d74-896d-3b14bfdadd01","module":"billing","operation_id":"reverseLedgerEntry","route":"/v1/billing/ledger-entries/{ledger_entry_id}/reverse","status":400,"duration_ms":2,"db_count":0,"db_ms":0,"error_code":"common.validation_failed","msg":"request"}
+{"level":"info","ts":"2026-11-18T09:59:03.201Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ee18-7720-7405-886d-bae538124195","module":"billing","operation_id":"listLedgerEntries","route":"/v1/billing/ledger-entries","status":401,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-18T09:59:03.203Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ee18-7721-70a1-b183-18c2dedb78db","module":"billing","operation_id":"approveRefund","route":"/v1/billing/refund-requests/{refund_request_id}/approve","status":400,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"common.validation_failed","msg":"request"}
+{"level":"info","ts":"2026-11-18T09:59:03.204Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ee18-7723-70fd-aaa6-6c0e2ad37d33","module":"billing","operation_id":"rejectRefund","route":"/v1/billing/refund-requests/{refund_request_id}/reject","status":400,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"common.validation_failed","msg":"request"}
+{"level":"info","ts":"2026-11-18T09:59:03.206Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ee18-7725-7898-96ee-c6a52abaea26","module":"billing","operation_id":"listRefundRequests","route":"/v1/billing/refund-requests","status":401,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-18T09:59:03.207Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ee18-7726-76a9-b2ad-40a3531c70c7","module":"billing","operation_id":"listDues","route":"/v1/billing/dues","status":401,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-18T09:59:03.209Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ee18-7728-732d-8536-0f1a23aa2c52","module":"billing","operation_id":"getMyCashSession","route":"/v1/billing/cash-sessions/current","status":401,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-18T09:59:03.211Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ee18-7729-7a37-bcd0-8dd952f0f75f","module":"billing","operation_id":"closeCashSession","route":"/v1/billing/cash-sessions/{cash_session_id}/close","status":400,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"common.validation_failed","msg":"request"}
+{"level":"info","ts":"2026-11-18T09:59:03.212Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ee18-772b-78e1-92ce-d03c87e8e362","module":"billing","operation_id":"getDailyCash","route":"/v1/billing/daily-cash","status":401,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-18T09:59:03.213Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ee18-772c-7819-af02-e902ea2e71a6","module":"billing","operation_id":"listCreditAccounts","route":"/v1/billing/credit-parties","status":401,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-18T09:59:03.214Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ee18-772d-7ab8-ae96-2e8553236af7","module":"billing","operation_id":"getCreditAccount","route":"/v1/billing/credit-parties/{credit_party_id}","status":401,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-18T09:59:03.216Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ee18-772f-7dfc-a033-cf538fa62d78","module":"billing","operation_id":"updateCreditAccount","route":"/v1/billing/credit-parties/{credit_party_id}","status":400,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"common.validation_failed","msg":"request"}
+{"level":"info","ts":"2026-11-18T09:59:03.218Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ee18-7730-7ac3-a497-65eef265020d","module":"billing","operation_id":"listCreditCharges","route":"/v1/billing/credit-parties/{credit_party_id}/charges","status":401,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-18T09:59:03.219Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ee18-7732-725d-87d5-914c62161ea4","module":"billing","operation_id":"issuePeriodicInvoice","route":"/v1/billing/credit-parties/{credit_party_id}/periodic-invoices","status":400,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"common.validation_failed","msg":"request"}
+{"level":"info","ts":"2026-11-18T09:59:03.221Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ee18-7734-7800-9315-59e342aa692d","module":"billing","operation_id":"recordCreditPartyPayment","route":"/v1/billing/credit-parties/{credit_party_id}/payments","status":400,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"common.validation_failed","msg":"request"}
+{"level":"info","ts":"2026-11-18T09:59:03.222Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ee18-7735-7be1-88b3-8ce3e43b3f94","module":"billing","operation_id":"getCreditPartyStatement","route":"/v1/billing/credit-parties/{credit_party_id}/statement","status":401,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-18T09:59:03.224Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ee18-7737-7a7f-a832-da233bc923f4","module":"billing","operation_id":"getSalesRegister","route":"/v1/billing/registers/sales","status":401,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-18T09:59:03.226Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ee18-7739-7353-a280-8569fbed9034","module":"billing","operation_id":"getCancelledInvoiceRegister","route":"/v1/billing/registers/cancelled-invoices","status":401,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-18T09:59:03.227Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ee18-773a-762f-9ceb-bc9f5829fe62","module":"billing","operation_id":"getCreditNoteRegister","route":"/v1/billing/registers/credit-notes","status":401,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-18T09:59:03.228Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ee18-773c-762b-b0d3-c448a194e2f3","module":"billing","operation_id":"getAuditTrail","route":"/v1/billing/audit-trail","status":401,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-18T09:59:03.230Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ee18-773c-762c-a818-51223af10b22","module":"billing","operation_id":"createBillingExport","route":"/v1/billing/exports","status":400,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"common.validation_failed","msg":"request"}
+{"level":"info","ts":"2026-11-18T09:59:03.231Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ee18-773e-7c60-bc1c-2fd8fcb393ee","module":"billing","operation_id":"getBillingExport","route":"/v1/billing/exports/{export_id}","status":401,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-18T09:59:03.232Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ee18-773f-7cf8-9b34-92b5465550b4","module":"billing","operation_id":"getBillingExportContent","route":"/v1/billing/exports/{export_id}/content","status":401,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-18T09:59:03.234Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ee18-7741-78a0-a78c-43d1090e4c0d","module":"billing","operation_id":"listCbmsDocuments","route":"/v1/billing/cbms/documents","status":401,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-18T09:59:03.235Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ee18-7742-79a8-96bf-8d9b467e0a5d","module":"billing","operation_id":"retryCbmsDocument","route":"/v1/billing/cbms/documents/{document_kind}/{document_id}/retry","status":400,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"common.validation_failed","msg":"request"}
+{"level":"info","ts":"2026-11-18T09:59:03.237Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ee18-7744-750d-9273-339518dfbe60","module":"billing","operation_id":"getBillingSettings","route":"/v1/billing/settings","status":401,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-18T09:59:03.239Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ee18-7745-77a7-a04f-0d4bb8b1ea76","module":"billing","operation_id":"updateBillingSettings","route":"/v1/billing/settings","status":400,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"common.validation_failed","msg":"request"}
+{"level":"info","ts":"2026-11-18T09:59:03.241Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ee18-7747-723c-bf53-ab8fcb574b45","module":"billing","operation_id":"listBillingCodes","route":"/v1/billing/coded-sets/{set_name}","status":400,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"common.validation_failed","msg":"request"}
+{"level":"info","ts":"2026-11-18T09:59:03.243Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ee18-7749-7aae-9289-ac149f24b222","module":"billing","operation_id":"listCreditNoteTasks","route":"/v1/billing/credit-note-tasks","status":401,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-18T09:59:03.244Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ee18-774b-74d7-853c-be73581fd16c","module":"billing","operation_id":"listFinanceReviewItems","route":"/v1/billing/finance-review-items","status":401,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-18T09:59:03.247Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ee18-774d-7950-bb49-07688b61742a","module":"billing","operation_id":"resolveFinanceReviewItem","route":"/v1/billing/finance-review-items/{item_id}/resolve","status":400,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"common.validation_failed","msg":"request"}
+{"level":"info","ts":"2026-11-18T09:59:03.249Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ee18-774f-7819-b697-a97e6921d487","module":"billing","operation_id":"listAccountGroups","route":"/v1/billing/account-groups","status":401,"duration_ms":2,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-18T09:59:03.251Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ee18-7751-74c7-87dd-6cc5920ab788","module":"billing","operation_id":"createAccountGroup","route":"/v1/billing/account-groups","status":400,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"common.validation_failed","msg":"request"}
+{"level":"info","ts":"2026-11-18T09:59:03.253Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ee18-7753-76d1-b5cc-ff3f19f2952f","module":"billing","operation_id":"updateAccountGroup","route":"/v1/billing/account-groups/{account_group_id}","status":400,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"common.validation_failed","msg":"request"}
+{"level":"info","ts":"2026-11-18T09:59:03.254Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ee18-7755-78df-b060-3c9bbe842b0a","module":"billing","operation_id":"listAccountParticulars","route":"/v1/billing/account-particulars","status":401,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-18T09:59:03.256Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ee18-7757-7f24-ba58-680191168863","module":"billing","operation_id":"createAccountParticular","route":"/v1/billing/account-particulars","status":400,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"common.validation_failed","msg":"request"}
+{"level":"info","ts":"2026-11-18T09:59:03.257Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ee18-7758-75fd-88d1-aa369dbfd292","module":"billing","operation_id":"updateAccountParticular","route":"/v1/billing/account-particulars/{account_particular_id}","status":400,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"common.validation_failed","msg":"request"}
+{"level":"info","ts":"2026-11-18T09:59:03.258Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ee18-7759-7cba-971e-e1240461a8a4","module":"billing","operation_id":"listExpenseTypes","route":"/v1/billing/expense-types","status":401,"duration_ms":0,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-18T09:59:03.259Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ee18-775a-75df-ba3f-e3a508dd7d34","module":"billing","operation_id":"createExpenseType","route":"/v1/billing/expense-types","status":400,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"common.validation_failed","msg":"request"}
+{"level":"info","ts":"2026-11-18T09:59:03.261Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ee18-775b-7693-9246-075bad966ba9","module":"billing","operation_id":"updateExpenseType","route":"/v1/billing/expense-types/{expense_type_id}","status":400,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"common.validation_failed","msg":"request"}
+{"level":"info","ts":"2026-11-18T09:59:03.263Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ee18-775d-73d7-8852-f8c8007b108f","module":"billing","operation_id":"listAccountLedgerEntries","route":"/v1/billing/account-ledger-entries","status":401,"duration_ms":2,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-18T09:59:03.266Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ee18-7760-774e-bd7e-8ce282e3caff","module":"billing","operation_id":"createAccountLedgerEntry","route":"/v1/billing/account-ledger-entries","status":400,"duration_ms":2,"db_count":0,"db_ms":0,"error_code":"common.validation_failed","msg":"request"}
+{"level":"info","ts":"2026-11-18T09:59:03.267Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ee18-7762-747e-874b-947a127adbbf","module":"billing","operation_id":"getAccountLedgerEntry","route":"/v1/billing/account-ledger-entries/{account_ledger_entry_id}","status":401,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-18T09:59:03.269Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ee18-7764-7354-a6ad-a1e0ab6926b2","module":"billing","operation_id":"reverseAccountLedgerEntry","route":"/v1/billing/account-ledger-entries/{account_ledger_entry_id}/reverse","status":400,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"common.validation_failed","msg":"request"}
+{"level":"info","ts":"2026-11-18T09:59:03.271Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ee18-7766-74b5-afdb-8f26b9d9fa58","module":"billing","operation_id":"getAccountStatement","route":"/v1/billing/account-statement","status":400,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"common.validation_failed","msg":"request"}
+{"level":"info","ts":"2026-11-18T09:59:03.273Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ee18-7768-724e-bece-e75dcf96c109","module":"billing","operation_id":"getAccountSummary","route":"/v1/billing/account-summary","status":400,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"common.validation_failed","msg":"request"}
+{"level":"info","ts":"2026-11-18T09:59:03.275Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ee18-7769-7943-862c-e6d8a7d86722","module":"billing","operation_id":"listAccountSummaries","route":"/v1/billing/account-summaries","status":401,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-18T09:59:03.276Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ee18-776b-7e1b-b689-f3c32a94a05e","module":"billing","operation_id":"listExpenses","route":"/v1/billing/expenses","status":401,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-18T09:59:03.277Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ee18-776c-7828-b16e-0df61dfcb5c0","module":"billing","operation_id":"createExpense","route":"/v1/billing/expenses","status":400,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"common.validation_failed","msg":"request"}
+{"level":"info","ts":"2026-11-18T09:59:03.278Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ee18-776d-7c33-8b82-a1d2c7721d97","module":"billing","operation_id":"cancelExpense","route":"/v1/billing/expenses/{expense_id}/cancel","status":400,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"common.validation_failed","msg":"request"}
+{"level":"info","ts":"2026-11-18T09:59:03.280Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ee18-776f-791b-b91d-7274d14498d7","module":"billing","operation_id":"listCashTransfers","route":"/v1/billing/cash-transfers","status":401,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"auth.unauthenticated","msg":"request"}
+{"level":"info","ts":"2026-11-18T09:59:03.281Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ee18-7770-72d4-b711-a089d04766c9","module":"billing","operation_id":"createCashTransfer","route":"/v1/billing/cash-transfers","status":400,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"common.validation_failed","msg":"request"}
+{"level":"info","ts":"2026-11-18T09:59:03.283Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ee18-7772-772c-a31f-2cdd6fe72726","module":"billing","operation_id":"acceptCashTransfer","route":"/v1/billing/cash-transfers/{cash_transfer_id}/accept","status":400,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"common.validation_failed","msg":"request"}
+{"level":"info","ts":"2026-11-18T09:59:03.284Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ee18-7773-77f8-b896-e30e73f807a5","module":"billing","operation_id":"rejectCashTransfer","route":"/v1/billing/cash-transfers/{cash_transfer_id}/reject","status":400,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"common.validation_failed","msg":"request"}
+{"level":"info","ts":"2026-11-18T09:59:03.286Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ee18-7775-7b0c-9169-86ab77267cb7","module":"billing","operation_id":"cancelCashTransfer","route":"/v1/billing/cash-transfers/{cash_transfer_id}/cancel","status":400,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"common.validation_failed","msg":"request"}
+{"level":"info","ts":"2026-11-18T09:59:03.287Z","service":"api","env":"ci","version":"0.0.0","request_id":"01a1ee18-7776-7ece-a94c-147479fec489","module":"billing","operation_id":"getDailyCollectionSummary","route":"/v1/billing/daily-collection-summary","status":400,"duration_ms":1,"db_count":0,"db_ms":0,"error_code":"common.validation_failed","msg":"request"}
+ ❯ src/modules/reporting/__tests__/render.client.integration.test.ts (6 tests | 2 failed) 1110ms
+   ❯ client <-> real renderer (6)
+     × returns a real PDF (magic bytes) and the page count Chromium produced 491ms (retry x2)
+     × an asset in the bundle passes the server validation (png, base64) and the render still succeeds 441ms (retry x2)
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/modules/reporting/__tests__/render.client.integration.test.ts > client <-> real renderer > returns a real PDF (magic bytes) and the page count Chromium produced (initial run, 1st retry, 2nd retry)
+Error: renderer unreachable or failed
+ ❯ fail src/modules/reporting/renderer-client/render.client.ts:17:118
+     15|
+     16| const DEFAULT_TIMEOUT_MS = 60_000;   // [CONV] renderer's own job time…
+     17| const fail = (code: 'reporting.render_unavailable' | 'reporting.templa…
+       |                                                                                                                      ^
+     18|
+     19| export function createRenderClient(o: { url: string; token: string; ti…
+ ❯ Object.render src/modules/reporting/renderer-client/render.client.ts:34:15
+ ❯ src/modules/reporting/__tests__/render.client.integration.test.ts:26:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/6]⎯
+
+ FAIL  src/modules/reporting/__tests__/render.client.integration.test.ts > client <-> real renderer > an asset in the bundle passes the server validation (png, base64) and the render still succeeds (initial run, 1st retry, 2nd retry)
+Error: renderer unreachable or failed
+ ❯ fail src/modules/reporting/renderer-client/render.client.ts:17:118
+     15|
+     16| const DEFAULT_TIMEOUT_MS = 60_000;   // [CONV] renderer's own job time…
+     17| const fail = (code: 'reporting.render_unavailable' | 'reporting.templa…
+       |                                                                                                                      ^
+     18|
+     19| export function createRenderClient(o: { url: string; token: string; ti…
+ ❯ Object.render src/modules/reporting/renderer-client/render.client.ts:34:15
+ ❯ src/modules/reporting/__tests__/render.client.integration.test.ts:42:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/6]⎯
+
+
+ Test Files  1 failed | 159 passed | 6 skipped (166)
+      Tests  2 failed | 4564 passed | 62 skipped | 1 todo (4629)
+   Start at  15:42:36
+   Duration  294.32s (tests 76%, import 18%, transform 3%, setup 2%)
+
+    Isolate  166 workers spawned · ~171ms startup each (spawn + environment, per file)
+             at least ~28.14s faster with isolate: false — reuses workers across files instead of one per file
+

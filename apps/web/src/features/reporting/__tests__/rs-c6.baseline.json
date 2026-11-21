@@ -8,7 +8,7 @@
     "web/features/reporting/server/write.server.ts": "dc339f26637e1cd0e03351a7d65f5aeae9d558f2e2297bec6807463c5f1f8b96",
     "web/features/reporting/components/useShortcuts.ts": "6a94ec461ff2fcccbf673d2df50cc2723e460e11964582424875d09c686bd616",
     "web/features/reporting/components/useUrlFilters.ts": "1596d01b0cb107a617bdefe71690486e06db9822f8590631a63b99f85322afba",
-    "portal/src/middleware.ts": "f355c051ab8e45ef901fa38bbecb55637f1a53096f345cec814e06214a740d3e",
+    "portal/src/middleware.ts": "eee6ef484dcce3e66c449f97896646f472c8765d93d6db4cf7db7ab7cce303b4",
     "portal/src/server/api.ts": "b3a6ea8b4d4d6bfc30a4111018f5cb124efce45072019cfd92872c66828a3a4c",
     "portal/src/server/origin.ts": "153854c3a8de4e1fca4fdbcd06f6cbc82c509dedac51d37abdce61a1e4435306",
     "portal/src/server/session.ts": "4908c894b8384c3c71731fdf39900dc956e727f1786a5733f8911b21efa23ef6",

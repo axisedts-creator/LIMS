@@ -202,7 +202,7 @@ describe.each(SCREENS)('entry screen: $id', ({ id, ui }) => {
   it('only the background changed: rings, plate, mark, three chips, tagline follow in the M5 order; still no focusable element, one plate role=img, two images announced (logo, plate)', () => {
     const { container } = inLayout(ui());
     const p = panel(container);
-    expect([...p.children].map((c) => (c.getAttribute('class') ?? '').split(' ')[0]).filter((c) => !/^lims-auth-photo/.test(c))).toEqual(
+    expect([...p.children].map((c) => (c.getAttribute('class') ?? '').split(' ')[0]!).filter((c) => !/^lims-auth-photo/.test(c))).toEqual(
       ['lims-auth-rings', 'lims-auth-scene', 'lims-auth-mark', 'lims-auth-chip', 'lims-auth-chip', 'lims-auth-chip', 'lims-auth-tagline'],
     );
     expect(p.querySelectorAll('.lims-auth-well')).toHaveLength(96);

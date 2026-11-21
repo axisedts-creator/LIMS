@@ -1,0 +1,4 @@
+# T0B-MISREPORTS-2 debugger (2026-11-19)
+- 4 fails: (a) commission.live.test.ts:124 parent_party_name.length > 0: TEST fixture defect. kit.ts seeds no catalog.credit_parties rows, so every party_name is ''. Impl (misReports.service.ts:122-123 join on credit_parties, LD-408) is right; level 2 + parent id already pass. Dispute stands in T0B-MISREPORTS-2-dispute.md; no impl change made.
+- (b) 3 boot timeouts (real-modules-boot, analytics boot.test x2) at 60s: full-suite load (74 workers, 343s); same tests passed in 9 earlier runs (2845/0), no code path of this task. Not fixed; rerun in isolation.
+- 2026-11-19 verify: 1 fail perf.live.test.ts sales_representative median 2935ms > 2000 (MISREPORTS-1 report, not this task) in full-suite run (74 files parallel, 141s). Isolated rerun of perf.live.test.ts on throwaway PG17: 13/13 pass. Cause: CPU/IO load from parallel workers, not code. No impl change; no test touched. Rerun gate sequentially if verify flakes again.

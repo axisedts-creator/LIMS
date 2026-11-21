@@ -68,7 +68,7 @@ const api = setupServer(
   http.get(`${ORIGIN}/v1/lab/coded-sets/:set`, async ({ request, params }) => { await rec('listSet', request); return setReply(String(params['set'])); }),
   http.put(`${ORIGIN}/v1/lab/coded-sets/:set/codes/:code`, async ({ request }) => { await rec('upsertCode', request); return upsertReply(); }),
 );
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 beforeEach(() => {
   settingsReply = () => HttpResponse.json(SETTINGS);
   putReply = () => HttpResponse.json({ ...SETTINGS, version: 4 });
@@ -85,7 +85,7 @@ afterAll(() => api.close());
 
 const load = async (name = 'LabSettingsPage') => (await import(/* @vite-ignore */ `../components/settings/${name}`)) as Record<string, (p: any) => ReactNode>; // variable path: a missing module fails each test, not the file
 const open = async (permissions: readonly string[] = MANAGE) => {
-  const { LabSettingsPage } = await load();
+  const LabSettingsPage = (await load()).LabSettingsPage!;
   return render(<ToastProvider><LabSettingsPage permissions={permissions} /></ToastProvider>);
 };
 const tab = async (name: RegExp) => { const user = userEvent.setup(); await user.click(await screen.findByRole('tab', { name })); return user; };

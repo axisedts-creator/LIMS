@@ -1,0 +1,1 @@
+pnpm --dir apps/web run build:nav && pnpm --dir apps/web exec vitest run -c src/features/lab/__tests__/vitest.uiscan1.config.ts --maxWorkers=1 && pnpm --dir apps/web exec vitest run -c src/features/lab/__tests__/vitest.rs-c5.config.ts src/features/lab/__tests__/rs-c5.behaviour.test.tsx --maxWorkers=1

@@ -14,6 +14,8 @@ export interface ScheduledEntry extends CronEntry { readonly module: string }
 export const CORE_CRONTAB: readonly ScheduledEntry[] = [
   { module: 'core', identifier: 'core.retention_purge', schedule: '30 21 * * *', tenantScope: 'platform', maxAttempts: 5 },   // 03:15 Asia/Kathmandu
   { module: 'core', identifier: 'core.queue_depth_probe', schedule: '* * * * *', tenantScope: 'platform' },
+  // T0B-SYNC-5 (LD-322): offline sync gauges (every 5 minutes), one job per tenant; no sync retention job (LD-407)
+  { module: 'core', identifier: 'core.sync_metrics', schedule: '*/5 * * * *', tenantScope: 'per_tenant', maxAttempts: 1 },
 ];
 
 export const cronItems = (entries: readonly ScheduledEntry[]): CronItem[] => entries.map((e) => ({

@@ -1,0 +1,1 @@
+cd /d "%~dp0..\.." && "C:\Program Files\Git\bin\bash.exe" tests/engagement/T0B-MSGDESK-1.pg.sh && pnpm --dir services/api exec vitest run src/modules/partners/__tests__/probes src/modules/partners/__tests__/boot.test.ts src/modules/engagement/__tests__/boot.test.ts src/modules/engagement/__tests__/contract src/modules/partners/__tests__/contract

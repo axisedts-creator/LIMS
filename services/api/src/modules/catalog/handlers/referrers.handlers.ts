@@ -4,6 +4,7 @@ import { LimsError } from '../../../core/errors.js';
 import type { Handler, HandlerContext, HandlerRequest } from '../../../core/module.js';
 import { createReferrersService, type ReferrersDeps } from '../service/referrers.service.js';
 import type { Ctx } from '../service/masters.service.js';
+import { guarded } from './_guard.js';
 
 type Svc = ReturnType<typeof createReferrersService>;
 type RCtx = Ctx & { events?: ReferrersDeps['events']; ports?: { IdentityPort?: ReferrersDeps['identity'] } };
@@ -28,11 +29,11 @@ function bind(run: (s: Svc, ctx: Ctx, req: HandlerRequest) => Promise<{ status: 
 const id = (req: HandlerRequest) => obj(req.params)['doctor_id'];
 
 export const referrersHandlers: Readonly<Record<string, Handler>> = Object.freeze({
-  searchDoctors: bind(async (s, ctx, req) => ({ status: 200, body: await s.searchDoctors(ctx, req.body) })),
-  listDoctors: bind(async (s, ctx, req) => ({ status: 200, body: await s.listDoctors(ctx, req.query) })),
-  createDoctor: bind(async (s, ctx, req) => ({ status: 201, body: await s.createDoctor(ctx, req.body) })),
-  getDoctor: bind(async (s, ctx, req) => ({ status: 200, body: await s.getDoctor(ctx, { id: id(req) }) })),
-  updateDoctor: bind(async (s, ctx, req) => ({ status: 200, body: await s.updateDoctor(ctx, { id: id(req), expectedVersion: ifMatch(req), patch: req.body }) })),
-  verifyDoctor: bind(async (s, ctx, req) => ({ status: 200, body: await s.verifyDoctor(ctx, { id: id(req), expectedVersion: ifMatch(req) }) })),
-  mergeDoctor: bind(async (s, ctx, req) => ({ status: 200, body: await s.mergeDoctor(ctx, { id: id(req), expectedVersion: ifMatch(req), body: req.body }) })),
+  searchDoctors: guarded('catalog.referrer.read', bind(async (s, ctx, req) => ({ status: 200, body: await s.searchDoctors(ctx, req.body) }))),
+  listDoctors: guarded('catalog.referrer.read', bind(async (s, ctx, req) => ({ status: 200, body: await s.listDoctors(ctx, req.query) }))),
+  createDoctor: guarded('catalog.referrer.manage', bind(async (s, ctx, req) => ({ status: 201, body: await s.createDoctor(ctx, req.body) }))),
+  getDoctor: guarded('catalog.referrer.read', bind(async (s, ctx, req) => ({ status: 200, body: await s.getDoctor(ctx, { id: id(req) }) }))),
+  updateDoctor: guarded('catalog.referrer.manage', bind(async (s, ctx, req) => ({ status: 200, body: await s.updateDoctor(ctx, { id: id(req), expectedVersion: ifMatch(req), patch: req.body }) }))),
+  verifyDoctor: guarded('catalog.referrer.manage', bind(async (s, ctx, req) => ({ status: 200, body: await s.verifyDoctor(ctx, { id: id(req), expectedVersion: ifMatch(req) }) }))),
+  mergeDoctor: guarded('catalog.referrer.manage', bind(async (s, ctx, req) => ({ status: 200, body: await s.mergeDoctor(ctx, { id: id(req), expectedVersion: ifMatch(req), body: req.body }) }))),
 });

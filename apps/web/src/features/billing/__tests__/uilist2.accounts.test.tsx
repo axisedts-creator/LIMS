@@ -44,7 +44,7 @@ const summaryRow = () => ({ party_kind: 'credit_party', party_id: CLIENT, party_
 
 const seen: string[] = [];
 const api = setupServer();
-beforeAll(() => { api.listen({ onUnhandledRequest: 'error' }); api.events.on('request:start', ({ request }) => { seen.push(new URL(request.url).pathname); }); });
+beforeAll(() => { api.listen({ onUnhandledFrame: 'error' }); api.events.on('request:start', ({ request }) => { seen.push(new URL(request.url).pathname); }); });
 beforeEach(() => { seen.length = 0; });
 afterEach(() => { cleanup(); api.resetHandlers(); });
 afterAll(() => api.close());

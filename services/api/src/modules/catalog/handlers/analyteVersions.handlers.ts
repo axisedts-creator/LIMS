@@ -5,6 +5,7 @@ import { LimsError } from '../../../core/errors.js';
 import type { Handler, HandlerContext, HandlerRequest } from '../../../core/module.js';
 import { createAnalyteVersionsService } from '../service/analyteVersions.service.js';
 import { ifMatch } from './masters.handlers.js';
+import { guarded } from './_guard.js';
 
 type Svc = ReturnType<typeof createAnalyteVersionsService>;
 type Ctx = Parameters<Svc['createAnalyte']>[0] & { events?: Parameters<typeof createAnalyteVersionsService>[0]['events']; ports?: { IdentityPort?: Identity } };
@@ -21,17 +22,17 @@ function bind(run: (svc: Svc, ctx: Ctx, req: HandlerRequest) => Promise<{ status
 const ok = (body: unknown) => ({ status: 200, body });
 
 export const analyteVersionsHandlers: Readonly<Record<string, Handler>> = Object.freeze({
-  createAnalyte: bind(async (s, c, r) => ({ status: 201, body: await s.createAnalyte(c, { test_id: obj(r.params)['test_id'], body: r.body }) })),
-  getAnalyte: bind(async (s, c, r) => ok(await s.getAnalyte(c, { id: obj(r.params)['analyte_id'], as_of: obj(r.query)['as_of'] }))),
-  updateAnalyte: bind(async (s, c, r) => ok(await s.updateAnalyte(c, { id: obj(r.params)['analyte_id'], expectedVersion: ifMatch(r), patch: r.body }))),
-  createAnalyteVersionDraft: bind(async (s, c, r) => ({ status: 201, body: await s.createAnalyteVersionDraft(c, { analyte_id: obj(r.params)['analyte_id'], body: r.body }) })),
-  updateAnalyteVersionDraft: bind(async (s, c, r) =>
-    ok(await s.updateAnalyteVersionDraft(c, { id: obj(r.params)['analyte_version_id'], expectedVersion: ifMatch(r), patch: r.body }))),
+  createAnalyte: guarded('catalog.test.manage', bind(async (s, c, r) => ({ status: 201, body: await s.createAnalyte(c, { test_id: obj(r.params)['test_id'], body: r.body }) }))),
+  getAnalyte: guarded('catalog.test.read', bind(async (s, c, r) => ok(await s.getAnalyte(c, { id: obj(r.params)['analyte_id'], as_of: obj(r.query)['as_of'] })))),
+  updateAnalyte: guarded('catalog.test.manage', bind(async (s, c, r) => ok(await s.updateAnalyte(c, { id: obj(r.params)['analyte_id'], expectedVersion: ifMatch(r), patch: r.body })))),
+  createAnalyteVersionDraft: guarded('catalog.test.manage', bind(async (s, c, r) => ({ status: 201, body: await s.createAnalyteVersionDraft(c, { analyte_id: obj(r.params)['analyte_id'], body: r.body }) }))),
+  updateAnalyteVersionDraft: guarded('catalog.test.manage', bind(async (s, c, r) =>
+    ok(await s.updateAnalyteVersionDraft(c, { id: obj(r.params)['analyte_version_id'], expectedVersion: ifMatch(r), patch: r.body })))),
   publishAnalyteVersion: bind(async (s, c, r) => {
     const identity = c.ports!.IdentityPort!;
     await identity.assertRole(c, { permission: 'catalog.test.manage' });
     await identity.assertRole(c, { permission: 'catalog.reference_range.publish' });
     return ok(await s.publishAnalyteVersion(c, { id: obj(r.params)['analyte_version_id'], expectedVersion: ifMatch(r), body: r.body }));
   }, true),
-  discardAnalyteVersionDraft: bind(async (s, c, r) => ok(await s.discardAnalyteVersionDraft(c, { id: obj(r.params)['analyte_version_id'], expectedVersion: ifMatch(r) }))),
+  discardAnalyteVersionDraft: guarded('catalog.test.manage', bind(async (s, c, r) => ok(await s.discardAnalyteVersionDraft(c, { id: obj(r.params)['analyte_version_id'], expectedVersion: ifMatch(r) })))),
 });

@@ -65,7 +65,7 @@ const api = setupServer(
     return HttpResponse.json({ results: items.map((i) => okRow(i.id === SP(4) ? byBarcode[BC(4)]! : byBarcode[BC(5)]!, 'in_transit')) });
   }),
 );
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { cleanup(); api.resetHandlers(); calls.length = 0; push.mockReset(); replace.mockReset(); refresh.mockReset(); localStorage.clear(); sessionStorage.clear(); });
 afterAll(() => api.close());
 

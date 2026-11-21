@@ -5,6 +5,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
+import type { ReactNode } from 'react';
 import { ToastProvider } from '@lims/ui/components/Toast';
 import { ID, IDEM_RE, ORIGIN, PERM_ADJUST, PERM_MANAGE, PERM_NONE, api, count, countLine, countSummary, hit, hits, problem, resetHits, router, state } from './t23.harness';
 
@@ -12,7 +13,7 @@ vi.mock('next/navigation', async () => (await import('./t23.harness')).navigatio
 vi.mock('server-only', () => ({}));
 vi.mock('@/core/session/server', async () => (await import('./t23.harness')).sessionMock);
 
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 beforeEach(() => { resetHits(); Object.values(router).forEach((f) => f.mockReset()); state.permissions = PERM_MANAGE; state.path = '/inventory/counts'; });
 afterEach(() => { cleanup(); api.resetHandlers(); });
 afterAll(() => api.close());
@@ -20,7 +21,7 @@ afterAll(() => api.close());
 const C1 = ID(900);
 const mountList = async () => {
   const mod = await import('../../../app/(staff)/inventory/counts/page');
-  return render(<ToastProvider>{await mod.default({ searchParams: Promise.resolve({}) } as never)}</ToastProvider>);
+  return render(<ToastProvider>{await (mod.default as unknown as (p: unknown) => Promise<ReactNode>)({ searchParams: Promise.resolve({}) })}</ToastProvider>);
 };
 const mountCount = async () => {
   state.path = `/inventory/counts/${C1}`;

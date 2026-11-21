@@ -29,20 +29,62 @@ exports[`RS-C5 key screens (DOM snapshots) > collect / dispatch: tabs with count
 </div>
 <div id="ID" aria-labelledby="ID" role="tabpanel" class="lims-tabpanel" data-rac="">
 <div>
+<div class="lims-scan-panel">
+<div class="lims-scan-input">
 <div class="lims-field lims-barcode">
-<label class="lims-label" for="_r_t_">Scan barcode or enter registration number</label>
-<input id="_r_t_" class="lims-input lims-mono" autocomplete="off" autocapitalize="characters" spellcheck="false" type="text" name="scan">
+<label class="lims-label" for="_r_19_">Scan barcode or enter registration number</label>
+<input id="_r_19_" class="lims-input lims-mono" autocomplete="off" autocapitalize="characters" spellcheck="false" type="text" name="scan">
 <span role="status" class="lims-visually-hidden">
 </span>
 </div>
-<p role="status" class="lims-description">
-</p>
+</div>
+<div class="lims-scan-queue">
+<div class="lims-data-table">
+<div class="lims-table-scroll">
+<table class="lims-table">
+<caption class="lims-visually-hidden">Specimens to collect</caption>
+<thead>
+<tr>
+<th scope="col">Barcode</th>
+<th scope="col">Type</th>
+<th scope="col">Tests</th>
+</tr>
+</thead>
+<tbody>
+<tr class="lims-row-empty">
+<td class="lims-cell" colspan="3">
 <div class="lims-state">
 <svg aria-hidden="true" focusable="false" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
 <path d="M4 7h16v12H4zM4 7l3-3h10l3 3">
 </path>
 </svg>
 <p class="lims-state-title">Scan a label to start.</p>
+</div>
+</td>
+</tr>
+</tbody>
+<tfoot aria-hidden="true">
+<tr class="lims-row-placeholder" aria-hidden="true">
+<td colspan="3">
+</td>
+</tr>
+<tr class="lims-row-placeholder" aria-hidden="true">
+<td colspan="3">
+</td>
+</tr>
+<tr class="lims-row-placeholder" aria-hidden="true">
+<td colspan="3">
+</td>
+</tr>
+<tr class="lims-row-placeholder" aria-hidden="true">
+<td colspan="3">
+</td>
+</tr>
+</tfoot>
+</table>
+</div>
+</div>
+</div>
 </div>
 </div>
 </div>
@@ -58,6 +100,16 @@ exports[`RS-C5 key screens (DOM snapshots) > receive: scan box, location, sessio
 <div class="lims-page-header-row">
 <h1 class="lims-page-title">Receive</h1>
 <div class="lims-page-actions">
+<span>
+<label data-ID="true" class="lims-switch" data-rac="">
+<span style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: absolute; width: 1px; white-space: nowrap;">
+<input data-ID="true" tabindex="0" role="switch" type="checkbox" aria-checked="false">
+</span>
+<span class="lims-switch-track" aria-hidden="true">
+<span class="lims-switch-thumb">
+</span>
+</span>Auto-accept</label>
+</span>
 <span data-help-key="lab.receive">
 <button class="lims-btn lims-btn-ghost lims-btn-md" data-rac="" type="button" tabindex="0" data-ID="true" id="ID">
 <svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
@@ -70,7 +122,6 @@ exports[`RS-C5 key screens (DOM snapshots) > receive: scan box, location, sessio
 </div>
 </div>
 </div>
-<div>
 <template>
 </template>
 <div class="lims-field" data-rac="" data-required="true">
@@ -92,16 +143,9 @@ exports[`RS-C5 key screens (DOM snapshots) > receive: scan box, location, sessio
 </label>
 </div>
 </div>
-<label data-ID="true" class="lims-switch" data-rac="">
-<span style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: absolute; width: 1px; white-space: nowrap;">
-<input data-ID="true" tabindex="0" role="switch" type="checkbox" aria-checked="false">
-</span>
-<span class="lims-switch-track" aria-hidden="true">
-<span class="lims-switch-thumb">
-</span>
-</span>Auto-accept</label>
-</div>
 <div>
+<div class="lims-scan-panel">
+<div class="lims-scan-input">
 <div class="lims-field lims-barcode">
 <label class="lims-label" for="_r_e_">Scan barcode</label>
 <input id="_r_e_" class="lims-input lims-mono" autocomplete="off" autocapitalize="characters" spellcheck="false" type="text" name="scan">
@@ -109,22 +153,72 @@ exports[`RS-C5 key screens (DOM snapshots) > receive: scan box, location, sessio
 </span>
 </div>
 </div>
-<p role="status" class="lims-description">
-</p>
+<div class="lims-scan-queue">
+<div role="search" class="lims-filter-bar">
+<div class="lims-field">
+<label class="lims-label" id="_r_f_">Session log</label>
 <template>
 </template>
-<div class="lims-tabs" data-rac="" data-orientation="horizontal">
-<div class="lims-tablist" data-rac="" data-collection="ID" id="ID" aria-label="Session log" role="tablist" aria-orientation="horizontal" data-orientation="horizontal">
-<div class="lims-tab" data-rac="" tabindex="0" data-collection="ID" data-key="all" data-ID="true" id="ID" aria-selected="true" aria-controls="ID" role="tab" data-selected="true">All <span class="lims-tab-badge">0</span>
+<span data-focus-scope-start="true" hidden="">
+</span>
+<div class="lims-listbox lims-chip-list" data-rac="" aria-labelledby="_r_f_" aria-multiselectable="true" role="listbox" aria-orientation="horizontal" id="ID" tabindex="0" data-collection="ID" data-layout="stack" data-orientation="horizontal">
+<div class="lims-option lims-chip" data-rac="" role="option" aria-selected="true" tabindex="-1" data-collection="ID" data-key="all" data-ID="true" id="ID" data-selected="true" data-selection-mode="multiple">All 0</div>
+<div class="lims-option lims-chip" data-rac="" role="option" aria-selected="false" tabindex="-1" data-collection="ID" data-key="received" data-ID="true" id="ID" data-selection-mode="multiple">Received 0</div>
+<div class="lims-option lims-chip" data-rac="" role="option" aria-selected="false" tabindex="-1" data-collection="ID" data-key="rejected" data-ID="true" id="ID" data-selection-mode="multiple">Rejected 0</div>
+<div class="lims-option lims-chip" data-rac="" role="option" aria-selected="false" tabindex="-1" data-collection="ID" data-key="errors" data-ID="true" id="ID" data-selection-mode="multiple">Errors 0</div>
 </div>
-<div class="lims-tab" data-rac="" tabindex="-1" data-collection="ID" data-key="received" data-ID="true" id="ID" aria-selected="false" role="tab">Received <span class="lims-tab-badge">0</span>
+<span data-focus-scope-end="true" hidden="">
+</span>
 </div>
-<div class="lims-tab" data-rac="" tabindex="-1" data-collection="ID" data-key="rejected" data-ID="true" id="ID" aria-selected="false" role="tab">Rejected <span class="lims-tab-badge">0</span>
+<button class="lims-btn lims-btn-ghost lims-btn-md" data-rac="" type="button" tabindex="0" data-ID="true" id="ID">
+<span class="lims-btn-label">Reset filters</span>
+</button>
 </div>
-<div class="lims-tab" data-rac="" tabindex="-1" data-collection="ID" data-key="errors" data-ID="true" id="ID" aria-selected="false" role="tab">Errors <span class="lims-tab-badge">0</span>
+<div class="lims-data-table">
+<div class="lims-table-scroll">
+<table class="lims-table">
+<caption class="lims-visually-hidden">Session log</caption>
+<thead>
+<tr>
+<th scope="col">Barcode</th>
+<th scope="col">Outcome</th>
+</tr>
+</thead>
+<tbody>
+<tr class="lims-row-empty">
+<td class="lims-cell" colspan="2">
+<div class="lims-state">
+<svg aria-hidden="true" focusable="false" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M4 7h16v12H4zM4 7l3-3h10l3 3">
+</path>
+</svg>
+<p class="lims-state-title">Scan a label to start</p>
+</div>
+</td>
+</tr>
+</tbody>
+<tfoot aria-hidden="true">
+<tr class="lims-row-placeholder" aria-hidden="true">
+<td colspan="2">
+</td>
+</tr>
+<tr class="lims-row-placeholder" aria-hidden="true">
+<td colspan="2">
+</td>
+</tr>
+<tr class="lims-row-placeholder" aria-hidden="true">
+<td colspan="2">
+</td>
+</tr>
+<tr class="lims-row-placeholder" aria-hidden="true">
+<td colspan="2">
+</td>
+</tr>
+</tfoot>
+</table>
 </div>
 </div>
-<div id="ID" aria-labelledby="ID" tabindex="0" role="tabpanel" class="lims-tabpanel" data-rac="">
+</div>
 </div>
 </div>
 </section>
@@ -401,8 +495,26 @@ exports[`RS-C5 key screens (DOM snapshots) > result entry: three-step tracks (En
 
 exports[`RS-C5 key screens (DOM snapshots) > worklist: table with the right panel open on the first sample 1`] = `
 "<section aria-label="Worklist">
-<h1>Worklist</h1>
-<div class="lims-toolbar">
+<div class="lims-page-header">
+<div class="lims-page-header-row">
+<h1 class="lims-page-title">Pathology Result</h1>
+<div class="lims-page-actions">
+<button class="lims-btn lims-btn-primary lims-btn-md" data-rac="" type="button" disabled="" data-ID="true" id="ID" data-disabled="true">
+<span class="lims-btn-label">Create worksheet</span>
+</button>
+<span data-help-key="lab.worklists">
+<button class="lims-btn lims-btn-ghost lims-btn-md" data-rac="" type="button" tabindex="0" data-ID="true" id="ID">
+<svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 3a9 9 0 100 18 9 9 0 000-18zM9.5 9.5a2.5 2.5 0 115 0c0 2-2.5 2-2.5 4M12 17h.01">
+</path>
+</svg>
+<span class="lims-btn-label">Help</span>
+</button>
+</span>
+</div>
+</div>
+</div>
+<div role="search" class="lims-filter-bar">
 <label class="lims-field">Priority<select class="lims-input">
 <option value="">All</option>
 <option value="urgent">★ Urgent</option>
@@ -414,12 +526,11 @@ exports[`RS-C5 key screens (DOM snapshots) > worklist: table with the right pane
 <option value="01a1a98a-ac40-7000-8000-000000000026">Synthetic Analyser A</option>
 </select>
 </label>
-<button class="lims-btn lims-btn-primary lims-btn-md" data-rac="" type="button" disabled="" data-ID="true" id="ID" data-disabled="true">
-<span class="lims-btn-label">Create worksheet</span>
-</button>
 </div>
 <div class="lims-grid lims-cols-2" style="gap: var(--lims-space-4);">
 <div>
+<div class="lims-data-table">
+<div class="lims-table-scroll">
 <table class="lims-table" aria-label="Worklist">
 <thead>
 <tr>
@@ -482,6 +593,8 @@ exports[`RS-C5 key screens (DOM snapshots) > worklist: table with the right pane
 </tr>
 </tbody>
 </table>
+</div>
+</div>
 </div>
 <aside aria-label="Result entry">
 <div class="lims-card">

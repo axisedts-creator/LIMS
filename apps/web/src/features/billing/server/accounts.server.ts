@@ -4,12 +4,13 @@ import 'server-only';
 // Every write sends Idempotency-Key; master edits send If-Match. Query values are validated by shape before they leave the BFF.
 import { ApiError, serverFetch } from '@/core/api/server-fetch';
 import { problem } from '@/core/session/types';
-import { ISO_DATE_RE, UUID_RE } from './types';
+import { FY_RE, ISO_DATE_RE, UUID_RE } from './types';
 
 export type PartyKind = 'credit_party' | 'franchise' | 'user_pocket' | 'laboratory';
 export const PARTY_KINDS: readonly PartyKind[] = ['credit_party', 'franchise', 'user_pocket', 'laboratory'];
 export type EntryType = 'credit' | 'debit';
-export type EntryStatus = 'submitted' | 'approved' | 'rejected' | 'reversed';
+/** T0C-FINCTRL-1 (LD-321): 'held' = on hold, left out of posted balances until released. */
+export type EntryStatus = 'submitted' | 'approved' | 'rejected' | 'reversed' | 'held';
 export type GroupNature = 'income' | 'expense' | 'asset' | 'liability';
 
 export interface AccountGroup { id: string; code: string; name: string; nature: GroupNature; is_active: boolean; version: number; created_at: string; updated_at: string }
@@ -18,6 +19,8 @@ export interface AccountLedgerEntry {
   id: string; centre_id: string; party_kind: PartyKind; party_id: string; entry_date: string; account_particular_id: string; entry_type: EntryType; amount_paisa: number;
   payment_mode: string; bank_name?: string | undefined; reference_no?: string | undefined; payment_details?: string | undefined; comments?: string | undefined; status: EntryStatus;
   reverses_entry_id?: string | undefined; receipt_no: string; created_by: string; last_modified_by: string; created_at: string;
+  /** T0C-FINCTRL-1 (LD-321): hold trail and the B.S. fiscal year label set by the server. */
+  held_reason?: string | undefined; held_by?: string | undefined; held_at?: string | undefined; released_by?: string | undefined; released_at?: string | undefined; fiscal_year_label?: string | undefined;
 }
 export interface AccountStatementRow { entry_id: string; entry_date: string; receipt_no: string; entry_type: EntryType; account_particular_id: string; status: EntryStatus; reverses_entry_id?: string; credit_paisa: number; debit_paisa: number; balance_paisa: number; balance_side: EntryType }
 export interface AccountStatement {
@@ -33,7 +36,7 @@ export interface CreateEntryInput {
   centre_id: string; party_kind: PartyKind; party_id: string; entry_date: string; account_particular_id: string; entry_type: EntryType; amount_paisa: number; payment_mode: string;
   bank_name?: string; reference_no?: string; payment_details?: string; comments?: string;
 }
-export interface EntryFilters { centre_id?: string; party_kind?: string; party_id?: string; account_particular_id?: string; entry_type?: string; status?: string; entry_date_from?: string; entry_date_to?: string; cursor?: string }
+export interface EntryFilters { centre_id?: string; party_kind?: string; party_id?: string; account_particular_id?: string; entry_type?: string; status?: string; entry_date_from?: string; entry_date_to?: string; fiscal_year_label?: string; cursor?: string }
 
 const bad = () => new ApiError(400, problem('common.validation_failed', 'Validation failed', 400));
 const KEY_RE = /^[A-Za-z0-9_-]{1,64}$/;
@@ -46,7 +49,7 @@ const id = (v: string) => {
 };
 const FILTER_CHECKS: Record<string, RegExp> = {
   centre_id: UUID_RE, party_id: UUID_RE, account_particular_id: UUID_RE, party_kind: /^(credit_party|franchise|user_pocket|laboratory)$/, entry_type: /^(credit|debit)$/,
-  status: /^(submitted|approved|rejected|reversed)$/, entry_date_from: ISO_DATE_RE, entry_date_to: ISO_DATE_RE, from: ISO_DATE_RE, to: ISO_DATE_RE, cursor: CURSOR_RE, account_group_id: UUID_RE,
+  status: /^(submitted|approved|rejected|reversed|held)$/, fiscal_year_label: FY_RE, entry_date_from: ISO_DATE_RE, entry_date_to: ISO_DATE_RE, from: ISO_DATE_RE, to: ISO_DATE_RE, cursor: CURSOR_RE, account_group_id: UUID_RE,
 };
 function qs(params: Record<string, string | number | undefined>): string {
   const p = new URLSearchParams();
@@ -172,6 +175,12 @@ export function createAccountLedgerEntry(e: CreateEntryInput, key: string) {
 export function reverseAccountLedgerEntry(entryId: string, reasonText: string, key: string) {
   if (!reasonText.trim() || reasonText.length > 500) throw bad();
   return send<AccountLedgerEntry>('POST', `/v1/billing/account-ledger-entries/${id(entryId)}/reverse`, { reason_text: reasonText }, key);
+}
+/** T0C-FINCTRL-1 holdLedgerEntry / releaseLedgerEntry (billing.account.manage; contract body {reason}, 1-500 characters). */
+export function holdAccountLedgerEntry(entryId: string, action: 'hold' | 'release', reason: string, key: string) {
+  if ((action !== 'hold' && action !== 'release') || !reason.trim() || reason.length > 500) throw bad();
+  const base = `/v1/billing/account-ledger-entries/${id(entryId)}`;
+  return send<AccountLedgerEntry>('POST', action === 'hold' ? `${base}/hold` : `${base}/release`, { reason }, key);
 }
 export function createAccountGroup(g: { code: string; name: string; nature: GroupNature }, key: string) {
   if (!CODE_RE.test(g.code) || !g.name.trim() || g.name.length > 200 || !['income', 'expense', 'asset', 'liability'].includes(g.nature)) throw bad();

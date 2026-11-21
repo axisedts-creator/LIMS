@@ -5,13 +5,15 @@ export type { Tx };
 export interface PrintInsert {
   id: string; tenantId: string; centreId: string; kind: 'single' | 'bulk' | 'template_preview'; versionIds: string[]; excludedIds: string[]; templateVersionId: string | null;
   variant: string; copies: number; draftWatermark: boolean; state: 'rendering' | 'ready'; expiresAt: string; actorId: string;
+  /** T0B-SYNC-4: an offline print marker of the version is still pending (render adds the issued offline marker). Absent = false. */
+  issuedOffline?: boolean;
 }
 
 export async function insertPrint(tx: Tx, p: PrintInsert): Promise<void> {
   await tx.query(
-    `INSERT INTO reporting.print_jobs (id, tenant_id, centre_id, kind, report_version_ids, excluded_ids, template_version_id, variant, copies, draft_watermark, state, expires_at, created_by, updated_by)
-     VALUES ($1, $2, $3, $4, $5::uuid[], $6::uuid[], $7, $8, $9, $10, $11, $12, $13, $13)`,
-    [p.id, p.tenantId, p.centreId, p.kind, p.versionIds, p.excludedIds, p.templateVersionId, p.variant, p.copies, p.draftWatermark, p.state, p.expiresAt, p.actorId]);
+    `INSERT INTO reporting.print_jobs (id, tenant_id, centre_id, kind, report_version_ids, excluded_ids, template_version_id, variant, copies, draft_watermark, state, expires_at, created_by, updated_by, issued_offline)
+     VALUES ($1, $2, $3, $4, $5::uuid[], $6::uuid[], $7, $8, $9, $10, $11, $12, $13, $13, $14)`,
+    [p.id, p.tenantId, p.centreId, p.kind, p.versionIds, p.excludedIds, p.templateVersionId, p.variant, p.copies, p.draftWatermark, p.state, p.expiresAt, p.actorId, p.issuedOffline === true]);
 }
 
 export async function findPrint(tx: Tx, tenantId: string, id: string): Promise<any | undefined> {

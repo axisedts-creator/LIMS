@@ -2,6 +2,7 @@
 // enforced by the core pipeline; the handlers re-check what they need (fail closed) and never echo input.
 import { LimsError } from '../../../core/errors.js';
 import type { Handler, HandlerContext, HandlerRequest } from '../../../core/module.js';
+import { guarded } from './_guard.js';
 import type { FlowCtx } from '../service/delivery.flow.service.js';
 import * as svc from '../service/delivery.staff.service.js';
 
@@ -26,7 +27,7 @@ function parseSend(raw: unknown) {
   return { recipientKind: b['recipient_kind'], channel: b['channel'] as 'whatsapp' | 'sms' | 'email', ...(contact !== undefined ? { centreContactId: contact as string } : {}) };
 }
 
-export const deliveryHandlers: Readonly<Record<string, Handler>> = Object.freeze({
+const deliveryRaw: Readonly<Record<string, Handler>> = Object.freeze({
   listDeliveries: async (req: HandlerRequest, hctx: HandlerContext) => {
     const ctx = scope(hctx);
     return { status: 200, body: await svc.list(ctx, obj(req.query)) };
@@ -49,4 +50,13 @@ export const deliveryHandlers: Readonly<Record<string, Handler>> = Object.freeze
     if (!m || Number(m[1]) > 2147483647) throw svc.bad('/If-Match');
     return { status: 201, body: await svc.retry(ctx, obj(req.params)['delivery_id'], Number(m[1])) };
   },
+});
+
+// SEC-AUTHZ-7 (LD-189, LD-261): each row below asks its contract x-permission through IdentityPort.assertRole before the wrapped handler runs (see _guard.ts).
+export const deliveryHandlers: Readonly<Record<string, Handler>> = Object.freeze({
+  ...deliveryRaw,
+  listDeliveries: guarded('reporting.delivery.read', deliveryRaw['listDeliveries']!),
+  getDelivery: guarded('reporting.delivery.read', deliveryRaw['getDelivery']!),
+  sendReportDelivery: guarded('reporting.delivery.resend', deliveryRaw['sendReportDelivery']!),
+  retryDelivery: guarded('reporting.delivery.resend', deliveryRaw['retryDelivery']!),
 });

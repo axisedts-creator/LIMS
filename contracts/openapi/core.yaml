@@ -1177,6 +1177,7 @@ components:
         - sync.offline_not_allowed
         - sync.number_out_of_block
         - sync.entity_changed
+        - sync.op_type_not_available   # T0B-SYNC-2: catalogue type without a server adapter yet
         - common.validation_failed
         - common.not_found
         - common.version_conflict

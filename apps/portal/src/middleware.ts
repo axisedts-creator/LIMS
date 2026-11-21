@@ -53,6 +53,9 @@ export function middleware(req: NextRequest): NextResponse {
   } else res = NextResponse.next({ request: { headers: requestHeaders } });
   res.headers.set(CSP_HEADER, csp);
   res.headers.set('referrer-policy', 'no-referrer');
+  res.headers.set('x-frame-options', 'DENY'); // SEC-HDR-1 (LD-238): matches CSP frame-ancestors 'none'
+  // SEC-HDR-1 (LD-238): grep of apps/portal/src finds no camera, microphone, location or payment browser API use: all denied.
+  res.headers.set('permissions-policy', 'camera=(), microphone=(), geolocation=(), payment=()');
   res.headers.set('cache-control', 'no-store');
   res.headers.set('strict-transport-security', 'max-age=63072000; includeSubDomains');
   res.headers.set('x-content-type-options', 'nosniff');

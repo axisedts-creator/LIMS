@@ -19,7 +19,7 @@ CREATE TEMP TABLE gt(t) AS VALUES ('g_units'),('g_value_sets'),('g_value_set_val
 CREATE TEMP TABLE vw(v) AS VALUES ('v_pub_department'),('v_pub_test_directory'),('v_pub_price_list_items'),('v_pub_referrer_directory');
 
 -- ===================================================================================================================================== inventory
-SELECT is((SELECT count(*)::int FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = 'catalog' AND c.relkind = 'r'), 43, 'catalog holds exactly 43 tables (5 G + 29 rw + 9 rwd)');
+SELECT is((SELECT count(*)::int FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = 'catalog' AND c.relkind = 'r'), 49, 'catalog holds exactly 49 tables (43 + 6 added by later migrations, incl. icd_code of T0C-PARTYSET-1, migration 20261117220000)');
 SELECT is((SELECT count(*)::int FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = 'catalog' AND c.relkind = 'r' AND c.relname = 'event_inbox'), 0, 'C3 consumes no events: no catalog.event_inbox');
 SELECT is((SELECT count(*)::int FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = 'catalog' AND c.relkind = 'm'), 0, 'no materialised view in catalog');
 SELECT is(pg_get_userbyid(c.relowner), 'lims_owner', 'catalog.' || c.relname || ' owned by lims_owner') FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
@@ -36,7 +36,7 @@ SELECT is((SELECT count(*)::int FROM pg_policies p WHERE p.schemaname = 'catalog
 SELECT is((SELECT count(*)::int FROM pg_policies p WHERE p.schemaname = 'catalog' AND p.tablename = x.t AND p.policyname = x.t || '__delete__tenant' AND p.cmd = 'DELETE'
             AND p.roles = ARRAY['lims_app']::name[]), 1, 'policy catalog.' || x.t || '__delete__tenant')
   FROM rwd x;
-SELECT is((SELECT count(*)::int FROM pg_policies WHERE schemaname = 'catalog'), 38 * 3 + 9, 'catalog has exactly 123 policies (no extra policy widens access)');
+SELECT is((SELECT count(*)::int FROM pg_policies WHERE schemaname = 'catalog'), 140, 'catalog has exactly 140 policies (123 + 17 of the later tables, incl. 3 of icd_code, migration 20261117220000; no extra policy widens access)');
 SELECT is((SELECT count(*)::int FROM pg_policies WHERE schemaname = 'catalog' AND tablename IN (SELECT t FROM rw) AND cmd = 'DELETE'), 0, 'no DELETE policy on a master / E-like table (§5 rule 3)');
 SELECT is((SELECT count(*)::int FROM pg_policies WHERE schemaname = 'catalog' AND tablename IN (SELECT t FROM gt)), 0, 'G tables carry no policy');
 SELECT ok(coalesce(p.qual, '') ~ 'is_staff_or_system' OR p.cmd = 'INSERT', 'USING of ' || p.policyname || ' has the staff guard (P-16)') FROM pg_policies p WHERE p.schemaname = 'catalog';
@@ -87,12 +87,12 @@ SELECT is((SELECT count(*)::int FROM pg_attribute a WHERE a.attrelid = 'catalog.
 
 -- ===================================================================================================================================== no DEFINER, triggers
 SELECT is((SELECT count(*)::int FROM pg_proc p WHERE p.pronamespace = 'catalog'::regnamespace AND p.prosecdef), 0, 'C3 has no SECURITY DEFINER function (§10.3 notes)');
-SELECT is((SELECT count(*)::int FROM pg_proc p WHERE p.pronamespace = 'catalog'::regnamespace), 4, 'exactly the four catalog.tg_* functions');
+SELECT is((SELECT count(*)::int FROM pg_proc p WHERE p.pronamespace = 'catalog'::regnamespace), 6, 'exactly the six catalog trigger functions (4 tg_* + 2 added by later migrations)');
 SELECT ok(EXISTS (SELECT 1 FROM unnest(coalesce(p.proconfig, '{}'::text[])) c WHERE c IN ('search_path=""', 'search_path=')), 'catalog.' || p.proname || ' pins search_path (empty)') FROM pg_proc p WHERE p.pronamespace = 'catalog'::regnamespace;
-SELECT is((SELECT count(*)::int FROM pg_trigger t JOIN pg_class c ON c.oid = t.tgrelid WHERE c.relnamespace = 'catalog'::regnamespace AND NOT t.tgisinternal AND t.tgname !~ '__audit$'), 18,
-  'eighteen lifecycle triggers (§10, §10.2)');
-SELECT is((SELECT count(*)::int FROM pg_trigger t JOIN pg_class c ON c.oid = t.tgrelid WHERE c.relnamespace = 'catalog'::regnamespace AND NOT t.tgisinternal AND t.tgname ~ '__audit$'), 34,
-  'audit trigger on the 34 audited tables (§5 rule 6)');
+SELECT is((SELECT count(*)::int FROM pg_trigger t JOIN pg_class c ON c.oid = t.tgrelid WHERE c.relnamespace = 'catalog'::regnamespace AND NOT t.tgisinternal AND t.tgname !~ '__audit$'), 20,
+  'twenty lifecycle triggers (§10, §10.2 + 2 added by later migrations)');
+SELECT is((SELECT count(*)::int FROM pg_trigger t JOIN pg_class c ON c.oid = t.tgrelid WHERE c.relnamespace = 'catalog'::regnamespace AND NOT t.tgisinternal AND t.tgname ~ '__audit$'), 39,
+  'audit trigger on the 39 audited tables (§5 rule 6; 34 + 5 added by later migrations, incl. icd_code of T0C-PARTYSET-1)');
 SELECT is((SELECT count(*)::int FROM pg_trigger t JOIN pg_class c ON c.oid = t.tgrelid WHERE c.relnamespace = 'catalog'::regnamespace AND NOT t.tgisinternal AND t.tgenabled <> 'O'), 0, 'every catalog trigger is enabled');
 SELECT is((SELECT count(*)::int FROM pg_trigger t JOIN pg_class c ON c.oid = t.tgrelid WHERE c.relnamespace = 'catalog'::regnamespace AND NOT t.tgisinternal AND t.tgname ~ '__audit$'
             AND c.relname IN ('files', 'import_issues', 'catalog_state', 'code_counters')), 0, 'files / import_issues / catalog_state / code_counters are not audited');

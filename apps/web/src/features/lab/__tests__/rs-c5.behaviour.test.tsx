@@ -23,6 +23,7 @@ import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 import type { ReactNode } from 'react';
 import { ToastProvider } from '@lims/ui/components/Toast';
+import { pill, pillTexts } from './uiscan1.helpers';
 import { BC, CENTRES, CENTRE_A, DEPT, ORIGIN, REASONS, analytes, calls, gridOf, id, problem, rec, res, sent, specimen, threeStateGrid, worklistItem } from './rs-c5.fixtures';
 
 const push = vi.fn();
@@ -61,7 +62,7 @@ const api = setupServer(
   http.get(`${ORIGIN}/v1/instruments/instruments`, async ({ request }) => { await rec(request); return HttpResponse.json({ data: [{ id: id(0x1a), display_name: 'Synthetic Analyser A' }], page: { limit: 50 } }); }),
   http.post(`${LAB}/results/bulk-verify`, async ({ request }) => { await rec(request); const b = (await request.clone().json()) as { items: { id: string }[] }; return HttpResponse.json({ results: b.items.map((i) => ({ id: i.id, outcome: 'ok' })) }); }),
 );
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { cleanup(); api.resetHandlers(); calls.length = 0; db.clear(); push.mockReset(); localStorage.clear(); sessionStorage.clear(); });
 afterAll(() => api.close());
 
@@ -83,10 +84,10 @@ const showReceive = async () => {
 };
 
 describe('10-DESIGN-SYSTEM s4 — accession / receive: scan-first, status tabs with counts, no status dropdown', () => {
-  it('the session log is a tablist "Session log" with All / Received / Rejected / Errors, every count 0 before the first scan; the scan box holds focus', async () => {
-    await showReceive();
-    const list = screen.getByRole('tablist', { name: /session log/i });
-    expect(within(list).getAllByRole('tab').map((t) => t.textContent!.replace(/\s+/g, ' ').trim())).toEqual(['All 0', 'Received 0', 'Rejected 0', 'Errors 0']);
+  // T0D-UISCAN-1 (LD-353 template 3): the status tabs became filter pills in the one FilterBar; names and counts are unchanged.
+  it('the session log has the pills All / Received / Rejected / Errors in the FilterBar, every count 0 before the first scan; the scan box holds focus', async () => {
+    const { container } = await showReceive();
+    expect(pillTexts(container)).toEqual(['All 0', 'Received 0', 'Rejected 0', 'Errors 0']);
     await waitFor(() => expect(document.activeElement).toBe(box()));
   });
 
@@ -98,23 +99,23 @@ describe('10-DESIGN-SYSTEM s4 — accession / receive: scan-first, status tabs w
 
   it('keyboard only: scan, Enter accepts, a refused specimen is its own outcome; counts All 2 / Received 1 / Errors 1; each tab filters the log; focus returns to the scan box', async () => {
     for (const s of ORDERED) db.set(s.barcode, s);
-    await showReceive();
+    const { container } = await showReceive();
     const user = userEvent.setup({ delay: null });
     await waitFor(() => expect(document.activeElement).toBe(box()));
     await user.keyboard(`${BC(1)}{Enter}`);
     await screen.findByRole('region', { name: /current specimen/i });
     await user.keyboard('{Enter}'); // accept (Enter on the empty scan box)
-    await waitFor(() => expect(tabNamed(/^Received\s*1$/)).toBeTruthy());
+    await waitFor(() => expect(pillTexts(container)[1]).toBe('Received 1'));
     await user.keyboard(`${BC(2)}{Enter}`);
     await waitFor(() => expect(screen.getByText(BC(2), { selector: 'strong' })).toBeTruthy());
     await user.keyboard('{Enter}');
-    await waitFor(() => expect(tabNamed(/^Errors\s*1$/)).toBeTruthy());
-    expect(tabNamed(/^All\s*2$/)).toBeTruthy();
-    expect(tabNamed(/^Rejected\s*0$/)).toBeTruthy();
-    await user.click(tabNamed(/^Errors/));
+    await waitFor(() => expect(pillTexts(container)[3]).toBe('Errors 1'));
+    expect(pillTexts(container)[0]).toBe('All 2');
+    expect(pillTexts(container)[2]).toBe('Rejected 0');
+    await user.click(pill(container, 'Errors'));
     expect(screen.getByRole('row', { name: new RegExp(BC(2)) }).textContent).toContain('Error: Specimen not receivable');
     expect(screen.queryByRole('row', { name: new RegExp(BC(1)) })).toBeNull();
-    await user.click(tabNamed(/^Received/));
+    await user.click(pill(container, 'Received'));
     expect(screen.getByRole('row', { name: new RegExp(BC(1)) }).textContent).toContain('Received');
     expect(screen.queryByRole('row', { name: new RegExp(BC(2)) })).toBeNull();
     expect(sent('POST', /\/specimens\/lookup$/).map((c) => c.body)).toEqual([{ barcode: BC(1) }, { barcode: BC(2) }]); // same calls as before the restyle

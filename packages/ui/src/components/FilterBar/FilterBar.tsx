@@ -23,6 +23,8 @@ export interface FilterBarProps {
   onReset: () => void;
   /** T0D-UIKIT-1, LD-353 rule 2: a "Search" button right after the (first) text filter, inside `.lims-filter-search`. */
   onSearch?: () => void;
+  /** T0D-UIDASH-2 (LD-436 worklist mock "Clear filters"). Default "Reset filters". */
+  resetLabel?: string;
   'data-testid'?: string;
 }
 
@@ -51,7 +53,7 @@ function MultiSelect({ label, options, value, onChange }: { label: string; optio
   );
 }
 
-export function FilterBar({ filters, value, onChange, onReset, onSearch, ...rest }: FilterBarProps) {
+export function FilterBar({ filters, value, onChange, onReset, onSearch, resetLabel = 'Reset filters', ...rest }: FilterBarProps) {
   const set = (id: string, v: string | readonly string[] | undefined) => onChange({ ...value, [id]: v });
   const str = (id: string) => (typeof value[id] === 'string' ? (value[id] as string) : undefined);
   const arr = (id: string) => (Array.isArray(value[id]) ? (value[id] as readonly string[]) : []);
@@ -90,7 +92,7 @@ export function FilterBar({ filters, value, onChange, onReset, onSearch, ...rest
         return <Select key={key} label={f.label} name={f.id} options={f.options} {...(v ? { value: v } : {})} onChange={(x) => set(f.id, x)} />;
       })}
       <Button variant="ghost" onPress={onReset}>
-        Reset filters
+        {resetLabel}
       </Button>
     </div>
   );

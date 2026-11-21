@@ -2,6 +2,7 @@
 // pipeline from contracts/openapi/billing.yaml; these map request -> service and fail closed without an authenticated request context.
 import { LimsError } from '../../../core/errors.js';
 import type { Handler, HandlerContext, HandlerRequest, HandlerResult } from '../../../core/module.js';
+import { guarded } from './_guard.js';
 import { createSettingsService, type SettingsCtx, type SettingsService } from '../service/settings.service.js';
 
 type Out = { status: number; body: unknown; version?: number };
@@ -22,11 +23,19 @@ export function ifMatch(req: HandlerRequest): number | undefined {
   return m ? Number(m[1]) : 0;
 }
 
-export const settingsHandlers: Readonly<Record<string, Handler>> = Object.freeze({
+const settingsHandlersRaw: Readonly<Record<string, Handler>> = Object.freeze({
   getBillingSettings: bind(async (s, ctx) => { const b = await s.getSettings(ctx); return { status: 200, body: b, version: b['version'] as number }; }),
   updateBillingSettings: bind(async (s, ctx, req) => {
     const b = await s.updateSettings(ctx, { expectedVersion: ifMatch(req), patch: req.body });
     return { status: 200, body: b, version: b['version'] as number };
   }),
   listBillingCodes: bind(async (s, ctx, req) => ({ status: 200, body: await s.listCodes(ctx, { setName: obj(req.params)['set_name'] }) })),
+});
+
+// SEC-AUTHZ-6 (LD-189 AUTH-SENSITIVE, LD-261; SEC-AUTHZ-1.1): the contract x-permission is asked FIRST, before the wrapped handler reads or writes anything.
+export const settingsHandlers: Readonly<Record<string, Handler>> = Object.freeze({
+  ...settingsHandlersRaw,
+  getBillingSettings: guarded('billing.settings.manage', settingsHandlersRaw['getBillingSettings']!),
+  updateBillingSettings: guarded('billing.settings.manage', settingsHandlersRaw['updateBillingSettings']!),
+  listBillingCodes: guarded('billing.invoice.read', settingsHandlersRaw['listBillingCodes']!),
 });

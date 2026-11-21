@@ -1,0 +1,1856 @@
+[core] WARNING: Executable file detection not yet supported on 'win32'.
+Schema updated
+psql:/repo/db/migrations/20261105001300_identity__create_identity_schema.sql:7: NOTICE:  schema "identity" already exists, skipping
+psql:/repo/db/migrations/20261105001500_catalog__create_catalog_schema.sql:10: NOTICE:  schema "catalog" already exists, skipping
+psql:/repo/db/migrations/20261105001600_frontdesk__create_frontdesk_schema.sql:7: NOTICE:  schema "frontdesk" already exists, skipping
+psql:/repo/db/migrations/20261105001700_billing__create_billing_schema.sql:7: NOTICE:  schema "billing" already exists, skipping
+psql:/repo/db/migrations/20261105001800_lab__create_lab_schema.sql:10: NOTICE:  schema "lab" already exists, skipping
+psql:/repo/db/migrations/20261105001900_reporting__create_reporting_schema.sql:145: NOTICE:  identifier "message_template_texts__tenant_id_template_code_channel_language__uq" will be truncated to "message_template_texts__tenant_id_template_code_channel_languag"
+psql:/repo/db/migrations/20261105001900_reporting__create_reporting_schema.sql:177: NOTICE:  identifier "report_template_versions__tenant_id_template_id__published__p_uq" will be truncated to "report_template_versions__tenant_id_template_id__published__p_u"
+psql:/repo/db/migrations/20261105001900_reporting__create_reporting_schema.sql:443: NOTICE:  identifier "deliveries__tenant_id_channel_account_id_provider_message_id__p_uq" will be truncated to "deliveries__tenant_id_channel_account_id_provider_message_id__p"
+psql:/repo/db/migrations/20261105001900_reporting__create_reporting_schema.sql:682: NOTICE:  identifier "narrative_versions__tenant_id_narrative_report_id_version_no__uq" will be truncated to "narrative_versions__tenant_id_narrative_report_id_version_no__u"
+psql:/repo/db/migrations/20261115192000_identity__add_provisioning_schema.sql:47: NOTICE:  identifier "tenant_contract_acceptances__tenant_id_document_accepted_at__idx" will be truncated to "tenant_contract_acceptances__tenant_id_document_accepted_at__id"
+                                                       set_config                                                        
+-------------------------------------------------------------------------------------------------------------------------
+ {"tenant_id":"01a1a98a-ac40-7000-8000-00000000a001","sub":"01a1b34e-1000-7eee-9d29-d7ca59a102b5","actor_type":"system"}
+(1 row)
+
+                                                       set_config                                                        
+-------------------------------------------------------------------------------------------------------------------------
+ {"tenant_id":"01a1a98a-ac40-7000-8000-00000000b001","sub":"01a1b34e-1000-7eee-9d29-d7ca59a102b5","actor_type":"system"}
+(1 row)
+
+ set_config 
+------------
+ 
+(1 row)
+
+
+ RUN  v5.1.0 C:/LIMS-lanes/C0-0J/services/api
+
+ ❯ src/modules/engagement/__tests__/msgdesk/templates.test.ts (31 tests | 31 failed) 333ms
+   ❯ (4) create: closed placeholder list, derived placeholders, row stored for the tenant (16)
+     × 201 BroadcastTemplate (schema valid), placeholders derived by the server, active, version 1, tenant A row 70ms
+     × a client supplied placeholders list is ignored (derived from the body) 10ms
+     × unknown placeholder {{patient_name}} is refused: 422 engagement.broadcast_placeholder_unknown 14ms
+     × unknown placeholder {{PARTY_NAME}} is refused: 422 engagement.broadcast_placeholder_unknown 11ms
+     × unknown placeholder {{ party_name }} is refused: 422 engagement.broadcast_placeholder_unknown 9ms
+     × unknown placeholder {{party_name} is refused: 422 engagement.broadcast_placeholder_unknown 11ms
+     × unknown placeholder {{}} is refused: 422 engagement.broadcast_placeholder_unknown 10ms
+     × unknown placeholder {{lab_name.x}} is refused: 422 engagement.broadcast_placeholder_unknown 11ms
+     × markup <script>alert(1)</script> in a body is refused: 400 12ms
+     × markup <img src=x onerror=alert(1)> in a body is refused: 400 8ms
+     × markup <iframe src="https://evil.example"></iframe> in a body is refused: 400 9ms
+     × markup <a href="https://evil.example">x</a> in a body is refused: 400 8ms
+     × plain text with a lone < or & is accepted (no false positive on "a < b & c") 8ms
+     × email template needs a subject; sms ignores a subject 9ms
+     × length limits: body 1000, name 120 are accepted at the limit and refused above it 8ms
+     × writes a row audit event (audit.audit_log) for the new template 11ms
+   ❯ update and deactivate (4)
+     × update re-checks the placeholder rule, bumps version, keeps the channel, re-derives placeholders 9ms
+     × If-Match: missing = 428 precondition_required, stale = 409 version_conflict, row unchanged 9ms
+     × deactivate sets is_active false (200, version + 1), never deletes, and writes an audit UPDATE 6ms
+     × list: tenant A sees its templates only; filters is_active and channel; 200 BroadcastTemplatePage 8ms
+   ❯ (6) permission denied, wrong actor type, tenant isolation (11)
+     × listBroadcastTemplates without engagement.broadcast.read: 403 auth.forbidden and nothing written 7ms
+     × createBroadcastTemplate without engagement.broadcast.manage: 403 auth.forbidden and nothing written 7ms
+     × updateBroadcastTemplate without engagement.broadcast.manage: 403 auth.forbidden and nothing written 6ms
+     × deactivateBroadcastTemplate without engagement.broadcast.manage: 403 auth.forbidden and nothing written 6ms
+     × partner actor is refused on every template operation (403) 7ms
+     × patient actor is refused on every template operation (403) 6ms
+     × portal actor is refused on every template operation (403) 8ms
+     × device actor is refused on every template operation (403) 7ms
+     × tenant B cannot read, update or deactivate a tenant A template: 404 common.not_found, row unchanged 7ms
+     × a handler never trusts a tenant id from the request body (create always stores the actor tenant) 7ms
+     × no template body or name is written to a log line 7ms
+ ❯ src/modules/engagement/__tests__/msgdesk/broadcast.test.ts (46 tests | 46 failed) 2684ms
+   ❯ (2) previewBroadcastAudience: one SQL query, counts and masks, sends nothing (7)
+     × 200 BroadcastAudiencePreview (schema valid); count grows by exactly the seeded clients; sample is masked and capped at 20 38ms
+     × resolves the filter in ONE SQL statement against the party source (no per party query) 115ms
+     × sends nothing and stores nothing: no broadcast row, no recipient row, no NotificationPort call, no outbox write 26ms
+     × active_only true leaves out an inactive party, active_only false counts it 5ms
+     × tenant B parties never count for tenant A 6ms
+     × an unknown template id answers 404, an inactive one 422 engagement.broadcast_template_inactive 13ms
+     × the preview count equals the recipient rows created at approval for the same filter and data (the two never drift) 132ms
+   ❯ createBroadcast and requestBroadcastApproval (4)
+     × 201 Broadcast draft (schema valid): requested_by is the actor, no approver, counted audience, no recipient rows, nothing sent 67ms
+     × inactive template: 422 engagement.broadcast_template_inactive; unknown or other tenant template: 404 7ms
+     × requestBroadcastApproval: draft -> pending_approval (200, version + 1, recounted); any other source status is 409 engagement.broadcast_invalid_transition 7ms
+     × each status change writes an audit event on engagement.broadcast 37ms
+   ❯ (3) approveBroadcast: second person, provider, frozen list, one outbox row per recipient (11)
+     × the approver is never the requester: 403 engagement.broadcast_self_approval, nothing queued, status unchanged 53ms
+     × a second person approves: approved_by = that actor, approved_at set, status approved | sending | sent (200 Broadcast schema valid) 90ms
+     × approving needs the approve permission: manage + read alone is 403 auth.forbidden, nothing queued 24ms
+     × allowed only from pending_approval: a draft, an approved and a cancelled broadcast answer 409 engagement.broadcast_invalid_transition 7ms
+     × no provider configured for the channel: 422 engagement.broadcast_provider_not_configured, nothing queued, no recipient rows, status stays pending_approval 58ms
+     × the recording provider does not count as configured (it never reaches a handset) 29ms
+     × a template deactivated after the request is refused at approval: 422 engagement.broadcast_template_inactive 36ms
+     × one outbox row per recipient: one NotificationPort call per queued recipient, key = broadcast id + recipient id, all keys distinct, outbox_id stored and unique 128ms
+     × the recipient list is frozen at approval: a party added afterwards gets no message and no row 93ms
+     × rendering: only the closed placeholders are passed; email values are HTML escaped; sms values carry no control characters; no phone or email in params 56ms
+     × no personal data in logs: no phone, email or party name in any log line of preview, create, request, approve 29ms
+   ❯ (3) double send proof: retry, crash, concurrent approval (4)
+     × a retry of a successful approval is refused (409) and queues nothing more 104ms
+     × a crash in the middle of the send leaves no half state; the retry ends with exactly one outbox row per recipient 164ms
+     × three approvers at the same moment: exactly one wins, one outbox row per recipient, no duplicate recipient row 182ms
+     × a requester racing as approver and a second person: only the second person can win 67ms
+   ❯ cancelBroadcast, listBroadcasts, listBroadcastRecipients (5)
+     × cancel is allowed from draft, pending_approval and approved-before-send; cancelled twice and sent/sending are 409 invalid_transition 7ms
+     × a cancelled broadcast sends nothing and cannot be revived 64ms
+     × listBroadcasts: schema valid page, status filter, own tenant only 24ms
+     × listBroadcastRecipients: per recipient status, masked address (never the full value), status filter, 404 for an unknown or other tenant broadcast 113ms
+     × the full recipient address is in no response body of any broadcast operation 56ms
+   ❯ (6) permission denied, wrong actor type, cross tenant (13)
+     × listBroadcasts without engagement.broadcast.read: 403 auth.forbidden, broadcast unchanged 41ms
+     × listBroadcastRecipients without engagement.broadcast.read: 403 auth.forbidden, broadcast unchanged 29ms
+     × createBroadcast without engagement.broadcast.manage: 403 auth.forbidden, broadcast unchanged 25ms
+     × previewBroadcastAudience without engagement.broadcast.manage: 403 auth.forbidden, broadcast unchanged 33ms
+     × requestBroadcastApproval without engagement.broadcast.manage: 403 auth.forbidden, broadcast unchanged 24ms
+     × cancelBroadcast without engagement.broadcast.manage: 403 auth.forbidden, broadcast unchanged 51ms
+     × approveBroadcast without engagement.broadcast.approve: 403 auth.forbidden, broadcast unchanged 43ms
+     × partner actor is refused on every broadcast operation (403) 43ms
+     × patient actor is refused on every broadcast operation (403) 50ms
+     × portal actor is refused on every broadcast operation (403) 59ms
+     × device actor is refused on every broadcast operation (403) 31ms
+     × tenant B cannot request, approve or cancel a tenant A broadcast: 404, row unchanged, nothing queued 71ms
+     × a tenant B approval cannot be made by a tenant A actor either (RLS and the tenant filter agree) 67ms
+   ❯ (3) the 5000 recipient cap (tenant B, restored afterwards) (2)
+     × exactly 5000 is accepted; 5001 is refused 422 engagement.broadcast_recipient_limit at create AND at request; the preview still counts and sends nothing 39ms
+     × approval builds the list again and re-checks the cap (audience grew past 5000 between request and approval) 34ms
+ ❯ src/modules/engagement/__tests__/msgdesk/registration.test.ts (24 tests | 22 failed) 1178ms
+   ❯ T0B-MSGDESK-1 (1): handlers registered for every MSGDESK operation (24)
+     × engagement has a handler for listBroadcastTemplates and it is not pending 13ms
+     × engagement has a handler for createBroadcastTemplate and it is not pending 2ms
+     × engagement has a handler for updateBroadcastTemplate and it is not pending 1ms
+     × engagement has a handler for deactivateBroadcastTemplate and it is not pending 1ms
+     × engagement has a handler for createBroadcast and it is not pending 3ms
+     × engagement has a handler for previewBroadcastAudience and it is not pending 1ms
+     × engagement has a handler for requestBroadcastApproval and it is not pending 1ms
+     × engagement has a handler for approveBroadcast and it is not pending 2ms
+     × engagement has a handler for cancelBroadcast and it is not pending 2ms
+     × engagement has a handler for listBroadcasts and it is not pending 2ms
+     × engagement has a handler for listBroadcastRecipients and it is not pending 2ms
+     × engagement pendingOperations is empty (LD-325(b): the handler task removes the ids it implements) 5ms
+     × partners has a REAL handler for createPartnerTicket (not the T01 stub) 4ms
+     × partners has a REAL handler for listPartnerTickets (not the T01 stub) 2ms
+     × partners has a REAL handler for getPartnerTicket (not the T01 stub) 1ms
+     × partners has a REAL handler for replyPartnerTicket (not the T01 stub) 1ms
+     × partners has a REAL handler for closePartnerTicket (not the T01 stub) 1ms
+     × partners has a REAL handler for reopenPartnerTicket (not the T01 stub) 1ms
+     × partners has a REAL handler for listMyPartnerTickets (not the T01 stub) 3ms
+     × partners has a REAL handler for createMyPartnerTicket (not the T01 stub) 2ms
+     × partners has a REAL handler for getMyPartnerTicket (not the T01 stub) 1ms
+     × partners has a REAL handler for replyMyPartnerTicket (not the T01 stub) 1ms
+ ❯ src/modules/partners/__tests__/msgdesk/tickets.test.ts (36 tests | 36 failed) 5162ms
+   ❯ (5) lab side: open, reply, close, reopen (10)
+     × createPartnerTicket: 201 PartnerTicket (schema valid), status new, first message from the lab, created_by = actor, one audit INSERT 212ms
+     × an unknown partner or a partner of another tenant answers 404 and creates nothing 26ms
+     × lab reply: new -> replied, replied -> replied; sender_kind is lab whatever the body says; each reply is one appended message and one audit UPDATE 54ms
+     × close: new or replied -> closed (200, version + 1, audit UPDATE); closing a closed ticket is 409 partners.ticket_invalid_transition 76ms
+     × a closed ticket takes no reply from the lab; reopen it first 75ms
+     × reopen: closed -> new only; reopening a new or replied ticket is 409; a reopened ticket takes replies again 70ms
+     × close and reopen need If-Match: missing = 428 common.precondition_required, stale = 409 common.version_conflict, ticket unchanged 64ms
+     × two lab users closing at the same moment: exactly one wins, the other gets 409, one status audit UPDATE 61ms
+     × getPartnerTicket: PartnerTicketDetail schema valid, messages oldest first; unknown id 404 154ms
+     × listPartnerTickets: schema valid page, filters status / party_id / created_from / created_to, newest message first, own tenant only 195ms
+   ❯ (5) partner side: only the own party (6)
+     × createMyPartnerTicket: 201, party from the session (body party ignored), status new, first message sender partner, audit INSERT 297ms
+     × partner reply: replied -> new, new -> new, appended as sender partner; a closed ticket takes no reply (409); the partner cannot close or reopen 172ms
+     × every partner message writes an audit UPDATE on the ticket (message count and audit trail agree) 135ms
+     × listMyPartnerTickets / getMyPartnerTicket / replyMyPartnerTicket: partner 1 never sees or writes partner 2 tickets (404, nothing written) 320ms
+     × a partner list filter cannot widen the scope: party_id of another partner in the query returns nothing of theirs 355ms
+     × no message body or subject is written to a log line, on either side 173ms
+   ❯ (6) permission denied, wrong actor type, cross tenant (20)
+     × lab op listPartnerTickets without partners.ticket.read: 403 auth.forbidden, ticket unchanged 62ms
+     × lab op getPartnerTicket without partners.ticket.read: 403 auth.forbidden, ticket unchanged 68ms
+     × lab op createPartnerTicket without partners.ticket.manage: 403 auth.forbidden, ticket unchanged 54ms
+     × lab op replyPartnerTicket without partners.ticket.manage: 403 auth.forbidden, ticket unchanged 56ms
+     × lab op closePartnerTicket without partners.ticket.manage: 403 auth.forbidden, ticket unchanged 56ms
+     × lab op reopenPartnerTicket without partners.ticket.manage: 403 auth.forbidden, ticket unchanged 84ms
+     × partner op listMyPartnerTickets without partners.ticket.read: 403 auth.forbidden, ticket unchanged 214ms
+     × partner op getMyPartnerTicket without partners.ticket.read: 403 auth.forbidden, ticket unchanged 191ms
+     × partner op createMyPartnerTicket without partners.ticket.manage: 403 auth.forbidden, ticket unchanged 229ms
+     × partner op replyMyPartnerTicket without partners.ticket.manage: 403 auth.forbidden, ticket unchanged 137ms
+     × partner actor on a /admin ticket operation: 403 before any lookup 284ms
+     × patient actor on a /admin ticket operation: 403 before any lookup 191ms
+     × portal actor on a /admin ticket operation: 403 before any lookup 315ms
+     × device actor on a /admin ticket operation: 403 before any lookup 168ms
+     × user actor on a /me ticket operation: 403 (partner actors only) 160ms
+     × system actor on a /me ticket operation: 403 (partner actors only) 101ms
+     × patient actor on a /me ticket operation: 403 (partner actors only) 101ms
+     × portal actor on a /me ticket operation: 403 (partner actors only) 111ms
+     × device actor on a /me ticket operation: 403 (partner actors only) 88ms
+     × tenant B staff cannot read, reply, close or reopen a tenant A ticket: 404, nothing changes 44ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 135 ⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > (2) previewBroadcastAudience: one SQL query, counts and masks, sends nothing > 200 BroadcastAudiencePreview (schema valid); count grows by exactly the seeded clients; sample is masked and capped at 20
+Error: no handler for previewBroadcastAudience
+ ❯ src/modules/engagement/__tests__/msgdesk/helpers.ts:136:19
+    134|     probe.ctx = ctx;
+    135|     const h = handlers[operationId];
+    136|     if (!h) throw new Error(`no handler for ${operationId}`);
+       |                   ^
+    137|     return h(r, ctx);
+    138|   });
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:23
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:57:21
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/135]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > (2) previewBroadcastAudience: one SQL query, counts and masks, sends nothing > resolves the filter in ONE SQL statement against the party source (no per party query)
+Error: no handler for previewBroadcastAudience
+ ❯ src/modules/engagement/__tests__/msgdesk/helpers.ts:136:19
+    134|     probe.ctx = ctx;
+    135|     const h = handlers[operationId];
+    136|     if (!h) throw new Error(`no handler for ${operationId}`);
+       |                   ^
+    137|     return h(r, ctx);
+    138|   });
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:23
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:74:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/135]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > (2) previewBroadcastAudience: one SQL query, counts and masks, sends nothing > sends nothing and stores nothing: no broadcast row, no recipient row, no NotificationPort call, no outbox write
+Error: no handler for previewBroadcastAudience
+ ❯ src/modules/engagement/__tests__/msgdesk/helpers.ts:136:19
+    134|     probe.ctx = ctx;
+    135|     const h = handlers[operationId];
+    136|     if (!h) throw new Error(`no handler for ${operationId}`);
+       |                   ^
+    137|     return h(r, ctx);
+    138|   });
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:23
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:81:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/135]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > (2) previewBroadcastAudience: one SQL query, counts and masks, sends nothing > active_only true leaves out an inactive party, active_only false counts it
+Error: no handler for previewBroadcastAudience
+ ❯ src/modules/engagement/__tests__/msgdesk/helpers.ts:136:19
+    134|     probe.ctx = ctx;
+    135|     const h = handlers[operationId];
+    136|     if (!h) throw new Error(`no handler for ${operationId}`);
+       |                   ^
+    137|     return h(r, ctx);
+    138|   });
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:23
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:87:18
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/135]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > (2) previewBroadcastAudience: one SQL query, counts and masks, sends nothing > tenant B parties never count for tenant A
+Error: no handler for previewBroadcastAudience
+ ❯ src/modules/engagement/__tests__/msgdesk/helpers.ts:136:19
+    134|     probe.ctx = ctx;
+    135|     const h = handlers[operationId];
+    136|     if (!h) throw new Error(`no handler for ${operationId}`);
+       |                   ^
+    137|     return h(r, ctx);
+    138|   });
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:23
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:94:21
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/135]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > (2) previewBroadcastAudience: one SQL query, counts and masks, sends nothing > an unknown template id answers 404, an inactive one 422 engagement.broadcast_template_inactive
+AssertionError: expected undefined to be 'common.not_found' // Object.is equality
+
+- Expected:
+"common.not_found"
+
++ Received:
+undefined
+
+ ❯ src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:99:124
+     97|   });
+     98|   it('an unknown template id answers 404, an inactive one 422 engageme…
+     99|     expect(errCode(await bad('previewBroadcastAudience', req({ body: {…
+       |                                                                                                                            ^
+    100|     const t = await template();
+    101|     await call('deactivateBroadcastTemplate', req({ params: { template…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/135]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > (2) previewBroadcastAudience: one SQL query, counts and masks, sends nothing > the preview count equals the recipient rows created at approval for the same filter and data (the two never drift)
+Error: no handler for createBroadcastTemplate
+ ❯ src/modules/engagement/__tests__/msgdesk/helpers.ts:136:19
+    134|     probe.ctx = ctx;
+    135|     const h = handlers[operationId];
+    136|     if (!h) throw new Error(`no handler for ${operationId}`);
+       |                   ^
+    137|     return h(r, ctx);
+    138|   });
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:23
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ template src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:33:13
+ ❯ src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:107:17
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/135]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > createBroadcast and requestBroadcastApproval > 201 Broadcast draft (schema valid): requested_by is the actor, no approver, counted audience, no recipient rows, nothing sent
+Error: no handler for createBroadcastTemplate
+ ❯ src/modules/engagement/__tests__/msgdesk/helpers.ts:136:19
+    134|     probe.ctx = ctx;
+    135|     const h = handlers[operationId];
+    136|     if (!h) throw new Error(`no handler for ${operationId}`);
+       |                   ^
+    137|     return h(r, ctx);
+    138|   });
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:23
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ template src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:33:13
+ ❯ src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:128:17
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/135]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > createBroadcast and requestBroadcastApproval > inactive template: 422 engagement.broadcast_template_inactive; unknown or other tenant template: 404
+Error: no handler for createBroadcastTemplate
+ ❯ src/modules/engagement/__tests__/msgdesk/helpers.ts:136:19
+    134|     probe.ctx = ctx;
+    135|     const h = handlers[operationId];
+    136|     if (!h) throw new Error(`no handler for ${operationId}`);
+       |                   ^
+    137|     return h(r, ctx);
+    138|   });
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:23
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ template src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:33:13
+ ❯ src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:140:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/135]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > createBroadcast and requestBroadcastApproval > requestBroadcastApproval: draft -> pending_approval (200, version + 1, recounted); any other source status is 409 engagement.broadcast_invalid_transition
+Error: no handler for createBroadcastTemplate
+ ❯ src/modules/engagement/__tests__/msgdesk/helpers.ts:136:19
+    134|     probe.ctx = ctx;
+    135|     const h = handlers[operationId];
+    136|     if (!h) throw new Error(`no handler for ${operationId}`);
+       |                   ^
+    137|     return h(r, ctx);
+    138|   });
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:23
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ template src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:33:13
+ ❯ src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:148:17
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/135]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > createBroadcast and requestBroadcastApproval > each status change writes an audit event on engagement.broadcast
+Error: no handler for createBroadcastTemplate
+ ❯ src/modules/engagement/__tests__/msgdesk/helpers.ts:136:19
+    134|     probe.ctx = ctx;
+    135|     const h = handlers[operationId];
+    136|     if (!h) throw new Error(`no handler for ${operationId}`);
+       |                   ^
+    137|     return h(r, ctx);
+    138|   });
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:23
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ template src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:33:13
+ ❯ pending src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:49:15
+ ❯ src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:159:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/135]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > (3) approveBroadcast: second person, provider, frozen list, one outbox row per recipient > the approver is never the requester: 403 engagement.broadcast_self_approval, nothing queued, status unchanged
+Error: no handler for createBroadcastTemplate
+ ❯ src/modules/engagement/__tests__/msgdesk/helpers.ts:136:19
+    134|     probe.ctx = ctx;
+    135|     const h = handlers[operationId];
+    136|     if (!h) throw new Error(`no handler for ${operationId}`);
+       |                   ^
+    137|     return h(r, ctx);
+    138|   });
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:23
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ template src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:33:13
+ ❯ pending src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:49:15
+ ❯ src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:169:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/135]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > (3) approveBroadcast: second person, provider, frozen list, one outbox row per recipient > a second person approves: approved_by = that actor, approved_at set, status approved | sending | sent (200 Broadcast schema valid)
+Error: no handler for createBroadcastTemplate
+ ❯ src/modules/engagement/__tests__/msgdesk/helpers.ts:136:19
+    134|     probe.ctx = ctx;
+    135|     const h = handlers[operationId];
+    136|     if (!h) throw new Error(`no handler for ${operationId}`);
+       |                   ^
+    137|     return h(r, ctx);
+    138|   });
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:23
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ template src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:33:13
+ ❯ pending src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:49:15
+ ❯ src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:179:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/135]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > (3) approveBroadcast: second person, provider, frozen list, one outbox row per recipient > approving needs the approve permission: manage + read alone is 403 auth.forbidden, nothing queued
+Error: no handler for createBroadcastTemplate
+ ❯ src/modules/engagement/__tests__/msgdesk/helpers.ts:136:19
+    134|     probe.ctx = ctx;
+    135|     const h = handlers[operationId];
+    136|     if (!h) throw new Error(`no handler for ${operationId}`);
+       |                   ^
+    137|     return h(r, ctx);
+    138|   });
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:23
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ template src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:33:13
+ ❯ pending src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:49:15
+ ❯ src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:191:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/135]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > (3) approveBroadcast: second person, provider, frozen list, one outbox row per recipient > allowed only from pending_approval: a draft, an approved and a cancelled broadcast answer 409 engagement.broadcast_invalid_transition
+Error: no handler for createBroadcastTemplate
+ ❯ src/modules/engagement/__tests__/msgdesk/helpers.ts:136:19
+    134|     probe.ctx = ctx;
+    135|     const h = handlers[operationId];
+    136|     if (!h) throw new Error(`no handler for ${operationId}`);
+       |                   ^
+    137|     return h(r, ctx);
+    138|   });
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:23
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ template src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:33:13
+ ❯ src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:198:17
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/135]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > (3) approveBroadcast: second person, provider, frozen list, one outbox row per recipient > no provider configured for the channel: 422 engagement.broadcast_provider_not_configured, nothing queued, no recipient rows, status stays pending_approval
+Error: no handler for createBroadcastTemplate
+ ❯ src/modules/engagement/__tests__/msgdesk/helpers.ts:136:19
+    134|     probe.ctx = ctx;
+    135|     const h = handlers[operationId];
+    136|     if (!h) throw new Error(`no handler for ${operationId}`);
+       |                   ^
+    137|     return h(r, ctx);
+    138|   });
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:23
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ template src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:33:13
+ ❯ pending src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:49:15
+ ❯ src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:211:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[16/135]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > (3) approveBroadcast: second person, provider, frozen list, one outbox row per recipient > the recording provider does not count as configured (it never reaches a handset)
+Error: no handler for createBroadcastTemplate
+ ❯ src/modules/engagement/__tests__/msgdesk/helpers.ts:136:19
+    134|     probe.ctx = ctx;
+    135|     const h = handlers[operationId];
+    136|     if (!h) throw new Error(`no handler for ${operationId}`);
+       |                   ^
+    137|     return h(r, ctx);
+    138|   });
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:23
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ template src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:33:13
+ ❯ pending src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:49:15
+ ❯ src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:224:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[17/135]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > (3) approveBroadcast: second person, provider, frozen list, one outbox row per recipient > a template deactivated after the request is refused at approval: 422 engagement.broadcast_template_inactive
+Error: no handler for createBroadcastTemplate
+ ❯ src/modules/engagement/__tests__/msgdesk/helpers.ts:136:19
+    134|     probe.ctx = ctx;
+    135|     const h = handlers[operationId];
+    136|     if (!h) throw new Error(`no handler for ${operationId}`);
+       |                   ^
+    137|     return h(r, ctx);
+    138|   });
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:23
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ template src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:33:13
+ ❯ pending src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:49:15
+ ❯ src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:230:24
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[18/135]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > (3) approveBroadcast: second person, provider, frozen list, one outbox row per recipient > one outbox row per recipient: one NotificationPort call per queued recipient, key = broadcast id + recipient id, all keys distinct, outbox_id stored and unique
+Error: no handler for createBroadcastTemplate
+ ❯ src/modules/engagement/__tests__/msgdesk/helpers.ts:136:19
+    134|     probe.ctx = ctx;
+    135|     const h = handlers[operationId];
+    136|     if (!h) throw new Error(`no handler for ${operationId}`);
+       |                   ^
+    137|     return h(r, ctx);
+    138|   });
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:23
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ template src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:33:13
+ ❯ pending src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:49:15
+ ❯ src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:237:28
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[19/135]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > (3) approveBroadcast: second person, provider, frozen list, one outbox row per recipient > the recipient list is frozen at approval: a party added afterwards gets no message and no row
+Error: no handler for createBroadcastTemplate
+ ❯ src/modules/engagement/__tests__/msgdesk/helpers.ts:136:19
+    134|     probe.ctx = ctx;
+    135|     const h = handlers[operationId];
+    136|     if (!h) throw new Error(`no handler for ${operationId}`);
+       |                   ^
+    137|     return h(r, ctx);
+    138|   });
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:23
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ template src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:33:13
+ ❯ pending src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:49:15
+ ❯ src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:259:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[20/135]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > (3) approveBroadcast: second person, provider, frozen list, one outbox row per recipient > rendering: only the closed placeholders are passed; email values are HTML escaped; sms values carry no control characters; no phone or email in params
+Error: no handler for createBroadcastTemplate
+ ❯ src/modules/engagement/__tests__/msgdesk/helpers.ts:136:19
+    134|     probe.ctx = ctx;
+    135|     const h = handlers[operationId];
+    136|     if (!h) throw new Error(`no handler for ${operationId}`);
+       |                   ^
+    137|     return h(r, ctx);
+    138|   });
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:23
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ template src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:33:13
+ ❯ src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:271:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[21/135]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > (3) approveBroadcast: second person, provider, frozen list, one outbox row per recipient > no personal data in logs: no phone, email or party name in any log line of preview, create, request, approve
+Error: no handler for createBroadcastTemplate
+ ❯ src/modules/engagement/__tests__/msgdesk/helpers.ts:136:19
+    134|     probe.ctx = ctx;
+    135|     const h = handlers[operationId];
+    136|     if (!h) throw new Error(`no handler for ${operationId}`);
+       |                   ^
+    137|     return h(r, ctx);
+    138|   });
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:23
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ template src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:33:13
+ ❯ src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:296:17
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[22/135]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > (3) double send proof: retry, crash, concurrent approval > a retry of a successful approval is refused (409) and queues nothing more
+Error: no handler for createBroadcastTemplate
+ ❯ src/modules/engagement/__tests__/msgdesk/helpers.ts:136:19
+    134|     probe.ctx = ctx;
+    135|     const h = handlers[operationId];
+    136|     if (!h) throw new Error(`no handler for ${operationId}`);
+       |                   ^
+    137|     return h(r, ctx);
+    138|   });
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:23
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ template src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:33:13
+ ❯ pending src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:49:15
+ ❯ src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:307:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[23/135]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > (3) double send proof: retry, crash, concurrent approval > a crash in the middle of the send leaves no half state; the retry ends with exactly one outbox row per recipient
+Error: no handler for createBroadcastTemplate
+ ❯ src/modules/engagement/__tests__/msgdesk/helpers.ts:136:19
+    134|     probe.ctx = ctx;
+    135|     const h = handlers[operationId];
+    136|     if (!h) throw new Error(`no handler for ${operationId}`);
+       |                   ^
+    137|     return h(r, ctx);
+    138|   });
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:23
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ template src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:33:13
+ ❯ pending src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:49:15
+ ❯ src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:317:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[24/135]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > (3) double send proof: retry, crash, concurrent approval > three approvers at the same moment: exactly one wins, one outbox row per recipient, no duplicate recipient row
+Error: no handler for createBroadcastTemplate
+ ❯ src/modules/engagement/__tests__/msgdesk/helpers.ts:136:19
+    134|     probe.ctx = ctx;
+    135|     const h = handlers[operationId];
+    136|     if (!h) throw new Error(`no handler for ${operationId}`);
+       |                   ^
+    137|     return h(r, ctx);
+    138|   });
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:23
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ template src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:33:13
+ ❯ pending src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:49:15
+ ❯ src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:334:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[25/135]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > (3) double send proof: retry, crash, concurrent approval > a requester racing as approver and a second person: only the second person can win
+Error: no handler for createBroadcastTemplate
+ ❯ src/modules/engagement/__tests__/msgdesk/helpers.ts:136:19
+    134|     probe.ctx = ctx;
+    135|     const h = handlers[operationId];
+    136|     if (!h) throw new Error(`no handler for ${operationId}`);
+       |                   ^
+    137|     return h(r, ctx);
+    138|   });
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:23
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ template src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:33:13
+ ❯ pending src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:49:15
+ ❯ src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:352:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[26/135]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > cancelBroadcast, listBroadcasts, listBroadcastRecipients > cancel is allowed from draft, pending_approval and approved-before-send; cancelled twice and sent/sending are 409 invalid_transition
+Error: no handler for createBroadcastTemplate
+ ❯ src/modules/engagement/__tests__/msgdesk/helpers.ts:136:19
+    134|     probe.ctx = ctx;
+    135|     const h = handlers[operationId];
+    136|     if (!h) throw new Error(`no handler for ${operationId}`);
+       |                   ^
+    137|     return h(r, ctx);
+    138|   });
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:23
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ template src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:33:13
+ ❯ src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:363:17
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[27/135]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > cancelBroadcast, listBroadcasts, listBroadcastRecipients > a cancelled broadcast sends nothing and cannot be revived
+Error: no handler for createBroadcastTemplate
+ ❯ src/modules/engagement/__tests__/msgdesk/helpers.ts:136:19
+    134|     probe.ctx = ctx;
+    135|     const h = handlers[operationId];
+    136|     if (!h) throw new Error(`no handler for ${operationId}`);
+       |                   ^
+    137|     return h(r, ctx);
+    138|   });
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:23
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ template src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:33:13
+ ❯ pending src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:49:15
+ ❯ src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:379:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[28/135]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > cancelBroadcast, listBroadcasts, listBroadcastRecipients > listBroadcasts: schema valid page, status filter, own tenant only
+Error: no handler for createBroadcastTemplate
+ ❯ src/modules/engagement/__tests__/msgdesk/helpers.ts:136:19
+    134|     probe.ctx = ctx;
+    135|     const h = handlers[operationId];
+    136|     if (!h) throw new Error(`no handler for ${operationId}`);
+       |                   ^
+    137|     return h(r, ctx);
+    138|   });
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:23
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ template src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:33:13
+ ❯ pending src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:49:15
+ ❯ src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:387:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[29/135]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > cancelBroadcast, listBroadcasts, listBroadcastRecipients > listBroadcastRecipients: per recipient status, masked address (never the full value), status filter, 404 for an unknown or other tenant broadcast
+Error: no handler for createBroadcastTemplate
+ ❯ src/modules/engagement/__tests__/msgdesk/helpers.ts:136:19
+    134|     probe.ctx = ctx;
+    135|     const h = handlers[operationId];
+    136|     if (!h) throw new Error(`no handler for ${operationId}`);
+       |                   ^
+    137|     return h(r, ctx);
+    138|   });
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:23
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ template src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:33:13
+ ❯ pending src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:49:15
+ ❯ src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:399:28
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[30/135]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > cancelBroadcast, listBroadcasts, listBroadcastRecipients > the full recipient address is in no response body of any broadcast operation
+Error: no handler for createBroadcastTemplate
+ ❯ src/modules/engagement/__tests__/msgdesk/helpers.ts:136:19
+    134|     probe.ctx = ctx;
+    135|     const h = handlers[operationId];
+    136|     if (!h) throw new Error(`no handler for ${operationId}`);
+       |                   ^
+    137|     return h(r, ctx);
+    138|   });
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:23
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ template src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:33:13
+ ❯ pending src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:49:15
+ ❯ src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:415:28
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[31/135]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > (6) permission denied, wrong actor type, cross tenant > listBroadcasts without engagement.broadcast.read: 403 auth.forbidden, broadcast unchanged
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > (6) permission denied, wrong actor type, cross tenant > listBroadcastRecipients without engagement.broadcast.read: 403 auth.forbidden, broadcast unchanged
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > (6) permission denied, wrong actor type, cross tenant > createBroadcast without engagement.broadcast.manage: 403 auth.forbidden, broadcast unchanged
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > (6) permission denied, wrong actor type, cross tenant > previewBroadcastAudience without engagement.broadcast.manage: 403 auth.forbidden, broadcast unchanged
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > (6) permission denied, wrong actor type, cross tenant > requestBroadcastApproval without engagement.broadcast.manage: 403 auth.forbidden, broadcast unchanged
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > (6) permission denied, wrong actor type, cross tenant > cancelBroadcast without engagement.broadcast.manage: 403 auth.forbidden, broadcast unchanged
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > (6) permission denied, wrong actor type, cross tenant > approveBroadcast without engagement.broadcast.approve: 403 auth.forbidden, broadcast unchanged
+Error: no handler for createBroadcastTemplate
+ ❯ src/modules/engagement/__tests__/msgdesk/helpers.ts:136:19
+    134|     probe.ctx = ctx;
+    135|     const h = handlers[operationId];
+    136|     if (!h) throw new Error(`no handler for ${operationId}`);
+       |                   ^
+    137|     return h(r, ctx);
+    138|   });
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:23
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ template src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:33:13
+ ❯ pending src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:49:15
+ ❯ src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:433:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[32/135]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > (6) permission denied, wrong actor type, cross tenant > partner actor is refused on every broadcast operation (403)
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > (6) permission denied, wrong actor type, cross tenant > patient actor is refused on every broadcast operation (403)
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > (6) permission denied, wrong actor type, cross tenant > portal actor is refused on every broadcast operation (403)
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > (6) permission denied, wrong actor type, cross tenant > device actor is refused on every broadcast operation (403)
+Error: no handler for createBroadcastTemplate
+ ❯ src/modules/engagement/__tests__/msgdesk/helpers.ts:136:19
+    134|     probe.ctx = ctx;
+    135|     const h = handlers[operationId];
+    136|     if (!h) throw new Error(`no handler for ${operationId}`);
+       |                   ^
+    137|     return h(r, ctx);
+    138|   });
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:23
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ template src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:33:13
+ ❯ pending src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:49:15
+ ❯ src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:441:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[33/135]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > (6) permission denied, wrong actor type, cross tenant > tenant B cannot request, approve or cancel a tenant A broadcast: 404, row unchanged, nothing queued
+Error: no handler for createBroadcastTemplate
+ ❯ src/modules/engagement/__tests__/msgdesk/helpers.ts:136:19
+    134|     probe.ctx = ctx;
+    135|     const h = handlers[operationId];
+    136|     if (!h) throw new Error(`no handler for ${operationId}`);
+       |                   ^
+    137|     return h(r, ctx);
+    138|   });
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:23
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ template src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:33:13
+ ❯ pending src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:49:15
+ ❯ src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:446:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[34/135]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > (6) permission denied, wrong actor type, cross tenant > a tenant B approval cannot be made by a tenant A actor either (RLS and the tenant filter agree)
+Error: no handler for createBroadcastTemplate
+ ❯ src/modules/engagement/__tests__/msgdesk/helpers.ts:136:19
+    134|     probe.ctx = ctx;
+    135|     const h = handlers[operationId];
+    136|     if (!h) throw new Error(`no handler for ${operationId}`);
+       |                   ^
+    137|     return h(r, ctx);
+    138|   });
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:23
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ template src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:33:13
+ ❯ src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:459:18
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[35/135]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > (3) the 5000 recipient cap (tenant B, restored afterwards) > exactly 5000 is accepted; 5001 is refused 422 engagement.broadcast_recipient_limit at create AND at request; the preview still counts and sends nothing
+Error: no handler for createBroadcastTemplate
+ ❯ src/modules/engagement/__tests__/msgdesk/helpers.ts:136:19
+    134|     probe.ctx = ctx;
+    135|     const h = handlers[operationId];
+    136|     if (!h) throw new Error(`no handler for ${operationId}`);
+       |                   ^
+    137|     return h(r, ctx);
+    138|   });
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:23
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:482:18
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[36/135]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/broadcast.test.ts > (3) the 5000 recipient cap (tenant B, restored afterwards) > approval builds the list again and re-checks the cap (audience grew past 5000 between request and approval)
+Error: no handler for createBroadcastTemplate
+ ❯ src/modules/engagement/__tests__/msgdesk/helpers.ts:136:19
+    134|     probe.ctx = ctx;
+    135|     const h = handlers[operationId];
+    136|     if (!h) throw new Error(`no handler for ${operationId}`);
+       |                   ^
+    137|     return h(r, ctx);
+    138|   });
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:23
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ src/modules/engagement/__tests__/msgdesk/broadcast.test.ts:503:18
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[37/135]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/registration.test.ts > T0B-MSGDESK-1 (1): handlers registered for every MSGDESK operation > engagement has a handler for listBroadcastTemplates and it is not pending
+AssertionError: listBroadcastTemplates handler: expected 'undefined' to be 'function' // Object.is equality
+
+Expected: "function"
+Received: "undefined"
+
+ ❯ src/modules/engagement/__tests__/msgdesk/registration.test.ts:22:90
+     20|   });
+     21|   it.each(BROADCAST_OPS)('engagement has a handler for %s and it is no…
+     22|     expect(typeof (engagement.handlers as Record<string, unknown>)[id]…
+       |                                                                                          ^
+     23|     expect(pendingOf(engagement), `${id} still pending`).not.toContain…
+     24|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[38/135]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/registration.test.ts > T0B-MSGDESK-1 (1): handlers registered for every MSGDESK operation > engagement has a handler for createBroadcastTemplate and it is not pending
+AssertionError: createBroadcastTemplate handler: expected 'undefined' to be 'function' // Object.is equality
+
+Expected: "function"
+Received: "undefined"
+
+ ❯ src/modules/engagement/__tests__/msgdesk/registration.test.ts:22:90
+     20|   });
+     21|   it.each(BROADCAST_OPS)('engagement has a handler for %s and it is no…
+     22|     expect(typeof (engagement.handlers as Record<string, unknown>)[id]…
+       |                                                                                          ^
+     23|     expect(pendingOf(engagement), `${id} still pending`).not.toContain…
+     24|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[39/135]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/registration.test.ts > T0B-MSGDESK-1 (1): handlers registered for every MSGDESK operation > engagement has a handler for updateBroadcastTemplate and it is not pending
+AssertionError: updateBroadcastTemplate handler: expected 'undefined' to be 'function' // Object.is equality
+
+Expected: "function"
+Received: "undefined"
+
+ ❯ src/modules/engagement/__tests__/msgdesk/registration.test.ts:22:90
+     20|   });
+     21|   it.each(BROADCAST_OPS)('engagement has a handler for %s and it is no…
+     22|     expect(typeof (engagement.handlers as Record<string, unknown>)[id]…
+       |                                                                                          ^
+     23|     expect(pendingOf(engagement), `${id} still pending`).not.toContain…
+     24|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[40/135]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/registration.test.ts > T0B-MSGDESK-1 (1): handlers registered for every MSGDESK operation > engagement has a handler for deactivateBroadcastTemplate and it is not pending
+AssertionError: deactivateBroadcastTemplate handler: expected 'undefined' to be 'function' // Object.is equality
+
+Expected: "function"
+Received: "undefined"
+
+ ❯ src/modules/engagement/__tests__/msgdesk/registration.test.ts:22:90
+     20|   });
+     21|   it.each(BROADCAST_OPS)('engagement has a handler for %s and it is no…
+     22|     expect(typeof (engagement.handlers as Record<string, unknown>)[id]…
+       |                                                                                          ^
+     23|     expect(pendingOf(engagement), `${id} still pending`).not.toContain…
+     24|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[41/135]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/registration.test.ts > T0B-MSGDESK-1 (1): handlers registered for every MSGDESK operation > engagement has a handler for createBroadcast and it is not pending
+AssertionError: createBroadcast handler: expected 'undefined' to be 'function' // Object.is equality
+
+Expected: "function"
+Received: "undefined"
+
+ ❯ src/modules/engagement/__tests__/msgdesk/registration.test.ts:22:90
+     20|   });
+     21|   it.each(BROADCAST_OPS)('engagement has a handler for %s and it is no…
+     22|     expect(typeof (engagement.handlers as Record<string, unknown>)[id]…
+       |                                                                                          ^
+     23|     expect(pendingOf(engagement), `${id} still pending`).not.toContain…
+     24|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[42/135]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/registration.test.ts > T0B-MSGDESK-1 (1): handlers registered for every MSGDESK operation > engagement has a handler for previewBroadcastAudience and it is not pending
+AssertionError: previewBroadcastAudience handler: expected 'undefined' to be 'function' // Object.is equality
+
+Expected: "function"
+Received: "undefined"
+
+ ❯ src/modules/engagement/__tests__/msgdesk/registration.test.ts:22:90
+     20|   });
+     21|   it.each(BROADCAST_OPS)('engagement has a handler for %s and it is no…
+     22|     expect(typeof (engagement.handlers as Record<string, unknown>)[id]…
+       |                                                                                          ^
+     23|     expect(pendingOf(engagement), `${id} still pending`).not.toContain…
+     24|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[43/135]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/registration.test.ts > T0B-MSGDESK-1 (1): handlers registered for every MSGDESK operation > engagement has a handler for requestBroadcastApproval and it is not pending
+AssertionError: requestBroadcastApproval handler: expected 'undefined' to be 'function' // Object.is equality
+
+Expected: "function"
+Received: "undefined"
+
+ ❯ src/modules/engagement/__tests__/msgdesk/registration.test.ts:22:90
+     20|   });
+     21|   it.each(BROADCAST_OPS)('engagement has a handler for %s and it is no…
+     22|     expect(typeof (engagement.handlers as Record<string, unknown>)[id]…
+       |                                                                                          ^
+     23|     expect(pendingOf(engagement), `${id} still pending`).not.toContain…
+     24|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[44/135]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/registration.test.ts > T0B-MSGDESK-1 (1): handlers registered for every MSGDESK operation > engagement has a handler for approveBroadcast and it is not pending
+AssertionError: approveBroadcast handler: expected 'undefined' to be 'function' // Object.is equality
+
+Expected: "function"
+Received: "undefined"
+
+ ❯ src/modules/engagement/__tests__/msgdesk/registration.test.ts:22:90
+     20|   });
+     21|   it.each(BROADCAST_OPS)('engagement has a handler for %s and it is no…
+     22|     expect(typeof (engagement.handlers as Record<string, unknown>)[id]…
+       |                                                                                          ^
+     23|     expect(pendingOf(engagement), `${id} still pending`).not.toContain…
+     24|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[45/135]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/registration.test.ts > T0B-MSGDESK-1 (1): handlers registered for every MSGDESK operation > engagement has a handler for cancelBroadcast and it is not pending
+AssertionError: cancelBroadcast handler: expected 'undefined' to be 'function' // Object.is equality
+
+Expected: "function"
+Received: "undefined"
+
+ ❯ src/modules/engagement/__tests__/msgdesk/registration.test.ts:22:90
+     20|   });
+     21|   it.each(BROADCAST_OPS)('engagement has a handler for %s and it is no…
+     22|     expect(typeof (engagement.handlers as Record<string, unknown>)[id]…
+       |                                                                                          ^
+     23|     expect(pendingOf(engagement), `${id} still pending`).not.toContain…
+     24|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[46/135]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/registration.test.ts > T0B-MSGDESK-1 (1): handlers registered for every MSGDESK operation > engagement has a handler for listBroadcasts and it is not pending
+AssertionError: listBroadcasts handler: expected 'undefined' to be 'function' // Object.is equality
+
+Expected: "function"
+Received: "undefined"
+
+ ❯ src/modules/engagement/__tests__/msgdesk/registration.test.ts:22:90
+     20|   });
+     21|   it.each(BROADCAST_OPS)('engagement has a handler for %s and it is no…
+     22|     expect(typeof (engagement.handlers as Record<string, unknown>)[id]…
+       |                                                                                          ^
+     23|     expect(pendingOf(engagement), `${id} still pending`).not.toContain…
+     24|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[47/135]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/registration.test.ts > T0B-MSGDESK-1 (1): handlers registered for every MSGDESK operation > engagement has a handler for listBroadcastRecipients and it is not pending
+AssertionError: listBroadcastRecipients handler: expected 'undefined' to be 'function' // Object.is equality
+
+Expected: "function"
+Received: "undefined"
+
+ ❯ src/modules/engagement/__tests__/msgdesk/registration.test.ts:22:90
+     20|   });
+     21|   it.each(BROADCAST_OPS)('engagement has a handler for %s and it is no…
+     22|     expect(typeof (engagement.handlers as Record<string, unknown>)[id]…
+       |                                                                                          ^
+     23|     expect(pendingOf(engagement), `${id} still pending`).not.toContain…
+     24|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[48/135]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/registration.test.ts > T0B-MSGDESK-1 (1): handlers registered for every MSGDESK operation > engagement pendingOperations is empty (LD-325(b): the handler task removes the ids it implements)
+AssertionError: expected [ 'listBroadcastTemplates', …(10) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "listBroadcastTemplates",
++   "createBroadcastTemplate",
++   "updateBroadcastTemplate",
++   "deactivateBroadcastTemplate",
++   "createBroadcast",
++   "previewBroadcastAudience",
++   "requestBroadcastApproval",
++   "approveBroadcast",
++   "cancelBroadcast",
++   "listBroadcasts",
++   "listBroadcastRecipients",
++ ]
+
+ ❯ src/modules/engagement/__tests__/msgdesk/registration.test.ts:26:35
+     24|   });
+     25|   it('engagement pendingOperations is empty (LD-325(b): the handler ta…
+     26|     expect(pendingOf(engagement)).toEqual([]);
+       |                                   ^
+     27|   });
+     28|   it.each(TICKET_OPS)('partners has a REAL handler for %s (not the T01…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[49/135]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/registration.test.ts > T0B-MSGDESK-1 (1): handlers registered for every MSGDESK operation > partners has a REAL handler for createPartnerTicket (not the T01 stub)
+AssertionError: createPartnerTicket is still the T01 stub: expected 'async () => {\n  if (process.env.LIMS…' not to contain 'not implemented'
+
+- Expected
++ Received
+
+- not implemented
++ async () => {
++   if (process.env.LIMS_CORE_ENV === "dev" && process.env.NODE_ENV !== "production") return { status: 501 };
++   throw new __vite_ssr_import_1__.LimsError("common.internal", `partners ${operationId} not implemented`);
++ }
+
+ ❯ src/modules/engagement/__tests__/msgdesk/registration.test.ts:31:58
+     29|     const h = (partners.handlers as Record<string, (...a: any[]) => un…
+     30|     expect(typeof h, `${id} handler`).toBe('function');
+     31|     expect(String(h), `${id} is still the T01 stub`).not.toContain('no…
+       |                                                          ^
+     32|     expect(pendingOf(partners)).not.toContain(id);
+     33|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[50/135]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/registration.test.ts > T0B-MSGDESK-1 (1): handlers registered for every MSGDESK operation > partners has a REAL handler for listPartnerTickets (not the T01 stub)
+AssertionError: listPartnerTickets is still the T01 stub: expected 'async () => {\n  if (process.env.LIMS…' not to contain 'not implemented'
+
+- Expected
++ Received
+
+- not implemented
++ async () => {
++   if (process.env.LIMS_CORE_ENV === "dev" && process.env.NODE_ENV !== "production") return { status: 501 };
++   throw new __vite_ssr_import_1__.LimsError("common.internal", `partners ${operationId} not implemented`);
++ }
+
+ ❯ src/modules/engagement/__tests__/msgdesk/registration.test.ts:31:58
+     29|     const h = (partners.handlers as Record<string, (...a: any[]) => un…
+     30|     expect(typeof h, `${id} handler`).toBe('function');
+     31|     expect(String(h), `${id} is still the T01 stub`).not.toContain('no…
+       |                                                          ^
+     32|     expect(pendingOf(partners)).not.toContain(id);
+     33|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[51/135]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/registration.test.ts > T0B-MSGDESK-1 (1): handlers registered for every MSGDESK operation > partners has a REAL handler for getPartnerTicket (not the T01 stub)
+AssertionError: getPartnerTicket is still the T01 stub: expected 'async () => {\n  if (process.env.LIMS…' not to contain 'not implemented'
+
+- Expected
++ Received
+
+- not implemented
++ async () => {
++   if (process.env.LIMS_CORE_ENV === "dev" && process.env.NODE_ENV !== "production") return { status: 501 };
++   throw new __vite_ssr_import_1__.LimsError("common.internal", `partners ${operationId} not implemented`);
++ }
+
+ ❯ src/modules/engagement/__tests__/msgdesk/registration.test.ts:31:58
+     29|     const h = (partners.handlers as Record<string, (...a: any[]) => un…
+     30|     expect(typeof h, `${id} handler`).toBe('function');
+     31|     expect(String(h), `${id} is still the T01 stub`).not.toContain('no…
+       |                                                          ^
+     32|     expect(pendingOf(partners)).not.toContain(id);
+     33|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[52/135]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/registration.test.ts > T0B-MSGDESK-1 (1): handlers registered for every MSGDESK operation > partners has a REAL handler for replyPartnerTicket (not the T01 stub)
+AssertionError: replyPartnerTicket is still the T01 stub: expected 'async () => {\n  if (process.env.LIMS…' not to contain 'not implemented'
+
+- Expected
++ Received
+
+- not implemented
++ async () => {
++   if (process.env.LIMS_CORE_ENV === "dev" && process.env.NODE_ENV !== "production") return { status: 501 };
++   throw new __vite_ssr_import_1__.LimsError("common.internal", `partners ${operationId} not implemented`);
++ }
+
+ ❯ src/modules/engagement/__tests__/msgdesk/registration.test.ts:31:58
+     29|     const h = (partners.handlers as Record<string, (...a: any[]) => un…
+     30|     expect(typeof h, `${id} handler`).toBe('function');
+     31|     expect(String(h), `${id} is still the T01 stub`).not.toContain('no…
+       |                                                          ^
+     32|     expect(pendingOf(partners)).not.toContain(id);
+     33|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[53/135]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/registration.test.ts > T0B-MSGDESK-1 (1): handlers registered for every MSGDESK operation > partners has a REAL handler for closePartnerTicket (not the T01 stub)
+AssertionError: closePartnerTicket is still the T01 stub: expected 'async () => {\n  if (process.env.LIMS…' not to contain 'not implemented'
+
+- Expected
++ Received
+
+- not implemented
++ async () => {
++   if (process.env.LIMS_CORE_ENV === "dev" && process.env.NODE_ENV !== "production") return { status: 501 };
++   throw new __vite_ssr_import_1__.LimsError("common.internal", `partners ${operationId} not implemented`);
++ }
+
+ ❯ src/modules/engagement/__tests__/msgdesk/registration.test.ts:31:58
+     29|     const h = (partners.handlers as Record<string, (...a: any[]) => un…
+     30|     expect(typeof h, `${id} handler`).toBe('function');
+     31|     expect(String(h), `${id} is still the T01 stub`).not.toContain('no…
+       |                                                          ^
+     32|     expect(pendingOf(partners)).not.toContain(id);
+     33|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[54/135]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/registration.test.ts > T0B-MSGDESK-1 (1): handlers registered for every MSGDESK operation > partners has a REAL handler for reopenPartnerTicket (not the T01 stub)
+AssertionError: reopenPartnerTicket is still the T01 stub: expected 'async () => {\n  if (process.env.LIMS…' not to contain 'not implemented'
+
+- Expected
++ Received
+
+- not implemented
++ async () => {
++   if (process.env.LIMS_CORE_ENV === "dev" && process.env.NODE_ENV !== "production") return { status: 501 };
++   throw new __vite_ssr_import_1__.LimsError("common.internal", `partners ${operationId} not implemented`);
++ }
+
+ ❯ src/modules/engagement/__tests__/msgdesk/registration.test.ts:31:58
+     29|     const h = (partners.handlers as Record<string, (...a: any[]) => un…
+     30|     expect(typeof h, `${id} handler`).toBe('function');
+     31|     expect(String(h), `${id} is still the T01 stub`).not.toContain('no…
+       |                                                          ^
+     32|     expect(pendingOf(partners)).not.toContain(id);
+     33|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[55/135]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/registration.test.ts > T0B-MSGDESK-1 (1): handlers registered for every MSGDESK operation > partners has a REAL handler for listMyPartnerTickets (not the T01 stub)
+AssertionError: listMyPartnerTickets is still the T01 stub: expected 'async () => {\n  if (process.env.LIMS…' not to contain 'not implemented'
+
+- Expected
++ Received
+
+- not implemented
++ async () => {
++   if (process.env.LIMS_CORE_ENV === "dev" && process.env.NODE_ENV !== "production") return { status: 501 };
++   throw new __vite_ssr_import_1__.LimsError("common.internal", `partners ${operationId} not implemented`);
++ }
+
+ ❯ src/modules/engagement/__tests__/msgdesk/registration.test.ts:31:58
+     29|     const h = (partners.handlers as Record<string, (...a: any[]) => un…
+     30|     expect(typeof h, `${id} handler`).toBe('function');
+     31|     expect(String(h), `${id} is still the T01 stub`).not.toContain('no…
+       |                                                          ^
+     32|     expect(pendingOf(partners)).not.toContain(id);
+     33|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[56/135]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/registration.test.ts > T0B-MSGDESK-1 (1): handlers registered for every MSGDESK operation > partners has a REAL handler for createMyPartnerTicket (not the T01 stub)
+AssertionError: createMyPartnerTicket is still the T01 stub: expected 'async () => {\n  if (process.env.LIMS…' not to contain 'not implemented'
+
+- Expected
++ Received
+
+- not implemented
++ async () => {
++   if (process.env.LIMS_CORE_ENV === "dev" && process.env.NODE_ENV !== "production") return { status: 501 };
++   throw new __vite_ssr_import_1__.LimsError("common.internal", `partners ${operationId} not implemented`);
++ }
+
+ ❯ src/modules/engagement/__tests__/msgdesk/registration.test.ts:31:58
+     29|     const h = (partners.handlers as Record<string, (...a: any[]) => un…
+     30|     expect(typeof h, `${id} handler`).toBe('function');
+     31|     expect(String(h), `${id} is still the T01 stub`).not.toContain('no…
+       |                                                          ^
+     32|     expect(pendingOf(partners)).not.toContain(id);
+     33|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[57/135]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/registration.test.ts > T0B-MSGDESK-1 (1): handlers registered for every MSGDESK operation > partners has a REAL handler for getMyPartnerTicket (not the T01 stub)
+AssertionError: getMyPartnerTicket is still the T01 stub: expected 'async () => {\n  if (process.env.LIMS…' not to contain 'not implemented'
+
+- Expected
++ Received
+
+- not implemented
++ async () => {
++   if (process.env.LIMS_CORE_ENV === "dev" && process.env.NODE_ENV !== "production") return { status: 501 };
++   throw new __vite_ssr_import_1__.LimsError("common.internal", `partners ${operationId} not implemented`);
++ }
+
+ ❯ src/modules/engagement/__tests__/msgdesk/registration.test.ts:31:58
+     29|     const h = (partners.handlers as Record<string, (...a: any[]) => un…
+     30|     expect(typeof h, `${id} handler`).toBe('function');
+     31|     expect(String(h), `${id} is still the T01 stub`).not.toContain('no…
+       |                                                          ^
+     32|     expect(pendingOf(partners)).not.toContain(id);
+     33|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[58/135]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/registration.test.ts > T0B-MSGDESK-1 (1): handlers registered for every MSGDESK operation > partners has a REAL handler for replyMyPartnerTicket (not the T01 stub)
+AssertionError: replyMyPartnerTicket is still the T01 stub: expected 'async () => {\n  if (process.env.LIMS…' not to contain 'not implemented'
+
+- Expected
++ Received
+
+- not implemented
++ async () => {
++   if (process.env.LIMS_CORE_ENV === "dev" && process.env.NODE_ENV !== "production") return { status: 501 };
++   throw new __vite_ssr_import_1__.LimsError("common.internal", `partners ${operationId} not implemented`);
++ }
+
+ ❯ src/modules/engagement/__tests__/msgdesk/registration.test.ts:31:58
+     29|     const h = (partners.handlers as Record<string, (...a: any[]) => un…
+     30|     expect(typeof h, `${id} handler`).toBe('function');
+     31|     expect(String(h), `${id} is still the T01 stub`).not.toContain('no…
+       |                                                          ^
+     32|     expect(pendingOf(partners)).not.toContain(id);
+     33|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[59/135]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/templates.test.ts > (4) create: closed placeholder list, derived placeholders, row stored for the tenant > 201 BroadcastTemplate (schema valid), placeholders derived by the server, active, version 1, tenant A row
+Error: no handler for createBroadcastTemplate
+ ❯ src/modules/engagement/__tests__/msgdesk/helpers.ts:136:19
+    134|     probe.ctx = ctx;
+    135|     const h = handlers[operationId];
+    136|     if (!h) throw new Error(`no handler for ${operationId}`);
+       |                   ^
+    137|     return h(r, ctx);
+    138|   });
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:23
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ src/modules/engagement/__tests__/msgdesk/templates.test.ts:25:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[60/135]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/templates.test.ts > (4) create: closed placeholder list, derived placeholders, row stored for the tenant > a client supplied placeholders list is ignored (derived from the body)
+Error: no handler for createBroadcastTemplate
+ ❯ src/modules/engagement/__tests__/msgdesk/helpers.ts:136:19
+    134|     probe.ctx = ctx;
+    135|     const h = handlers[operationId];
+    136|     if (!h) throw new Error(`no handler for ${operationId}`);
+       |                   ^
+    137|     return h(r, ctx);
+    138|   });
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:23
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ src/modules/engagement/__tests__/msgdesk/templates.test.ts:35:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[61/135]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/templates.test.ts > (4) create: closed placeholder list, derived placeholders, row stored for the tenant > unknown placeholder {{patient_name}} is refused: 422 engagement.broadcast_placeholder_unknown
+ FAIL  src/modules/engagement/__tests__/msgdesk/templates.test.ts > (4) create: closed placeholder list, derived placeholders, row stored for the tenant > unknown placeholder {{PARTY_NAME}} is refused: 422 engagement.broadcast_placeholder_unknown
+ FAIL  src/modules/engagement/__tests__/msgdesk/templates.test.ts > (4) create: closed placeholder list, derived placeholders, row stored for the tenant > unknown placeholder {{ party_name }} is refused: 422 engagement.broadcast_placeholder_unknown
+ FAIL  src/modules/engagement/__tests__/msgdesk/templates.test.ts > (4) create: closed placeholder list, derived placeholders, row stored for the tenant > unknown placeholder {{party_name} is refused: 422 engagement.broadcast_placeholder_unknown
+ FAIL  src/modules/engagement/__tests__/msgdesk/templates.test.ts > (4) create: closed placeholder list, derived placeholders, row stored for the tenant > unknown placeholder {{}} is refused: 422 engagement.broadcast_placeholder_unknown
+ FAIL  src/modules/engagement/__tests__/msgdesk/templates.test.ts > (4) create: closed placeholder list, derived placeholders, row stored for the tenant > unknown placeholder {{lab_name.x}} is refused: 422 engagement.broadcast_placeholder_unknown
+AssertionError: expected [ …(2) ] to include undefined
+ ❯ src/modules/engagement/__tests__/msgdesk/templates.test.ts:41:86
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[62/135]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/templates.test.ts > (4) create: closed placeholder list, derived placeholders, row stored for the tenant > markup <script>alert(1)</script> in a body is refused: 400
+ FAIL  src/modules/engagement/__tests__/msgdesk/templates.test.ts > (4) create: closed placeholder list, derived placeholders, row stored for the tenant > markup <img src=x onerror=alert(1)> in a body is refused: 400
+ FAIL  src/modules/engagement/__tests__/msgdesk/templates.test.ts > (4) create: closed placeholder list, derived placeholders, row stored for the tenant > markup <iframe src="https://evil.example"></iframe> in a body is refused: 400
+ FAIL  src/modules/engagement/__tests__/msgdesk/templates.test.ts > (4) create: closed placeholder list, derived placeholders, row stored for the tenant > markup <a href="https://evil.example">x</a> in a body is refused: 400
+AssertionError: email: expected undefined to be 'common.validation_failed' // Object.is equality
+
+- Expected:
+"common.validation_failed"
+
++ Received:
+undefined
+
+ ❯ src/modules/engagement/__tests__/msgdesk/templates.test.ts:49:35
+     47|     for (const channel of ['email', 'sms']) {
+     48|       const e = await bad('createBroadcastTemplate', req({ body: mk({ …
+     49|       expect(errCode(e), channel).toBe('common.validation_failed');
+       |                                   ^
+     50|     }
+     51|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[63/135]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/templates.test.ts > (4) create: closed placeholder list, derived placeholders, row stored for the tenant > plain text with a lone < or & is accepted (no false positive on "a < b & c")
+Error: no handler for createBroadcastTemplate
+ ❯ src/modules/engagement/__tests__/msgdesk/helpers.ts:136:19
+    134|     probe.ctx = ctx;
+    135|     const h = handlers[operationId];
+    136|     if (!h) throw new Error(`no handler for ${operationId}`);
+       |                   ^
+    137|     return h(r, ctx);
+    138|   });
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:23
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ src/modules/engagement/__tests__/msgdesk/templates.test.ts:53:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[64/135]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/templates.test.ts > (4) create: closed placeholder list, derived placeholders, row stored for the tenant > email template needs a subject; sms ignores a subject
+AssertionError: expected undefined to be 'common.validation_failed' // Object.is equality
+
+- Expected:
+"common.validation_failed"
+
++ Received:
+undefined
+
+ ❯ src/modules/engagement/__tests__/msgdesk/templates.test.ts:58:117
+     56|   });
+     57|   it('email template needs a subject; sms ignores a subject', { timeou…
+     58|     expect(errCode(await bad('createBroadcastTemplate', req({ body: mk…
+       |                                                                                                                     ^
+     59|     const ok = await create(mk({ channel: 'email', subject: 'Holiday n…
+     60|     expect(ok.status).toBe(201);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[65/135]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/templates.test.ts > (4) create: closed placeholder list, derived placeholders, row stored for the tenant > length limits: body 1000, name 120 are accepted at the limit and refused above it
+Error: no handler for createBroadcastTemplate
+ ❯ src/modules/engagement/__tests__/msgdesk/helpers.ts:136:19
+    134|     probe.ctx = ctx;
+    135|     const h = handlers[operationId];
+    136|     if (!h) throw new Error(`no handler for ${operationId}`);
+       |                   ^
+    137|     return h(r, ctx);
+    138|   });
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:23
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ src/modules/engagement/__tests__/msgdesk/templates.test.ts:66:13
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[66/135]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/templates.test.ts > (4) create: closed placeholder list, derived placeholders, row stored for the tenant > writes a row audit event (audit.audit_log) for the new template
+Error: no handler for createBroadcastTemplate
+ ❯ src/modules/engagement/__tests__/msgdesk/helpers.ts:136:19
+    134|     probe.ctx = ctx;
+    135|     const h = handlers[operationId];
+    136|     if (!h) throw new Error(`no handler for ${operationId}`);
+       |                   ^
+    137|     return h(r, ctx);
+    138|   });
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:23
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ src/modules/engagement/__tests__/msgdesk/templates.test.ts:71:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[67/135]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/templates.test.ts > update and deactivate > update re-checks the placeholder rule, bumps version, keeps the channel, re-derives placeholders
+Error: no handler for createBroadcastTemplate
+ ❯ src/modules/engagement/__tests__/msgdesk/helpers.ts:136:19
+    134|     probe.ctx = ctx;
+    135|     const h = handlers[operationId];
+    136|     if (!h) throw new Error(`no handler for ${operationId}`);
+       |                   ^
+    137|     return h(r, ctx);
+    138|   });
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:23
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ src/modules/engagement/__tests__/msgdesk/templates.test.ts:79:16
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[68/135]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/templates.test.ts > update and deactivate > If-Match: missing = 428 precondition_required, stale = 409 version_conflict, row unchanged
+Error: no handler for createBroadcastTemplate
+ ❯ src/modules/engagement/__tests__/msgdesk/helpers.ts:136:19
+    134|     probe.ctx = ctx;
+    135|     const h = handlers[operationId];
+    136|     if (!h) throw new Error(`no handler for ${operationId}`);
+       |                   ^
+    137|     return h(r, ctx);
+    138|   });
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:23
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ src/modules/engagement/__tests__/msgdesk/templates.test.ts:90:16
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[69/135]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/templates.test.ts > update and deactivate > deactivate sets is_active false (200, version + 1), never deletes, and writes an audit UPDATE
+Error: no handler for createBroadcastTemplate
+ ❯ src/modules/engagement/__tests__/msgdesk/helpers.ts:136:19
+    134|     probe.ctx = ctx;
+    135|     const h = handlers[operationId];
+    136|     if (!h) throw new Error(`no handler for ${operationId}`);
+       |                   ^
+    137|     return h(r, ctx);
+    138|   });
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:23
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ src/modules/engagement/__tests__/msgdesk/templates.test.ts:97:16
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[70/135]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/templates.test.ts > update and deactivate > list: tenant A sees its templates only; filters is_active and channel; 200 BroadcastTemplatePage
+Error: no handler for createBroadcastTemplate
+ ❯ src/modules/engagement/__tests__/msgdesk/helpers.ts:136:19
+    134|     probe.ctx = ctx;
+    135|     const h = handlers[operationId];
+    136|     if (!h) throw new Error(`no handler for ${operationId}`);
+       |                   ^
+    137|     return h(r, ctx);
+    138|   });
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:23
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ src/modules/engagement/__tests__/msgdesk/templates.test.ts:106:16
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[71/135]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/templates.test.ts > (6) permission denied, wrong actor type, tenant isolation > listBroadcastTemplates without engagement.broadcast.read: 403 auth.forbidden and nothing written
+ FAIL  src/modules/engagement/__tests__/msgdesk/templates.test.ts > (6) permission denied, wrong actor type, tenant isolation > createBroadcastTemplate without engagement.broadcast.manage: 403 auth.forbidden and nothing written
+ FAIL  src/modules/engagement/__tests__/msgdesk/templates.test.ts > (6) permission denied, wrong actor type, tenant isolation > updateBroadcastTemplate without engagement.broadcast.manage: 403 auth.forbidden and nothing written
+ FAIL  src/modules/engagement/__tests__/msgdesk/templates.test.ts > (6) permission denied, wrong actor type, tenant isolation > deactivateBroadcastTemplate without engagement.broadcast.manage: 403 auth.forbidden and nothing written
+Error: no handler for createBroadcastTemplate
+ ❯ src/modules/engagement/__tests__/msgdesk/helpers.ts:136:19
+    134|     probe.ctx = ctx;
+    135|     const h = handlers[operationId];
+    136|     if (!h) throw new Error(`no handler for ${operationId}`);
+       |                   ^
+    137|     return h(r, ctx);
+    138|   });
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:23
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ src/modules/engagement/__tests__/msgdesk/templates.test.ts:132:16
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[72/135]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/templates.test.ts > (6) permission denied, wrong actor type, tenant isolation > partner actor is refused on every template operation (403)
+ FAIL  src/modules/engagement/__tests__/msgdesk/templates.test.ts > (6) permission denied, wrong actor type, tenant isolation > patient actor is refused on every template operation (403)
+ FAIL  src/modules/engagement/__tests__/msgdesk/templates.test.ts > (6) permission denied, wrong actor type, tenant isolation > portal actor is refused on every template operation (403)
+ FAIL  src/modules/engagement/__tests__/msgdesk/templates.test.ts > (6) permission denied, wrong actor type, tenant isolation > device actor is refused on every template operation (403)
+Error: no handler for createBroadcastTemplate
+ ❯ src/modules/engagement/__tests__/msgdesk/helpers.ts:136:19
+    134|     probe.ctx = ctx;
+    135|     const h = handlers[operationId];
+    136|     if (!h) throw new Error(`no handler for ${operationId}`);
+       |                   ^
+    137|     return h(r, ctx);
+    138|   });
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:23
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ src/modules/engagement/__tests__/msgdesk/templates.test.ts:140:16
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[73/135]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/templates.test.ts > (6) permission denied, wrong actor type, tenant isolation > tenant B cannot read, update or deactivate a tenant A template: 404 common.not_found, row unchanged
+Error: no handler for createBroadcastTemplate
+ ❯ src/modules/engagement/__tests__/msgdesk/helpers.ts:136:19
+    134|     probe.ctx = ctx;
+    135|     const h = handlers[operationId];
+    136|     if (!h) throw new Error(`no handler for ${operationId}`);
+       |                   ^
+    137|     return h(r, ctx);
+    138|   });
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:23
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ src/modules/engagement/__tests__/msgdesk/templates.test.ts:145:16
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[74/135]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/templates.test.ts > (6) permission denied, wrong actor type, tenant isolation > a handler never trusts a tenant id from the request body (create always stores the actor tenant)
+Error: no handler for createBroadcastTemplate
+ ❯ src/modules/engagement/__tests__/msgdesk/helpers.ts:136:19
+    134|     probe.ctx = ctx;
+    135|     const h = handlers[operationId];
+    136|     if (!h) throw new Error(`no handler for ${operationId}`);
+       |                   ^
+    137|     return h(r, ctx);
+    138|   });
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:23
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ src/modules/engagement/__tests__/msgdesk/templates.test.ts:154:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[75/135]⎯
+
+ FAIL  src/modules/engagement/__tests__/msgdesk/templates.test.ts > (6) permission denied, wrong actor type, tenant isolation > no template body or name is written to a log line
+Error: no handler for createBroadcastTemplate
+ ❯ src/modules/engagement/__tests__/msgdesk/helpers.ts:136:19
+    134|     probe.ctx = ctx;
+    135|     const h = handlers[operationId];
+    136|     if (!h) throw new Error(`no handler for ${operationId}`);
+       |                   ^
+    137|     return h(r, ctx);
+    138|   });
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:23
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ src/modules/engagement/__tests__/msgdesk/templates.test.ts:159:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[76/135]⎯
+
+ FAIL  src/modules/partners/__tests__/msgdesk/tickets.test.ts > (5) lab side: open, reply, close, reopen > createPartnerTicket: 201 PartnerTicket (schema valid), status new, first message from the lab, created_by = actor, one audit INSERT
+LimsError: common.internal
+ ❯ src/modules/partners/index.ts:53:9
+     51| const stub = (operationId: string): Handler => async () => {
+     52|   if (process.env.LIMS_CORE_ENV === 'dev' && process.env.NODE_ENV !== …
+     53|   throw new LimsError('common.internal', `partners ${operationId} not …
+       |         ^
+     54| };
+     55|
+ ❯ src/modules/engagement/__tests__/msgdesk/helpers.ts:137:12
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:23
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ src/modules/partners/__tests__/msgdesk/tickets.test.ts:43:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[77/135]⎯
+
+ FAIL  src/modules/partners/__tests__/msgdesk/tickets.test.ts > (5) lab side: open, reply, close, reopen > an unknown partner or a partner of another tenant answers 404 and creates nothing
+AssertionError: expected 'common.internal' to be 'common.not_found' // Object.is equality
+
+Expected: "common.not_found"
+Received: "common.internal"
+
+ ❯ src/modules/partners/__tests__/msgdesk/tickets.test.ts:54:48
+     52|   it('an unknown partner or a partner of another tenant answers 404 an…
+     53|     const before = (await ownerRows('partners.partner_ticket', 'tenant…
+     54|     expect(errCode(await bad(labOpen(uid())))).toBe('common.not_found'…
+       |                                                ^
+     55|     const p = await seedPartner();
+     56|     expect(errCode(await bad(labOpen(p.partnerId, {}, lab('b'))))).toB…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[78/135]⎯
+
+ FAIL  src/modules/partners/__tests__/msgdesk/tickets.test.ts > (5) lab side: open, reply, close, reopen > lab reply: new -> replied, replied -> replied; sender_kind is lab whatever the body says; each reply is one appended message and one audit UPDATE
+LimsError: common.internal
+ ❯ src/modules/partners/index.ts:53:9
+     51| const stub = (operationId: string): Handler => async () => {
+     52|   if (process.env.LIMS_CORE_ENV === 'dev' && process.env.NODE_ENV !== …
+     53|   throw new LimsError('common.internal', `partners ${operationId} not …
+       |         ^
+     54| };
+     55|
+ ❯ src/modules/engagement/__tests__/msgdesk/helpers.ts:137:12
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:23
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ src/modules/partners/__tests__/msgdesk/tickets.test.ts:61:16
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[79/135]⎯
+
+ FAIL  src/modules/partners/__tests__/msgdesk/tickets.test.ts > (5) lab side: open, reply, close, reopen > close: new or replied -> closed (200, version + 1, audit UPDATE); closing a closed ticket is 409 partners.ticket_invalid_transition
+LimsError: common.internal
+ ❯ src/modules/partners/index.ts:53:9
+     51| const stub = (operationId: string): Handler => async () => {
+     52|   if (process.env.LIMS_CORE_ENV === 'dev' && process.env.NODE_ENV !== …
+     53|   throw new LimsError('common.internal', `partners ${operationId} not …
+       |         ^
+     54| };
+     55|
+ ❯ src/modules/engagement/__tests__/msgdesk/helpers.ts:137:12
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:23
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ src/modules/partners/__tests__/msgdesk/tickets.test.ts:76:16
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[80/135]⎯
+
+ FAIL  src/modules/partners/__tests__/msgdesk/tickets.test.ts > (5) lab side: open, reply, close, reopen > a closed ticket takes no reply from the lab; reopen it first
+LimsError: common.internal
+ ❯ src/modules/partners/index.ts:53:9
+     51| const stub = (operationId: string): Handler => async () => {
+     52|   if (process.env.LIMS_CORE_ENV === 'dev' && process.env.NODE_ENV !== …
+     53|   throw new LimsError('common.internal', `partners ${operationId} not …
+       |         ^
+     54| };
+     55|
+ ❯ src/modules/engagement/__tests__/msgdesk/helpers.ts:137:12
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:23
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ src/modules/partners/__tests__/msgdesk/tickets.test.ts:91:16
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[81/135]⎯
+
+ FAIL  src/modules/partners/__tests__/msgdesk/tickets.test.ts > (5) lab side: open, reply, close, reopen > reopen: closed -> new only; reopening a new or replied ticket is 409; a reopened ticket takes replies again
+LimsError: common.internal
+ ❯ src/modules/partners/index.ts:53:9
+     51| const stub = (operationId: string): Handler => async () => {
+     52|   if (process.env.LIMS_CORE_ENV === 'dev' && process.env.NODE_ENV !== …
+     53|   throw new LimsError('common.internal', `partners ${operationId} not …
+       |         ^
+     54| };
+     55|
+ ❯ src/modules/engagement/__tests__/msgdesk/helpers.ts:137:12
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:23
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ src/modules/partners/__tests__/msgdesk/tickets.test.ts:99:16
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[82/135]⎯
+
+ FAIL  src/modules/partners/__tests__/msgdesk/tickets.test.ts > (5) lab side: open, reply, close, reopen > close and reopen need If-Match: missing = 428 common.precondition_required, stale = 409 common.version_conflict, ticket unchanged
+LimsError: common.internal
+ ❯ src/modules/partners/index.ts:53:9
+     51| const stub = (operationId: string): Handler => async () => {
+     52|   if (process.env.LIMS_CORE_ENV === 'dev' && process.env.NODE_ENV !== …
+     53|   throw new LimsError('common.internal', `partners ${operationId} not …
+       |         ^
+     54| };
+     55|
+ ❯ src/modules/engagement/__tests__/msgdesk/helpers.ts:137:12
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:23
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ src/modules/partners/__tests__/msgdesk/tickets.test.ts:112:16
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[83/135]⎯
+
+ FAIL  src/modules/partners/__tests__/msgdesk/tickets.test.ts > (5) lab side: open, reply, close, reopen > two lab users closing at the same moment: exactly one wins, the other gets 409, one status audit UPDATE
+LimsError: common.internal
+ ❯ src/modules/partners/index.ts:53:9
+     51| const stub = (operationId: string): Handler => async () => {
+     52|   if (process.env.LIMS_CORE_ENV === 'dev' && process.env.NODE_ENV !== …
+     53|   throw new LimsError('common.internal', `partners ${operationId} not …
+       |         ^
+     54| };
+     55|
+ ❯ src/modules/engagement/__tests__/msgdesk/helpers.ts:137:12
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:23
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ src/modules/partners/__tests__/msgdesk/tickets.test.ts:119:16
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[84/135]⎯
+
+ FAIL  src/modules/partners/__tests__/msgdesk/tickets.test.ts > (5) lab side: open, reply, close, reopen > getPartnerTicket: PartnerTicketDetail schema valid, messages oldest first; unknown id 404
+LimsError: common.internal
+ ❯ src/modules/partners/index.ts:53:9
+     51| const stub = (operationId: string): Handler => async () => {
+     52|   if (process.env.LIMS_CORE_ENV === 'dev' && process.env.NODE_ENV !== …
+     53|   throw new LimsError('common.internal', `partners ${operationId} not …
+       |         ^
+     54| };
+     55|
+ ❯ src/modules/engagement/__tests__/msgdesk/helpers.ts:137:12
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:23
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ src/modules/partners/__tests__/msgdesk/tickets.test.ts:130:16
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[85/135]⎯
+
+ FAIL  src/modules/partners/__tests__/msgdesk/tickets.test.ts > (5) lab side: open, reply, close, reopen > listPartnerTickets: schema valid page, filters status / party_id / created_from / created_to, newest message first, own tenant only
+LimsError: common.internal
+ ❯ src/modules/partners/index.ts:53:9
+     51| const stub = (operationId: string): Handler => async () => {
+     52|   if (process.env.LIMS_CORE_ENV === 'dev' && process.env.NODE_ENV !== …
+     53|   throw new LimsError('common.internal', `partners ${operationId} not …
+       |         ^
+     54| };
+     55|
+ ❯ src/modules/engagement/__tests__/msgdesk/helpers.ts:137:12
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:23
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ src/modules/partners/__tests__/msgdesk/tickets.test.ts:141:16
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[86/135]⎯
+
+ FAIL  src/modules/partners/__tests__/msgdesk/tickets.test.ts > (5) partner side: only the own party > createMyPartnerTicket: 201, party from the session (body party ignored), status new, first message sender partner, audit INSERT
+LimsError: common.internal
+ ❯ src/modules/partners/index.ts:53:9
+     51| const stub = (operationId: string): Handler => async () => {
+     52|   if (process.env.LIMS_CORE_ENV === 'dev' && process.env.NODE_ENV !== …
+     53|   throw new LimsError('common.internal', `partners ${operationId} not …
+       |         ^
+     54| };
+     55|
+ ❯ src/modules/engagement/__tests__/msgdesk/helpers.ts:137:12
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:23
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ src/modules/partners/__tests__/msgdesk/tickets.test.ts:168:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[87/135]⎯
+
+ FAIL  src/modules/partners/__tests__/msgdesk/tickets.test.ts > (5) partner side: only the own party > partner reply: replied -> new, new -> new, appended as sender partner; a closed ticket takes no reply (409); the partner cannot close or reopen
+LimsError: common.internal
+ ❯ src/modules/partners/index.ts:53:9
+     51| const stub = (operationId: string): Handler => async () => {
+     52|   if (process.env.LIMS_CORE_ENV === 'dev' && process.env.NODE_ENV !== …
+     53|   throw new LimsError('common.internal', `partners ${operationId} not …
+       |         ^
+     54| };
+     55|
+ ❯ src/modules/engagement/__tests__/msgdesk/helpers.ts:137:12
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:23
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ src/modules/partners/__tests__/msgdesk/tickets.test.ts:178:16
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[88/135]⎯
+
+ FAIL  src/modules/partners/__tests__/msgdesk/tickets.test.ts > (5) partner side: only the own party > every partner message writes an audit UPDATE on the ticket (message count and audit trail agree)
+LimsError: common.internal
+ ❯ src/modules/partners/index.ts:53:9
+     51| const stub = (operationId: string): Handler => async () => {
+     52|   if (process.env.LIMS_CORE_ENV === 'dev' && process.env.NODE_ENV !== …
+     53|   throw new LimsError('common.internal', `partners ${operationId} not …
+       |         ^
+     54| };
+     55|
+ ❯ src/modules/engagement/__tests__/msgdesk/helpers.ts:137:12
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:23
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ src/modules/partners/__tests__/msgdesk/tickets.test.ts:197:16
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[89/135]⎯
+
+ FAIL  src/modules/partners/__tests__/msgdesk/tickets.test.ts > (5) partner side: only the own party > listMyPartnerTickets / getMyPartnerTicket / replyMyPartnerTicket: partner 1 never sees or writes partner 2 tickets (404, nothing written)
+LimsError: common.internal
+ ❯ src/modules/partners/index.ts:53:9
+     51| const stub = (operationId: string): Handler => async () => {
+     52|   if (process.env.LIMS_CORE_ENV === 'dev' && process.env.NODE_ENV !== …
+     53|   throw new LimsError('common.internal', `partners ${operationId} not …
+       |         ^
+     54| };
+     55|
+ ❯ src/modules/engagement/__tests__/msgdesk/helpers.ts:137:12
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:23
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ src/modules/partners/__tests__/msgdesk/tickets.test.ts:205:17
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[90/135]⎯
+
+ FAIL  src/modules/partners/__tests__/msgdesk/tickets.test.ts > (5) partner side: only the own party > a partner list filter cannot widen the scope: party_id of another partner in the query returns nothing of theirs
+LimsError: common.internal
+ ❯ src/modules/partners/index.ts:53:9
+     51| const stub = (operationId: string): Handler => async () => {
+     52|   if (process.env.LIMS_CORE_ENV === 'dev' && process.env.NODE_ENV !== …
+     53|   throw new LimsError('common.internal', `partners ${operationId} not …
+       |         ^
+     54| };
+     55|
+ ❯ src/modules/engagement/__tests__/msgdesk/helpers.ts:137:12
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:23
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ src/modules/partners/__tests__/msgdesk/tickets.test.ts:222:17
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[91/135]⎯
+
+ FAIL  src/modules/partners/__tests__/msgdesk/tickets.test.ts > (5) partner side: only the own party > no message body or subject is written to a log line, on either side
+LimsError: common.internal
+ ❯ src/modules/partners/index.ts:53:9
+     51| const stub = (operationId: string): Handler => async () => {
+     52|   if (process.env.LIMS_CORE_ENV === 'dev' && process.env.NODE_ENV !== …
+     53|   throw new LimsError('common.internal', `partners ${operationId} not …
+       |         ^
+     54| };
+     55|
+ ❯ src/modules/engagement/__tests__/msgdesk/helpers.ts:137:12
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:23
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ src/modules/partners/__tests__/msgdesk/tickets.test.ts:230:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[92/135]⎯
+
+ FAIL  src/modules/partners/__tests__/msgdesk/tickets.test.ts > (6) permission denied, wrong actor type, cross tenant > lab op listPartnerTickets without partners.ticket.read: 403 auth.forbidden, ticket unchanged
+ FAIL  src/modules/partners/__tests__/msgdesk/tickets.test.ts > (6) permission denied, wrong actor type, cross tenant > lab op getPartnerTicket without partners.ticket.read: 403 auth.forbidden, ticket unchanged
+ FAIL  src/modules/partners/__tests__/msgdesk/tickets.test.ts > (6) permission denied, wrong actor type, cross tenant > lab op createPartnerTicket without partners.ticket.manage: 403 auth.forbidden, ticket unchanged
+ FAIL  src/modules/partners/__tests__/msgdesk/tickets.test.ts > (6) permission denied, wrong actor type, cross tenant > lab op replyPartnerTicket without partners.ticket.manage: 403 auth.forbidden, ticket unchanged
+ FAIL  src/modules/partners/__tests__/msgdesk/tickets.test.ts > (6) permission denied, wrong actor type, cross tenant > lab op closePartnerTicket without partners.ticket.manage: 403 auth.forbidden, ticket unchanged
+ FAIL  src/modules/partners/__tests__/msgdesk/tickets.test.ts > (6) permission denied, wrong actor type, cross tenant > lab op reopenPartnerTicket without partners.ticket.manage: 403 auth.forbidden, ticket unchanged
+LimsError: common.internal
+ ❯ src/modules/partners/index.ts:53:9
+     51| const stub = (operationId: string): Handler => async () => {
+     52|   if (process.env.LIMS_CORE_ENV === 'dev' && process.env.NODE_ENV !== …
+     53|   throw new LimsError('common.internal', `partners ${operationId} not …
+       |         ^
+     54| };
+     55|
+ ❯ src/modules/engagement/__tests__/msgdesk/helpers.ts:137:12
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:23
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ src/modules/partners/__tests__/msgdesk/tickets.test.ts:257:47
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[93/135]⎯
+
+ FAIL  src/modules/partners/__tests__/msgdesk/tickets.test.ts > (6) permission denied, wrong actor type, cross tenant > partner op listMyPartnerTickets without partners.ticket.read: 403 auth.forbidden, ticket unchanged
+ FAIL  src/modules/partners/__tests__/msgdesk/tickets.test.ts > (6) permission denied, wrong actor type, cross tenant > partner op getMyPartnerTicket without partners.ticket.read: 403 auth.forbidden, ticket unchanged
+ FAIL  src/modules/partners/__tests__/msgdesk/tickets.test.ts > (6) permission denied, wrong actor type, cross tenant > partner op createMyPartnerTicket without partners.ticket.manage: 403 auth.forbidden, ticket unchanged
+ FAIL  src/modules/partners/__tests__/msgdesk/tickets.test.ts > (6) permission denied, wrong actor type, cross tenant > partner op replyMyPartnerTicket without partners.ticket.manage: 403 auth.forbidden, ticket unchanged
+LimsError: common.internal
+ ❯ src/modules/partners/index.ts:53:9
+     51| const stub = (operationId: string): Handler => async () => {
+     52|   if (process.env.LIMS_CORE_ENV === 'dev' && process.env.NODE_ENV !== …
+     53|   throw new LimsError('common.internal', `partners ${operationId} not …
+       |         ^
+     54| };
+     55|
+ ❯ src/modules/engagement/__tests__/msgdesk/helpers.ts:137:12
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:23
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ src/modules/partners/__tests__/msgdesk/tickets.test.ts:264:65
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[94/135]⎯
+
+ FAIL  src/modules/partners/__tests__/msgdesk/tickets.test.ts > (6) permission denied, wrong actor type, cross tenant > partner actor on a /admin ticket operation: 403 before any lookup
+ FAIL  src/modules/partners/__tests__/msgdesk/tickets.test.ts > (6) permission denied, wrong actor type, cross tenant > patient actor on a /admin ticket operation: 403 before any lookup
+ FAIL  src/modules/partners/__tests__/msgdesk/tickets.test.ts > (6) permission denied, wrong actor type, cross tenant > portal actor on a /admin ticket operation: 403 before any lookup
+ FAIL  src/modules/partners/__tests__/msgdesk/tickets.test.ts > (6) permission denied, wrong actor type, cross tenant > device actor on a /admin ticket operation: 403 before any lookup
+LimsError: common.internal
+ ❯ src/modules/partners/index.ts:53:9
+     51| const stub = (operationId: string): Handler => async () => {
+     52|   if (process.env.LIMS_CORE_ENV === 'dev' && process.env.NODE_ENV !== …
+     53|   throw new LimsError('common.internal', `partners ${operationId} not …
+       |         ^
+     54| };
+     55|
+ ❯ src/modules/engagement/__tests__/msgdesk/helpers.ts:137:12
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:23
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ src/modules/partners/__tests__/msgdesk/tickets.test.ts:269:65
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[95/135]⎯
+
+ FAIL  src/modules/partners/__tests__/msgdesk/tickets.test.ts > (6) permission denied, wrong actor type, cross tenant > user actor on a /me ticket operation: 403 (partner actors only)
+ FAIL  src/modules/partners/__tests__/msgdesk/tickets.test.ts > (6) permission denied, wrong actor type, cross tenant > system actor on a /me ticket operation: 403 (partner actors only)
+ FAIL  src/modules/partners/__tests__/msgdesk/tickets.test.ts > (6) permission denied, wrong actor type, cross tenant > patient actor on a /me ticket operation: 403 (partner actors only)
+ FAIL  src/modules/partners/__tests__/msgdesk/tickets.test.ts > (6) permission denied, wrong actor type, cross tenant > portal actor on a /me ticket operation: 403 (partner actors only)
+ FAIL  src/modules/partners/__tests__/msgdesk/tickets.test.ts > (6) permission denied, wrong actor type, cross tenant > device actor on a /me ticket operation: 403 (partner actors only)
+LimsError: common.internal
+ ❯ src/modules/partners/index.ts:53:9
+     51| const stub = (operationId: string): Handler => async () => {
+     52|   if (process.env.LIMS_CORE_ENV === 'dev' && process.env.NODE_ENV !== …
+     53|   throw new LimsError('common.internal', `partners ${operationId} not …
+       |         ^
+     54| };
+     55|
+ ❯ src/modules/engagement/__tests__/msgdesk/helpers.ts:137:12
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:23
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ src/modules/partners/__tests__/msgdesk/tickets.test.ts:275:65
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[96/135]⎯
+
+ FAIL  src/modules/partners/__tests__/msgdesk/tickets.test.ts > (6) permission denied, wrong actor type, cross tenant > tenant B staff cannot read, reply, close or reopen a tenant A ticket: 404, nothing changes
+LimsError: common.internal
+ ❯ src/modules/partners/index.ts:53:9
+     51| const stub = (operationId: string): Handler => async () => {
+     52|   if (process.env.LIMS_CORE_ENV === 'dev' && process.env.NODE_ENV !== …
+     53|   throw new LimsError('common.internal', `partners ${operationId} not …
+       |         ^
+     54| };
+     55|
+ ❯ src/modules/engagement/__tests__/msgdesk/helpers.ts:137:12
+ ❯ appTx src/modules/engagement/__tests__/msgdesk/helpers.ts:50:23
+ ❯ callWith src/modules/engagement/__tests__/msgdesk/helpers.ts:124:15
+ ❯ src/modules/partners/__tests__/msgdesk/tickets.test.ts:281:47
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[97/135]⎯
+
+
+ Test Files  4 failed (4)
+      Tests  135 failed | 2 passed (137)
+   Start at  00:29:02
+   Duration  7.72s (tests 56%, import 32%, transform 11%, setup 1%)
+

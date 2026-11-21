@@ -28,7 +28,7 @@ const ACK = (id: string) => `${TAT}/${id}/acknowledge`;
 const grid = () => gridNamed(/tat alerts/i);
 const rowOf = (code: string) => dataRows(grid()).find((r) => norm(r.textContent).includes(code))!;
 
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 beforeEach(() => resetApi(PERM_TAT_ACK));
 afterEach(() => { cleanup(); api.resetHandlers(); });
 afterAll(() => api.close());

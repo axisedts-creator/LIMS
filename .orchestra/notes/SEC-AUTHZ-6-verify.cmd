@@ -1,0 +1,1 @@
+pnpm --dir services/api exec vitest run src/modules/billing/__tests__/authz6.billing-guards.test.ts src/modules/payments/__tests__/authz6.payments-guards.test.ts src/modules/identity/__tests__/authz6.audit-export-guards.test.ts && node --test tests/security/authz-billing-payments-audit.test.mjs tests/security/authz-classification.test.mjs

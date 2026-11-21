@@ -30,11 +30,18 @@ const EXPECTED: Record<string, { permission: string; families: string[]; live: s
   interfaces: { permission: DASH, families: ['interface_messages'], live: ['agent_status'], schedulable: false },
 };
 const sorted = (xs: readonly string[]) => [...xs].sort();
+// T0B-MISREPORTS-1 (LD-321, LD-342 / A39-6c): the registry gained 11 MIS report rows after the 14 above. Their own table is pinned in
+// __tests__/misreports/registry.static.test.ts. The exceptions below name exactly the two codes that A39 allows to carry the word, the flag and the privileged permission.
+const MONEY = ['two_level_commission', 'tds'];
+const NEW_PLAIN_COLLECTIONS = ['bill_of_the_day', 'collection_boy', 'party_billing']; // use analytics.collections.read in x-report-definitions
+const WORD = ['commis', 'sion'].join('');
 
 describe('registry table (TRD §3.3)', () => {
-  it('exactly the 14 report codes of the g_cs_report_codes seed, in table order', () => {
-    expect([...REPORT_CODES]).toEqual(Object.keys(EXPECTED));
-    expect(Object.keys(REPORT_REGISTRY)).toEqual(Object.keys(EXPECTED));
+  it('exactly the 14 report codes of the g_cs_report_codes seed, in table order (the 11 MIS codes follow them; T0B-MISREPORTS-2 / LD-346: the two MONEY codes are registry rows now)', () => {
+    expect([...REPORT_CODES].slice(0, 14)).toEqual(Object.keys(EXPECTED));
+    expect(Object.keys(REPORT_REGISTRY).slice(0, 14)).toEqual(Object.keys(EXPECTED));
+    expect(REPORT_CODES).toHaveLength(14 + 11);
+    for (const c of MONEY) expect(REPORT_CODES as readonly string[], c).toContain(c);
   });
   it.each(Object.entries(EXPECTED))('%s: permission, families, live sources, schedulable, flag', (code, want) => {
     const r = getReport(code);
@@ -46,13 +53,16 @@ describe('registry table (TRD §3.3)', () => {
     expect(r.exportable).toBe(true); // every report is exportable
     expect(r.flag).toBe(want.flag);
   });
-  it('only referral_incentive is behind a tenant flag', () => {
-    expect(REPORT_CODES.filter((c) => getReport(c).flag !== undefined)).toEqual(['referral_incentive']);
+  it('only referral_incentive (and, LD-342 / A39, the two money reports behind the same flag) is behind a tenant flag', () => {
+    // T0B-MISREPORTS-2 (LD-346): the two money codes are registry rows again, behind the same flag (the case LD-346 (2) parked here).
+    expect(REPORT_CODES.filter((c) => getReport(c).flag !== undefined)).toEqual(['referral_incentive', ...MONEY]);
+    for (const c of ['referral_incentive', ...MONEY]) expect(getReport(c).flag, c).toBe('referralIncentiveReportEnabled');
   });
-  it('code format matches the schema CHECK (^[a-z_]{2,40}$) and none mentions "commission" (04 L19)', () => {
+  it('code format matches the schema CHECK (^[a-z_]{2,40}$) and none mentions "commission" (04 L19) except the two codes A39 allows', () => {
     for (const c of REPORT_CODES) {
       expect(c).toMatch(/^[a-z_]{2,40}$/);
-      expect(c).not.toMatch(/commission/i);
+      if (MONEY.includes(c)) expect(c).toMatch(new RegExp(c === 'tds' ? '^tds$' : WORD, 'i')); // the allowance is exactly these two
+      else expect(c).not.toMatch(/commission/i);
     }
   });
 });
@@ -64,11 +74,11 @@ describe('permissions are real C8 permission codes (IC §11); no invented names'
   it('analytics.data.export and analytics.schedule.manage gate actions, not reports', () => {
     for (const c of REPORT_CODES) expect(['analytics.data.export', 'analytics.schedule.manage']).not.toContain(getReport(c).permission);
   });
-  it('privileged referral permission is used by referral_incentive and by nothing else', () => {
-    expect(REPORT_CODES.filter((c) => getReport(c).permission === 'analytics.referral_report.read')).toEqual(['referral_incentive']);
+  it('privileged referral permission is used by referral_incentive and the two A39 money reports and by nothing else', () => {
+    expect(REPORT_CODES.filter((c) => getReport(c).permission === 'analytics.referral_report.read')).toEqual(['referral_incentive', ...MONEY]); // T0B-MISREPORTS-2: pending until now (LD-346 (2))
   });
-  it('collections permission gates only the collections report (CR-C8-001)', () => {
-    expect(REPORT_CODES.filter((c) => getReport(c).permission === 'analytics.collections.read')).toEqual(['collections']);
+  it('collections permission gates the collections report (CR-C8-001) and, from T0B-MISREPORTS-1, the three MIS reports of the accounting walk', () => {
+    expect(REPORT_CODES.filter((c) => getReport(c).permission === 'analytics.collections.read')).toEqual(['collections', ...NEW_PLAIN_COLLECTIONS]);
   });
 });
 
@@ -76,12 +86,18 @@ describe('D-44 / B13: per-referrer money is served only by referral_incentive', 
   it('top_referrers family set is exactly [referrer_volume] (volume only)', () => {
     expect([...getReport('top_referrers').families]).toEqual(['referrer_volume']);
   });
-  it('referrer_billing (M33 net billed) appears in no report except referral_incentive', () => {
-    expect(REPORT_CODES.filter((c) => getReport(c).families.includes('referrer_billing' as never))).toEqual(['referral_incentive']);
+  it('referrer_billing (M33 net billed) appears in no report except referral_incentive (and the two A39 money reports)', () => {
+    expect(REPORT_CODES.filter((c) => getReport(c).families.includes('referrer_billing' as never) && !MONEY.includes(c))).toEqual(['referral_incentive']);
   });
-  it('no export column of any other report carries per-referrer net billed or a commission', () => {
-    for (const c of REPORT_CODES.filter((x) => x !== 'referral_incentive')) {
-      for (const col of getReport(c).exportColumns) expect(col, `${c}.${col}`).not.toMatch(/net_billed|commission|incentive/i);
+  it('no export column of any other report carries per-referrer net billed or a commission (the two A39 money reports excepted)', () => {
+    // net_billed_paisa is also a column of reports that are per sales representative, per party and per patient (T0B-MISREPORTS-1): those are not per referrer.
+    // consultant IS per referrer (referrer_id), so it is NOT excepted: A39-3 bans per referrer money outside the gate (see .orchestra/notes/T0B-MISREPORTS-1-tests.md, open item 2).
+    const NOT_PER_REFERRER = ['sales_representative', 'party_billing', 'repeated_patient'];
+    for (const c of REPORT_CODES.filter((x) => x !== 'referral_incentive' && !MONEY.includes(x))) {
+      for (const col of getReport(c).exportColumns) {
+        if (NOT_PER_REFERRER.includes(c) && /^net_billed_paisa$/.test(col)) continue;
+        expect(col, `${c}.${col}`).not.toMatch(/net_billed|commission|incentive/i);
+      }
     }
   });
   it('top_referrers export has no money column at all', () => {

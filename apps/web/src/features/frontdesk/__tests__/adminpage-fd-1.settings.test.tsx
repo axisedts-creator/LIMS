@@ -15,6 +15,7 @@ import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 import type { ReactNode } from 'react';
 import { ToastProvider } from '@lims/ui/components/Toast';
+import { expectErrorState, revealTab } from '@/__tests__/uiset1.helpers';
 
 const ORIGIN = 'http://api.test';
 const MANAGE = 'frontdesk.settings.manage';
@@ -59,7 +60,7 @@ const putOk = async ({ request }: { request: Request }) => {
   return HttpResponse.json(current);
 };
 const api = setupServer(http.get(S, getHandler), http.put(S, putOk));
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' })); // any other operation than F24 fails the test
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' })); // any other operation than F24 fails the test
 afterEach(() => { cleanup(); api.resetHandlers(); calls.length = 0; refresh.mockReset(); session.perms = []; current = settings(); });
 afterAll(() => api.close());
 
@@ -79,7 +80,9 @@ const L = {
 const field = (re: RegExp) => screen.getByLabelText(re) as HTMLInputElement;
 const isOn = (el: HTMLElement) => ((el as HTMLInputElement).checked ?? el.getAttribute('aria-checked') === 'true') === true;
 const saveBtn = () => screen.getByRole('button', { name: /^save/i });
-const setText = async (user: ReturnType<typeof userEvent.setup>, re: RegExp, v: string) => { const el = field(re); await user.clear(el); if (v) { await user.click(el); await user.paste(v); } };
+// LD-353 template 4: sections are tabs; the tab holding a field is opened before it is typed into or clicked.
+const rev = async (re: RegExp) => { const el = field(re); await revealTab(el); return el; };
+const setText = async (user: ReturnType<typeof userEvent.setup>, re: RegExp, v: string) => { const el = await rev(re); await user.clear(el); if (v) { await user.click(el); await user.paste(v); } };
 const alertText = () => [...document.querySelectorAll('[role="alert"],[role="alertdialog"]')].map((e) => e.textContent ?? '').join(' | ');
 const statusText = () => [...document.querySelectorAll('[role="status"]')].map((e) => e.textContent ?? '').join(' | ');
 const describedText = (el: HTMLElement) => (el.getAttribute('aria-describedby') ?? '').split(/\s+/).filter(Boolean).map((id) => document.getElementById(id)?.textContent ?? '').join(' ');
@@ -123,11 +126,14 @@ describe('load (getFrontdeskSettings)', () => {
     expect(puts()[0]!.body.discount_self_limit_bp).toBe(1250);
   });
 
-  it('a 5xx on load is not hidden: the page promise rejects so error.tsx renders (never a blank or default form)', async () => {
+  it('a 5xx on load is not hidden: the page renders ErrorState with the title, a reference and Retry (LD-353 rule 6; never a blank or default form)', async () => {
     session.perms = [MANAGE];
     api.use(http.get(S, () => problem(500, 'common.internal')));
     const { default: Page } = await pageModule();
-    await expect(Page({ searchParams: Promise.resolve({}) })).rejects.toBeTruthy();
+    const { container } = wrap(await Page({ searchParams: Promise.resolve({}) }));
+    expectErrorState(container, '/frontdesk/settings');
+    expect(screen.queryByRole('button', { name: /^save/i })).toBeNull();
+    expect(screen.queryByLabelText(L.selfPct)).toBeNull();
   });
 });
 
@@ -137,10 +143,10 @@ describe('save (updateFrontdeskSettings)', () => {
     await setText(user, L.selfPct, '10');
     await setText(user, L.selfNpr, '3000.50');
     await setText(user, L.absMax, '25');
-    await user.click(field(L.referrer));
+    await user.click(await rev(L.referrer));
     await setText(user, L.consent, 'v4');
-    await user.click(field(L.sms));
-    await user.click(field(L.label));
+    await user.click(await rev(L.sms));
+    await user.click(await rev(L.label));
     await setText(user, L.pan, '^[0-9]{10}$');
     await setText(user, L.minChars, '4');
     await user.click(saveBtn());
@@ -368,16 +374,22 @@ describe('accessibility and keyboard', () => {
     expect(await run()).toEqual([]);
   });
 
-  it('keyboard only: Tab visits all 9 fields in the spec order and then Save; Space toggles a checkbox; Enter on Save writes once', async () => {
+  it('keyboard only: Tab visits all 9 fields in the spec order (per tab) and then Save; Space toggles a checkbox; Enter on Save writes once', async () => {
     const user = await open();
     const order = [L.selfPct, L.selfNpr, L.absMax, L.referrer, L.consent, L.sms, L.label, L.pan, L.minChars];
     const targets = order.map((re) => field(re));
-    const seen: HTMLElement[] = [];
-    for (let i = 0; i < 40 && document.activeElement !== saveBtn(); i++) { await user.tab(); seen.push(document.activeElement as HTMLElement); }
-    expect(document.activeElement).toBe(saveBtn());
-    const idx = targets.map((t) => seen.indexOf(t));
-    expect(idx.every((i) => i >= 0), `fields not reachable by Tab: ${idx.join(',')}`).toBe(true);
-    expect([...idx].sort((a, b) => a - b)).toEqual(idx); // same order as the spec list
+    for (const group of [order.slice(0, 3), order.slice(3)]) {
+      await revealTab(field(group[0]!));
+      const want = group.map((re) => field(re));
+      const seen: HTMLElement[] = [];
+      (document.activeElement as HTMLElement | null)?.blur();
+      for (let i = 0; i < 40 && document.activeElement !== saveBtn(); i++) { await user.tab(); seen.push(document.activeElement as HTMLElement); }
+      expect(document.activeElement).toBe(saveBtn());
+      const idx = want.map((t) => seen.indexOf(t));
+      expect(idx.every((i) => i >= 0), `fields not reachable by Tab: ${idx.join(',')}`).toBe(true);
+      expect([...idx].sort((a, b) => a - b)).toEqual(idx); // same order as the spec list
+    }
+    await revealTab(targets[3]!);
     targets[3]!.focus();
     await user.keyboard(' ');
     expect(isOn(targets[3]!)).toBe(true);

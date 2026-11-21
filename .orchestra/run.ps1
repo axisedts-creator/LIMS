@@ -1,4 +1,4 @@
-﻿<#
+<#
   LIMS agent orchestra: tester -> writer -> verify -> debugger -> reviewer, one task at a time per lane.
   Single lane :  powershell -ExecutionPolicy Bypass -File C:\LIMS\.orchestra\run.ps1 -Chunk C0-foundation-contracts
   Parallel    :  use supervisor.ps1 (it runs this script once per lane, each in its own git worktree).
@@ -58,7 +58,7 @@ if (Test-Path 'C:\ProgramData\mingw64\mingw64\bin\gcc.exe') { if ($env:Path -not
 # 2026-11-11 lead: Git's usr\bin precedes System32 on PATH, so Go tests that exec "whoami" got Git's (prints rauna) instead of Windows' (prints raunak\rauna) and AG-T15's icacls tests failed. A shim dir holding only the Windows whoami.exe goes first on PATH; no other tool changes order.
 $wsh = 'C:\LIMS-state\shim'; try { if (-not (Test-Path "$wsh\whoami.exe")) { New-Item -ItemType Directory -Force $wsh | Out-Null; Copy-Item "$env:SystemRoot\System32\whoami.exe" "$wsh\whoami.exe" -Force }; if ($env:Path -notlike "*$wsh*") { $env:Path = "$wsh;" + $env:Path } } catch { }
 $Allowed = "Read,Edit,Write,WebFetch,WebSearch,Bash(pnpm *),Bash(npm *),Bash(npx *),Bash(node *),Bash(git status*),Bash(git diff*),Bash(git log*),Bash(go *),Bash(docker *),Bash(supabase *),Bash(psql *),Bash(ls*),Bash(cat *),Bash(grep *),Bash(find *),Bash(mkdir *),Bash(python *),Bash(py *),Bash(pip *),Bash(bash *),Bash(flutter *),Bash(dart *),Bash(yamllint *),Bash(gitleaks *),Bash(ansible-lint *),Bash(curl *),Bash(sha256sum *),Bash(git ls-remote *),Bash(git clone *),Bash(tar *),Bash(atlas *),Bash(git rm *),Bash(git mv *),Bash(cd *),Bash(/c/flutter/bin/flutter *),Bash(/c/flutter/bin/dart *)"
-$TestExempt = '^(infra/tests/run\.sh$|db/tests/isolation/|.*/__tests__/probes/pending\.json$|infra/tests/load/flood\.js$|infra/tests/internal/(egress_probe\.sh|container_hardening\.py)$|tests/load/(reporting-load\.js|README\.md)$|tests/e2e/(reporting-journey\.e2e\.ts|README\.md)$|apps/web/src/features/billing/__tests__/copy-scan\.mjs$|services/api/src/modules/payments/__tests__/sim/(esewa|khalti)\.sim\.ts$)'   # deliverables that live in test folders (writer/debugger own them): run.sh, isolation helpers, the generated stub inventory probes/pending.json; C1 probes/load script (lead-approved 2026-11-11, they were silently reverted): flood.js, egress_probe.sh, container_hardening.py
+$TestExempt = '^(infra/tests/run\.sh$|db/tests/isolation/|.*/__tests__/probes/pending\.json$|infra/tests/load/flood\.js$|infra/tests/internal/(egress_probe\.sh|container_hardening\.py)$|tests/load/(reporting-load\.js|README\.md)$|tests/e2e/(reporting-journey\.e2e\.ts|README\.md)$|apps/web/src/features/billing/__tests__/copy-scan\.mjs$|services/api/src/modules/payments/__tests__/sim/(esewa|khalti)\.sim\.ts$|.*/__tests__/__snapshots__/rs-c[0-9]+\.[^/]*\.snap$|apps/web/src/app/\(staff\)/catalog/tests/)'   # deliverables that live in test folders (writer/debugger own them): run.sh, isolation helpers, the generated stub inventory probes/pending.json; C1 probes/load script (lead-approved 2026-11-11, they were silently reverted): flood.js, egress_probe.sh, container_hardening.py; lead 2026-11-14 (founder 'yes harness fix' 13:19): RS restyle snapshots rs-cN.*.snap and the catalog/tests ROUTE files (a route folder named tests) are product deliverables, writer/debugger own them; both were silently reverted
 $TestNamePat = '(\.test\.|\.spec\.|_test\.go$|_test\.py$|(^|/)test_[^/]+\.py$|__tests__/|(^|/)conftest\.py$)'
 $TestPat = '(__tests__/|\.test\.|\.spec\.|_test\.go$|_test\.py$|(^|/)tests?/|(^|/)test_[^/]+\.py$)'
 $TasksFile = Join-Path $StateDir "tasks\$Chunk.json"
@@ -227,7 +227,7 @@ function Integrate([string]$id) {
         $ok = Invoke-Agent "merger" (FK $id) "Resolve the in-progress merge of main into $branch."
         # no Enforce here: a merge of main legitimately brings spec/ and .orchestra/ changes; stage what the merger resolved
         git add -A | Out-Null
-        $left = @(git diff --cached --name-only --diff-filter=U) + @(git grep -l -E '^(<<<<<<<|>>>>>>>) ' -- . ':!spec' 2>$null)
+        $left = @(git diff --cached --name-only --diff-filter=U) + @(git grep -l -E '^(<<<<<<<|>>>>>>>) ' -- . ':!spec' ':!.orchestra' 2>$null)   # lead 2026-11-14 (founder go): .orchestra/cr archives may quote conflict markers (T-Q4.resolved-202611131426.md does); they are not code
         if (-not $ok -or @($left | Where-Object { $_ }).Count) { git merge --abort 2>$null; Log "MERGE CONFLICT integrating $id from $branch - merger could not resolve ($(@($left) -join ', ')) - left for human"; return }
         git add -A | Out-Null; git commit -q --no-edit 2>$null | Out-Null
         Log "merger resolved conflicts for $id"
@@ -303,7 +303,7 @@ try {
     if (-not $t) { Log "nothing runnable for '$Filter' right now (done, blocked, or waiting on other lanes)"; break }
     $tk = FK $t.id   # file key for notes/cr/inbox names ({TASK} in the role texts)
     Set-Status $t.id ($t.status)
-    if ($Integration) {   # start from everyone's latest work
+    if ($Integration -and $t.id -notin @('T0D-OFFLINE-3','T0D-PRINTCFG-1')) {   # lead 2026-11-20: isolate these two from re-merge, see LD-401/416/429 - stale snapshot keeps getting wiped by merge before commit
       git merge --no-edit main 2>&1 | Out-Null
       if ($LASTEXITCODE -ne 0) {
         # 2026-11-11 lead: a silent abort left lane C5c stale for hours (T-10 could not see BarcodeSymbol or the 300 s vitest timeout). Resolve with the merger agent as Integrate does; if it cannot, abort and say so in the log.
@@ -312,7 +312,7 @@ try {
           Log "$($t.id) merge of main into the lane conflicts - merger agent resolving"
           $okm = Invoke-Agent "merger" $tk "Resolve the in-progress merge of main into the lane branch (task $($t.id) is about to start)."
           git add -A | Out-Null
-          $leftm = @(git diff --cached --name-only --diff-filter=U) + @(git grep -l -E '^(<<<<<<<|>>>>>>>) ' -- . ':!spec' 2>$null)
+          $leftm = @(git diff --cached --name-only --diff-filter=U) + @(git grep -l -E '^(<<<<<<<|>>>>>>>) ' -- . ':!spec' ':!.orchestra' 2>$null)   # lead 2026-11-14 (founder go): .orchestra/cr archives may quote conflict markers (T-Q4.resolved-202611131426.md does); they are not code
           if (-not $okm -or @($leftm | Where-Object { $_ }).Count) { git merge --abort 2>$null; Log "$($t.id) STALE LANE: merge of main could not be resolved ($(@($leftm) -join ', ')) - starting on the old base" }
           else { git add -A | Out-Null; git commit -q --no-edit 2>$null | Out-Null; Log "$($t.id) merger resolved the merge of main" }
         } else { Log "$($t.id) STALE LANE: merge of main did not start (local changes in the way?) - starting on the old base" }

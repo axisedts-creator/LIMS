@@ -40,7 +40,7 @@ const server = setupServer(
   http.patch(`${IM}/:id`, async ({ request }) => { await rec(request); return HttpResponse.json(instrument({ version: 5 })); }),
   http.post(`${IM}/:id/:action`, async ({ request }) => { await rec(request); return HttpResponse.json(instrument({ version: 5 })); }),
 );
-beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => server.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { server.resetHandlers(); seen.length = 0; });
 afterAll(() => server.close());
 

@@ -89,7 +89,7 @@ const api = setupServer(
   http.get(`${ORIGIN}/v1/identity/centres`, () => list([{ centre_id: U(0xa1), name: 'Synthetic Centre A1', is_active: true }])),
   http.get(`${ORIGIN}/v1/instruments/instruments`, () => list([{ id: U(0x1a), display_name: 'Synthetic Analyser 1', instrument_code: 'SYN-A1', centre_id: U(0xa1), state: 'live' }])),
 );
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { cleanup(); mode = 'empty'; served = 0; });
 afterAll(() => api.close());
 

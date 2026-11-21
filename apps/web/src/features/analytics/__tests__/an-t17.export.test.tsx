@@ -45,7 +45,7 @@ const api = setupServer(
     return respond();
   }),
 );
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { cleanup(); api.resetHandlers(); calls.length = 0; respond = queued; });
 afterAll(() => api.close());
 

@@ -4,7 +4,7 @@
 import { LimsError } from '../../../core/errors.js';
 // [CONV] relative import until @lims/shared-ts is a services/api dependency (same as reconciliation.service.ts).
 import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';
-import { guardActor, invalid, iso, strict, uuid, type Ctx, type Row } from '../repository/shared.js';
+import { guardActor, invalid, iso, requirePermission, strict, uuid, type Ctx, type Row } from '../repository/shared.js';
 import { dateText, decodeCursor, isDate, moneyDto, page, pageLimit } from './reconciliation.service.js';
 
 const FONEPAY_QR = 'fonepay_qr';                      // C4 seed payment_method_code
@@ -33,6 +33,7 @@ export function createStaticQrService(deps: { newId?: () => string } = {}) {
   const newId = (): string => deps.newId?.() ?? uuidv7();
 
   async function listStaticQrReconciliations(ctx: Ctx, query?: unknown) {
+    await requirePermission(ctx, 'payments.reconciliation.read'); // SEC-AUTHZ-6 (LD-189, LD-261)
     guardActor(ctx);
     const q = strict(query ?? {}, ['business_date_from', 'business_date_to', 'centre_id', 'cursor', 'limit']);
     const from = q['business_date_from'] === undefined ? undefined : date(q['business_date_from'], 'business_date_from');
@@ -51,6 +52,7 @@ export function createStaticQrService(deps: { newId?: () => string } = {}) {
   }
 
   async function previewStaticQrReconciliation(ctx: Ctx, query: unknown) {
+    await requirePermission(ctx, 'payments.reconciliation.read'); // SEC-AUTHZ-6
     guardActor(ctx);
     const q = strict(query, ['business_date', 'centre_id']);
     const businessDate = date(q['business_date'], 'business_date');
@@ -60,6 +62,7 @@ export function createStaticQrService(deps: { newId?: () => string } = {}) {
   }
 
   async function createStaticQrReconciliation(ctx: Ctx, body: unknown) {
+    await requirePermission(ctx, 'payments.intent.resolve'); // SEC-AUTHZ-6
     guardActor(ctx);
     const b = strict(body, ['business_date', 'centre_id', 'statement_total_paisa', 'statement_reference', 'note']);
     const businessDate = date(b['business_date'], 'business_date');

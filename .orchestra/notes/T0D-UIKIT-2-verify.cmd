@@ -1,0 +1,1 @@
+pnpm --dir packages/ui exec vitest run src/components/__tests__/uikit2.actionlist.test.tsx src/components/__tests__/uikit2.kit.test.tsx src/components/__tests__/m-series-kit.test.tsx src/components/__tests__/ui-r03-kit-pass.test.tsx && pnpm --dir apps/web exec vitest run --config src/core/shell/__tests__/vitest.uikit2.config.ts

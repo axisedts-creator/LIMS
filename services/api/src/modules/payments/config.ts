@@ -2,6 +2,7 @@
 // Pure: reads only the env it is given. Every failure throws an Error that names the LIMS_PAYMENTS_* key and never contains key material.
 // LD-26 (training tenant: sandbox gateway credentials only) is per tenant and is enforced by the merchant-account task, not here.
 import { readFileSync } from 'node:fs';
+import { isProductionEnv } from '../../core/config.js';
 
 type Env = Readonly<Record<string, string | undefined>>;
 export type GatewayEnv = 'uat' | 'production';
@@ -97,12 +98,12 @@ function checkKekFile(env: Env): string {
 }
 
 export function loadPaymentsConfig(env: Env = process.env): PaymentsConfig {
-  // 1. GATEWAY_ENV: closed set; production exactly when NODE_ENV=production.
+  // 1. GATEWAY_ENV: closed set; production exactly when isProductionEnv(env) (SEC-ENV-1, LD-236: LIMS_CORE_ENV or NODE_ENV is production).
   const geKey = K('GATEWAY_ENV');
   const geRaw = env[geKey];
   const gatewayEnv = geRaw === undefined || geRaw === '' ? 'uat' : geRaw;
   if (gatewayEnv !== 'uat' && gatewayEnv !== 'production') fail(geKey, 'must be uat or production');
-  if ((gatewayEnv === 'production') !== (env.NODE_ENV === 'production')) fail(geKey, 'must be production exactly when NODE_ENV=production');
+  if ((gatewayEnv === 'production') !== isProductionEnv(env)) fail(geKey, 'must be production exactly when LIMS_CORE_ENV or NODE_ENV is production');
   const ge = gatewayEnv as GatewayEnv;
 
   // 2. PUBLIC_BASE_URL https.

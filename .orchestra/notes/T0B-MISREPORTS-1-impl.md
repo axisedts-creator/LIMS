@@ -1,0 +1,7 @@
+# T0B-MISREPORTS-1 impl (writer). LD-321, LD-325, LD-342, LD-346, LD-357, LD-375.
+- Files: analytics/domain/misReports.ts (new, 9 delivered defs), service/misReports.service.ts (new: runMisReport / streamMisReport, one SQL per page, rank cursor, 366-day inclusive cap, row cap -> validation_failed), domain/reportRegistry.ts (9 rows + PENDING_REPORT_CODES, pendingReportError 501), export/reportTable.ts, export/CsvWriter.ts (writeCsvStream), export/XlsxWriter.ts (writeXlsxStream), handlers/exports.ts, service/schedule.service.ts (pending 501), core/errors.ts (operation_pending 501 body), worker build_export.ts (buildMis streams).
+- [CONV] defs restated in TS (registry.static pins them to the contract); consultant volume only (LD-346); sales_representative, repeated_patient, party_billing use net_paisa (LD-357).
+- [CONV] sales rep = credit_party assignments only, no tree roll up; collection_boy pickups = completed home-collection visits; outsource = outsourced workflow/status or other branch; paid = all ledger entries of the invoice (Hold exclusion lands with FINCTRL).
+- [CONV] XLSX stream uses STORED zip entries (bigger files); ponytail note in XlsxWriter.ts.
+- Final (after LD-375 timeout raise, no code change): tsc api clean; tests/analytics/T0B-MISREPORTS-1.pg.sh on throwaway PG17, 3 runs in a row, each 2791 passed / 0 failed / 51 skipped (2842), exit 0; log notes/T0B-MISREPORTS-1-pg.log.
+- Open: two_level_commission + tds pending (501) until T0B-MISREPORTS-2. Founder step: none new (no migration).

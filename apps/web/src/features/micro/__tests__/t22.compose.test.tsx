@@ -16,7 +16,7 @@ vi.mock('next/navigation', async () => (await import('./t22.harness')).navigatio
 vi.mock('server-only', () => ({}));
 vi.mock('@/core/session/server', async () => (await import('./t22.harness')).sessionMock);
 
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 beforeEach(() => { resetHits(); router.refresh.mockReset(); state.permissions = PERM_WORK; useReports(); });
 afterEach(() => { cleanup(); api.resetHandlers(); });
 afterAll(() => api.close());
@@ -85,7 +85,7 @@ describe('opening (04-UI-UX §3.4 drawer table)', () => {
     const { finalCulture } = await import('./t22.harness');
     await mount(finalCulture());
     const list = (await import('@/core/shortcuts/registry')).shortcuts.list('micro.culture');
-    for (const k of ['Alt+P', 'Alt+F']) act(() => (list as { key: string; run: () => void }[]).find((x) => x.key === k)!.run());
+    for (const k of ['Alt+P', 'Alt+F']) act(() => (list as unknown as { key: string; run: () => void }[]).find((x) => x.key === k)!.run());
     expect(screen.queryByRole('dialog', { name: /(preliminary|final) report/i })).toBeNull();
   });
 });

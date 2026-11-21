@@ -1,0 +1,9 @@
+# SEC-DEPS-1 tests (tester)
+- File: `tests/security/sec-deps1.test.mjs` (text-only reads of the pnpm-lock.yaml project doc, pnpm-workspace.yaml, package.json files, pr.yml; no network, no install). Run: `.orchestra/notes/SEC-DEPS-1-verify.cmd`.
+- Red now (9 of 18, right reasons): ajv 8.17.1, yaml 2.8.1 (packages + snapshots), tinypool 1.1.1 / faker 5.5.3 / uuid 8.3.2 / prism-cli with no CR, pr.yml has neither audit step. vitest 3.2.6 and lodash 4.18.1 already pass.
+- Dev-tool rule: each flagged version (vitest 3.x <3.2.6, tinypool <2.1.2, lodash <4.18.1, faker <10.5.0, uuid 8.3.2, prism-cli) must leave the lock OR be named (package + version) in `.orchestra/cr/SEC-DEPS-1.<n>.nonblocking.md` (>200 chars, a `#` heading).
+- ASSUMPTION: yaml 1.x passes at >= 1.10.3 (same fix backported); the brief's ">= 2.8.3" cannot bind the 1.x line. Faker <10.5.0 and tinypool <2.1.2 come from the T0B-DEPFIX-1 test header, not from the brief.
+- WARNING: removing prism-cli means dropping the root `mock:*` scripts, and tools/codegen/__tests__/c10..c17-openapi.test.ts assert those scripts exist (tester-owned). Writer should take the CR route for the prism chain, or ask for those tests to change first.
+- Frozen install is checked statically: every lock importer's specifiers equal its package.json, workspace overrides equal lock overrides, each override has its own GHSA comment. Real `pnpm install --frozen-lockfile` is the writer's verify gate; not run here.
+- pr.yml: blocking `pnpm audit --prod --audit-level=high` (no continue-on-error, no `|| true`), non-blocking `pnpm audit --audit-level=high` with `continue-on-error: true`, both after a frozen-lockfile install in the same job. `pnpm audit fix` is banned in package.json and workflows.
+- Not covered: the real audit result (needs network), runtime behaviour of the bumped ajv/yaml, `pnpm -s verify`.

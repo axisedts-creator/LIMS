@@ -4,6 +4,7 @@ import { LimsError } from '../../../core/errors.js';
 import type { Handler, HandlerContext, HandlerRequest } from '../../../core/module.js';
 import { createCreditPartiesService, type CreditPartiesDeps } from '../service/creditParties.service.js';
 import type { Ctx } from '../service/masters.service.js';
+import { guarded } from './_guard.js';
 
 type Svc = ReturnType<typeof createCreditPartiesService>;
 type RCtx = Ctx & { events?: CreditPartiesDeps['events']; ports?: { IdentityPort?: CreditPartiesDeps['identity'] } };
@@ -28,8 +29,8 @@ function bind(run: (s: Svc, ctx: Ctx, req: HandlerRequest) => Promise<{ status: 
 const id = (req: HandlerRequest) => obj(req.params)['credit_party_id'];
 
 export const creditPartiesHandlers: Readonly<Record<string, Handler>> = Object.freeze({
-  listCreditParties: bind(async (s, ctx, req) => ({ status: 200, body: await s.listCreditParties(ctx, req.query) })),
-  createCreditParty: bind(async (s, ctx, req) => ({ status: 201, body: await s.createCreditParty(ctx, req.body) })),
-  getCreditParty: bind(async (s, ctx, req) => ({ status: 200, body: await s.getCreditParty(ctx, { id: id(req) }) })),
-  updateCreditParty: bind(async (s, ctx, req) => ({ status: 200, body: await s.updateCreditParty(ctx, { id: id(req), expectedVersion: ifMatch(req), patch: req.body }) })),
+  listCreditParties: guarded('catalog.price_list.read', bind(async (s, ctx, req) => ({ status: 200, body: await s.listCreditParties(ctx, req.query) }))),
+  createCreditParty: guarded('catalog.price_list.manage', bind(async (s, ctx, req) => ({ status: 201, body: await s.createCreditParty(ctx, req.body) }))),
+  getCreditParty: guarded('catalog.price_list.read', bind(async (s, ctx, req) => ({ status: 200, body: await s.getCreditParty(ctx, { id: id(req) }) }))),
+  updateCreditParty: guarded('catalog.price_list.manage', bind(async (s, ctx, req) => ({ status: 200, body: await s.updateCreditParty(ctx, { id: id(req), expectedVersion: ifMatch(req), patch: req.body }) }))),
 });

@@ -30,13 +30,13 @@ const P = '/billing/invoices';
 const row = (o: Record<string, unknown> = {}) => ({ id: U(1), invoice_no: 'INV/2083-84/000042', invoice_seq: 42, fiscal_year_bs: '2083/84', invoice_kind: 'tax', status: 'issued', issued_at: '2026-11-07T04:00:00.000Z', invoice_date_bs: '2083-07-21', centre_id: U(3), order_id: U(5), buyer_name: 'Synthetic Buyer', net: npr(113000), cbms_state: 'not_required', print_count: 1, ...o });
 
 const api = setupServer();
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { cleanup(); api.resetHandlers(); });
 afterAll(() => api.close());
 const serve = (invoices: () => Response) => api.use(http.get(`${ORIGIN}/v1/billing/invoices`, invoices), http.all(`${ORIGIN}/v1/*`, () => page([])));
 async function show() {
   const mod = await import(/* @vite-ignore */ '../../../app/(staff)/billing/invoices/page.tsx');
-  const tree = await (mod.default as (p: never) => Promise<never>)(props).catch((e: unknown) => { throw new Error(`the page threw to the error page instead of keeping its title with an ErrorState: ${String(e)}`); });
+  const tree = await (mod.default as unknown as (p: never) => Promise<never>)(props).catch((e: unknown) => { throw new Error(`the page threw to the error page instead of keeping its title with an ErrorState: ${String(e)}`); });
   return render(<ToastProvider>{tree}</ToastProvider>);
 }
 

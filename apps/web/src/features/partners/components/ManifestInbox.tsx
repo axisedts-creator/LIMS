@@ -25,7 +25,8 @@ export function ManifestInbox({ rows, failed, filters }: { rows: readonly Manife
   const refresh = useRef(router.refresh);
   refresh.current = router.refresh;
   useEffect(() => {
-    const t = setInterval(() => refresh.current(), 60_000);
+    // LD-240: no refresh while the tab is hidden.
+    const t = setInterval(() => { if (document.visibilityState !== 'hidden') refresh.current(); }, 60_000);
     return () => clearInterval(t);
   }, []);
 

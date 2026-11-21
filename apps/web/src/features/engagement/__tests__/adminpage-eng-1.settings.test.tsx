@@ -15,6 +15,7 @@ import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 import type { ReactNode } from 'react';
 import { ToastProvider } from '@lims/ui/components/Toast';
+import { expectErrorState, revealTab } from '@/__tests__/uiset1.helpers';
 
 const ORIGIN = 'http://api.test';
 const MANAGE = 'engagement.settings.manage';
@@ -80,7 +81,7 @@ const putOk = async ({ request }: { request: Request }) => {
 };
 const centresHandler = () => HttpResponse.json({ items: [{ id: CENTRE_ID, code: 'HC1', name: 'Synthetic Home Centre', kind: 'home_collection', is_active: true, version: 1 }], next_cursor: null });
 const api = setupServer(http.get(S, getHandler), http.put(S, putOk), http.get(CENTRES, centresHandler));
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' })); // any other operation than T1/T2/listCentres fails the test
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' })); // any other operation than T1/T2/listCentres fails the test
 afterEach(() => { cleanup(); api.resetHandlers(); calls.length = 0; refresh.mockReset(); session.perms = []; current = settings(); });
 afterAll(() => api.close());
 
@@ -111,7 +112,9 @@ const INT_LABEL: Record<string, RegExp> = {
 const field = (re: RegExp) => screen.getByLabelText(re) as HTMLInputElement;
 const isOn = (el: HTMLElement) => ((el as HTMLInputElement).checked ?? el.getAttribute('aria-checked') === 'true') === true;
 const saveBtn = () => screen.getByRole('button', { name: /^save/i });
-const setText = async (user: ReturnType<typeof userEvent.setup>, re: RegExp, v: string) => { const el = field(re); await user.clear(el); if (v) { await user.click(el); await user.paste(v); } };
+// LD-353 template 4: sections are tabs; the tab holding a field is opened before it is typed into or clicked.
+const rev = async (re: RegExp) => { const el = field(re); await revealTab(el); return el; };
+const setText = async (user: ReturnType<typeof userEvent.setup>, re: RegExp, v: string) => { const el = await rev(re); await user.clear(el); if (v) { await user.click(el); await user.paste(v); } };
 const alertText = () => [...document.querySelectorAll('[role="alert"],[role="alertdialog"]')].map((e) => e.textContent ?? '').join(' | ');
 const statusText = () => [...document.querySelectorAll('[role="status"]')].map((e) => e.textContent ?? '').join(' | ');
 const describedText = (el: HTMLElement) => (el.getAttribute('aria-describedby') ?? '').split(/\s+/).filter(Boolean).map((id) => document.getElementById(id)?.textContent ?? '').join(' ');
@@ -184,21 +187,25 @@ describe('load (getEngagementSettings)', () => {
     for (const k of ['home_collection_centre_id', 'app_consent_text']) expect(b[k] === undefined || b[k] === null || b[k] === '', `${k} invented: ${JSON.stringify(b[k])}`).toBe(true);
   });
 
-  it('a 5xx on load is not hidden: the page promise rejects so error.tsx renders (never a blank or default form)', async () => {
+  it('a 5xx on load is not hidden: the page renders ErrorState with the title, a reference and Retry (LD-353 rule 6; never a blank or default form)', async () => {
     session.perms = [MANAGE];
     api.use(http.get(S, () => problem(500, 'common.internal')));
     const { default: Page } = await pageModule();
-    await expect(Page({ searchParams: Promise.resolve({}) })).rejects.toBeTruthy();
+    const { container } = wrap(await Page({ searchParams: Promise.resolve({}) }));
+    expectErrorState(container, '/engagement/settings');
+    expect(screen.queryByRole('button', { name: /^save/i })).toBeNull();
+    expect(screen.queryByLabelText(L.otp)).toBeNull();
   });
 });
 
 describe('W12 sections (C16 04-UI-UX line 261; reviewer item 2)', () => {
-  it('shows the five section headings Features, Patient app, Bookings, Reminders, Queue in that order, each field inside its W12 section', async () => {
+  it('shows the five tabs Features, Patient app, Bookings, Reminders, Queue in that order, each field inside its W12 section (tab panel)', async () => {
     await open();
-    const headings = screen.getAllByRole('heading', { level: 2 });
-    expect(headings.map((h) => h.textContent)).toEqual(['Features', 'Patient app', 'Bookings', 'Reminders', 'Queue']); // exact: no invented titles such as "Booking limits"
-    const sec = (name: string) => within(headings.find((h) => h.textContent === name)!.parentElement as HTMLElement); // Card = div > h2 + children
-    const [features, , bookings, reminders, queue] = ['Features', 'Patient app', 'Bookings', 'Reminders', 'Queue'].map(sec);
+    const tabs = screen.getAllByRole('tab').map((t) => t.textContent);
+    expect(tabs).toEqual(['Features', 'Patient app', 'Bookings', 'Reminders', 'Queue']); // exact: no invented titles such as "Booking limits"
+    const panels = [...document.querySelectorAll<HTMLElement>('.lims-settings-section')];
+    expect(panels).toHaveLength(5); // the i-th section is the i-th tab
+    const [features, , bookings, reminders, queue] = panels.map((e) => within(e));
     expect(bookings!.getByLabelText(L.autoNoShow)).toBeTruthy();
     expect(bookings!.getByLabelText(/^home collection centre$/i)).toBeTruthy();
     expect(reminders!.getByLabelText(L.autoFollowUp)).toBeTruthy();
@@ -207,15 +214,18 @@ describe('W12 sections (C16 04-UI-UX line 261; reviewer item 2)', () => {
     expect(features!.queryByLabelText(L.autoNoShow)).toBeNull();
     expect(features!.queryByLabelText(L.autoFollowUp)).toBeNull();
     expect(reminders!.queryByLabelText(L.history)).toBeNull();
+    // opening a tab shows only its section
+    await userEvent.click(screen.getByRole('tab', { name: 'Bookings' }));
+    expect(panels.map((e) => e.hidden)).toEqual([true, true, false, true, true]);
   });
 });
 
 describe('save (updateEngagementSettings)', () => {
   it('edits switches, texts and numbers; PUTs ONCE with If-Match "3"; the body is the full input with the edits; role=status success and no alert', async () => {
     const user = await open();
-    await user.click(field(L.queue)); // on -> off
-    await user.click(field(L.autoNoShow)); // off -> on
-    await user.click(field(L.khalti));
+    await user.click(await rev(L.queue)); // on -> off
+    await user.click(await rev(L.autoNoShow)); // off -> on
+    await user.click(await rev(L.khalti));
     await setText(user, L.prefixes, '+999, +977');
     await setText(user, L.otp, '3000');
     await setText(user, L.android, '2.1.7');
@@ -317,7 +327,7 @@ describe('validation (matches the operation schema; nothing invalid is ever sent
 
   it('both gateways may be chosen and none may be chosen (app_gateways minItems 0, unique, esewa/khalti only)', async () => {
     const user = await open();
-    await user.click(field(L.esewa)); // off
+    await user.click(await rev(L.esewa)); // off
     await user.click(saveBtn());
     await waitFor(() => expect(puts()).toHaveLength(1));
     expect(puts()[0]!.body.app_gateways).toEqual([]);
@@ -478,15 +488,20 @@ describe('accessibility and keyboard', () => {
     expect(await run()).toEqual([]);
   });
 
-  it('keyboard only: Tab reaches every field and then Save; Space toggles a switch; Enter on Save writes once', async () => {
+  it('keyboard only: Tab reaches every field (per tab) and then Save; Space toggles a switch; Enter on Save writes once', async () => {
     const user = await open();
     const targets = [L.app, L.queue, L.prefixes, L.otp, L.consent, L.minorAge, L.horizon, L.history].map((re) => field(re));
-    const seen: HTMLElement[] = [];
-    for (let i = 0; i < 120 && document.activeElement !== saveBtn(); i++) { await user.tab(); seen.push(document.activeElement as HTMLElement); }
-    expect(document.activeElement).toBe(saveBtn());
-    const idx = targets.map((t) => seen.indexOf(t));
-    expect(idx.every((i) => i >= 0), `fields not reachable by Tab: ${idx.join(',')}`).toBe(true);
-    const q = field(L.autoNoShow);
+    const seen = new Set<HTMLElement>();
+    for (const tab of screen.getAllByRole('tab')) {
+      await user.click(tab);
+      (document.activeElement as HTMLElement | null)?.blur();
+      let reached = false;
+      for (let i = 0; i < 120 && !reached; i++) { await user.tab(); seen.add(document.activeElement as HTMLElement); reached = document.activeElement === saveBtn(); }
+      expect(document.activeElement, `Save is reached by Tab on tab ${tab.textContent}`).toBe(saveBtn());
+    }
+    const missing = targets.filter((t) => !seen.has(t));
+    expect(missing.map((t) => t.getAttribute('name') ?? t.id), 'fields not reachable by Tab').toEqual([]);
+    const q = await rev(L.autoNoShow);
     q.focus();
     await user.keyboard(' ');
     expect(isOn(q)).toBe(true);

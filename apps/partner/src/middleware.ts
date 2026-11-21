@@ -30,6 +30,10 @@ export function middleware(request: NextRequest): NextResponse {
 
   const res = NextResponse.next({ request: { headers: forwarded } });
   res.headers.set(header, csp);
+  // SEC-HDR-1 (LD-238): grep of apps/partner/src finds no camera, microphone, location or payment browser API use: all denied.
+  res.headers.set('X-Frame-Options', 'DENY'); // matches CSP frame-ancestors 'none'
+  res.headers.set('Referrer-Policy', 'no-referrer');
+  res.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=()');
   return res;
 }
 

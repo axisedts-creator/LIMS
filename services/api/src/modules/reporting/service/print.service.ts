@@ -23,6 +23,8 @@ export interface PrintCtx {
   readonly tenantId: string; readonly actor: { readonly type?: string; readonly id: string; readonly centreId?: string }; readonly tx: repo.Tx; readonly centreId?: string;
   readonly ports?: Record<string, any>; readonly now?: () => string;
   readonly storage?: Partial<Pick<StorageAdapter, 'read' | 'readStream'>>; readonly audit?: { access(e: Record<string, unknown>): Promise<unknown> };
+  /** T0B-SYNC-4 done_when (3): pending offline print marker of a version (core/sync/offlineSignoffs.ts pendingMarkers); absent = never issued offline. */
+  readonly offlineMarkers?: { isPending(tx: repo.Tx, tenantId: string, reportVersionId: string): Promise<boolean> };
 }
 type Variant = 'letterhead' | 'plain';
 
@@ -63,10 +65,11 @@ export async function createReportPrint(c: PrintCtx, versionId: string, variant:
   if (!v) throw new LimsError('common.not_found');
   const draft = v['released_at'] == null;
   if (draft) await assertDraftPrint(c);
-  const noFile = !draft && variant === 'letterhead';
+  const issuedOffline = c.offlineMarkers ? await c.offlineMarkers.isPending(c.tx, c.tenantId, versionId) : false;
+  const noFile = !draft && variant === 'letterhead' && !issuedOffline;   // a marked print needs its own rendered file, never the canonical PDF
   const id = uuidv7(); const expiresAt = new Date(nowMs(c) + TTL_MS).toISOString();
   await repo.insertPrint(c.tx, { id, tenantId: c.tenantId, centreId: v['centre_id'], kind: 'single', versionIds: [versionId], excludedIds: [], templateVersionId: v['template_version_id'] ?? null,
-    variant, copies, draftWatermark: draft, state: noFile ? 'ready' : 'rendering', expiresAt, actorId: c.actor.id });
+    variant, copies, draftWatermark: draft, state: noFile ? 'ready' : 'rendering', expiresAt, actorId: c.actor.id, issuedOffline });
   const at = new Date(nowMs(c));
   await insertDeliveryRow(c.tx, { id: uuidv7(), tenantId: c.tenantId, centreId: v['centre_id'], channel: 'print', purpose: 'report_ready', templateCode: null, recipientKind: 'patient',
     recipientId: v['patient_id'] ?? null, destinationMasked: null, destinationSha256: null, destinationE164: null, params: {}, idempotencyKey: `${id}:print`, relatedType: 'report',
@@ -118,9 +121,11 @@ export async function createBulkPrint(c: PrintCtx, ids: string[], variant: Varia
   const found = new Set((await repo.findVersionsForPrint(c.tx, c.tenantId, ids)).filter((v) => v['released_at'] != null).map((v) => v['id'] as string));
   const included = ids.filter((i) => found.has(i)); const excluded = ids.filter((i) => !found.has(i));
   if (included.length === 0) throw new LimsError('reporting.report_not_released');
+  // T0B-SYNC-4 done_when (3): any included version with a pending offline print marker marks the whole bulk print issued offline
+  const issuedOffline = c.offlineMarkers ? (await Promise.all(included.map((v) => c.offlineMarkers!.isPending(c.tx, c.tenantId, v)))).some(Boolean) : false;
   const id = uuidv7(); const expiresAt = new Date(nowMs(c) + TTL_MS).toISOString();
   await repo.insertPrint(c.tx, { id, tenantId: c.tenantId, centreId, kind: 'bulk', versionIds: included, excludedIds: excluded, templateVersionId: null, variant, copies: 1,
-    draftWatermark: false, state: 'rendering', expiresAt, actorId: c.actor.id });
+    draftWatermark: false, state: 'rendering', expiresAt, actorId: c.actor.id, issuedOffline });
   await enqueue(c, BULK_PRINT_TASK, id);
   await audit.access({ action: 'report.bulk_download', entityType: 'print_job', entityId: id, centreId, outcome: 'allowed', detail: { count: included.length } });
   return { status: 202, body: toPrintJob({ id, state: 'rendering', variant, copies: 1, expires_at: expiresAt, excluded_ids: excluded }) };

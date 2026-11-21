@@ -1,0 +1,6 @@
+# T0D-OFFLINE-3 dispute (debugger, 2026-11-20)
+Failing: src/features/frontdesk/__tests__/adminpage-fd-1.static.test.ts:85 "no new permission and no registry change" (1 fail / 44 pass in last verify, 06:51). Not an OFFLINE-3 defect.
+Test compares contracts/permissions.yaml to `git show 93bfe99f5:contracts/permissions.yaml` (BASE, tree before ADMINPAGE-FD-1). Since then already-landed main work legitimately added permissions: T0C-MSGDESK-1, T0C-SALES-1, T0C-PARTYSET-1, T0C-CONTENT-1, T0C-SYNC-1 (sync.use, sync.device.manage, sync.conflict.resolve named verbatim by LD-322).
+Evidence OFFLINE-3 is clean: `git diff main HEAD -- contracts/permissions.yaml` is empty; last commits on the file are be39d61fb (T0C-FINCTRL-1), 17ca83cac (T0C-PARTYSET-1), 9a920abce (T0C-CONTENT-1), all from main.
+Spec basis: LD-322 requires the new sync.* permission codes, so a frozen-BASE equality check cannot hold. Impl fix impossible without reverting other tasks' registry.
+Ask (tester/lead): keep the assertion's intent (ADMINPAGE-FD-1 itself adds nothing) by checking only that frontdesk.* codes are unchanged vs BASE, or that the BASE lines are all still present in the file. Do not regenerate BASE; do not weaken to skip.

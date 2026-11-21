@@ -9,6 +9,7 @@ export const CATALOG_PERMISSIONS = Object.freeze([
   'catalog.referrer.read',
   'catalog.reference_range.publish',
   'catalog.referrer.export',
+  'catalog.icd.manage', // T0C-PARTYSET-1 (LD-321): the per tenant ICD master
 ] as const);
 
 export type CatalogPermission = (typeof CATALOG_PERMISSIONS)[number];

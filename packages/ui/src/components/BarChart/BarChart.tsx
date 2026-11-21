@@ -8,6 +8,8 @@ export interface BarChartProps {
   series: readonly { id: string; label: string; values: readonly number[] }[];
   /** 'money' = values in paisa ([CONV] Money.amountPaisa), shown as Rs.; 'integer' = lakh grouping. */
   valueFormat?: 'integer' | 'money';
+  /** T0D-UIDASH-2 (LD-436 "Billed per day"): the category drawn in accent (the current day); its bars carry data-current="true". */
+  currentIndex?: number;
   'data-testid'?: string;
 }
 
@@ -19,7 +21,7 @@ const fin = (n: number | undefined): n is number => typeof n === 'number' && Num
 const f1 = (n: number) => (Math.round(n * 10) / 10).toString();
 const INT = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 });
 
-export function BarChart({ title, categories, series, valueFormat, ...rest }: BarChartProps) {
+export function BarChart({ title, categories, series, valueFormat, currentIndex, ...rest }: BarChartProps) {
   const id = useId();
   const fmt = (v: number) => (valueFormat === 'money' ? `Rs. ${formatPaisa(v)}` : valueFormat === 'integer' ? INT.format(v) : String(v));
   const vals = series.flatMap((s) => s.values.slice(0, categories.length)).filter(fin);
@@ -60,6 +62,7 @@ export function BarChart({ title, categories, series, valueFormat, ...rest }: Ba
                   width={f1(bar)}
                   height={Math.abs(y(v) - y(0))}
                   fill="currentColor"
+                  {...(ci === currentIndex ? { 'data-current': 'true' } : {})}
                 />
               );
             })}

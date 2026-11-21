@@ -2,6 +2,7 @@
 // Idempotency-Key are enforced by the core pipeline from contracts/openapi/billing.yaml; these map request -> service and fail closed without an authenticated request context.
 import { LimsError } from '../../../core/errors.js';
 import type { Handler, HandlerContext, HandlerRequest, HandlerResult } from '../../../core/module.js';
+import { guarded } from './_guard.js';
 import { RecordingStubCbmsClient } from '../cbms/RecordingStubCbmsClient.js';
 import { createCbmsService, type CbmsCtx, type CbmsService } from '../service/cbms.service.js';
 
@@ -18,7 +19,7 @@ function bind(fn: (s: CbmsService, ctx: CbmsCtx, req: HandlerRequest) => Promise
   };
 }
 
-export const cbmsHandlers: Readonly<Record<string, Handler>> = Object.freeze({
+const cbmsHandlersRaw: Readonly<Record<string, Handler>> = Object.freeze({
   listCbmsDocuments: bind((s, ctx, req) => {
     const q = obj(req.query);
     return s.listDocuments(ctx, { state: q['state'], documentKind: q['document_kind'], cursor: q['cursor'], limit: q['limit'] });
@@ -27,4 +28,11 @@ export const cbmsHandlers: Readonly<Record<string, Handler>> = Object.freeze({
     const p = obj(req.params);
     return s.retry(ctx, { documentKind: p['document_kind'], documentId: p['document_id'] });
   }),
+});
+
+// SEC-AUTHZ-6 (LD-189 AUTH-SENSITIVE, LD-261; SEC-AUTHZ-1.1): the contract x-permission is asked FIRST, before the wrapped handler reads or writes anything.
+export const cbmsHandlers: Readonly<Record<string, Handler>> = Object.freeze({
+  ...cbmsHandlersRaw,
+  listCbmsDocuments: guarded('billing.invoice.read', cbmsHandlersRaw['listCbmsDocuments']!),
+  retryCbmsDocument: guarded('billing.settings.manage', cbmsHandlersRaw['retryCbmsDocument']!),
 });

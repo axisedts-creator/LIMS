@@ -19,7 +19,7 @@ vi.mock('next/navigation', async () => (await import('./t19.harness')).navigatio
 vi.mock('server-only', () => ({}));
 vi.mock('@/core/session/server', async () => (await import('./t19.harness')).sessionMock);
 
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 beforeEach(() => { resetHits(); state.permissions = [...PERM_READ, 'micro.culture.work', 'micro.breakpoint.manage', 'micro.config.manage']; });
 afterEach(() => { cleanup(); api.resetHandlers(); });
 afterAll(() => api.close());

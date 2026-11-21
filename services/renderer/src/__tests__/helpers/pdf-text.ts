@@ -2,9 +2,9 @@
 // Handles Chromium/Skia output: FlateDecode streams, Type0/Identity-H fonts with /ToUnicode CMaps, classic xref objects (no object streams).
 import { inflateSync } from 'node:zlib';
 
-type Obj = { dict: string; stream?: Buffer };
+export type Obj = { dict: string; stream?: Buffer };
 
-function parseObjects(pdf: Buffer): Map<number, Obj> {
+export function parseObjects(pdf: Buffer): Map<number, Obj> {
   const s = pdf.toString('latin1');
   const objs = new Map<number, Obj>();
   const re = /(\d+) 0 obj\b/g;
@@ -40,9 +40,9 @@ function parseObjects(pdf: Buffer): Map<number, Obj> {
   return objs;
 }
 
-const refs = (t: string) => [...t.matchAll(/(\d+) 0 R/g)].map((x) => Number(x[1]));
+export const refs = (t: string) => [...t.matchAll(/(\d+) 0 R/g)].map((x) => Number(x[1]));
 
-function inlineOrRef(objs: Map<number, Obj>, text: string, key: string): string {
+export function inlineOrRef(objs: Map<number, Obj>, text: string, key: string): string {
   const m = new RegExp(`/${key}\\s*(<<|(\\d+) 0 R)`).exec(text);
   if (!m) return '';
   if (m[2]) return objs.get(Number(m[2]))?.dict ?? '';
@@ -62,7 +62,7 @@ function inlineOrRef(objs: Map<number, Obj>, text: string, key: string): string 
   return text.slice(start);
 }
 
-function hexToBytes(h: string): number[] {
+export function hexToBytes(h: string): number[] {
   const c = h.replace(/[^0-9a-fA-F]/g, '');
   const out: number[] = [];
   for (let i = 0; i < c.length; i += 2) out.push(parseInt(c.slice(i, i + 2).padEnd(2, '0'), 16));
@@ -76,9 +76,9 @@ const uni = (hex: string) => {
   return r;
 };
 
-type CMap = { width: number; map: Map<number, string> };
+export type CMap = { width: number; map: Map<number, string> };
 
-function parseCMap(text: string): CMap {
+export function parseCMap(text: string): CMap {
   const map = new Map<number, string>();
   const cs = /begincodespacerange\s*<([0-9a-fA-F]+)>/.exec(text);
   let width = cs ? cs[1]!.length / 2 : 0;
@@ -106,7 +106,7 @@ function parseCMap(text: string): CMap {
   return { width: width || 1, map };
 }
 
-function decode(cm: CMap | undefined, bytes: number[]): string {
+export function decode(cm: CMap | undefined, bytes: number[]): string {
   if (!cm) return String.fromCharCode(...bytes);
   let r = '';
   for (let i = 0; i + cm.width <= bytes.length; i += cm.width) {
@@ -117,7 +117,7 @@ function decode(cm: CMap | undefined, bytes: number[]): string {
   return r;
 }
 
-function litBytes(l: string): number[] {
+export function litBytes(l: string): number[] {
   const out: number[] = [];
   for (let i = 1; i < l.length - 1; i++) {
     if (l[i] === '\\') {
@@ -133,7 +133,7 @@ function litBytes(l: string): number[] {
   return out;
 }
 
-function pageOrder(objs: Map<number, Obj>): number[] {
+export function pageOrder(objs: Map<number, Obj>): number[] {
   const root = [...objs.entries()].find(([, o]) => /\/Type\s*\/Pages\b/.test(o.dict) && !/\/Parent/.test(o.dict));
   const walk = (n: number): number[] => {
     const o = objs.get(n);

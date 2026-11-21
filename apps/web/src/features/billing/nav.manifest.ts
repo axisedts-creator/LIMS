@@ -8,6 +8,8 @@ export const navManifest: NavManifest = {
     { id: 'billing.invoices', label: 'nav.billing.invoices', routeId: 'staff.billing.invoices', permission: 'billing.invoice.read', group: 'billing', order: 10 },
     { id: 'billing.dues', label: 'nav.billing.dues', routeId: 'staff.billing.dues', permission: 'billing.invoice.read', group: 'billing', order: 15 },
     { id: 'billing.daily_cash', label: 'nav.billing.daily_cash', routeId: 'staff.billing.daily_cash', permission: 'billing.cash_report.read', group: 'billing', order: 20 },
+    // T0D-MISREPORTS-1 (LD-321): Bill Of The Day right after the daily cash report; the data is the analytics definition bill_of_the_day.
+    { id: 'billing.bill_of_the_day', label: 'nav.billing.bill_of_the_day', routeId: 'staff.billing.bill_of_the_day', permission: 'analytics.collections.read', group: 'billing', order: 22 },
     { id: 'billing.credit_parties', label: 'nav.billing.credit_parties', routeId: 'staff.billing.credit_parties', permission: 'billing.credit_party.read', group: 'billing', order: 25 },
     { id: 'billing.registers', label: 'nav.billing.registers', routeId: 'staff.billing.registers', permission: 'billing.invoice.read', group: 'billing', order: 30 },
     { id: 'billing.audit_trail', label: 'nav.billing.audit_trail', routeId: 'staff.billing.audit_trail', permission: 'billing.data.export', group: 'billing', order: 35 },
@@ -25,5 +27,10 @@ export const navManifest: NavManifest = {
     { id: 'billing.expenses', label: 'nav.billing.expenses', routeId: 'staff.billing.expenses', permission: 'billing.account.read', group: 'billing', order: 52 },
     { id: 'billing.expense_types', label: 'nav.billing.expense_types', routeId: 'staff.billing.expense_types', permission: 'billing.account.read', group: 'billing', order: 54 },
     { id: 'billing.cash_transfers', label: 'nav.billing.cash_transfers', routeId: 'staff.billing.cash_transfers', permission: 'billing.account.read', group: 'billing', order: 56 },
+    // T0D-FINCTRL-1 (LD-321): Discount Reason, Discount slab per party, Discount Limit, Discount Authority at 57-58.5 (still below C15's 60).
+    { id: 'billing.discount_reasons', label: 'nav.billing.discount_reasons', routeId: 'staff.billing.discount_reasons', permission: 'billing.discount_policy.read', group: 'billing', order: 57 },
+    { id: 'billing.discount_slabs', label: 'nav.billing.discount_slabs', routeId: 'staff.billing.discount_slabs', permission: 'billing.discount_policy.read', group: 'billing', order: 57.5 },
+    { id: 'billing.discount_limits', label: 'nav.billing.discount_limits', routeId: 'staff.billing.discount_limits', permission: 'billing.discount_policy.read', group: 'billing', order: 58 },
+    { id: 'billing.discount_authorities', label: 'nav.billing.discount_authorities', routeId: 'staff.billing.discount_authorities', permission: 'billing.discount_policy.read', group: 'billing', order: 58.5 },
   ],
 };

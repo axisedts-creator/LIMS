@@ -2,6 +2,7 @@
 // the handlers only fail closed without an authenticated context. Single-table SELECTs with an explicit tenant_id bind (REQ-SEC-024); lists are computed in JS.
 import { LimsError } from '../../../core/errors.js';
 import type { Handler, HandlerContext, HandlerRequest } from '../../../core/module.js';
+import { guarded } from './_guard.js';
 
 interface Tx { query(text: string, values?: unknown[]): Promise<{ rows: any[] }> }
 type RCtx = { tenantId: string; tx: Tx; now?: () => Date };
@@ -73,6 +74,6 @@ async function healthReport({ tx, tenantId, now }: RCtx) {
 }
 
 export const healthHandlers: Readonly<Record<string, Handler>> = Object.freeze({
-  getCatalogRevision: bind(revision),
-  getCatalogHealthReport: bind(healthReport),
+  getCatalogRevision: guarded('catalog.test.read', bind(revision)),
+  getCatalogHealthReport: guarded('catalog.test.read', bind(healthReport)),
 });

@@ -3,6 +3,11 @@
 export interface RenderRequest {
   readonly template_id: string; readonly template_version_config: unknown; readonly variant: 'letterhead' | 'plain';
   readonly watermark_override?: string; readonly document: unknown;
+  /** T0B-PRINTCFG-1 (LD-316): the resolved print profile (contract PrintProfile, snake_case); absent = template config and variant decide. */
+  readonly print_profile?: {
+    readonly paper_mode: 'letterhead_image' | 'typed_header_footer' | 'preprinted_paper' | 'plain'; readonly header_text: string; readonly footer_text: string;
+    readonly reserve_top_mm: number; readonly reserve_bottom_mm: number; readonly show_logo: boolean; readonly show_seller_pan?: boolean; readonly grayscale: boolean; readonly font_size_pt: number;
+  };
   readonly assets: Readonly<Record<string, { mime_type: string; base64: string }>>;
 }
 export interface RenderResult { readonly pdf: Uint8Array; readonly pageCount: number }

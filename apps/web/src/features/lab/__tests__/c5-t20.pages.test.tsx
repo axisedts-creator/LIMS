@@ -45,7 +45,7 @@ const api = setupServer(
   http.get(`${ORIGIN}/v1/lab/coded-sets/return_reasons`, () => HttpResponse.json({ data: [{ code: 'b', display: 'Second', sort_order: 2 }, { code: 'a', display: 'First', sort_order: 1 }, { code: 'z', display: 'Retired', sort_order: 0, is_active: false }] })),
   http.get(`${ORIGIN}/v1/lab/coded-sets/amendment_reasons`, () => HttpResponse.json({ data: [{ code: 'transcription_error', display: 'Transcription error', sort_order: 1 }] })),
 );
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { api.resetHandlers(); seen.length = 0; analyteSeen.length = 0; orderReply = () => HttpResponse.json(body); });
 afterAll(() => api.close());
 

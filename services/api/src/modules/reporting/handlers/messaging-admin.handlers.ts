@@ -2,6 +2,7 @@
 // (all five are x-idempotency none); these map request -> service and fail closed without an authenticated request context.
 import { LimsError } from '../../../core/errors.js';
 import type { Handler, HandlerContext, HandlerRequest } from '../../../core/module.js';
+import { guarded } from './_guard.js';
 import { createMessagingAdminService, type MessagingAdminService, type MessagingCtx } from '../service/messaging-admin.service.js';
 import { ifMatch } from './outsourced.handlers.js';
 
@@ -18,7 +19,7 @@ function bind(fn: (s: MessagingAdminService, ctx: MessagingCtx, req: HandlerRequ
 }
 const obj = (v: unknown): Record<string, any> => (typeof v === 'object' && v !== null ? (v as Record<string, any>) : {});
 
-export const messagingAdminHandlers: Readonly<Record<string, Handler>> = Object.freeze({
+const messagingAdminRaw: Readonly<Record<string, Handler>> = Object.freeze({
   listMessageTemplates: bind(async (s, ctx) => ({ status: 200, body: await s.listMessageTemplates(ctx) })),
   upsertMessageTemplateText: bind(async (s, ctx, req) => {
     const p = obj(req.params);
@@ -35,4 +36,14 @@ export const messagingAdminHandlers: Readonly<Record<string, Handler>> = Object.
     status: 201, body: await s.rotateChannelCallbackToken(ctx, { channel: obj(req.params)['channel'], expectedVersion: ifMatch(req) }),
     headers: { 'cache-control': 'no-store' },
   })),
+});
+
+// SEC-AUTHZ-7 (LD-189, LD-261): each row below asks its contract x-permission through IdentityPort.assertRole before the wrapped handler runs (see _guard.ts).
+export const messagingAdminHandlers: Readonly<Record<string, Handler>> = Object.freeze({
+  ...messagingAdminRaw,
+  listMessageTemplates: guarded('reporting.message_template.manage', messagingAdminRaw['listMessageTemplates']!),
+  upsertMessageTemplateText: guarded('reporting.message_template.manage', messagingAdminRaw['upsertMessageTemplateText']!),
+  listChannelAccounts: guarded('reporting.channel.manage', messagingAdminRaw['listChannelAccounts']!),
+  upsertChannelAccount: guarded('reporting.channel.manage', messagingAdminRaw['upsertChannelAccount']!),
+  rotateChannelCallbackToken: guarded('reporting.channel.manage', messagingAdminRaw['rotateChannelCallbackToken']!),
 });

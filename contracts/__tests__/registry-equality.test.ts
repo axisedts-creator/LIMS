@@ -24,9 +24,9 @@ const LD316_VERLEVEL_ERRORS = ["lab.enterer_cannot_verify", "lab.pathologist_req
 const LD322_SYNC_CODES = ["sync.conflict.resolve", "sync.device.manage", "sync.use"];
 // T0C-SYNC-1 (LD-322): the closed sync error list, the only error codes allowed beyond IC section 8 (owner C0).
 const LD322_SYNC_ERRORS = ["sync.block_size_too_large", "sync.device_revoked", "sync.device_unknown", "sync.series_unknown", "sync.wipe_required"];
-// T0C-SYNC-2 (LD-322, brief done_when 4): offline sync part 2 closes the list with nine more sync.* codes (owner C0); none carries personal data. No new permission code (the SYNC-1 codes are reused).
+// T0C-SYNC-2 (LD-322, brief done_when 4): offline sync part 2 closes the list with nine more sync.* codes (owner C0); ten codes, the tenth is sync.op_type_not_available (LD-374); none carries personal data. No new permission code (the SYNC-1 codes are reused).
 const LD322_SYNC2_ERRORS = ["sync.base_version_stale", "sync.batch_too_large", "sync.clock_skew_too_large", "sync.entity_changed", "sync.number_out_of_block", "sync.offline_not_allowed",
-  "sync.op_id_reused", "sync.result_locked", "sync.verification_policy_failed"];
+  "sync.op_id_reused", "sync.op_type_not_available", "sync.result_locked", "sync.verification_policy_failed"];
 // T0C-MSGDESK-1 (LD-330: the lane that merges second keeps BOTH sides): codes from the other contract lane, not in IC yet.
 const MSGDESK_ERRORS = ["engagement.broadcast_invalid_transition", "engagement.broadcast_placeholder_unknown", "engagement.broadcast_provider_not_configured", "engagement.broadcast_recipient_limit",
   "engagement.broadcast_self_approval", "engagement.broadcast_template_inactive", "partners.ticket_invalid_transition"];
@@ -36,6 +36,10 @@ const TESTIMPORT_ERRORS = ["catalog.import_already_committed", "catalog.import_b
 const MSGDESK_CODES = ["engagement.broadcast.approve", "engagement.broadcast.manage", "engagement.broadcast.read", "partners.ticket.manage", "partners.ticket.read"];
 // T0C-CONTENT-1 (LD-313 c): the two portal content codes, staff only, not privileged (the patient read reuses engagement.self.read).
 const CONTENT_CODES = ["engagement.content.manage", "engagement.content.read"];
+// T0C-PARTYSET-1 (LD-321): party commercial settings, onboarding queue, masked ID reveal (privileged), penalties (partners) and the ICD master (catalog); pinned in tools/codegen/__tests__/partyset1-openapi.test.ts.
+// T0C-FINCTRL-1 (LD-321): discount policy read and manage (manage privileged); pinned in tools/codegen/__tests__/finctrl1-openapi.test.ts.
+const FINCTRL_CODES = ["billing.discount_policy.manage", "billing.discount_policy.read"];
+const PARTYSET_CODES = ["catalog.icd.manage", "partners.onboarding.decide", "partners.party_id_number.read", "partners.party_setting.manage", "partners.party_setting.read", "partners.penalty.manage"];
 
 /** Strict parse: duplicate map keys are errors (IC §7 says "CI parses the file with a YAML parser"). */
 const strictParse = (src: string, what: string): any => {
@@ -209,7 +213,7 @@ describe("AC-0C-1.3 permissions.yaml == IC §11", () => {
     const icCodes = ic.permissions.map((p: Entry) => p.code);
     const extra = file.permissions.filter((p: Entry) => !icCodes.includes(p.code));
     expect(diffByKey(ic.permissions, file.permissions, "code").filter((d) => !d.startsWith("extra "))).toEqual([]);
-    expect(extra.map((p: Entry) => p.code).sort()).toEqual([...LD313_ACCOUNTING_CODES, ...LD321_SALES_CODES, ...LD322_SYNC_CODES, ...LD316_VERLEVEL_CODES, ...MSGDESK_CODES, ...CONTENT_CODES].sort());
+    expect(extra.map((p: Entry) => p.code).sort()).toEqual([...LD313_ACCOUNTING_CODES, ...LD321_SALES_CODES, ...LD322_SYNC_CODES, ...LD316_VERLEVEL_CODES, ...MSGDESK_CODES, ...CONTENT_CODES, ...PARTYSET_CODES, ...FINCTRL_CODES].sort());
     expect(file.permissions.filter((p: Entry) => icCodes.includes(p.code)).map((p: Entry) => p.code)).toEqual(icCodes);
     expect({ ...file, fixed_actor_permissions: fileFixed, permissions: file.permissions.filter((p: Entry) => icCodes.includes(p.code)) }).toEqual(ic);
   });

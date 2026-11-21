@@ -1,24 +1,21 @@
 // @vitest-environment jsdom
 // RS-C8 — Owner dashboard (app/(staff)/analytics/page.tsx) rearranged per 10-DESIGN-SYSTEM s3/s4 ("Today" row) and s6 (LD-140): appearance and arrangement only.
-// Reads the page the way an-t18 does (MSW plays the API; API shapes unchanged). The chunk's own an-t18 tests keep covering behaviour and stay green.
+// Reads the page the way an-t18 does (MSW plays the API; API shapes unchanged). The chunk's own an-t18 tests keep covering behaviour.
 //
-// CONTRACT the writer must meet (the spec fixes the layout, not the markup; names below are the minimum that makes it testable and accessible):
-//   1. Pipeline: ONE ordered list named /pipeline/i (`<ol aria-label="Sample pipeline">`) with exactly 7 items in this order:
-//      Draft, To collect, To receive, In progress, To authorise, Authorised, Released. Each count is a FILTER = an `<a href>` (native Enter), whose
-//      accessible name contains the stage label, and whose href is an existing analytics page (reports/<code> or collections; a query string is fine).
-//      NO NEW DATA (LD-140): a number shown in the pipeline must be a value the API sent in `tiles` (formatted as before); a stage with no source tile
-//      shows no number and no link (never an invented 0). At least 2 stages are linked (In progress = pending_tests, Authorised = results_approved are the natural sources).
-//   2. "Needs you": a region named /needs you/i holding a list of actionable items built from the existing tiles only (pending_overdue "Overdue",
-//      reports_ready_unreleased "Ready, not released", reports_pending "Reports pending"), each a link to an existing analytics page, most urgent first (Overdue first).
-//      A tile the API did not send (the API scopes tiles by the caller's permission = "per role") gives NO item and no invented 0. When nothing is actionable the
-//      region says "Nothing needs you" (a sentence, not an empty box).
-//   3. Money strip: a region named /money/i, present ONLY when the API sent a paisa tile (it is the API that applies billing.cash_report.read / analytics scope;
-//      permissions are not changed here), containing every sent money tile with the currency "Rs." and the period label (A.D.). Pipeline and needs-you carry no money.
-//   4. ONE row of equal count tiles (T0D-UNSLOP-1 brief (C), LD-353 rule 8 and template 5; ruling T0D-UNSLOP-1-ruling.md overrides 10-DESIGN-SYSTEM.md:101,125 "no grid of equal KPI tiles"):
-//      no `.lims-grid`; every `.lims-stat` shares one parent that holds only tiles; pipeline stages and needs-you items are links/list items, never `.lims-stat`.
-//   5. DOM order: pipeline, then needs you, then money (reading and Tab order = the order of importance). One h1.
+// RE-PINNED by T0D-UIDASH-2 (review item 1; LD-436 mock + LD-437 exact match override the older spec layout for this task). What changed against the first RS-C8 contract:
+//   1. Pipeline: Card "Where the samples are" holding the kit StatusStepper (ONE `.lims-stepper`) with SIX stages in the mock order Registered, Collected, Received, In testing,
+//      Verified, Released (was seven: Draft ... Released). The mock stepper has no links, so the "each count is a link" pin is gone. NO NEW DATA (LD-140) stays: a number in the
+//      stepper must be a value the API sent in `tiles` (In testing = pending_tests, Verified = results_approved, "n overdue" = pending_overdue); a stage without a source tile
+//      shows no number (never an invented 0).
+//   2. "Needs you": Card "Needs you" with ONE kit ActionList (`ul.lims-action-list`), rows are links to existing analytics pages built from existing tiles only
+//      (pending_overdue "Overdue", reports_ready_unreleased "Ready, not released", reports_pending "Reports pending"), Overdue first; a tile the API did not send gives NO row
+//      and no invented 0; nothing actionable: "Nothing needs you right now." (a sentence, no list).
+//   3. Money: Card "Money, <period A.D.>" present ONLY when the API sent a paisa tile; four StatTile cells Billed (invoiced) and Collected (net collected) in Rs. through MoneyText,
+//      Outstanding and Cash in drawer "Not available yet". Pipeline and needs-you carry no money. (Net sales and credit notes are no longer drawn as cells: not in the mock.)
+//   4. Arrangement: no `.lims-grid`; every `.lims-stat` lives inside the Money card in ONE container; pipeline stages and needs-you rows are never `.lims-stat`; one h1.
+//   5. DOM order: pipeline card, then needs you, then money. Reading and Tab order = importance.
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render, screen, within } from '@testing-library/react';
+import { cleanup, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@lims/ui/components/Toast';
 import { api, axeClean, bodies, norm, resetApi, session } from './an-t19.harness';
@@ -64,42 +61,40 @@ async function open(tiles: Record<string, unknown>) {
   return render(<ToastProvider>{el}</ToastProvider>);
 }
 
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 beforeEach(() => resetApi());
 afterEach(() => { cleanup(); api.resetHandlers(); });
 afterAll(() => api.close());
 
-const STAGES = ['Draft', 'To collect', 'To receive', 'In progress', 'To authorise', 'Authorised', 'Released'];
-const STAGE_RE = STAGES.map((s) => new RegExp(`\\b${s}\\b`, 'i'));
+const STAGES = ['Registered', 'Collected', 'Received', 'In testing', 'Verified', 'Released'];
 const ANALYTICS_PAGE = /^\/analytics(?:\/(?:collections|exports|schedules|referral-incentive|reports(?:\/[a-z][a-z-]*)?))?(?:\?[^#]*)?$/;
 const FORMATTED_TILE_NUMBERS = new Set(['12', '4', '13', '31', '28', '5', '2', '9', '1']); // en-IN of the FULL count tiles
-const pipeline = () => screen.getByRole('list', { name: /pipeline/i });
-// pipeline text without a tile's own delta caption (`delta` / `delta_bp` are API data that an-t18 requires inside the tile; RS-C8-ruling.md)
-const pipelineText = () => { const c = pipeline().cloneNode(true) as HTMLElement; c.querySelectorAll('.lims-stat-delta').forEach((e) => e.remove()); return norm(c.textContent); };
-const needsYou = () => screen.getByRole('region', { name: /needs you/i });
-const moneyStrip = () => screen.queryByRole('region', { name: /money/i });
+// the kit Card that holds a title (Card: h2.lims-card-title inside .lims-card)
+const cardOf = (title: RegExp | string): HTMLElement | null => {
+  const h = [...document.querySelectorAll('.lims-card-title')].find((e) => (typeof title === 'string' ? norm(e.textContent) === title : title.test(norm(e.textContent))));
+  return (h?.closest('.lims-card') as HTMLElement | null) ?? null;
+};
+const pipelineCard = () => cardOf('Where the samples are')!;
+const pipeline = () => pipelineCard().querySelector('.lims-stepper') as HTMLElement;
+const stageItems = () => [...pipeline().querySelectorAll<HTMLElement>('li.lims-step')];
+// stepper text without the stage-state words
+const pipelineText = () => norm(pipeline().textContent);
+const needsYou = () => cardOf('Needs you')!;
+const needsRows = () => [...needsYou().querySelectorAll<HTMLAnchorElement>('ul.lims-action-list a.lims-action-row')];
+const moneyStrip = () => cardOf(/^Money\b/);
 const before = (a: Element, b: Element) => Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
 
-describe('RS-C8 dashboard — one pipeline stepper (10-DESIGN-SYSTEM s4 Today)', () => {
-  it('is one ordered list of the 7 stages in the design order', async () => {
+describe('RS-C8 dashboard — one pipeline stepper (LD-436 mock, Card "Where the samples are")', () => {
+  it('is one StatusStepper of the 6 stages in the mock order', async () => {
     await open(FULL);
-    const items = within(pipeline()).getAllByRole('listitem');
-    expect(items).toHaveLength(7);
-    const found = items.map((li) => STAGE_RE.findIndex((re) => re.test(norm(li.textContent))));
-    expect(found).toEqual([0, 1, 2, 3, 4, 5, 6]);
-    expect(screen.getAllByRole('list', { name: /pipeline/i })).toHaveLength(1);
+    expect(pipelineCard()).not.toBeNull();
+    expect(stageItems().map((li) => norm(li.querySelector('.lims-step-label')?.textContent))).toEqual(STAGES);
+    expect(document.querySelectorAll('.lims-stepper')).toHaveLength(1);
   });
 
-  it('each count is a filter: a real link named with its stage, to an existing analytics page; at least 2 stages are linked', async () => {
+  it('the mock stepper carries no links (a count is a figure, not a filter)', async () => {
     await open(FULL);
-    const links = within(pipeline()).getAllByRole('link');
-    expect(links.length).toBeGreaterThanOrEqual(2);
-    for (const a of links) {
-      expect(a.getAttribute('href') ?? '', norm(a.textContent)).toMatch(ANALYTICS_PAGE);
-      const stage = within(pipeline()).getAllByRole('listitem').find((li) => li.contains(a))!;
-      const label = STAGES[STAGE_RE.findIndex((re) => re.test(norm(stage.textContent)))]!;
-      expect(norm(a.getAttribute('aria-label') ?? a.textContent), `link in "${label}"`).toMatch(new RegExp(`\\b${label}\\b`, 'i'));
-    }
+    expect(pipeline().querySelectorAll('a[href]')).toHaveLength(0);
   });
 
   it('shows no number the API did not send, and no money (LD-140: no new data; a stage without a source tile has no count)', async () => {
@@ -107,26 +102,25 @@ describe('RS-C8 dashboard — one pipeline stepper (10-DESIGN-SYSTEM s4 Today)',
     const text = pipelineText();
     expect(text).not.toMatch(/Rs\./);
     for (const n of text.match(/\d[\d,]*/g) ?? []) expect(FORMATTED_TILE_NUMBERS.has(n), `"${n}" in the pipeline is not a tile value`).toBe(true);
-    // stages shown as 7 even when the API sends none of the lab tiles: counts vanish, they do not turn into 0
+    expect(norm(stageItems()[3]!.textContent)).toMatch(/\b9\b/); // In testing = pending_tests
+    expect(norm(stageItems()[4]!.textContent)).toMatch(/\b28\b/); // Verified = results_approved
+    // stages shown as 6 even when the API sends none of the lab tiles: counts vanish, they do not turn into 0
     cleanup();
     await open(without('results_approved', 'pending_tests', 'reports_pending', 'reports_ready_unreleased', 'pending_overdue'));
-    expect(within(pipeline()).getAllByRole('listitem')).toHaveLength(7);
+    expect(stageItems()).toHaveLength(6);
     expect(pipelineText()).not.toMatch(/\b0\b/);
   });
 });
 
-describe('RS-C8 dashboard — "needs you" list (10-DESIGN-SYSTEM s4)', () => {
+describe('RS-C8 dashboard — "needs you" ActionList (LD-436 mock)', () => {
   it('lists the actionable items from existing tiles, linked, Overdue first', async () => {
     await open(FULL);
-    const items = within(within(needsYou()).getByRole('list')).getAllByRole('listitem');
-    expect(items.length).toBeGreaterThanOrEqual(2);
-    expect(norm(items[0]!.textContent)).toMatch(/overdue/i);
-    expect(norm(items[0]!.textContent)).toMatch(/\b1\b/);
-    expect(items.map((i) => norm(i.textContent)).join(' | ')).toMatch(/ready, not released.*\b2\b|\b2\b.*ready, not released/i);
-    for (const li of items) {
-      const a = within(li).getByRole('link');
-      expect(a.getAttribute('href') ?? '').toMatch(ANALYTICS_PAGE);
-    }
+    const rows = needsRows();
+    expect(rows.length).toBeGreaterThanOrEqual(2);
+    const row = (r: Element) => ({ title: norm(r.querySelector('.lims-action-title')?.textContent), count: norm(r.querySelector('.lims-chip')?.textContent) });
+    expect(row(rows[0]!)).toEqual({ title: 'Overdue', count: '1' });
+    expect(rows.map(row)).toContainEqual({ title: 'Ready, not released', count: '2' });
+    for (const a of rows) expect(a.getAttribute('href') ?? '').toMatch(ANALYTICS_PAGE);
   });
 
   it('role-scoped: a tile the API did not send gives no item and no invented 0', async () => {
@@ -141,46 +135,49 @@ describe('RS-C8 dashboard — "needs you" list (10-DESIGN-SYSTEM s4)', () => {
   it('nothing actionable: says so in a sentence', async () => {
     await open(QUIET);
     expect(norm(needsYou().textContent)).toMatch(/nothing needs you/i);
-    expect(within(needsYou()).queryAllByRole('link')).toHaveLength(0);
+    expect(needsYou().querySelectorAll('a[href]')).toHaveLength(0);
   });
 });
 
-describe('RS-C8 dashboard — money strip only where the API sent money, with currency and period (s4, s6)', () => {
-  it('shows a strip with every money tile in Rs. and the period', async () => {
+describe('RS-C8 dashboard — Money card only where the API sent money, with currency and period (LD-436 mock)', () => {
+  it('shows Billed and Collected in Rs. with the period; Outstanding and Cash in drawer are "Not available yet"', async () => {
     await open(FULL);
     const strip = moneyStrip();
     expect(strip).not.toBeNull();
     const text = norm(strip!.textContent);
-    for (const v of ['2,25,000.00', '2,30,000.00', '5,000.00', '1,90,000.00']) expect(text, v).toContain(`Rs. ${v}`);
+    for (const v of ['2,30,000.00', '1,90,000.00']) expect(text, v).toContain(`Rs. ${v}`);
     expect(text).toContain(PERIOD.label_ad);
-    expect(norm(strip!.textContent)).not.toMatch(/patient visits|pending tests/i);
+    expect(text).toMatch(/outstanding.*not available yet/i);
+    expect(text).toMatch(/cash in drawer.*not available yet/i);
+    expect(text).not.toMatch(/patient visits|pending tests/i);
   });
 
-  it('no paisa tile from the API (a role without money access): no strip, no money label, no "Rs." figure outside charts', async () => {
+  it('no paisa tile from the API (a role without money access): no card, no money label, no "Rs." figure outside charts', async () => {
     const { container } = await open(without(...MONEY_KEYS));
     expect(moneyStrip()).toBeNull();
-    expect(screen.queryByText(/^(income \(net sales\)|cash collected \(net\))$/i)).toBeNull();
+    expect(screen.queryByText(/^(income \(net sales\)|cash collected \(net\)|billed)$/i)).toBeNull();
     expect(norm(container.textContent)).not.toMatch(/Rs\. [\d,]+\.\d\d/);
   });
 
   it('keeps the money out of the pipeline and the needs-you list', async () => {
     await open(FULL);
-    expect(norm(pipeline().textContent)).not.toMatch(/Rs\./);
+    expect(norm(pipelineCard().textContent)).not.toMatch(/Rs\./);
     expect(norm(needsYou().textContent)).not.toMatch(/Rs\./);
   });
 });
 
-describe('RS-C8 dashboard — arrangement (s6: no grid of equal KPI tiles, one container level)', () => {
-  it('no .lims-grid; every .lims-stat shares one parent that holds only tiles; pipeline stages and needs-you items are not tiles; one h1', async () => {
+describe('RS-C8 dashboard — arrangement (every block a kit Card, one container level)', () => {
+  it('no .lims-grid; every .lims-stat sits in the Money card in one container that holds only tiles; pipeline stages and needs-you rows are not tiles; one h1', async () => {
     const { container } = await open(FULL);
     const stats = Array.from(container.querySelectorAll('.lims-stat'));
     expect(container.querySelector('.lims-grid'), 'a .lims-grid on the page').toBeNull();
     expect(stats.length).toBeGreaterThan(0);
+    for (const s of stats) expect(moneyStrip()!.contains(s), 'a tile outside the Money card').toBe(true);
     const parents = new Set(stats.map((e) => e.parentElement));
     expect(parents.size, 'tiles are spread over several containers').toBe(1);
-    expect([...[...parents][0]!.children].every((c) => stats.includes(c)), 'the tile row holds only tiles').toBe(true);
+    expect([...[...parents][0]!.children].every((c) => stats.includes(c)), 'the tile container holds only tiles').toBe(true);
     expect(pipeline().querySelectorAll('.lims-stat'), 'pipeline stage as a tile').toHaveLength(0);
-    for (const li of [...within(pipeline()).getAllByRole('listitem'), ...within(within(needsYou()).getByRole('list')).getAllByRole('listitem')]) {
+    for (const li of [...stageItems(), ...needsYou().querySelectorAll('li')]) {
       expect(li.matches('.lims-stat') || li.querySelector('.lims-stat'), 'a list item that is a tile').toBeFalsy();
     }
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
@@ -188,25 +185,27 @@ describe('RS-C8 dashboard — arrangement (s6: no grid of equal KPI tiles, one c
 
   it('DOM order = importance: pipeline, then needs you, then money', async () => {
     await open(FULL);
-    expect(before(pipeline(), needsYou())).toBe(true);
+    expect(before(pipelineCard(), needsYou())).toBe(true);
     expect(before(needsYou(), moneyStrip()!)).toBe(true);
   });
 
-  it('keeps what an-t18 pins: both period labels, the two definition notes, the charts and the refresh button', async () => {
+  it('keeps what the mock still shows: both period labels, the billed definition note, the two chart frames and the refresh button', async () => {
     const { container } = await open(FULL);
     expect(norm(container.textContent)).toContain('15 Jan 2026');
     expect(norm(container.textContent)).toContain('2082-10-01');
-    expect(screen.getByText(/counts each patient once per centre per day/i)).toBeTruthy();
-    expect(screen.getByText(/income = invoices issued/i)).toBeTruthy();
+    expect(screen.getByText(/billed = invoices issued/i)).toBeTruthy();
     expect(screen.getByRole('button', { name: /refresh/i })).toBeTruthy();
-    expect(screen.getAllByText('Net sales per day').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Billed per day').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Tests by department').length).toBeGreaterThan(0);
   });
 });
 
 describe('RS-C8 dashboard — keyboard-only path (task "tests")', () => {
-  const focusables = (root: HTMLElement) => [...root.querySelectorAll<HTMLElement>('a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),[tabindex]:not([tabindex="-1"])')];
+  // the kit PeriodPicker (react-aria Select) always draws a hidden native <select> (aria-hidden, tabindex -1, see the T0D-UIDASH-2 ruling): not a Tab target
+  const focusables = (root: HTMLElement) => [...root.querySelectorAll<HTMLElement>('a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),[tabindex]:not([tabindex="-1"])')]
+    .filter((e) => e.getAttribute('tabindex') !== '-1' && !e.closest('[aria-hidden="true"]'));
 
-  it('Tab reaches pipeline links, then needs-you links, then the money strip; nothing needs a positive tabindex; Tab does not trap', async () => {
+  it('Tab reaches the needs-you links, then the money card; nothing needs a positive tabindex; Tab does not trap', async () => {
     const user = userEvent.setup({ delay: null });
     const { container } = await open(FULL);
     expect(container.querySelectorAll('[tabindex]:not([tabindex="0"]):not([tabindex="-1"])')).toHaveLength(0);
@@ -218,10 +217,8 @@ describe('RS-C8 dashboard — keyboard-only path (task "tests")', () => {
       order.push(el);
     }
     const idx = (root: Element) => order.findIndex((e) => root.contains(e));
-    const p = idx(pipeline());
     const n = idx(needsYou());
-    expect(p, 'a pipeline link takes focus').toBeGreaterThanOrEqual(0);
-    expect(n, 'a needs-you link takes focus').toBeGreaterThan(p);
+    expect(n, 'a needs-you link takes focus').toBeGreaterThanOrEqual(0);
     const strip = moneyStrip();
     if (focusables(strip as HTMLElement).length > 0) expect(idx(strip!)).toBeGreaterThan(n);
     // every focusable control on the page is reachable by Tab alone
@@ -230,10 +227,10 @@ describe('RS-C8 dashboard — keyboard-only path (task "tests")', () => {
     expect(missed).toEqual([]);
   });
 
-  it('a pipeline filter is a native link (Enter activates it) with a visible text name', async () => {
+  it('a needs-you row is a native link (Enter activates it) with a visible text name', async () => {
     const user = userEvent.setup({ delay: null });
     await open(FULL);
-    const a = within(pipeline()).getAllByRole('link')[0]!;
+    const a = needsRows()[0]!;
     await user.tab(); // focus enters the page
     a.focus();
     expect(document.activeElement).toBe(a);

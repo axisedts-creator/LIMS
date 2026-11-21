@@ -55,7 +55,7 @@ const api = setupServer(
   http.get(`${R}/coded-sets/:set`, json({ data: [] })),
   http.get(`${ORIGIN}/*`, json(pageOf([]))), // any other read (centre names, billing codes…) is benign
 );
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => { cleanup(); api.resetHandlers(); gets.length = 0; session.permissions = ADMIN; });
 afterAll(() => api.close());
 
@@ -146,7 +146,7 @@ describe('worklist + Critical alerts panel (04-UI-UX §2.9)', () => {
     api.use(http.get(`${R}/critical-alerts`, () => HttpResponse.json(problem(500, 'common.internal'), { status: 500 })));
     await show(CASES[0]!);
     expect(screen.getByText('R2611050001')).toBeTruthy();
-    expect(screen.getByRole('alert').textContent).toMatch(/critical alerts|could not/i);
+    expect(screen.getByText('Critical alerts could not be loaded')).toBeTruthy(); // LD-353 rule 6 ErrorState title, no longer role="alert"
     expect(screen.getByRole('button', { name: /retry/i })).toBeTruthy();
   });
   it('the panel is requested with the 24 h window the spec implies and shows the count badge', async () => {

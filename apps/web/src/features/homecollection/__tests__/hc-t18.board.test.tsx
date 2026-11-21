@@ -56,7 +56,7 @@ const api = setupServer(
   http.post(`${API}/visits/:id/schedule`, async ({ request }) => { await rec(request); return HttpResponse.json({ ...V1, version: 4 }); }),
   http.get(`${API}/phlebotomists`, async ({ request }) => { await rec(request); return HttpResponse.json({ data: [{ membership_id: U(5001), display_name: 'Test Phlebo 01', route_id: U(4001), active_visits: 3, route_full: false }] }); }),
 );
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 beforeEach(() => { vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(new Date('2026-11-13T04:00:00Z')); });
 afterEach(() => { vi.useRealTimers(); cleanup(); api.resetHandlers(); calls.length = 0; refresh.mockReset(); push.mockReset(); replace.mockReset(); reset(); });
 afterAll(() => api.close());

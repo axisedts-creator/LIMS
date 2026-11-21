@@ -32,6 +32,7 @@ import { worklistHandlers } from './worklist.handlers.js';
 import { ingestExceptionHandlers } from './ingestException.handlers.js';
 import { configHandlers } from './config.handlers.js';
 import { qcHandlers } from './qc.handlers.js';
+import { verlevelHandlers } from './verlevel.handlers.js';
 
 const OPERATION_IDS = [
   // specimens
@@ -54,6 +55,8 @@ const OPERATION_IDS = [
   // configuration
   'getLabSettings', 'updateLabSettings', 'listDeltaCheckRules', 'createDeltaCheckRule', 'versionDeltaCheckRule',
   'deactivateDeltaCheckRule', 'listLabCodedSet', 'upsertLabCode',
+  // verification levels (T0C-VERLEVEL-1 contract, T0B-VERLEVEL-1 handlers, LD-316)
+  'listVerificationPolicies', 'upsertVerificationPolicy', 'getResultSignoffs',
 ] as const;
 
 export type LabOperationId = (typeof OPERATION_IDS)[number];
@@ -78,6 +81,7 @@ const REAL: Partial<Record<LabOperationId, Handler>> = {
   ...qcHandlers, // T-25: listQcResults, captureQcResult, listQcHolds, releaseQcHold (#43-#46)
   getStatusBoard, // T-27
   getLabOrder, // T-32
+  ...verlevelHandlers, // T0B-VERLEVEL-1 (LD-316): listVerificationPolicies, upsertVerificationPolicy, getResultSignoffs
 };
 
 // 07-SECURITY P-10 / S-01 (T-32): the contract x-permission is asserted (tenant-wide, no centre) BEFORE any handler code, so a role without it gets 403 auth.forbidden

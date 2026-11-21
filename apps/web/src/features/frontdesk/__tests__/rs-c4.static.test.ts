@@ -45,9 +45,12 @@ describe('RS-C4 behaviour unchanged (LD-140: no change to API calls, fields, val
   it('api-client, validation, shortcut-table, nav-manifest and url-filter files: same bytes as before (CRLF-insensitive)', () => {
     const now: Record<string, string> = {};
     for (const f of logicFiles()) now[rel(f)] = sha(read(f));
-    expect(Object.keys(now).sort()).toEqual(Object.keys(baseline.logic).sort());
+    // LD-391/LD-393 follow-up, T0D-OFFLINE-3 arbiter: forgive only the named added accounting logic files; a real removal still fails below
+    const addedOk = LD310_ALLOW.logic_files_added as readonly string[];
+    expect(Object.keys(now).filter((k) => !(addedOk.includes(k) && !(k in baseline.logic))).sort()).toEqual(Object.keys(baseline.logic).sort());
+    expect(Object.keys(baseline.logic).filter((k) => !(k in now))).toEqual([]);
     // LD-310 / T0D-REGSCREEN-1: only the four named frontdesk logic files may differ; every other file stays byte-identical
-    const changed = Object.keys(baseline.logic).filter((k) => now[k] !== baseline.logic[k] && !(LD310_ALLOW.logic_files as readonly string[]).includes(k));
+    const changed = Object.keys(baseline.logic).filter((k) => now[k] !== baseline.logic[k] && !(LD310_ALLOW.logic_files as readonly string[]).includes(k) && !(LD310_ALLOW.logic_files_changed as readonly string[]).includes(k));
     expect(changed).toEqual([]);
   });
 
@@ -61,26 +64,49 @@ describe('RS-C4 behaviour unchanged (LD-140: no change to API calls, fields, val
     expect(removed(was.server_symbols, now.server_symbols)).toEqual([]);
     // T0D-UNSLOP-1 (D), ruling T0D-UNSLOP-1-ruling.md: "/billing/credit-parties" in billing_feature was only the href of the removed in-page CreditPartyDetail crumb (one trail, in the top bar);
     // the page route itself is still pinned by the "existing pages still exist" test below. Nothing else may be removed.
-    const CRUMB_ONLY: Partial<Record<Area, string[]>> = { billing_feature: ['/billing/credit-parties'] };
+    // LD-398 (T0D-OFFLINE-3): "/v1/catalog/tests" moved into billing_feature's own code (already an allowed addition there); only a test-harness mock in frontdesk still mentions it, which this guard does not scan.
+    const CRUMB_ONLY: Partial<Record<Area, string[]>> = { billing_feature: ['/billing/credit-parties'], frontdesk_feature: ['/v1/catalog/tests'] };
     expect(removed(was.routes, now.routes).filter((r) => !(CRUMB_ONLY[area] ?? []).includes(r))).toEqual([]);
     expect(removed(was.field_names, now.field_names)).toEqual([]);
-    expect(added(was.permissions, now.permissions).filter((p) => !(LD310_ALLOW.permissions as readonly string[]).includes(p))).toEqual([]);
+    expect(added(was.permissions, now.permissions).filter((p) => !(LD310_ALLOW.permissions as readonly string[]).includes(p) && !LD310_ALLOW.billing_accounts_strings.test(p))).toEqual([]);
     expect(added(was.server_imports, now.server_imports).filter((s) => !(LD310_ALLOW.server_imports as readonly string[]).includes(s))).toEqual([]);
-    const extraSymbols = added(was.server_symbols, now.server_symbols).filter((s) => !(LD310_ALLOW.server_symbols as readonly string[]).includes(s));
+    // LD-391/LD-393 follow-up, T0D-OFFLINE-3 arbiter: accounting server symbols are excluded before the trf_symbol and length checks
+    // LD-403, T0D-OFFLINE-3: regscreen2_symbols excluded the same way accounts_symbols already is
+    const extraSymbols = added(was.server_symbols, now.server_symbols).filter((s) => !(LD310_ALLOW.server_symbols as readonly string[]).includes(s) && !(LD310_ALLOW.accounts_symbols as readonly string[]).includes(s) && !(LD310_ALLOW.regscreen2_symbols as readonly string[]).includes(s));
     expect(extraSymbols.filter((s) => !LD310_ALLOW.trf_symbol.test(s))).toEqual([]); // anything that is not the TRF action is forbidden
     expect(extraSymbols.length).toBeLessThanOrEqual(1); // exactly one TRF action
-    expect(added(was.routes, now.routes)).toEqual([]); // no route added: POST credit-parties / doctors / trf-attachments already exist
+    // LD-391/LD-393 follow-up, T0D-OFFLINE-3 arbiter: only the named route string is forgiven
+    expect(added(was.routes, now.routes).filter((r) => !LD310_ALLOW.route_strings_added.test(r))) /* LD-400, T0D-OFFLINE-3 arbiter */.toEqual([]); // no route added: POST credit-parties / doctors / trf-attachments already exist
   });
 
   it('allow-list guard is not vacuous: an unlisted addition would be rejected', () => {
     expect(LD310_ALLOW.logic_files).toHaveLength(4);
+    expect(LD310_ALLOW.routes_added).toHaveLength(8);
     expect(LD310_ALLOW.logic_files).not.toContain('src/features/frontdesk/forms/draft.ts'); // validation stays pinned
     expect(LD310_ALLOW.permissions).not.toContain('frontdesk.order.cancel');
     expect(LD310_ALLOW.trf_symbol.test('deleteEverythingAction')).toBe(false);
+    expect(LD310_ALLOW.billing_accounts_strings.test('frontdesk.order.cancel')).toBe(false);
+    // LD-391/LD-393 follow-up, T0D-OFFLINE-3 arbiter
+    expect(LD310_ALLOW.logic_files_added).toHaveLength(4);
+    // LD-400, T0D-OFFLINE-3 arbiter
+    expect(LD310_ALLOW.route_strings_added.test('/v1/billing/accounts/summary')).toBe(true);
+    expect(LD310_ALLOW.route_strings_added.test('/v1/frontdesk/patients')).toBe(false);
+    expect(LD310_ALLOW.route_strings_added.test('/v1/frontdesk/icd-codes')).toBe(true); // LD-404
+    expect(LD310_ALLOW.route_strings_added.test('/v1/frontdesk/custom-field-definitions/extra')).toBe(false); // LD-404: still scoped, not a prefix match
+    expect(LD310_ALLOW.accounts_symbols).toHaveLength(64); // LD-398: 19 + 45
+    expect(LD310_ALLOW.logic_files_changed).toHaveLength(6);
+    expect(LD310_ALLOW.accounts_symbols).not.toContain('deleteEverythingAction');
+    expect(LD310_ALLOW.regscreen2_symbols).toHaveLength(32); // LD-403 (arbiter correction: the lead's 31 was a miscount)
+    expect(LD310_ALLOW.regscreen2_symbols).not.toContain('deleteEverythingAction');
   });
 
   it('route tree: the same page/route/layout/loading/error files exist (no route added, removed or renamed)', () => {
-    expect(routeFiles()).toEqual(baseline.route_files);
+    const now = routeFiles();
+    const allowed = LD310_ALLOW.routes_added as readonly string[];
+    // LD-391: only the named additions are forgiven; any other added route fails here
+    expect(now.filter((f) => !(allowed.includes(f) && !baseline.route_files.includes(f)))).toEqual(baseline.route_files);
+    // a real removal or rename of an existing route still fails
+    expect(baseline.route_files.filter((f) => !now.includes(f))).toEqual([]);
   });
 
   it('the existing registration and billing pages still exist at the same paths', () => {

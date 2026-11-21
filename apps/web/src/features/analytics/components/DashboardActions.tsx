@@ -3,9 +3,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@lims/ui/components/Button';
+import { periodError, PeriodPicker, type PeriodValue } from '@lims/ui/components/PeriodPicker';
 import { useToast } from '@lims/ui/components/Toast';
 import { shortcuts } from '@/core/shortcuts/registry';
 import { refreshAction } from '../server/actions';
+import { PRESETS, addDays, nepalToday, presetOf, presetRange } from './period';
 
 const COOLDOWN_MS = 5 * 60_000; // ponytail: 5 min per 04-UI-UX; the API's next_allowed_at wins when present
 const TIME = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kathmandu' });
@@ -76,6 +78,23 @@ export function RefreshButton({ pageId = 'staff.analytics.dashboard' }: { pageId
       {until ? <span role="status">{until}</span> : null}
     </>
   );
+}
+
+/** T0D-UIDASH-2 (LD-436 title row): the period of the Today screen. Same URL params as ReportView (half-open [from, to), CONV 01-PRD:246). */
+export function DashboardPeriod({ from, to, query }: { from: string; to: string; query: string }) {
+  const router = useRouter();
+  const today = nepalToday();
+  const [value, setValue] = useState<PeriodValue>(() => {
+    const p = presetOf(from, addDays(to, -1), today);
+    return p === 'custom' ? { preset: p, from, to: addDays(to, -1) } : { preset: p };
+  });
+  const onChange = (v: PeriodValue) => {
+    setValue(v);
+    const iso = (s: string | undefined): s is string => !!s && /^\d{4}-\d{2}-\d{2}$/.test(s) && Number.isFinite(Date.parse(`${s}T00:00:00Z`));
+    const r = v.preset === 'custom' ? (iso(v.from) && iso(v.to) && !periodError(v) ? { from: v.from, to: v.to } : undefined) : presetRange(v.preset, today);
+    if (r) router.push(`/analytics?business_date_from=${r.from}&business_date_to=${addDays(r.to, 1)}${query ? `&${query}` : ''}`);
+  };
+  return <PeriodPicker label="Period" name="period" value={value} presets={PRESETS} calendar="BS" onChange={onChange} />;
 }
 
 /** `query` = already-whitelisted non-period params (centre/branch), "a=b&c=d" or "". */

@@ -22,6 +22,7 @@ export interface ConfirmDeps {
 interface Hctx extends HandlerContext {
   // VERIFY-GREEN-1 / LD-253 / LD-189: type-only; bffKey and log now inherit HandlerContext (no runtime change).
   requestId: string; bffKey?: HandlerContext['bffKey']; actor?: { type: string; id: string };
+  rateLimit?: { consume(tier: 'login', key: string): Promise<void> };
   db: { identityAuthTx<T>(input: TxInput, fn: TxFn<T>): Promise<T> };
 }
 
@@ -45,6 +46,9 @@ export function createConfirmEmailToken(deps: ConfirmDeps) {
     if (ctx.bffKey !== 'staff_web') throw bad();   // AU-T13: staff sessions serve the staff_web BFF only
     const ua = (req.headers as Record<string, unknown> | undefined)?.['user-agent'];
     const userAgent = typeof ua === 'string' ? ua : undefined;
+    // SEC-ABUSE-1 (LD-237 (2)): the declared `login` tier, per client IP (never the token: it is a secret), before GoTrue; fail closed.
+    if (!ctx.rateLimit) throw new LimsError('common.dependency_unavailable');
+    await ctx.rateLimit.consume('login', `a:confirm:${ctx.clientIp}`);
 
     return ctx.db.identityAuthTx({ operation: OPERATION, requestId: ctx.requestId, clientIp: ctx.clientIp, userAgent }, async (tx, ctl) => {
       ctl.noRetry();   // a verified GoTrue token is consumed: never replay

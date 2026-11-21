@@ -12,7 +12,7 @@ vi.mock('next/navigation', async () => (await import('./t23.harness')).navigatio
 vi.mock('server-only', () => ({}));
 vi.mock('@/core/session/server', async () => (await import('./t23.harness')).sessionMock);
 
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 beforeEach(() => { resetHits(); Object.values(router).forEach((f) => f.mockReset()); state.permissions = PERM_MANAGE; state.path = '/inventory/transfers'; });
 afterEach(() => { cleanup(); api.resetHandlers(); });
 afterAll(() => api.close());
@@ -27,7 +27,7 @@ const choose = async (scope: HTMLElement, label: RegExp, option: RegExp) => {
 };
 const T1 = ID(701);
 const dispatched = (over: Record<string, unknown> = {}) => transfer(1, { status: 'dispatched', dispatched_at: isoAgo(3), version: 2, ...over });
-const useTransfer = (t: unknown) => api.use(http.get(`${ORIGIN}/v1/inventory/transfers/:id`, () => HttpResponse.json(t)));
+const useTransfer = (t: unknown) => api.use(http.get(`${ORIGIN}/v1/inventory/transfers/:id`, () => HttpResponse.json(t as never)));
 const posts = (action: string) => hit('POST', new RegExp(`^/v1/inventory/transfers/[^/]+/${action}$`));
 
 describe('S9 list', () => {

@@ -31,7 +31,7 @@ const api = setupServer(
   http.get(`${ORIGIN}/v1/lab/worklist-items`, () => HttpResponse.json({ data: [worklistItem(1, { priority: 'urgent' }), worklistItem(2)], page: { limit: 50 } })),
   http.get(`${ORIGIN}/v1/instruments/instruments`, () => HttpResponse.json({ data: [{ id: id(0x1a), display_name: 'Synthetic Analyser A' }], page: { limit: 50 } })),
 );
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 beforeEach(() => { vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(new Date('2026-11-14T09:00:00.000Z')); });
 afterEach(() => { vi.useRealTimers(); cleanup(); api.resetHandlers(); localStorage.clear(); });
 afterAll(() => api.close());
@@ -43,7 +43,7 @@ describe('RS-C5 key screens (DOM snapshots)', () => {
     localStorage.setItem('lims.lab.receive.location', CENTRE_A);
     const { ReceiveScreen } = await import('../components/ReceiveScreen');
     const { container } = wrap(<ReceiveScreen centres={CENTRES} rejectionReasons={REASONS} recollectionDefault={false} permissions={['lab.specimen.receive', 'lab.specimen.reject', 'lab.specimen.read']} />);
-    await screen.findByRole('tablist', { name: /session log/i });
+    await screen.findByRole('search'); // T0D-UISCAN-1: the session-log pills sit in the FilterBar (role=search)
     expect(normalise(container)).toMatchSnapshot();
   });
 

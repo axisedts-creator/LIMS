@@ -8,6 +8,7 @@ import { uuidv7 } from '../../../../../packages/shared-ts/src/uuidv7/index.js';
 import { assertVisitTransition, type VisitStatus } from './domain/visit.state.js';
 import { dateOnly, toFlagDto } from './mappers/visit.mapper.js';
 import { HOMECOLLECTION_PERMISSIONS } from './permissions.js';
+import { getCollectorFlags } from './repository/collectorFlags.repo.js';
 import { listMutationsByVisit } from './repository/mutations.repo.js';
 import { getSettings } from './repository/settings.repo.js';
 import { insertVisitAssignment } from './repository/visitAssignments.repo.js';
@@ -74,6 +75,8 @@ function parseAssign(body: unknown): { membershipId: string; routeDate: string; 
 async function assertEligible(ctx: DCtx, visit: Obj, membershipId: string): Promise<void> {
   const rows = await ctx.db.tx((x) => ctx.core.memberships.list(x, { membershipIds: [membershipId], centreId: visit['centre_id'], roleCode: 'phlebotomist', activeOnly: true }));
   if (!rows.some((r) => r.membershipId === membershipId)) throw new LimsError('homecollection.phlebotomist_not_eligible');
+  // T0B-SALES-1 (LD-321): a collector without Allow Collection is never put on a home collection route (no row = allowed, existing behaviour unchanged)
+  if ((await getCollectorFlags(ctx.tx, ctx.tenantId, [membershipId])).get(membershipId)?.allow_collection === false) throw bad('/phlebotomist_membership_id');
 }
 
 export async function assignHomeVisit(hctx: unknown, params: unknown, headers: unknown, body: unknown): Promise<Result> {

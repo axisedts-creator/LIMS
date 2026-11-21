@@ -1,4 +1,5 @@
 // T0D-UIGUARD-1 helpers (tester-owned). LD-353 rules 2, 3, 5, 6, 10: static detectors + the page walk used by uiguard1.guard.test.ts.
+// T0D-UIGUARD-2 (LD-436 R7, LD-438, LD-439) adds rule 7: no raw h1 to h4 and no raw ul or ol for page structure (detector rawStructureViolations).
 // A "page" is every page.tsx under app/(staff). Its "own sources" are the page file plus the app/features/core files it imports (relative or '@/'),
 // followed up to HOPS levels. Kit parts (@lims/ui) and the shell (core/shell, nav, i18n, session, api) are leaves: they are pinned by their own tests.
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
@@ -10,7 +11,7 @@ export const SRC = join(WEB, 'src');
 export const STAFF = join(SRC, 'app', '(staff)');
 export const HOPS = 5;
 
-export const RULES = [1, 2, 3, 4, 5, 6] as const;
+export const RULES = [1, 2, 3, 4, 5, 6, 7] as const;
 export type Rule = (typeof RULES)[number];
 export const RULE_TEXT: Record<Rule, string> = {
   1: 'renders the kit PageHeader',
@@ -19,7 +20,13 @@ export const RULE_TEXT: Record<Rule, string> = {
   4: 'shows ErrorState or NotAvailable (not a raw error page) for a failed read',
   5: 'keeps the table header when the list is empty',
   6: 'draws every chart inside ChartCard',
+  7: 'uses no raw h1 to h4 and no raw ul or ol for page structure (kit parts, DataTable cell lists, registry-named print layouts are allowed)',
 };
+
+/** LD-439 (c): the 18 area names a rule 7 legacy entry may carry; the follow-up task is T0D-UIGUARD-1-<AREA>. */
+export const AREAS = ['ANALYTICS', 'BILLING', 'CATALOG', 'ENGAGEMENT', 'FRONTDESK', 'HOMECOLLECTION', 'INSTRUMENTS', 'INVENTORY', 'LAB', 'OFFLINE', 'PARTNERS', 'QUALITY', 'SMARTREPORT', 'ADMIN', 'ANATOMIC', 'MICRO', 'PAYMENTS', 'REPORTING'] as const;
+/** LD-439 (c): the only rule 7 entries that may be pinned: app/(auth), app/(platform), features/platform and features/admin/auth. */
+export const PINNED7 = /[\\/]src[\\/](features[\\/]platform[\\/]|features[\\/]admin[\\/]auth[\\/]|app[\\/]\((auth|platform)\)[\\/])/;
 
 /** Files under these folders are pinned by rs-c2.static (shared kit fixes only). */
 export const PINNED = /[\\/]src[\\/](features[\\/](admin|platform)[\\/]|app[\\/]\((auth|platform)\)[\\/])/;
@@ -141,6 +148,46 @@ export function hidesTableHeaderWhenEmpty(src: string): boolean {
   return emptyThenOther.test(src) || earlyReturn.test(src) || nonEmptyThenTable.test(src);
 }
 
+// ---------- rule 7 (T0D-UIGUARD-2): raw h1 to h4 / ul / ol ----------
+
+const stripComments = (src: string) =>
+  src.replace(/\/\*[\s\S]*?\*\//g, (m) => ' '.repeat(m.length)).replace(/(^|[\s;{}(,])\/\/[^\n]*/g, (m, p: string) => p + ' '.repeat(m.length - p.length));
+
+/** [start, end) of every column `cell:` renderer expression: from after `cell:` to the next property of the column object or its closing brace. */
+function cellRanges(src: string): Array<[number, number]> {
+  const out: Array<[number, number]> = [];
+  for (const m of src.matchAll(/\bcell\s*:\s*/g)) {
+    const start = m.index! + m[0].length;
+    let depth = 0;
+    let i = start;
+    for (; i < src.length; i++) {
+      const c = src[i]!;
+      if ('([{'.includes(c)) depth++;
+      else if (')]}'.includes(c)) { if (--depth < 0) break; }
+      else if (c === ',' && depth === 0 && /^,\s*\n\s*[A-Za-z_$][\w$]*\s*:/.test(src.slice(i, i + 80))) break;
+    }
+    out.push([start, i]);
+  }
+  return out;
+}
+
+/**
+ * Rule 7: a raw h1..h4 element, or a raw ul/ol element, written in JSX. Page structure belongs to PageHeader, Card (title row), ActionList, StatusStepper,
+ * DataTable, Tabs and the other kit parts. A ul/ol inside a DataTable column `cell:` renderer is a plain list of values and is allowed; h1..h4 never is.
+ * ponytail: textual scan, ceiling = a `cell:` helper written outside the column object counts as page structure; upgrade path is a TS AST walk.
+ */
+export function rawStructureViolations(src: string): string[] {
+  const text = stripComments(src);
+  const cells = cellRanges(text);
+  const out: string[] = [];
+  for (const m of text.matchAll(/<(h[1-4]|ul|ol)(?=[\s>/])/g)) {
+    const tag = m[1]!;
+    if (tag[0] !== 'h' && cells.some(([a, b]) => m.index! >= a && m.index! < b)) continue;
+    out.push(`raw <${tag}>`);
+  }
+  return out;
+}
+
 const CHART = /<(?:BarChart|TimeSeriesChart|LineChart|AreaChart|Sparkline|DonutChart|PieChart|Chart)\b/g;
 /** Rule 6: a file that draws more charts than it has ChartCard wrappers. Returns the number of unwrapped charts. */
 export function unwrappedCharts(src: string): number {
@@ -157,6 +204,17 @@ export interface GuardException { route: string; rule: Rule; reason: string }
 export const routeMatches = (pattern: string, route: string) => (pattern.endsWith('/*') ? route === pattern.slice(0, -2) || route.startsWith(pattern.slice(0, -1)) : pattern === route);
 
 export type Findings = Map<string, Map<Rule, string[]>>; // route -> rule -> evidence
+
+/** Pages whose finding for `rule` is not covered by an exception (the guard fails on these). */
+export const unexcused = (findings: Findings, exceptions: GuardException[], rule: Rule): string[] =>
+  [...findings.entries()]
+    .filter(([route, byRule]) => byRule.has(rule) && !exceptions.some((e) => e.rule === rule && routeMatches(e.route, route)))
+    .map(([route, byRule]) => `${route}  ->  ${byRule.get(rule)!.slice(0, 3).join(' | ')}`)
+    .sort();
+
+/** Exceptions whose page no longer breaks the rule (LD-434 stale-entry rule): the guard fails until the entry is deleted, so the baseline shrinks. */
+export const staleExceptions = (findings: Findings, exceptions: GuardException[]): GuardException[] =>
+  exceptions.filter((e) => ![...findings.entries()].some(([route, by]) => routeMatches(e.route, route) && by.has(e.rule)));
 
 export function analyse(pages = walkPages()): { findings: Findings; sources: Map<string, PageSources> } {
   const findings: Findings = new Map();
@@ -179,6 +237,7 @@ export function analyse(pages = walkPages()): { findings: Findings; sources: Map
     if (readsData(all) && !handlesFailedRead(all) && !errorBoundaryDrawsErrorState(page)) add(s.route, 4, 'reads data; no loadOr/pendingOr/ErrorState/LoadError/NotAvailable in the page and no error.tsx with ErrorState above it');
     for (const [f, x] of tsText) if (hidesTableHeaderWhenEmpty(x)) add(s.route, 5, `table swapped for another element when empty in ${rel(f)}`);
     for (const [f, x] of tsText) { const n = unwrappedCharts(x); if (n) add(s.route, 6, `${n} chart(s) without ChartCard in ${rel(f)}`); }
+    for (const [f, x] of tsText) { const v = rawStructureViolations(x); if (v.length) add(s.route, 7, `${v.length} raw heading/list element(s) in ${rel(f)} (${[...new Set(v)].join(', ')})`); }
   }
   return { findings, sources };
 }

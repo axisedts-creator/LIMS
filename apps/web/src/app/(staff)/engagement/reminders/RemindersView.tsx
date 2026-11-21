@@ -13,10 +13,9 @@ import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
 import { DateText, type DateTextProps } from '@lims/ui/components/DateText';
 import { DateTimePicker } from '@lims/ui/components/DateTimePicker';
 import { Dialog } from '@lims/ui/components/Dialog';
+import { FilterBar, type FilterValue } from '@lims/ui/components/FilterBar';
 import { PageHeader } from '@lims/ui/components/PageHeader';
-import { Select } from '@lims/ui/components/Select';
 import { StatusChip } from '@lims/ui/components/StatusChip';
-import { TextField } from '@lims/ui/components/TextField';
 import { useToast } from '@lims/ui/components/Toast';
 import { cancelReminderAction, createReminderAction } from './actions';
 
@@ -52,14 +51,7 @@ const ERROR_TEXT: Record<string, string> = {
 };
 const resultText = (r: ReminderRow) => (r.status === 'sent' || r.status === 'scheduled' || r.status === 'cancelled' ? '—' : (r.failure_code && RESULT_TEXT[r.failure_code]) || (r.status === 'failed' ? 'Could not send' : 'Not sent'));
 
-// DD/MM/YYYY (typed) -> YYYY-MM-DD, or undefined while incomplete / not a real date.
-const parseDmy = (t: string) => {
-  const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(t.trim());
-  if (!m) return undefined;
-  const iso = `${m[3]}-${m[2]}-${m[1]}`;
-  return new Date(`${iso}T00:00:00Z`).toISOString().startsWith(iso) ? iso : undefined;
-};
-const dmy = (iso: string | null) => (iso && /^\d{4}-\d{2}-\d{2}$/.test(iso) ? `${iso.slice(8)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}` : '');
+const ISO = /^\d{4}-\d{2}-\d{2}$/;
 const ALL = 'all';
 
 export function RemindersView({ reminders, permissions, reasons, searchPatients, nextCursor, hasPrevious }: RemindersViewProps) {
@@ -117,46 +109,35 @@ export function RemindersView({ reminders, permissions, reasons, searchPatients,
   );
 }
 
-// Own component so typing a date does not re-render the table. The URL is the state; typed dates apply once both are complete and valid.
+// T0D-UIGUARD-1-ENGAGEMENT (LD-353 rule 2, LD-436 worklist mock): range, status and kind in the one kit FilterBar. The URL is the state; the
+// DateRangePicker (FilterBar date_range) emits a range only once both dates are complete, in order and at most 92 days (else it shows the error itself).
 function Filters() {
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
-  const [from, setFrom] = useState(dmy(params.get('due_from')));
-  const [to, setTo] = useState(dmy(params.get('due_to')));
-  const [rangeError, setRangeError] = useState<string>();
-  const applied = useRef(`${params.get('due_from')}|${params.get('due_to')}`); // last range sent to the URL: re-typing the same range must not navigate again
-  const go =(set: Record<string, string | undefined>) => {
+  const [from, to] = [params.get('due_from'), params.get('due_to')];
+  const go = (set: Record<string, string | undefined>) => {
     const q = new URLSearchParams(params.toString());
     q.delete('cursor');
     for (const [k, v] of Object.entries(set)) (v ? q.set(k, v) : q.delete(k));
+    if (q.toString() === params.toString()) return; // re-typing the same range must not navigate again
     router.replace(`${pathname}${q.size ? `?${q.toString()}` : ''}`);
   };
-  const onRange = (f: string, t: string) => {
-    const [a, b] = [parseDmy(f), parseDmy(t)];
-    if (!a || !b) { setRangeError(undefined); return; }
-    if (b < a) { setRangeError('The end date must be on or after the start date.'); return; }
-    if ((Date.parse(b) - Date.parse(a)) / 86_400_000 > MAX_RANGE_DAYS - 1) /* 92 calendar days inclusive */ { setRangeError(`Choose a period of at most ${MAX_RANGE_DAYS} days.`); return; }
-    setRangeError(undefined);
-    if (applied.current === `${a}|${b}`) return;
-    applied.current = `${a}|${b}`;
-    go({ due_from: a, due_to: b });
+  const pick = (v: FilterValue, k: string) => (typeof v[k] === 'string' && v[k] !== ALL ? (v[k] as string) : undefined);
+  const onChange = (v: FilterValue) => {
+    const due = Array.isArray(v['due']) ? (v['due'] as readonly string[]) : undefined; // undefined = incomplete or invalid range: keep the applied one
+    go({ status: pick(v, 'status'), kind: pick(v, 'kind'), ...(due ? { due_from: due[0], due_to: due[1] } : {}) });
   };
   return (
-    <>
-      {/* T0D-UILIST-3 (LD-353 template 1): range, status and kind in the one kit FilterBar row */}
-      <div className="lims-filter-bar" role="search" aria-label="Reminder filters">
-        <div role="group" aria-label="Due date range" className="lims-inline">
-          <TextField label="From" name="due_from" maxLength={10} inputMode="numeric" description="DD/MM/YYYY" value={from} onChange={(v) => { setFrom(v); onRange(v, to); }} />
-          <TextField label="To" name="due_to" maxLength={10} inputMode="numeric" description="DD/MM/YYYY" value={to} onChange={(v) => { setTo(v); onRange(from, v); }} />
-        </div>
-        <Select label="Status" name="status" value={params.get('status') ?? ALL} onChange={(v) => go({ status: v === ALL ? undefined : v })}
-          options={[{ value: ALL, label: 'All' }, ...Object.entries(STATUS_LABEL).map(([value, [label]]) => ({ value, label }))]} />
-        <Select label="Kind" name="kind" value={params.get('kind') ?? ALL} onChange={(v) => go({ kind: v === ALL ? undefined : v })}
-          options={[{ value: ALL, label: 'All' }, ...Object.entries(KIND_LABEL).map(([value, label]) => ({ value, label }))]} />
-      </div>
-      {rangeError ? <p role="alert" className="lims-error">{rangeError}</p> : null}
-    </>
+    <FilterBar
+      resetLabel="Clear filters" onChange={onChange} onReset={() => go({ due_from: undefined, due_to: undefined, status: undefined, kind: undefined })}
+      value={{ ...(from && to && ISO.test(from) && ISO.test(to) ? { due: [from, to] } : {}), status: params.get('status') ?? ALL, kind: params.get('kind') ?? ALL }}
+      filters={[
+        { id: 'due', label: 'Due date range', kind: 'date_range', maxDays: MAX_RANGE_DAYS },
+        { id: 'status', label: 'Status', kind: 'select', options: [{ value: ALL, label: 'All' }, ...Object.entries(STATUS_LABEL).map(([value, [label]]) => ({ value, label }))] },
+        { id: 'kind', label: 'Kind', kind: 'select', options: [{ value: ALL, label: 'All' }, ...Object.entries(KIND_LABEL).map(([value, label]) => ({ value, label }))] },
+      ]}
+    />
   );
 }
 

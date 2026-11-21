@@ -4,6 +4,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Banner } from '@lims/ui/components/Banner';
 import { Button } from '@lims/ui/components/Button';
+import { Card } from '@lims/ui/components/Card';
 import { ConfirmDialog } from '@lims/ui/components/ConfirmDialog';
 import { DataTable } from '@lims/ui/components/DataTable';
 import { DatePicker, type IsoDate } from '@lims/ui/components/DatePicker';
@@ -20,6 +21,8 @@ import {
   DAY_MS, KIND_LABEL, KIND_OPTIONS, REASON_LABEL, bookingProblem, dateTime, dmy, num,
   type BlackoutReason, type BookingKind, type Centre, type SlotBlackout, type SlotTemplate,
 } from './booking-model';
+
+const count = (n: number, noun: string) => `${n} ${noun}${n === 1 ? '' : 's'}`;
 
 export interface SlotTemplateBody {
   centre_id: string; booking_kind: BookingKind; weekdays: number[]; start_local: string; end_local: string; slot_minutes: number; capacity: number; effective_from: string; effective_to?: string;
@@ -206,56 +209,59 @@ export function SlotsAdmin({ centres, workingCentreId, today, templates: t0, bla
       {notice ? <Banner tone={notice.tone} title={notice.text} /> : null}
       {failure ? <p role="alert" className="lims-error">{failure}</p> : null}
 
-      <h2 className="lims-section-title">Slot templates</h2>
-      <div className="lims-inline"><Button variant="primary" onPress={() => setForm({ kind: 'template' })}>New template</Button></div>
-      <DataTable
-        caption="Slot templates"
-        cellTitle
-        rows={shownTemplates}
-        getRowId={(t) => t.id}
-        emptyState={{ title: 'No slot templates yet.' }}
-        columns={[
-          { id: 'centre', header: 'Centre', isRowHeader: true, cell: (t) => centreName.get(t.centre_id) ?? '—' },
-          { id: 'type', header: 'Type', cell: (t) => KIND_LABEL[t.booking_kind] ?? t.booking_kind },
-          {
-            id: 'days', header: 'Days', cell: (t) => (
-              <span className="lims-inline">{t.weekdays.map((d) => <StatusChip key={d} kind="generic" status={String(d)} tone="info" size="sm" label={DAYS[d - 1] ?? String(d)} />)}</span>
-            ),
-          },
-          { id: 'hours', header: 'Hours', cell: (t) => `${t.start_local}–${t.end_local}` },
-          { id: 'slot', header: 'Slot (min)', align: 'end', cell: (t) => num(t.slot_minutes) },
-          { id: 'capacity', header: 'Capacity', align: 'end', cell: (t) => num(t.capacity) },
-          { id: 'effective', header: 'Effective', cell: (t) => (t.effective_to ? `${dmy(t.effective_from)} – ${dmy(t.effective_to)}` : `From ${dmy(t.effective_from)}`) },
-          { id: 'active', header: 'Active', cell: (t) => activeChip(t.is_active) },
-          {
-            id: 'actions', header: 'Actions', cell: (t) => (
-              <span className="lims-inline">
-                <Button size="sm" onPress={() => setForm({ kind: 'template', row: t })}>Edit</Button>
-                {t.is_active ? <Button size="sm" variant="ghost" onPress={() => setDeactivate({ kind: 'template', row: t })}>Deactivate</Button> : null}
-              </span>
-            ),
-          },
-        ]}
-      />
+      {/* T0D-UIGUARD-1-ENGAGEMENT (LD-436 R7, LD-439): each section is a kit Card with a title row, no raw heading */}
+      <Card title="Slot templates" caption={count(shownTemplates.length, 'template')}>
+        <div className="lims-inline"><Button variant="primary" onPress={() => setForm({ kind: 'template' })}>New template</Button></div>
+        <DataTable
+          caption="Slot templates"
+          cellTitle
+          rows={shownTemplates}
+          getRowId={(t) => t.id}
+          emptyState={{ title: 'No slot templates yet.' }}
+          columns={[
+            { id: 'centre', header: 'Centre', isRowHeader: true, cell: (t) => centreName.get(t.centre_id) ?? '—' },
+            { id: 'type', header: 'Type', cell: (t) => KIND_LABEL[t.booking_kind] ?? t.booking_kind },
+            {
+              id: 'days', header: 'Days', cell: (t) => (
+                <span className="lims-inline">{t.weekdays.map((d) => <StatusChip key={d} kind="generic" status={String(d)} tone="info" size="sm" label={DAYS[d - 1] ?? String(d)} />)}</span>
+              ),
+            },
+            { id: 'hours', header: 'Hours', cell: (t) => `${t.start_local}–${t.end_local}` },
+            { id: 'slot', header: 'Slot (min)', align: 'end', cell: (t) => num(t.slot_minutes) },
+            { id: 'capacity', header: 'Capacity', align: 'end', cell: (t) => num(t.capacity) },
+            { id: 'effective', header: 'Effective', cell: (t) => (t.effective_to ? `${dmy(t.effective_from)} – ${dmy(t.effective_to)}` : `From ${dmy(t.effective_from)}`) },
+            { id: 'active', header: 'Active', cell: (t) => activeChip(t.is_active) },
+            {
+              id: 'actions', header: 'Actions', cell: (t) => (
+                <span className="lims-inline">
+                  <Button size="sm" onPress={() => setForm({ kind: 'template', row: t })}>Edit</Button>
+                  {t.is_active ? <Button size="sm" variant="ghost" onPress={() => setDeactivate({ kind: 'template', row: t })}>Deactivate</Button> : null}
+                </span>
+              ),
+            },
+          ]}
+        />
+      </Card>
 
-      <h2 className="lims-section-title">Blackouts</h2>
-      <div className="lims-inline"><Button onPress={() => setForm({ kind: 'blackout' })}>Add blackout</Button></div>
-      <DataTable
-        caption="Slot blackouts"
-        cellTitle
-        rows={shownBlackouts}
-        getRowId={(b) => b.id}
-        emptyState={{ title: 'No blackouts.' }}
-        columns={[
-          { id: 'centre', header: 'Centre', isRowHeader: true, cell: (b) => centreName.get(b.centre_id) ?? '—' },
-          { id: 'type', header: 'Type', cell: (b) => (b.booking_kind ? KIND_LABEL[b.booking_kind] : 'All types') },
-          { id: 'period', header: 'Period', cell: (b) => `${dateTime(b.starts_at)} – ${dateTime(b.ends_at)}` },
-          { id: 'reason', header: 'Reason', cell: (b) => REASON_LABEL[b.reason_code] ?? b.reason_code },
-          { id: 'note', header: 'Note', cell: (b) => b.note || '—' },
-          { id: 'active', header: 'Active', cell: (b) => activeChip(b.is_active) },
-          { id: 'actions', header: 'Actions', cell: (b) => (b.is_active ? <Button size="sm" variant="ghost" onPress={() => setDeactivate({ kind: 'blackout', row: b })}>Deactivate</Button> : null) },
-        ]}
-      />
+      <Card title="Blackouts" caption={count(shownBlackouts.length, 'blackout')}>
+        <div className="lims-inline"><Button onPress={() => setForm({ kind: 'blackout' })}>Add blackout</Button></div>
+        <DataTable
+          caption="Slot blackouts"
+          cellTitle
+          rows={shownBlackouts}
+          getRowId={(b) => b.id}
+          emptyState={{ title: 'No blackouts.' }}
+          columns={[
+            { id: 'centre', header: 'Centre', isRowHeader: true, cell: (b) => centreName.get(b.centre_id) ?? '—' },
+            { id: 'type', header: 'Type', cell: (b) => (b.booking_kind ? KIND_LABEL[b.booking_kind] : 'All types') },
+            { id: 'period', header: 'Period', cell: (b) => `${dateTime(b.starts_at)} – ${dateTime(b.ends_at)}` },
+            { id: 'reason', header: 'Reason', cell: (b) => REASON_LABEL[b.reason_code] ?? b.reason_code },
+            { id: 'note', header: 'Note', cell: (b) => b.note || '—' },
+            { id: 'active', header: 'Active', cell: (b) => activeChip(b.is_active) },
+            { id: 'actions', header: 'Actions', cell: (b) => (b.is_active ? <Button size="sm" variant="ghost" onPress={() => setDeactivate({ kind: 'blackout', row: b })}>Deactivate</Button> : null) },
+          ]}
+        />
+      </Card>
 
       {form?.kind === 'template' ? (
         <TemplateForm

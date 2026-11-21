@@ -4,6 +4,8 @@ import { msg, type Tone } from '../_shared/messages';
 export interface TimelineProps {
   /** Shown in the order given (callers sort). */
   items: readonly { at: string; label: string; actor?: string; tone?: Tone }[];
+  /** T0D-UIGUARD-1-ENGAGEMENT (additive, LD-441): accessible name of the list. */
+  'aria-label'?: string;
   'data-testid'?: string;
 }
 

@@ -9,6 +9,9 @@ export interface InlineProps {
   justify?: 'start' | 'center' | 'end' | 'between';
   wrap?: boolean;
   'data-testid'?: string;
+  /** T0D-UIGUARD-1-ANALYTICS (additive, LD-441): a row of chosen items keeps list semantics without a raw ul. */
+  role?: 'list' | 'group';
+  'aria-label'?: string;
 }
 
 const J = { start: 'flex-start', center: 'center', end: 'flex-end', between: 'space-between' } as const;

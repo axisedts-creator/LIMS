@@ -14,14 +14,6 @@ Other groups = LD-434 legacy baseline (CR-C0-0D-UIGUARD-1 option A); the heading
 - /anatomic/cases/[case_id]/labels rule 3: label sheet: print layout of a physical label (label-sheet.css) needs a bold first line
 - /[...slug] rule 1: catch-all placeholder for module routes without a page; not a screen (CR T0D-14)
 
-## T0D-UIGUARD-1-ANALYTICS (5 entries, 5 routes)
-
-- /analytics/collections rule 6: legacy baseline LD-434, fix in T0D-UIGUARD-1-ANALYTICS: rule 6 broken in ReportView.tsx
-- /analytics/referral-incentive rule 6: legacy baseline LD-434, fix in T0D-UIGUARD-1-ANALYTICS: rule 6 broken in ReportView.tsx
-- /analytics/report-runs/[report_run_id] rule 6: legacy baseline LD-434, fix in T0D-UIGUARD-1-ANALYTICS: rule 6 broken in ReportView.tsx
-- /analytics/reports rule 6: legacy baseline LD-434, fix in T0D-UIGUARD-1-ANALYTICS: rule 6 broken in ReportView.tsx
-- /analytics/reports/[reportCode] rule 6: legacy baseline LD-434, fix in T0D-UIGUARD-1-ANALYTICS: rule 6 broken in ReportView.tsx
-
 ## T0D-UIGUARD-1-BILLING (8 entries, 8 routes)
 
 - /billing/accounts/entries rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-BILLING: rule 2 broken in AccountEntriesScreen.tsx, AccountLedgerScreen.tsx, PocketLedgerScreen.tsx, CashTransfersScreen.tsx, DailyCashView.tsx, DailyCollectionScreen.tsx, PartysetCommon.tsx, DiscountSlabsScreen.tsx, ExpensesScreen.tsx
@@ -196,12 +188,6 @@ Other groups = LD-434 legacy baseline (CR-C0-0D-UIGUARD-1 option A); the heading
 - /admin/users rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ADMIN: rule 7 broken in page-kit.tsx, ui.tsx
 - /admin/users/[membership_id] rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ADMIN: rule 7 broken in page-kit.tsx, UserDetailView.tsx, ui.tsx
 - /admin/users/new rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ADMIN: rule 7 broken in page-kit.tsx, ui.tsx
-
-## T0D-UIGUARD-1-ANALYTICS (rule 7: 3 entries)
-
-- /analytics/schedules rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ANALYTICS: rule 7 broken in ScheduleEditor.tsx
-- /analytics/schedules/[schedule_id] rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ANALYTICS: rule 7 broken in ScheduleEditor.tsx
-- /analytics/schedules/new rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ANALYTICS: rule 7 broken in ScheduleEditor.tsx
 
 ## T0D-UIGUARD-1-ANATOMIC (rule 7: 8 entries)
 

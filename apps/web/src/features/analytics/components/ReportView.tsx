@@ -106,7 +106,8 @@ function Body({ s, many, onNext, onPrevious }: { s: Section; many: boolean; onNe
       return many ? <Card title={s.vm.caption}>{table}</Card> : table;
     }
     case 'chart':
-      return <Card><BarChart title={s.title} categories={s.categories} series={s.series} valueFormat={s.format} /></Card>;
+      // T0D-UIGUARD-1-ANALYTICS (LD-436 rule 6, LD-439): every chart sits in ChartCard; same frame as the report hero/side charts
+      return <ReportChart c={{ ...s, kind: 'bar' }} />;
     case 'report':
       // T0D-UIREPORT-2 (LD-353 template 5): equal tile row, then hero (two thirds) and side (one third); .lims-dash-charts is the shared 2:1 row [CONV]
       return (

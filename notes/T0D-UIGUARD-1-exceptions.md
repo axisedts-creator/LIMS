@@ -90,19 +90,6 @@ Other groups = LD-434 legacy baseline (CR-C0-0D-UIGUARD-1 option A); the heading
 - /inventory/unresolved rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-INVENTORY: rule 2 broken in RulesView.tsx
 - /inventory/reports rule 6: legacy baseline LD-434, fix in T0D-UIGUARD-1-INVENTORY: rule 6 broken in ReportBody.tsx
 
-## T0D-UIGUARD-1-LAB (10 entries, 9 routes)
-
-- /lab/orders/[order_id]/labels rule 1: legacy baseline LD-434, fix in T0D-UIGUARD-1-LAB: rule 1 broken in the page itself
-- /lab/worksheets/[worksheet_id] rule 1: legacy baseline LD-434, fix in T0D-UIGUARD-1-LAB: rule 1 broken in the page itself
-- /lab/approval rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-LAB: rule 2 broken in QueueScreen.tsx, PendingPage.tsx, StatusBoard.tsx, WorklistPage.tsx
-- /lab/pending rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-LAB: rule 2 broken in QueueScreen.tsx, PendingPage.tsx, StatusBoard.tsx, WorklistPage.tsx
-- /lab/status-board rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-LAB: rule 2 broken in QueueScreen.tsx, PendingPage.tsx, StatusBoard.tsx, WorklistPage.tsx
-- /lab/verification rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-LAB: rule 2 broken in QueueScreen.tsx, PendingPage.tsx, StatusBoard.tsx, WorklistPage.tsx
-- /lab/worklists/[department_id] rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-LAB: rule 2 broken in QueueScreen.tsx, PendingPage.tsx, StatusBoard.tsx, WorklistPage.tsx
-- /lab/orders/[order_id]/results rule 5: legacy baseline LD-434, fix in T0D-UIGUARD-1-LAB: rule 5 broken in ResultPanels.tsx, DeltaRulesTab.tsx, QcHoldsTab.tsx
-- /lab/settings rule 5: legacy baseline LD-434, fix in T0D-UIGUARD-1-LAB: rule 5 broken in ResultPanels.tsx, DeltaRulesTab.tsx, QcHoldsTab.tsx
-- /lab/orders/[order_id]/results rule 6: legacy baseline LD-434, fix in T0D-UIGUARD-1-LAB: rule 6 broken in ResultPanels.tsx
-
 ## T0D-UIGUARD-1-OFFLINE (2 entries, 1 routes)
 
 - /offline rule 1: legacy baseline LD-434, fix in T0D-UIGUARD-1-OFFLINE: rule 1 broken in the page itself
@@ -229,18 +216,6 @@ Other groups = LD-434 legacy baseline (CR-C0-0D-UIGUARD-1 option A); the heading
 - /inventory/stock rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-INVENTORY: rule 7 broken in StockView.tsx, IssueDrawer.tsx
 - /inventory/unresolved rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-INVENTORY: rule 7 broken in UnresolvedView.tsx, consoleParts.tsx
 - /inventory/wastage rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-INVENTORY: rule 7 broken in IssueDrawer.tsx
-
-## T0D-UIGUARD-1-LAB (rule 7: 9 entries)
-
-- /lab/approval rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-LAB: rule 7 broken in QueueScreen.tsx, consoleParts.tsx, ResultDialogs.tsx
-- /lab/critical-values rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-LAB: rule 7 broken in CriticalValueList.tsx, consoleParts.tsx
-- /lab/ingest-exceptions rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-LAB: rule 7 broken in IngestExceptionList.tsx, consoleParts.tsx
-- /lab/orders/[order_id]/labels rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-LAB: rule 7 broken in LabelPage.tsx
-- /lab/orders/[order_id]/results rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-LAB: rule 7 broken in CommentCell.tsx, ResultDialogs.tsx, ResultPanels.tsx
-- /lab/settings rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-LAB: rule 7 broken in VerificationPolicyTab.tsx
-- /lab/specimens/[specimen_id] rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-LAB: rule 7 broken in SpecimenDetail.tsx
-- /lab/verification rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-LAB: rule 7 broken in QueueScreen.tsx, consoleParts.tsx, ResultDialogs.tsx
-- /lab/worksheets/[worksheet_id] rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-LAB: rule 7 broken in WorksheetPrintPage.tsx
 
 ## T0D-UIGUARD-1-MICRO (rule 7: 6 entries)
 

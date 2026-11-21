@@ -97,13 +97,14 @@ export function CommentCell({ label = 'Comment', defaultValue = '', defaultCodes
               else if (e.key === 'ArrowUp') { e.preventDefault(); setPicker({ ...picker, active: Math.max(picker.active - 1, 0) }); }
               else if (e.key === 'Enter') { e.preventDefault(); const c = picker.items[picker.active]; if (c) pick(c); }
             }} />
-          <ul id={listId} role="listbox" aria-label="Comment codes">
+          {/* T0D-UIGUARD-1-LAB (LD-436 rule 7): the listbox widget without a raw ul (same roles) */}
+          <div id={listId} role="listbox" aria-label="Comment codes">
             {picker.items.map((c, i) => (
-              <li key={c.code} role="option" aria-selected={i === picker.active} onMouseDown={(e) => e.preventDefault()} onClick={() => pick(c)}>
+              <div key={c.code} role="option" aria-selected={i === picker.active} onMouseDown={(e) => e.preventDefault()} onClick={() => pick(c)}>
                 <strong>{c.code}</strong> {c.text}
-              </li>
+              </div>
             ))}
-          </ul>
+          </div>
         </div>
       )}
     </div>

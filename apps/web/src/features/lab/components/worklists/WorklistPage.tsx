@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@lims/ui/components/Button';
 import { Card } from '@lims/ui/components/Card';
 import { Dialog } from '@lims/ui/components/Dialog';
+import { FilterBar } from '@lims/ui/components/FilterBar';
 import { Grid } from '@lims/ui/components/Grid';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { TextField } from '@lims/ui/components/TextField';
@@ -55,7 +56,8 @@ export function WorklistPage({ departmentId, permissions }: { departmentId: stri
       {/* T0D-UILIST-1 (LD-353 template 1, rule 8): title = the menu label in the PageHeader, the one primary action at right; filters in one filter row */}
       <PageHeader title={t('lab.nav.worklists')} helpKey="lab.worklists"
         {...(canManage ? { actions: <Button variant="primary" isDisabled={selected.size === 0} onPress={() => setCreating(true)}>Create worksheet</Button> } : {})} />
-      <div role="search" className="lims-filter-bar">
+      {/* T0D-UIGUARD-1-LAB (LD-353 rule 2, LD-441): the kit FilterBar row around the two selects */}
+      <FilterBar>
         <label className="lims-field">Priority
           <select className="lims-input" value={priority} onChange={(e) => setPriority(e.target.value)}>
             <option value="">All</option><option value="urgent">★ Urgent</option><option value="routine">Routine</option>
@@ -69,7 +71,7 @@ export function WorklistPage({ departmentId, permissions }: { departmentId: stri
             </select>
           </label>
         ) : null}
-      </div>
+      </FilterBar>
       {/* T0D-EMPTYTBL-1 (LD-310) + T0D-UILIST-1 (LD-353 rules 5, 6): the table is always drawn once loaded; empty, failure and not-available sit in its body. */}
       {load.s !== 'loading' ? (
         <Grid columns={2}>

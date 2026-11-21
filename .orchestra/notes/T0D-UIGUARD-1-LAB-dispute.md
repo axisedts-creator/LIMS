@@ -1,0 +1,7 @@
+# T0D-UIGUARD-1-LAB dispute (writer)
+TESTS_WRONG: two tests pin the raw h3/ul/li markup that done_when (6) and LD-439 (b) require removing. Guard uiguard1 is green (36/36) with the writer fix; these break only because they find elements by tag.
+1. apps/web/src/__tests__/uiconsole1.helpers.ts:45-46 `historyOf` finds the History heading by tag `h2, h3, h4` and the events by `li` in its parent. consoleParts.tsx History now is `p role=heading aria-level=3` + `div role=list/listitem` (same roles, no raw h3/ul). Fails 8 tests in features/lab/__tests__/uiconsole1.lab.test.tsx (critical-values, ingest-exceptions History). Proposed: `'h2, h3, h4, [role=heading]'` and `'li, [role=listitem]'`.
+2. apps/web/src/features/lab/__tests__/verlevel1.queues.test.tsx:183 (and the approval twin) `.closest('li')` on the signer row. QueueScreen SignoffCell list is now `div role=list/listitem` (aria-label "Signed by" kept). Fails 2 tests (verlevel1 config and uiconsole2 config). Proposed: `.closest('li, [role=listitem]')`.
+No kit part draws a heading whose parent also holds a list, so the markup cannot satisfy both the guard and these selectors.
+Seen failing, not caused by this diff (files untouched): lab-t26.worklists 3 (row counts with header row), lab-t25.qc 1 (QC results alert), adminpage-lab-1 1 (25 s timeout), rs-c5.screens receive + collect snapshots. rs-c5 worklist snapshot: writer re-records after the above are settled (LD-440).
+Not run yet (sweep hit time limit): uilist1, uilist2, uiset1, sec-hyg1, uidash2 configs.

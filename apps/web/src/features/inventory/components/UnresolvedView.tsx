@@ -8,6 +8,7 @@
 import { useRef, useState, type ComponentProps } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@lims/ui/components/Button';
+import { Card } from '@lims/ui/components/Card';
 import { EmptyRow, PlaceholderRows } from '@lims/ui/components/DataTable';
 import { DateText } from '@lims/ui/components/DateText';
 import { Dialog } from '@lims/ui/components/Dialog';
@@ -99,8 +100,8 @@ export function UnresolvedView(p: UnresolvedViewProps) {
   );
 
   const detail = sel ? (
-    <>
-      <h2>{kind(sel)}</h2>
+    // T0D-UIGUARD-1-INVENTORY (LD-436 R7): the detail is a kit Card with a title row, no raw h2.
+    <Card title={kind(sel)}>
       <Facts items={[
         ['Occurred', sel.occurred_at ? <DateText key="o" value={sel.occurred_at as IsoUtc} withTime /> : '—'],
         ['Kind', kind(sel)],
@@ -109,7 +110,7 @@ export function UnresolvedView(p: UnresolvedViewProps) {
         ['Reason', <Chip key="r" tone="warning" label="No store found" />],
       ]} />
       <History events={sel.occurred_at ? [['Occurred', sel.occurred_at] as const] : []} />
-    </>
+    </Card>
   ) : <p>Select a waiting record to see it here.</p>;
 
   // T0D-UICONSOLE-1: the row actions the table had (inventory.master.manage only), now for the selected record; P runs the first one.

@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { BarcodeInput } from '@lims/ui/components/BarcodeInput';
 import { Button } from '@lims/ui/components/Button';
+import { Card } from '@lims/ui/components/Card'; // T0D-UIGUARD-1-INVENTORY (LD-436 R7): form blocks are Cards with a title row, no raw h2
 import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
 import { DateTimePicker, type DateTimePickerProps } from '@lims/ui/components/DateTimePicker';
 import { DecimalField } from '@lims/ui/components/DecimalField';
@@ -213,9 +214,9 @@ function OpenForm({ storeId, items, instruments }: BenchViewProps) {
   };
 
   return (
+    <Card title="Open container">
     <form aria-label="Open container" noValidate onSubmit={(e) => e.preventDefault()}>
       <Stack>
-        <h2 className="lims-card-title">Open container</h2>
         <ProblemBanner problem={problem} />
         <BarcodeInput label="Scan item barcode" name="scan" pattern={BARCODE_VALUE} autoFocus={false} onScan={(v) => void onScan(v)} />
         {scanMsg ? <p role="status">{scanMsg}</p> : null}
@@ -227,6 +228,7 @@ function OpenForm({ storeId, items, instruments }: BenchViewProps) {
         </div>
       </Stack>
     </form>
+    </Card>
   );
 }
 
@@ -301,9 +303,9 @@ function LogForm({ instruments, tests, calibrationReasons }: BenchViewProps) {
 
   const serverTime = fieldMessage(problem, '/occurred_at');
   return (
+    <Card title="Log calibration or manual QC">
     <form key={formKey} aria-label="Log calibration or manual QC" noValidate onSubmit={(e) => e.preventDefault()}>
       <Stack>
-        <h2 className="lims-card-title">Log calibration or manual QC</h2>
         <ProblemBanner problem={problem} />
         <RadioGroup label="Kind" name="fact_kind" orientation="horizontal" value={kind} onChange={setKind} options={[{ value: 'calibration', label: 'Calibration' }, { value: 'qc', label: 'QC' }]} />
         <Pick label="Analyser" name="instrument_id" isRequired={kind === 'calibration'} options={instruments.map((i) => ({ value: i.id, label: `${i.instrument_code} — ${i.display_name}` }))} value={instrument} error={errors['instrument']} onChange={setInstrument} />
@@ -318,5 +320,6 @@ function LogForm({ instruments, tests, calibrationReasons }: BenchViewProps) {
         </div>
       </Stack>
     </form>
+    </Card>
   );
 }

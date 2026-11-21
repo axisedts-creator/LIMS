@@ -6,8 +6,6 @@ Other groups = LD-434 legacy baseline (CR-C0-0D-UIGUARD-1 option A); the heading
 
 ## STANDING (7 entries, 5 routes)
 
-- /admin/* rule 2: pinned: access-log, audit, sessions and users build their own filter row under app/(staff)/admin on the pinned page-kit (rs-c2.static pins features/admin); only shared kit fixes apply
-- /admin/* rule 1: pinned: heading comes from features/admin/server/page-kit Frame (rs-c2.static pins features/admin); only shared kit fixes apply
 - /frontdesk/registrations/new rule 3: registration entry form: frontdesk.css bold totals and registration number (template 6)
 - /frontdesk/registrations/new rule 5: registration entry form: the test line grid is an entry grid, not a list (template 6)
 - /frontdesk/orders/[order_id] rule 3: registration entry form: shares frontdesk.css with the registration entry form
@@ -61,39 +59,12 @@ Other groups = LD-434 legacy baseline (CR-C0-0D-UIGUARD-1 option A); the heading
 - /catalog/units rule 3: legacy baseline LD-434, fix in T0D-UIGUARD-1-CATALOG: rule 3 broken in catalog.css
 - /catalog/tests/[test_id] rule 5: legacy baseline LD-434, fix in T0D-UIGUARD-1-CATALOG: rule 5 broken in AnalytesTab.tsx
 
-## T0D-UIGUARD-1-ENGAGEMENT (7 entries, 4 routes)
-
-- /engagement/enquiries rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-ENGAGEMENT: rule 2 broken in EnquiriesView.tsx, RemindersView.tsx
-- /engagement/enquiries/[enquiry_id] rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-ENGAGEMENT: rule 2 broken in EnquiriesView.tsx, RemindersView.tsx
-- /engagement/reminders rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-ENGAGEMENT: rule 2 broken in EnquiriesView.tsx, RemindersView.tsx
-- /engagement/enquiries rule 4: legacy baseline LD-434, fix in T0D-UIGUARD-1-ENGAGEMENT: rule 4 broken in the page itself
-- /engagement/enquiries/[enquiry_id] rule 4: legacy baseline LD-434, fix in T0D-UIGUARD-1-ENGAGEMENT: rule 4 broken in the page itself
-- /engagement/memberships rule 4: legacy baseline LD-434, fix in T0D-UIGUARD-1-ENGAGEMENT: rule 4 broken in the page itself
-- /engagement/reminders rule 4: legacy baseline LD-434, fix in T0D-UIGUARD-1-ENGAGEMENT: rule 4 broken in the page itself
-
 ## T0D-UIGUARD-1-FRONTDESK (4 entries, 2 routes)
 
 - /frontdesk/orders/[order_id] rule 4: legacy baseline LD-434, fix in T0D-UIGUARD-1-FRONTDESK: rule 4 broken in the page itself
 - /frontdesk/patients/[patient_id] rule 4: legacy baseline LD-434, fix in T0D-UIGUARD-1-FRONTDESK: rule 4 broken in the page itself
 - /frontdesk/orders/[order_id] rule 5: legacy baseline LD-434, fix in T0D-UIGUARD-1-FRONTDESK: rule 5 broken in OrderView.tsx, PatientView.tsx
 - /frontdesk/patients/[patient_id] rule 5: legacy baseline LD-434, fix in T0D-UIGUARD-1-FRONTDESK: rule 5 broken in OrderView.tsx, PatientView.tsx
-
-## T0D-UIGUARD-1-HOMECOLLECTION (2 entries, 1 routes)
-
-- /homecollection/dispatch rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-HOMECOLLECTION: rule 2 broken in DispatchBoard.tsx
-- /homecollection/dispatch rule 5: legacy baseline LD-434, fix in T0D-UIGUARD-1-HOMECOLLECTION: rule 5 broken in DispatchBoard.tsx
-
-## T0D-UIGUARD-1-INVENTORY (4 entries, 3 routes)
-
-- /inventory/reports rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-INVENTORY: rule 2 broken in RulesView.tsx
-- /inventory/rules rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-INVENTORY: rule 2 broken in RulesView.tsx
-- /inventory/unresolved rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-INVENTORY: rule 2 broken in RulesView.tsx
-- /inventory/reports rule 6: legacy baseline LD-434, fix in T0D-UIGUARD-1-INVENTORY: rule 6 broken in ReportBody.tsx
-
-## T0D-UIGUARD-1-OFFLINE (2 entries, 1 routes)
-
-- /offline rule 1: legacy baseline LD-434, fix in T0D-UIGUARD-1-OFFLINE: rule 1 broken in the page itself
-- /offline rule 4: legacy baseline LD-434, fix in T0D-UIGUARD-1-OFFLINE: rule 4 broken in the page itself
 
 ## T0D-UIGUARD-1-PARTNERS (18 entries, 18 routes)
 
@@ -132,27 +103,6 @@ Other groups = LD-434 legacy baseline (CR-C0-0D-UIGUARD-1 option A); the heading
 
 - /[...slug] rule 7: catch-all placeholder for module routes without a page; not a screen (CR T0D-14): raw h1 in page.tsx
 
-## T0D-UIGUARD-1-ADMIN (rule 7: 18 entries)
-
-- /admin/access-log rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ADMIN: rule 7 broken in page-kit.tsx, ui.tsx
-- /admin/access-review rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ADMIN: rule 7 broken in page-kit.tsx
-- /admin/audit rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ADMIN: rule 7 broken in page-kit.tsx, ui.tsx
-- /admin/audit/[audit_id] rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ADMIN: rule 7 broken in page-kit.tsx
-- /admin/branches rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ADMIN: rule 7 broken in page-kit.tsx, OrgUnits.tsx, ui.tsx
-- /admin/centres rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ADMIN: rule 7 broken in page-kit.tsx, OrgUnits.tsx, ui.tsx
-- /admin/exports rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ADMIN: rule 7 broken in page-kit.tsx, ExportsScreen.tsx, ui.tsx
-- /admin/me rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ADMIN: rule 7 broken in page-kit.tsx, MyAccount.tsx, ui.tsx
-- /admin/roles rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ADMIN: rule 7 broken in page-kit.tsx
-- /admin/roles/[role_id] rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ADMIN: rule 7 broken in page-kit.tsx, RoleEditor.tsx, ui.tsx
-- /admin/roles/new rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ADMIN: rule 7 broken in page-kit.tsx, RoleEditor.tsx, ui.tsx
-- /admin/roles/packs rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ADMIN: rule 7 broken in page-kit.tsx
-- /admin/sessions rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ADMIN: rule 7 broken in page-kit.tsx, ui.tsx
-- /admin/settings rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ADMIN: rule 7 broken in page-kit.tsx, SettingsScreen.tsx, ui.tsx
-- /admin/support-access rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ADMIN: rule 7 broken in page-kit.tsx, SupportAccess.tsx, ui.tsx
-- /admin/users rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ADMIN: rule 7 broken in page-kit.tsx, ui.tsx
-- /admin/users/[membership_id] rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ADMIN: rule 7 broken in page-kit.tsx, UserDetailView.tsx, ui.tsx
-- /admin/users/new rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ADMIN: rule 7 broken in page-kit.tsx, ui.tsx
-
 ## T0D-UIGUARD-1-ANATOMIC (rule 7: 8 entries)
 
 - /anatomic rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ANATOMIC: rule 7 broken in AnatomicForbidden.tsx
@@ -189,18 +139,6 @@ Other groups = LD-434 legacy baseline (CR-C0-0D-UIGUARD-1 option A); the heading
 - /catalog/tests/[test_id] rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-CATALOG: rule 7 broken in ParameterForm.tsx, RangesTab.tsx, TestHeader.tsx, compact-ui.tsx
 - /catalog/units rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-CATALOG: rule 7 broken in CatalogForbidden.tsx, master-ui.tsx
 
-## T0D-UIGUARD-1-ENGAGEMENT (rule 7: 9 entries)
-
-- /engagement/bookable-items rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ENGAGEMENT: rule 7 broken in BookingDetail.tsx, BookingNew.tsx, SlotsAdmin.tsx
-- /engagement/bookings rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ENGAGEMENT: rule 7 broken in BookingDetail.tsx, BookingNew.tsx, SlotsAdmin.tsx
-- /engagement/bookings/[booking_id] rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ENGAGEMENT: rule 7 broken in BookingDetail.tsx, BookingNew.tsx, SlotsAdmin.tsx
-- /engagement/bookings/new rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ENGAGEMENT: rule 7 broken in BookingDetail.tsx, BookingNew.tsx, SlotsAdmin.tsx
-- /engagement/content rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ENGAGEMENT: rule 7 broken in ProfileImages.tsx
-- /engagement/enquiries/[enquiry_id] rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ENGAGEMENT: rule 7 broken in EnquiryThread.tsx
-- /engagement/messages/broadcasts rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ENGAGEMENT: rule 7 broken in Broadcasts.tsx
-- /engagement/settings rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ENGAGEMENT: rule 7 broken in SettingsView.tsx
-- /engagement/slots rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ENGAGEMENT: rule 7 broken in BookingDetail.tsx, BookingNew.tsx, SlotsAdmin.tsx
-
 ## T0D-UIGUARD-1-FRONTDESK (rule 7: 5 entries)
 
 - /frontdesk/discount-approvals rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-FRONTDESK: rule 7 broken in DiscountApprovalsInbox.tsx
@@ -208,14 +146,6 @@ Other groups = LD-434 legacy baseline (CR-C0-0D-UIGUARD-1 option A); the heading
 - /frontdesk/patients/[patient_id] rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-FRONTDESK: rule 7 broken in PatientView.tsx
 - /frontdesk/registrations/new rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-FRONTDESK: rule 7 broken in RegistrationForm.tsx, ReceiptPrintView.tsx, accountsShared.tsx, InvoiceDocument.tsx
 - /frontdesk/settings rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-FRONTDESK: rule 7 broken in SettingsView.tsx
-
-## T0D-UIGUARD-1-INVENTORY (rule 7: 5 entries)
-
-- /inventory/bench rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-INVENTORY: rule 7 broken in BenchView.tsx
-- /inventory/reports rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-INVENTORY: rule 7 broken in ReportBody.tsx
-- /inventory/stock rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-INVENTORY: rule 7 broken in StockView.tsx, IssueDrawer.tsx
-- /inventory/unresolved rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-INVENTORY: rule 7 broken in UnresolvedView.tsx, consoleParts.tsx
-- /inventory/wastage rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-INVENTORY: rule 7 broken in IssueDrawer.tsx
 
 ## T0D-UIGUARD-1-MICRO (rule 7: 6 entries)
 
@@ -225,10 +155,6 @@ Other groups = LD-434 legacy baseline (CR-C0-0D-UIGUARD-1 option A); the heading
 - /micro/instrument-records rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-MICRO: rule 7 broken in MicroForbidden.tsx
 - /micro/settings rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-MICRO: rule 7 broken in MicroForbidden.tsx, DictionariesTab.tsx, MappingsTab.tsx, PanelsTab.tsx, ProtocolsTab.tsx
 - /micro/worklist rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-MICRO: rule 7 broken in MicroForbidden.tsx, ChooseCultureDialog.tsx
-
-## T0D-UIGUARD-1-OFFLINE (rule 7: 1 entries)
-
-- /offline rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-OFFLINE: rule 7 broken in OfflinePanel.tsx, OfflineShell.tsx
 
 ## T0D-UIGUARD-1-PARTNERS (rule 7: 2 entries)
 

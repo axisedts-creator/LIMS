@@ -10,7 +10,7 @@ import type { IsoDate } from '../_shared/dates';
 
 export type FilterDef = { id: string; label: string } & (
   | { kind: 'select'; options: readonly { value: string; label: string }[]; multiple?: boolean }
-  | { kind: 'date_range' }
+  | { kind: 'date_range'; /** T0D-UIGUARD-1-ENGAGEMENT (additive, LD-441): longest span, both ends inclusive (DateRangePicker maxDays). */ maxDays?: number }
   | { kind: 'text'; maxLength: number }
   | { kind: 'coded'; codedSet: string; options: readonly { code: string; display: string }[] }
 );
@@ -85,6 +85,7 @@ export function FilterBar({ filters = NO_FILTERS, value = {}, onChange = noop, o
               key={key}
               label={f.label}
               name={f.id}
+              {...(f.maxDays !== undefined ? { maxDays: f.maxDays } : {})}
               {...(from && to ? { value: { from, to } } : {})}
               onChange={(r) => set(f.id, r ? [r.from, r.to] : undefined)}
             />

@@ -99,12 +99,9 @@ export function StockView(p: StockViewProps) {
           onReset={filters.onReset}
         />
         <Card title="In transit">
+          {/* T0D-UIGUARD-1-INVENTORY (LD-436 R7): one line per transfer, plain paragraphs instead of a raw ul (one grid per page stays the stock table). */}
           {inTransit.length ? (
-            <ul>
-              {inTransit.map((t) => (
-                <li key={t.id}>{`${t.transfer_no}: ${storeName(t.from_store_id)} to ${storeName(t.to_store_id)}, dispatched ${isoDate(t.dispatched_at)}`}</li>
-              ))}
-            </ul>
+            inTransit.map((t) => <p key={t.id}>{`${t.transfer_no}: ${storeName(t.from_store_id)} to ${storeName(t.to_store_id)}, dispatched ${isoDate(t.dispatched_at)}`}</p>)
           ) : (
             <p>No transfers on the way.</p>
           )}

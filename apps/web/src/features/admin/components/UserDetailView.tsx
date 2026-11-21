@@ -8,6 +8,7 @@ import { Button } from '@lims/ui/components/Button';
 import { ConfirmDialog } from '@lims/ui/components/ConfirmDialog';
 import { Dialog } from '@lims/ui/components/Dialog';
 import { Menu } from '@lims/ui/components/Menu';
+import { PageHeader } from '@lims/ui/components/PageHeader';
 import { useToast } from '@lims/ui/components/Toast';
 import { revokeSession, setUserCentreScope, setUserRoles, updateUser, uploadUserSignature, userAction, userHistory, type UserOp } from '../actions';
 import { Badge, Grid, Time } from '../Grid';
@@ -55,14 +56,10 @@ export function UserDetailView({ user: initial, perms, roles, centres, branches,
 
   return (
     <main className="lims-page">
-      <header className="lims-page-header">
-        <h1>{user.display_name}</h1>
-        <p>
-          <Badge text={STATUS_LABEL[user.status] ?? user.status} />
-          {user.is_locked ? <> <Badge text="Locked" /></> : null}
-        </p>
-        {items.length ? <Menu trigger={<Button>Actions</Button>} items={items} onAction={(k) => setDialog(k as UserOp)} /> : null}
-      </header>
+      {/* T0D-UIGUARD-1-ADMIN (LD-439): kit PageHeader; status words in its status slot, the actions menu on the right */}
+      <PageHeader title={user.display_name} helpKey="admin.user-detail"
+        status={<><Badge text={STATUS_LABEL[user.status] ?? user.status} />{user.is_locked ? <> <Badge text="Locked" /></> : null}</>}
+        {...(items.length ? { actions: <Menu trigger={<Button>Actions</Button>} items={items} onAction={(k) => setDialog(k as UserOp)} /> } : {})} />
       <Tabs items={tabs} selected={tab} onChange={setTab} label="User sections">
         {tab === 'Profile' ? <ProfileTab user={user} manage={manage} onSaved={applied} /> : null}
         {tab === 'Roles' ? <RolesTab user={user} roles={roles} manage={manage} onSaved={applied} /> : null}

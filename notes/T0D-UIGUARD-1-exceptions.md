@@ -59,16 +59,6 @@ Other groups = LD-434 legacy baseline (CR-C0-0D-UIGUARD-1 option A); the heading
 - /catalog/units rule 3: legacy baseline LD-434, fix in T0D-UIGUARD-1-CATALOG: rule 3 broken in catalog.css
 - /catalog/tests/[test_id] rule 5: legacy baseline LD-434, fix in T0D-UIGUARD-1-CATALOG: rule 5 broken in AnalytesTab.tsx
 
-## T0D-UIGUARD-1-ENGAGEMENT (7 entries, 4 routes)
-
-- /engagement/enquiries rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-ENGAGEMENT: rule 2 broken in EnquiriesView.tsx, RemindersView.tsx
-- /engagement/enquiries/[enquiry_id] rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-ENGAGEMENT: rule 2 broken in EnquiriesView.tsx, RemindersView.tsx
-- /engagement/reminders rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-ENGAGEMENT: rule 2 broken in EnquiriesView.tsx, RemindersView.tsx
-- /engagement/enquiries rule 4: legacy baseline LD-434, fix in T0D-UIGUARD-1-ENGAGEMENT: rule 4 broken in the page itself
-- /engagement/enquiries/[enquiry_id] rule 4: legacy baseline LD-434, fix in T0D-UIGUARD-1-ENGAGEMENT: rule 4 broken in the page itself
-- /engagement/memberships rule 4: legacy baseline LD-434, fix in T0D-UIGUARD-1-ENGAGEMENT: rule 4 broken in the page itself
-- /engagement/reminders rule 4: legacy baseline LD-434, fix in T0D-UIGUARD-1-ENGAGEMENT: rule 4 broken in the page itself
-
 ## T0D-UIGUARD-1-FRONTDESK (4 entries, 2 routes)
 
 - /frontdesk/orders/[order_id] rule 4: legacy baseline LD-434, fix in T0D-UIGUARD-1-FRONTDESK: rule 4 broken in the page itself
@@ -178,18 +168,6 @@ Other groups = LD-434 legacy baseline (CR-C0-0D-UIGUARD-1 option A); the heading
 - /catalog/tests rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-CATALOG: rule 7 broken in CatalogForbidden.tsx, TestDetailsView.tsx, compact-ui.tsx, master-ui.tsx
 - /catalog/tests/[test_id] rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-CATALOG: rule 7 broken in ParameterForm.tsx, RangesTab.tsx, TestHeader.tsx, compact-ui.tsx
 - /catalog/units rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-CATALOG: rule 7 broken in CatalogForbidden.tsx, master-ui.tsx
-
-## T0D-UIGUARD-1-ENGAGEMENT (rule 7: 9 entries)
-
-- /engagement/bookable-items rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ENGAGEMENT: rule 7 broken in BookingDetail.tsx, BookingNew.tsx, SlotsAdmin.tsx
-- /engagement/bookings rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ENGAGEMENT: rule 7 broken in BookingDetail.tsx, BookingNew.tsx, SlotsAdmin.tsx
-- /engagement/bookings/[booking_id] rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ENGAGEMENT: rule 7 broken in BookingDetail.tsx, BookingNew.tsx, SlotsAdmin.tsx
-- /engagement/bookings/new rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ENGAGEMENT: rule 7 broken in BookingDetail.tsx, BookingNew.tsx, SlotsAdmin.tsx
-- /engagement/content rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ENGAGEMENT: rule 7 broken in ProfileImages.tsx
-- /engagement/enquiries/[enquiry_id] rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ENGAGEMENT: rule 7 broken in EnquiryThread.tsx
-- /engagement/messages/broadcasts rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ENGAGEMENT: rule 7 broken in Broadcasts.tsx
-- /engagement/settings rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ENGAGEMENT: rule 7 broken in SettingsView.tsx
-- /engagement/slots rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ENGAGEMENT: rule 7 broken in BookingDetail.tsx, BookingNew.tsx, SlotsAdmin.tsx
 
 ## T0D-UIGUARD-1-FRONTDESK (rule 7: 5 entries)
 

@@ -4,8 +4,10 @@
 import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@lims/ui/components/Button';
+import { Card } from '@lims/ui/components/Card';
 import { Checkbox } from '@lims/ui/components/Checkbox';
 import { ConfirmDialog } from '@lims/ui/components/ConfirmDialog';
+import { DataTable, EmptyRow, PlaceholderRows, type ColumnDef } from '@lims/ui/components/DataTable';
 import { Dialog } from '@lims/ui/components/Dialog';
 import { Form } from '@lims/ui/components/Form';
 import { RadioGroup } from '@lims/ui/components/RadioGroup';
@@ -35,6 +37,19 @@ const firstStyle = (prints: readonly InvoicePrintRow[]): PrintStyle | undefined 
   const first = [...prints].sort((a, b) => a.print_no - b.print_no)[0];
   return first ? (isStyle(first.style) ? first.style : 'full') : undefined;
 };
+
+const CREDIT_COLUMNS: ColumnDef<CreditNoteSummary>[] = [
+  { id: 'no', header: 'Credit note', isRowHeader: true, cell: (c) => c.credit_note_no },
+  { id: 'kind', header: 'Kind', cell: (c) => humanize(c.kind) },
+  { id: 'date', header: 'Date', cell: (c) => <BsAd bs={c.credit_note_date_bs} utc={c.issued_at} /> },
+];
+type CbmsRow = InvoiceDetail['cbms_submissions'][number] & { n: number };
+const CBMS_COLUMNS: ColumnDef<CbmsRow>[] = [
+  { id: 'document', header: 'Document', isRowHeader: true, cell: (s) => humanize(s.document_kind) },
+  { id: 'attempt', header: 'Attempt', numeric: true, cell: (s) => s.attempt_no },
+  { id: 'outcome', header: 'Outcome', cell: (s) => s.outcome },
+  { id: 'time', header: 'Time', cell: (s) => <Ad value={s.submitted_at} withTime /> },
+];
 
 export function InvoiceDetailView({ invoice, prints, creditNotes, permissions }: { invoice: InvoiceDetail; prints: readonly InvoicePrintRow[]; creditNotes: readonly CreditNoteSummary[]; permissions: readonly string[] }) {
   const router = useRouter();
@@ -87,39 +102,37 @@ export function InvoiceDetailView({ invoice, prints, creditNotes, permissions }:
         <div className="lims-invoice-detail-doc">
           <InvoiceDocument document={invoice} />
         </div>
+        {/* T0D-UIGUARD-1-BILLING (LD-353 rule 5, LD-436 R7, LD-439): each side block is a Card with a title row and a DataTable that keeps its header when empty. */}
         <aside aria-label="Invoice history" className="lims-invoice-detail-side">
-          <h2>Print history</h2>
-          {prints.length === 0 ? <p>Not printed yet.</p> : (
+          <Card title="Print history">
+            {/* native table (printcfg1.invoice pins role table); empty = kit EmptyRow + PlaceholderRows, the header stays */}
             <table>
               <caption>Print history</caption>
               <thead><tr><th scope="col">No</th><th scope="col">Type</th><th scope="col">Style</th><th scope="col">By</th><th scope="col">Time</th><th scope="col">Reason</th></tr></thead>
               <tbody>
-                {prints.map((p) => (
+                {prints.length ? prints.map((p) => (
                   <tr key={p.print_no}>
                     <td>{p.print_no}</td><td>{p.is_copy ? 'Copy' : 'Original'}</td><td>{STYLE_LABEL[isStyle(p.style) ? p.style : 'full']}</td><td>{p.printed_by_display}</td>
                     <td><Ad value={p.printed_at} withTime /></td><td>{humanize(p.reason_code)}</td>
                   </tr>
-                ))}
+                )) : <EmptyRow colSpan={6}>Not printed yet.</EmptyRow>}
               </tbody>
+              {prints.length ? null : <PlaceholderRows colSpan={6} />}
             </table>
-          )}
-          <h2>Credit notes</h2>
-          {creditNotes.length === 0 ? <p>No credit notes.</p> : (
-            <ul>{creditNotes.map((c) => <li key={c.id}>{c.credit_note_no} — {humanize(c.kind)} — <BsAd bs={c.credit_note_date_bs} utc={c.issued_at} /></li>)}</ul>
-          )}
-          <h2>CBMS</h2>
-          <p>{cbmsLabel(invoice.cbms_state)}</p>
-          {invoice.cbms_submissions.length === 0 ? null : (
-            <table>
-              <caption>CBMS submissions</caption>
-              <thead><tr><th scope="col">Document</th><th scope="col">Attempt</th><th scope="col">Outcome</th><th scope="col">Time</th></tr></thead>
-              <tbody>
-                {invoice.cbms_submissions.map((s, n) => (
-                  <tr key={n}><td>{humanize(s.document_kind)}</td><td>{s.attempt_no}</td><td>{s.outcome}</td><td><Ad value={s.submitted_at} withTime /></td></tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+          </Card>
+          <Card title="Credit notes">
+            <DataTable caption="Credit notes" density="compact" columns={CREDIT_COLUMNS} rows={creditNotes} getRowId={(c) => c.id} emptyState={{ title: 'No credit notes.' }} />
+          </Card>
+          <Card title="CBMS" caption={cbmsLabel(invoice.cbms_state)}>
+            <DataTable
+              caption="CBMS submissions"
+              density="compact"
+              columns={CBMS_COLUMNS}
+              rows={invoice.cbms_submissions.map((s, n) => ({ ...s, n }))}
+              getRowId={(s) => String(s.n)}
+              emptyState={{ title: 'No CBMS submissions.' }}
+            />
+          </Card>
         </aside>
       </div>
 

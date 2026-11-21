@@ -139,7 +139,7 @@ export function PrintStationery({ permissions, initialKind }: { permissions: rea
         {canEdit ? <Button variant="primary" isLoading={busy} isDisabled={!profiles} onPress={() => void save()}>Save print settings</Button> : <p className="lims-description">Read only: you do not have the permission to change these settings.</p>}
       </div>
       <section aria-label="Preview" className="lims-card">
-        <h3>Preview</h3>
+        <p role="heading" aria-level={3} className="lims-card-title">Preview</p>
         {preview.state === 'ready' ? <iframe title="A4 preview with sample data" src={`/reporting/prints/${preview.id}/pdf`} className="pcfg-preview-frame" />
           : preview.state === 'failed' ? <p role="alert" className="lims-error">Could not prepare the preview. Your changes are not lost; edit or save as usual.</p>
             : canEdit ? <p className="lims-description">Preparing preview…</p> : <p className="lims-description">The preview needs the permission to change these settings.</p>}
@@ -149,7 +149,8 @@ export function PrintStationery({ permissions, initialKind }: { permissions: rea
 
   return (
     <section aria-labelledby={headingId} className="lims-card">
-      <h2 id={headingId}>Print and stationery</h2>
+      {/* T0D-UIGUARD-1-BILLING (LD-436 R7, /billing/settings): card title style with heading semantics, not a raw h2/h3. */}
+      <p role="heading" aria-level={2} id={headingId} className="lims-card-title">Print and stationery</p>
       {loadError ? (
         <div role="alert"><Banner tone="danger" title="Could not load the print settings">{loadError} <Button onPress={() => void load()}>Retry</Button></Banner></div>
       ) : null}

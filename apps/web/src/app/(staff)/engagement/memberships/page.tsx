@@ -3,6 +3,7 @@ import 'server-only';
 import { notFound } from 'next/navigation';
 import { ApiError } from '@/core/api/server-fetch';
 import { getShellSession } from '@/core/session/server';
+import { loadOr } from '@/core/shell/NotAvailable';
 import { listPriceLists } from '@/features/catalog/server/listPriceLists.server';
 import { searchPatientsAction } from './actions';
 import { listPlans } from './memberships.server';
@@ -23,6 +24,9 @@ async function priceLists() {
 export default async function MembershipsPage() {
   const permissions = (await getShellSession())?.actor.permissions ?? [];
   if (!permissions.includes(READ)) notFound();
-  const [plans, lists] = await Promise.all([listPlans(), priceLists()]);
-  return <MembershipsView plans={Array.isArray(plans?.data) ? plans.data : []} priceLists={lists} permissions={permissions} searchPatients={searchPatientsAction} />;
+  // T0D-UIGUARD-1-ENGAGEMENT (LD-353 rule 4, LD-436): 501 pending -> NotAvailable, 5xx -> ErrorState in the page (title and table header kept); 4xx still throw.
+  return loadOr('Memberships', ['Code', 'Name', 'Validity (days)', 'Price list', 'Status'], async () => {
+    const [plans, lists] = await Promise.all([listPlans(), priceLists()]);
+    return <MembershipsView plans={Array.isArray(plans?.data) ? plans.data : []} priceLists={lists} permissions={permissions} searchPatients={searchPatientsAction} />;
+  });
 }

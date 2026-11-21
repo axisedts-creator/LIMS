@@ -7,6 +7,7 @@
 // History (?broadcast=<id>) lists the recipients with a masked address only.
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { Button } from '@lims/ui/components/Button';
+import { Card } from '@lims/ui/components/Card';
 import { Checkbox } from '@lims/ui/components/Checkbox';
 import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
 import { Dialog } from '@lims/ui/components/Dialog';
@@ -155,7 +156,8 @@ function AudienceBuilder({ templates, onClose, onDone }: { templates: readonly B
         {preview.state === 'ok' && preview.sample.length ? (
           <div className="lims-stack">
             <p className="lims-label">{t('engagement.msg.audience.sample')}</p>
-            <ul className="lims-stack">{preview.sample.map((s) => <li key={`${s.party_kind}-${s.party_id}`}>{`${kindText(s.party_kind)} ${s.channel_address}`}</li>)}</ul>
+            {/* T0D-UIGUARD-1-ENGAGEMENT (LD-436 R7): the masked sample is lines of text, not a raw list */}
+            <div className="lims-stack">{preview.sample.map((s) => <span key={`${s.party_kind}-${s.party_id}`}>{`${kindText(s.party_kind)} ${s.channel_address}`}</span>)}</div>
           </div>
         ) : null}
         <p className="lims-description">{t('engagement.msg.never_sent')}</p>
@@ -179,17 +181,17 @@ function History({ broadcast, template, rows, failed }: { broadcast: Broadcast |
     },
   ];
   return (
-    <section className="lims-stack" aria-labelledby="msg-history">
-      <span className="lims-inline">
-        <h2 id="msg-history" className="lims-section-title">{`${t('engagement.msg.history_title')}${template ? `: ${template.name}` : ''}${broadcast ? ` (${count(broadcast.recipient_count)})` : ''}`}</h2>
+    // T0D-UIGUARD-1-ENGAGEMENT (LD-436 R7, LD-439): the history is a kit Card with a title row (title, recipient count caption), no raw heading
+    <Card title={`${t('engagement.msg.history_title')}${template ? `: ${template.name}` : ''}`} {...(broadcast ? { caption: count(broadcast.recipient_count) } : {})}>
+      <div className="lims-inline">
         <Button size="sm" variant="ghost" onPress={() => url.go({ broadcast: undefined }, true)}>{t('engagement.msg.history_close')}</Button>
-      </span>
+      </div>
       <div className={!failed && rows.length === 0 ? 'msg-empty-state' : undefined} {...(failed ? { role: 'alert' } : {})}>
         <DataTable<BroadcastRecipient> caption={t('engagement.msg.history_title')} columns={columns} rows={rows} getRowId={(r) => r.id} density="compact" cellTitle
           emptyState={{ title: t('engagement.msg.history_empty'), body: t('engagement.msg.history_empty_hint') }}
           {...(failed ? { error: { title: failed, onRetry: url.refresh } } : {})} />
       </div>
-    </section>
+    </Card>
   );
 }
 

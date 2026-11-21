@@ -12,10 +12,11 @@ export default async function RolesPage() {
   if (!perms) return <Denied />;
   const r = await call<{ data: Role[] }>('GET', '/v1/identity/roles');
   return (
-    <Frame title={t('admin.nav.roles')} actions={perms.has('identity.role.manage') ? <Link href="/admin/roles/new" className="lims-btn lims-btn-primary">New role</Link> : null}>
+    <Frame title={t('admin.nav.roles')} helpKey="admin.roles" caption="What each role may do" actions={perms.has('identity.role.manage') ? <Link href="/admin/roles/new" className="lims-btn lims-btn-primary">New role</Link> : null}>
       {r.ok ? (
         <Grid
           label="Roles"
+          empty="No roles yet."
           columns={['Name', 'Code', 'Default', 'MFA required', 'Members', 'Status']}
           rows={r.data.data.map((x) => ({
             key: x.role_id,

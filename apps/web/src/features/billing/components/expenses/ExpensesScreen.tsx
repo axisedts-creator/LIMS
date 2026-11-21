@@ -8,6 +8,7 @@ import { Button } from '@lims/ui/components/Button';
 import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
 import { DateText } from '@lims/ui/components/DateText';
 import { Dialog } from '@lims/ui/components/Dialog';
+import { FilterBar } from '@lims/ui/components/FilterBar';
 import { Form } from '@lims/ui/components/Form';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { Select } from '@lims/ui/components/Select';
@@ -75,13 +76,14 @@ export function ExpensesScreen({ expenses, types, centres, permissions, filters 
     <section aria-label={E('title')}>
       <PageHeader title={t('nav.billing.expenses')} helpKey="billing.accounts" actions={<GatedButton variant="primary" label={E('new')} blocked={noManage} reasonId={REASON_ID} onPress={() => setCreating(true)} />} />
       {noManage ? <p id={REASON_ID} className="lims-description">{noManage}</p> : null}
-      <div role="search" aria-label={E('filters')} className="lims-filter-bar">
+      {/* T0D-UIGUARD-1-BILLING (LD-353 rule 2): the kit FilterBar holds the row; Lab, Type, From, To and Search stay as they were. */}
+      <FilterBar aria-label={E('filters')}>
         <Select label={E('col.lab')} name="centre_id" options={centres.map((c) => ({ value: c.id, label: c.name }))} {...(f.centre_id ? { value: f.centre_id } : {})} onChange={(v) => setF({ ...f, centre_id: v })} />
         <Select label={E('col.type')} name="expense_type_id" options={types.map((x) => ({ value: x.id, label: x.name }))} {...(f.expense_type_id ? { value: f.expense_type_id } : {})} onChange={(v) => setF({ ...f, expense_type_id: v })} />
         <TextField label={E('from')} name="from" maxLength={10} description={t('billing.accounts.field.date_hint')} value={f.from ?? ''} onChange={(v) => setF({ ...f, from: v })} />
         <TextField label={E('to')} name="to" maxLength={10} value={f.to ?? ''} onChange={(v) => setF({ ...f, to: v })} />
         <Button variant="primary" onPress={search}>{E('search')}</Button>
-      </div>
+      </FilterBar>
       <DataTable caption={E('title')} density="compact" columns={columns} rows={expenses} getRowId={(x) => x.id} emptyState={{ title: E('empty') }} />
       {creating ? (
         <ExpenseDialog

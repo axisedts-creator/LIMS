@@ -1,0 +1,7 @@
+# T0D-UIGUARD-1-BILLING tests (tester)
+Test file: apps/web/src/core/__tests__/uiguard1.exceptions.ts (registry, LD-441). I deleted every BILLING legacy entry: rule 2 (7 routes), rule 5 (/billing/invoices/[invoice_id]), rule 7 (15 routes). No new test file; the existing guard (uiguard1.guard.test.ts) is the proof.
+Run: `.orchestra/notes/T0D-UIGUARD-1-BILLING-verify.cmd` (build:nav, then the uiguard1 config; it runs only core/__tests__/uiguard1.*).
+Red now, for the right reason (3 failed, 33 passed): rule 2 = 7 billing pages with a hand built filter row; rule 5 = InvoiceDetailView swaps the table for other markup when empty; rule 7 = raw h2/h3/ul in accountsShared.tsx, AccountReceiptView, AccountLedgerScreen, AccountMastersScreen, PocketLedgerScreen, DailyCashView, InvoiceDetailView, InvoiceDocument.
+WRITER: also delete the matching BILLING lines from notes/T0D-UIGUARD-1-exceptions.md (mirror; tester may not edit it). Do not touch other areas' lines.
+Cross-area, left alone: /billing/daily-cash also fails rule 2 through features/partners PartysetCommon.tsx and /billing/settings fails rule 7 through features/reporting PrintStationery.tsx (REPORTING owns it). PARTNERS rule 2 lists billing routes via PartysetCommon; when it is fixed those PARTNERS entries go stale (T0D-PARTYSET-1 / PARTNERS lane).
+Not tested: rendering of the empty invoice (static guard only), other web tests of billing (they stay green by the done when, run unchanged), rs-cN snapshots (writer, LD-440).

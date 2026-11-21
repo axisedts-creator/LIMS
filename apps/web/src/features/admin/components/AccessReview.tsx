@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Banner } from '@lims/ui/components/Banner';
 import { Button } from '@lims/ui/components/Button';
 import { Dialog } from '@lims/ui/components/Dialog';
+import { PageHeader } from '@lims/ui/components/PageHeader';
 import { useToast } from '@lims/ui/components/Toast';
 import { recordAccessReview } from '../actions';
 import { Grid, Time } from '../Grid';
@@ -38,10 +39,8 @@ export function AccessReview({ users, last, canRecord, now }: { users: UserSumma
   };
   return (
     <main className="lims-page">
-      <header className="lims-page-header">
-        <h1>Access review</h1>
-        {canRecord ? <Button variant="primary" onPress={() => { setFail(null); setOpen(true); }}>Record review completed</Button> : null}
-      </header>
+      <PageHeader title="Access review" helpKey="admin.access-review"
+        {...(canRecord ? { actions: <Button variant="primary" onPress={() => { setFail(null); setOpen(true); }}>Record review completed</Button> } : {})} />
       {due ? (
         <div role="alert">
           <Banner tone="warning" title={last ? `Last review: ${fmt(last.reviewed_at)} by ${by}` : 'No access review has been recorded yet.'}>

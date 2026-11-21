@@ -3,7 +3,9 @@
 // Reason / ticket text from the platform is rendered as text only (REQ-SEC-088). Decisions need identity.settings.manage.
 import { useState } from 'react';
 import { Button } from '@lims/ui/components/Button';
+import { Card } from '@lims/ui/components/Card';
 import { ConfirmDialog } from '@lims/ui/components/ConfirmDialog';
+import { PageHeader } from '@lims/ui/components/PageHeader';
 import { useToast } from '@lims/ui/components/Toast';
 import { supportAction } from '../actions';
 import { Grid, Time } from '../Grid';
@@ -30,46 +32,39 @@ export function SupportAccess({ sessions, canDecide }: { sessions: SupportSessio
     update(s, { status: 'approved', ...(r.data as object) });
     toast.show({ tone: 'success', title: 'Support access approved.' });
   };
-  const card = (s: SupportSession, actions: React.ReactNode) => (
-    <article key={s.support_session_id} className="lims-card">
-      <h3>{s.platform_staff_display_name}</h3>
-      <dl className="lims-dl">
-        <dt>Reason</dt><dd>{s.reason_text}</dd>
-        <dt>Ticket</dt><dd>{s.ticket_ref}</dd>
-        <dt>Scope</dt><dd>{s.scope === 'admin' ? 'Admin' : 'Read only'}</dd>
-        <dt>Duration</dt><dd>{s.duration_minutes} min</dd>
-        {s.expires_at ? <><dt>Until</dt><dd>{fmt(s.expires_at)}</dd></> : null}
-      </dl>
-      {canDecide ? actions : null}
-    </article>
-  );
+  // T0D-UIGUARD-1-ADMIN (LD-436 worklist mock, LD-439): one table row per request (was a card with a raw h3); reason text stays a text node
+  const COLS = ['Staff', 'Reason', 'Ticket', 'Scope', 'Duration', 'Until', 'Action'];
+  const row = (s: SupportSession, actions: React.ReactNode) => ({
+    key: s.support_session_id,
+    cells: [s.platform_staff_display_name, s.reason_text, s.ticket_ref, s.scope === 'admin' ? 'Admin' : 'Read only', `${s.duration_minutes} min`, s.expires_at ? fmt(s.expires_at) : '—',
+      canDecide ? <span key="a">{actions}</span> : ''],
+  });
   const pending = rows.filter((s) => s.status === 'requested');
   const live = rows.filter((s) => s.status === 'active' || s.status === 'approved');
   const past = rows.filter((s) => !['requested', 'active', 'approved'].includes(s.status));
   return (
     <main className="lims-page">
-      <header className="lims-page-header"><h1>Support access</h1></header>
+      <PageHeader title="Support access" helpKey="admin.support-access" caption="LIMS provider access to your lab" />
       {failure.banner}
-      <section aria-labelledby="sa-pending">
-        <h2 id="sa-pending">Pending requests</h2>
-        {pending.length ? pending.map((s) => card(s, (
-          <>
-            <Button variant="primary" onPress={() => void approve(s)}>Approve</Button>
-            <Button onPress={() => { setNote(''); setNoteErr(undefined); setDlgErr(null); setDeny(s); }}>Deny</Button>
-          </>
-        ))) : <p>No pending requests.</p>}
-      </section>
-      <section aria-labelledby="sa-active">
-        <h2 id="sa-active">Active</h2>
-        {live.length ? live.map((s) => card(s, s.status === 'active'
-          ? <Button variant="danger" onPress={() => { setDlgErr(null); setEnd(s); }}>End access</Button>
-          : <p>Approved — waiting for the LIMS provider to start the session.</p>)) : <p>No active support access.</p>}
-      </section>
-      <section aria-labelledby="sa-history">
-        <h2 id="sa-history">History</h2>
+      <Card title="Pending requests" caption={String(pending.length)}>
+        <Grid label="Pending requests" columns={COLS} empty="No pending requests."
+          rows={pending.map((s) => row(s, (
+            <>
+              <Button variant="primary" onPress={() => void approve(s)}>Approve</Button>
+              <Button onPress={() => { setNote(''); setNoteErr(undefined); setDlgErr(null); setDeny(s); }}>Deny</Button>
+            </>
+          )))} />
+      </Card>
+      <Card title="Active" caption={String(live.length)}>
+        <Grid label="Active support access" columns={COLS} empty="No active support access."
+          rows={live.map((s) => row(s, s.status === 'active'
+            ? <Button variant="danger" onPress={() => { setDlgErr(null); setEnd(s); }}>End access</Button>
+            : <span className="lims-description">Approved — waiting for the LIMS provider to start the session.</span>))} />
+      </Card>
+      <Card title="History">
         <Grid label="History" columns={['Requested', 'Staff', 'Ticket', 'Status', 'Ended']}
           rows={past.map((s) => ({ key: s.support_session_id, cells: [<Time key="t" iso={s.requested_at} label={fmt(s.requested_at)} />, s.platform_staff_display_name, s.ticket_ref, STATUS[s.status] ?? s.status, fmt(s.ended_at)] }))} />
-      </section>
+      </Card>
       <ConfirmDialog title="Deny support access?" confirmLabel="Deny" tone="danger" isOpen={deny !== null} onCancel={() => setDeny(null)}
         body={<>{dlgErr ? <Alert text={dlgErr} /> : null}<Field label="Note to the LIMS provider" multiline value={note} onChange={setNote} error={noteErr} /></>}
         onConfirm={async () => {

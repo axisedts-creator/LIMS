@@ -6,24 +6,11 @@ Other groups = LD-434 legacy baseline (CR-C0-0D-UIGUARD-1 option A); the heading
 
 ## STANDING (7 entries, 5 routes)
 
-- /admin/* rule 2: pinned: access-log, audit, sessions and users build their own filter row under app/(staff)/admin on the pinned page-kit (rs-c2.static pins features/admin); only shared kit fixes apply
-- /admin/* rule 1: pinned: heading comes from features/admin/server/page-kit Frame (rs-c2.static pins features/admin); only shared kit fixes apply
 - /frontdesk/registrations/new rule 3: registration entry form: frontdesk.css bold totals and registration number (template 6)
 - /frontdesk/registrations/new rule 5: registration entry form: the test line grid is an entry grid, not a list (template 6)
 - /frontdesk/orders/[order_id] rule 3: registration entry form: shares frontdesk.css with the registration entry form
 - /anatomic/cases/[case_id]/labels rule 3: label sheet: print layout of a physical label (label-sheet.css) needs a bold first line
 - /[...slug] rule 1: catch-all placeholder for module routes without a page; not a screen (CR T0D-14)
-
-## T0D-UIGUARD-1-BILLING (8 entries, 8 routes)
-
-- /billing/accounts/entries rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-BILLING: rule 2 broken in AccountEntriesScreen.tsx, AccountLedgerScreen.tsx, PocketLedgerScreen.tsx, CashTransfersScreen.tsx, DailyCashView.tsx, DailyCollectionScreen.tsx, PartysetCommon.tsx, DiscountSlabsScreen.tsx, ExpensesScreen.tsx
-- /billing/accounts/ledger rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-BILLING: rule 2 broken in AccountEntriesScreen.tsx, AccountLedgerScreen.tsx, PocketLedgerScreen.tsx, CashTransfersScreen.tsx, DailyCashView.tsx, DailyCollectionScreen.tsx, PartysetCommon.tsx, DiscountSlabsScreen.tsx, ExpensesScreen.tsx
-- /billing/accounts/pocket rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-BILLING: rule 2 broken in AccountEntriesScreen.tsx, AccountLedgerScreen.tsx, PocketLedgerScreen.tsx, CashTransfersScreen.tsx, DailyCashView.tsx, DailyCollectionScreen.tsx, PartysetCommon.tsx, DiscountSlabsScreen.tsx, ExpensesScreen.tsx
-- /billing/cash-transfers rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-BILLING: rule 2 broken in AccountEntriesScreen.tsx, AccountLedgerScreen.tsx, PocketLedgerScreen.tsx, CashTransfersScreen.tsx, DailyCashView.tsx, DailyCollectionScreen.tsx, PartysetCommon.tsx, DiscountSlabsScreen.tsx, ExpensesScreen.tsx
-- /billing/daily-cash rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-BILLING: rule 2 broken in AccountEntriesScreen.tsx, AccountLedgerScreen.tsx, PocketLedgerScreen.tsx, CashTransfersScreen.tsx, DailyCashView.tsx, DailyCollectionScreen.tsx, PartysetCommon.tsx, DiscountSlabsScreen.tsx, ExpensesScreen.tsx
-- /billing/discounts/slabs rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-BILLING: rule 2 broken in AccountEntriesScreen.tsx, AccountLedgerScreen.tsx, PocketLedgerScreen.tsx, CashTransfersScreen.tsx, DailyCashView.tsx, DailyCollectionScreen.tsx, PartysetCommon.tsx, DiscountSlabsScreen.tsx, ExpensesScreen.tsx
-- /billing/expenses rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-BILLING: rule 2 broken in AccountEntriesScreen.tsx, AccountLedgerScreen.tsx, PocketLedgerScreen.tsx, CashTransfersScreen.tsx, DailyCashView.tsx, DailyCollectionScreen.tsx, PartysetCommon.tsx, DiscountSlabsScreen.tsx, ExpensesScreen.tsx
-- /billing/invoices/[invoice_id] rule 5: legacy baseline LD-434, fix in T0D-UIGUARD-1-BILLING: rule 5 broken in InvoiceDetailView.tsx
 
 ## T0D-UIGUARD-1-CATALOG (44 entries, 22 routes)
 
@@ -71,16 +58,6 @@ Other groups = LD-434 legacy baseline (CR-C0-0D-UIGUARD-1 option A); the heading
 - /catalog/tests/[test_id] rule 3: legacy baseline LD-434, fix in T0D-UIGUARD-1-CATALOG: rule 3 broken in catalog.css
 - /catalog/units rule 3: legacy baseline LD-434, fix in T0D-UIGUARD-1-CATALOG: rule 3 broken in catalog.css
 - /catalog/tests/[test_id] rule 5: legacy baseline LD-434, fix in T0D-UIGUARD-1-CATALOG: rule 5 broken in AnalytesTab.tsx
-
-## T0D-UIGUARD-1-ENGAGEMENT (7 entries, 4 routes)
-
-- /engagement/enquiries rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-ENGAGEMENT: rule 2 broken in EnquiriesView.tsx, RemindersView.tsx
-- /engagement/enquiries/[enquiry_id] rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-ENGAGEMENT: rule 2 broken in EnquiriesView.tsx, RemindersView.tsx
-- /engagement/reminders rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-ENGAGEMENT: rule 2 broken in EnquiriesView.tsx, RemindersView.tsx
-- /engagement/enquiries rule 4: legacy baseline LD-434, fix in T0D-UIGUARD-1-ENGAGEMENT: rule 4 broken in the page itself
-- /engagement/enquiries/[enquiry_id] rule 4: legacy baseline LD-434, fix in T0D-UIGUARD-1-ENGAGEMENT: rule 4 broken in the page itself
-- /engagement/memberships rule 4: legacy baseline LD-434, fix in T0D-UIGUARD-1-ENGAGEMENT: rule 4 broken in the page itself
-- /engagement/reminders rule 4: legacy baseline LD-434, fix in T0D-UIGUARD-1-ENGAGEMENT: rule 4 broken in the page itself
 
 ## T0D-UIGUARD-1-FRONTDESK (4 entries, 2 routes)
 
@@ -149,27 +126,6 @@ Other groups = LD-434 legacy baseline (CR-C0-0D-UIGUARD-1 option A); the heading
 
 - /[...slug] rule 7: catch-all placeholder for module routes without a page; not a screen (CR T0D-14): raw h1 in page.tsx
 
-## T0D-UIGUARD-1-ADMIN (rule 7: 18 entries)
-
-- /admin/access-log rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ADMIN: rule 7 broken in page-kit.tsx, ui.tsx
-- /admin/access-review rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ADMIN: rule 7 broken in page-kit.tsx
-- /admin/audit rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ADMIN: rule 7 broken in page-kit.tsx, ui.tsx
-- /admin/audit/[audit_id] rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ADMIN: rule 7 broken in page-kit.tsx
-- /admin/branches rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ADMIN: rule 7 broken in page-kit.tsx, OrgUnits.tsx, ui.tsx
-- /admin/centres rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ADMIN: rule 7 broken in page-kit.tsx, OrgUnits.tsx, ui.tsx
-- /admin/exports rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ADMIN: rule 7 broken in page-kit.tsx, ExportsScreen.tsx, ui.tsx
-- /admin/me rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ADMIN: rule 7 broken in page-kit.tsx, MyAccount.tsx, ui.tsx
-- /admin/roles rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ADMIN: rule 7 broken in page-kit.tsx
-- /admin/roles/[role_id] rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ADMIN: rule 7 broken in page-kit.tsx, RoleEditor.tsx, ui.tsx
-- /admin/roles/new rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ADMIN: rule 7 broken in page-kit.tsx, RoleEditor.tsx, ui.tsx
-- /admin/roles/packs rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ADMIN: rule 7 broken in page-kit.tsx
-- /admin/sessions rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ADMIN: rule 7 broken in page-kit.tsx, ui.tsx
-- /admin/settings rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ADMIN: rule 7 broken in page-kit.tsx, SettingsScreen.tsx, ui.tsx
-- /admin/support-access rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ADMIN: rule 7 broken in page-kit.tsx, SupportAccess.tsx, ui.tsx
-- /admin/users rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ADMIN: rule 7 broken in page-kit.tsx, ui.tsx
-- /admin/users/[membership_id] rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ADMIN: rule 7 broken in page-kit.tsx, UserDetailView.tsx, ui.tsx
-- /admin/users/new rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ADMIN: rule 7 broken in page-kit.tsx, ui.tsx
-
 ## T0D-UIGUARD-1-ANATOMIC (rule 7: 8 entries)
 
 - /anatomic rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ANATOMIC: rule 7 broken in AnatomicForbidden.tsx
@@ -180,24 +136,6 @@ Other groups = LD-434 legacy baseline (CR-C0-0D-UIGUARD-1 option A); the heading
 - /anatomic/config rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ANATOMIC: rule 7 broken in config-shared.tsx, AssaysTab.tsx
 - /anatomic/config/templates/[template_id] rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ANATOMIC: rule 7 broken in config-shared.tsx, TemplateEditor.tsx, TemplatePreview.tsx
 - /anatomic/tracking rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ANATOMIC: rule 7 broken in AnatomicForbidden.tsx, TrackingScreen.tsx, MovementDialog.tsx
-
-## T0D-UIGUARD-1-BILLING (rule 7: 15 entries)
-
-- /billing/accounts/entries rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-BILLING: rule 7 broken in AccountReceiptView.tsx, accountsShared.tsx
-- /billing/accounts/ledger rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-BILLING: rule 7 broken in AccountLedgerScreen.tsx, accountsShared.tsx
-- /billing/accounts/masters rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-BILLING: rule 7 broken in AccountMastersScreen.tsx, accountsShared.tsx
-- /billing/accounts/pocket rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-BILLING: rule 7 broken in PocketLedgerScreen.tsx, accountsShared.tsx, AccountLedgerScreen.tsx
-- /billing/accounts/summary rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-BILLING: rule 7 broken in accountsShared.tsx
-- /billing/cash-transfers rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-BILLING: rule 7 broken in accountsShared.tsx
-- /billing/daily-cash rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-BILLING: rule 7 broken in DailyCashView.tsx, accountsShared.tsx
-- /billing/discounts/authorities rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-BILLING: rule 7 broken in accountsShared.tsx
-- /billing/discounts/limits rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-BILLING: rule 7 broken in accountsShared.tsx
-- /billing/discounts/reasons rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-BILLING: rule 7 broken in accountsShared.tsx
-- /billing/discounts/slabs rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-BILLING: rule 7 broken in accountsShared.tsx
-- /billing/expenses rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-BILLING: rule 7 broken in accountsShared.tsx
-- /billing/expenses/types rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-BILLING: rule 7 broken in accountsShared.tsx
-- /billing/invoices/[invoice_id] rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-BILLING: rule 7 broken in InvoiceDetailView.tsx, InvoiceDocument.tsx
-- /billing/settings rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-BILLING: rule 7 broken in PrintStationery.tsx
 
 ## T0D-UIGUARD-1-CATALOG (rule 7: 22 entries)
 
@@ -223,18 +161,6 @@ Other groups = LD-434 legacy baseline (CR-C0-0D-UIGUARD-1 option A); the heading
 - /catalog/tests rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-CATALOG: rule 7 broken in CatalogForbidden.tsx, TestDetailsView.tsx, compact-ui.tsx, master-ui.tsx
 - /catalog/tests/[test_id] rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-CATALOG: rule 7 broken in ParameterForm.tsx, RangesTab.tsx, TestHeader.tsx, compact-ui.tsx
 - /catalog/units rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-CATALOG: rule 7 broken in CatalogForbidden.tsx, master-ui.tsx
-
-## T0D-UIGUARD-1-ENGAGEMENT (rule 7: 9 entries)
-
-- /engagement/bookable-items rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ENGAGEMENT: rule 7 broken in BookingDetail.tsx, BookingNew.tsx, SlotsAdmin.tsx
-- /engagement/bookings rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ENGAGEMENT: rule 7 broken in BookingDetail.tsx, BookingNew.tsx, SlotsAdmin.tsx
-- /engagement/bookings/[booking_id] rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ENGAGEMENT: rule 7 broken in BookingDetail.tsx, BookingNew.tsx, SlotsAdmin.tsx
-- /engagement/bookings/new rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ENGAGEMENT: rule 7 broken in BookingDetail.tsx, BookingNew.tsx, SlotsAdmin.tsx
-- /engagement/content rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ENGAGEMENT: rule 7 broken in ProfileImages.tsx
-- /engagement/enquiries/[enquiry_id] rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ENGAGEMENT: rule 7 broken in EnquiryThread.tsx
-- /engagement/messages/broadcasts rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ENGAGEMENT: rule 7 broken in Broadcasts.tsx
-- /engagement/settings rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ENGAGEMENT: rule 7 broken in SettingsView.tsx
-- /engagement/slots rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ENGAGEMENT: rule 7 broken in BookingDetail.tsx, BookingNew.tsx, SlotsAdmin.tsx
 
 ## T0D-UIGUARD-1-FRONTDESK (rule 7: 5 entries)
 

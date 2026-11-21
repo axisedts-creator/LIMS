@@ -8,12 +8,14 @@ export interface TimelineProps {
   title?: string;
   /** T0D-UIGUARD-1-INVENTORY: the label leads each row, then the time (a console History reads "Occurred: <time>"). */
   labelFirst?: boolean;
+  /** T0D-UIGUARD-1-ENGAGEMENT (additive, LD-441): accessible name of the list. */
+  'aria-label'?: string;
   'data-testid'?: string;
 }
 
-export function Timeline({ items, title, labelFirst, ...rest }: TimelineProps) {
+export function Timeline({ items, title, labelFirst, 'aria-label': ariaLabel, ...rest }: TimelineProps) {
   const list = (
-    <ol className="lims-timeline" {...(title ? {} : rest)}>
+    <ol className="lims-timeline" {...(ariaLabel ? { 'aria-label': ariaLabel } : {})} {...(title ? {} : rest)}>
       {items.map((it, i) => {
         const time = (
           <time className="lims-timeline-time" dateTime={it.at}>

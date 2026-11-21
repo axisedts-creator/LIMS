@@ -6,6 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { Button } from '@lims/ui/components/Button';
 import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
 import { DateText } from '@lims/ui/components/DateText';
+import { FilterBar } from '@lims/ui/components/FilterBar';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { PrintFrame } from '@lims/ui/components/PrintFrame';
 import { Select } from '@lims/ui/components/Select';
@@ -119,7 +120,8 @@ export function StatementView({ statement, particulars, title, emptyText, pageTi
       {body ?? <StatementTables statement={statement} particulars={particulars} emptyText={emptyText} failure={failure} />}
       {printing && statement ? (
         <PrintFrame title={title} isOpen onDone={() => setPrinting(false)}>
-          <h2>{title}</h2>
+          {/* T0D-UIGUARD-1-BILLING (LD-436 R7): print heading with heading semantics, not a raw h2. */}
+          <p role="heading" aria-level={2} className="lims-card-title">{title}</p>
           <StatementTables statement={statement} particulars={particulars} emptyText={emptyText} />
         </PrintFrame>
       ) : null}
@@ -171,11 +173,12 @@ export function AccountLedgerScreen({ statement, party, parties, from, to, parti
         failure={failure}
         emptyText={t(statement ? 'billing.accounts.ledger.empty' : 'billing.accounts.ledger.pick_party')}
         filters={
-          <div role="search" aria-label={t('billing.accounts.ledger.filters')} className="lims-filter-bar">
+          // T0D-UIGUARD-1-BILLING (LD-353 rule 2): the kit FilterBar holds the row; party, dates and Show stay as they were.
+          <FilterBar aria-label={t('billing.accounts.ledger.filters')}>
             <Select label={t('billing.accounts.ledger.party')} name="party" options={parties.filter((p) => p.kind !== 'user_pocket').map((p) => ({ value: `${p.kind}:${p.id}`, label: p.name }))} {...(pick ? { value: pick } : {})} onChange={(v) => { setPick(v); show(v); }} />
             <DateFields range={range} setRange={setRange} />
             <Button variant="primary" onPress={() => show()}>{t('billing.accounts.ledger.show')}</Button>
-          </div>
+          </FilterBar>
         }
       />
     </section>

@@ -6,10 +6,11 @@ import { useRouter } from 'next/navigation';
 import { Banner } from '@lims/ui/components/Banner';
 import { Button } from '@lims/ui/components/Button';
 import { ConfirmDialog } from '@lims/ui/components/ConfirmDialog';
-import { DateText, type DateTextProps } from '@lims/ui/components/DateText';
+import { Card } from '@lims/ui/components/Card';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { StatusChip } from '@lims/ui/components/StatusChip';
 import { TextArea } from '@lims/ui/components/TextArea';
+import { Timeline } from '@lims/ui/components/Timeline';
 import { useToast } from '@lims/ui/components/Toast';
 import { closeEnquiryAction, replyEnquiryAction } from './actions';
 import { STATUS_LABEL } from './EnquiriesView';
@@ -72,14 +73,10 @@ export function EnquiryThread({ enquiry, permissions }: EnquiryThreadProps) {
         actions={<StatusChip kind="generic" status={thread.status} label={label} tone={tone} />}
       />
       {error && !closed ? <div role="alert"><Banner tone="danger" title={error.text} {...(error.reload ? { action: { label: 'Reload', onPress: () => router.refresh() } } : {})} /></div> : null}
-      <ul aria-label="Messages" className="lims-stack">
-        {thread.messages.map((m, i) => (
-          <li key={`${m.created_at}-${i}`}>
-            <strong>{WHO[m.author_kind] ?? 'Patient'}</strong> <DateText value={m.created_at as DateTextProps['value']} withTime />
-            <p>{m.body}</p>
-          </li>
-        ))}
-      </ul>
+      {/* T0D-UIGUARD-1-ENGAGEMENT (LD-436 R7, LD-439): the thread is a kit Card with a title row holding the kit Timeline, no raw list */}
+      <Card title="Messages" caption={`${thread.messages.length} ${thread.messages.length === 1 ? 'message' : 'messages'}`}>
+        <Timeline aria-label="Messages" items={thread.messages.map((m) => ({ at: m.created_at, label: m.body, actor: WHO[m.author_kind] ?? 'Patient' }))} />
+      </Card>
       {closed ? <p>This conversation is closed.</p> : null}
       {canRespond ? (
         <>

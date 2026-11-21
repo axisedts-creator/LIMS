@@ -53,12 +53,13 @@ export function SettingsView({ settings, sets, canManage }: { settings: QualityS
 
   const fields = (
     <>
-      <h2>TAT alerts</h2>
+      {/* T0D-UIGUARD-1-QUALITY (LD-436 R7, LD-439): group titles without a raw h2 (the settings fields hold no cards, LD-353 template 4). */}
+      <p role="heading" aria-level={2} className="lims-card-title">TAT alerts</p>
       <Switch label="Enabled" isSelected={draft.tat_alerts_enabled} isDisabled={!canManage} onChange={(on) => change((d) => ({ ...d, tat_alerts_enabled: on }))} />
       {num('tat_warn_pct', 'Warning at %')}
       {num('tat_escalate_pct', 'Escalate at %')}
       {num('tat_orphan_close_hours', 'Close orphan clocks after h')}
-      <h2>QC</h2>
+      <p role="heading" aria-level={2} className="lims-card-title">QC</p>
       {num('target_min_points', 'Minimum points to establish a target', 'Common practice is about 20; check your SOP.')}
       {num('reprocess_window_days', 'Re-process window days')}
       {/* 04-UI-UX §2.11 "default plan options" = QcPlanParamsDefaults; an unset key stays unset (server default) */}
@@ -75,11 +76,11 @@ export function SettingsView({ settings, sets, canManage }: { settings: QualityS
           {...(typeof plan[k] === 'number' ? { value: plan[k] as number } : {})} onChange={(v) => setPlan(k, v)}
         />
       ))}
-      <h2>Auto-verification</h2>
+      <p role="heading" aria-level={2} className="lims-card-title">Auto-verification</p>
       {num('sim_min_days', 'Minimum simulation days')}
       {num('sim_min_decisions', 'Minimum shadow decisions')}
       <section aria-labelledby="quality-settings-ro">
-        <h2 id="quality-settings-ro">Read-only from tenant settings</h2>
+        <p role="heading" aria-level={2} id="quality-settings-ro" className="lims-card-title">Read-only from tenant settings</p>
         <DescriptionList items={[{ term: 'Westgard mode', value: ` ${MODE[settings.westgard_mode] ?? settings.westgard_mode} ` }, { term: 'Auto-verification', value: settings.auto_verification_enabled ? ' On ' : ' Off ' }]} />
         <p className="lims-description">Change in Admin › Tenant settings</p>
       </section>

@@ -4,8 +4,8 @@ import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Badge } from '@lims/ui/components/Badge';
 import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
-import { Button } from '@lims/ui/components/Button';
 import { DateRangePicker, type DateRange } from '@lims/ui/components/DateRangePicker';
+import { FilterBar } from '@lims/ui/components/FilterBar';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { Select } from '@lims/ui/components/Select';
 import { Switch } from '@lims/ui/components/Switch';
@@ -45,8 +45,8 @@ export function ManifestInbox({ rows, failed, filters }: { rows: readonly Manife
   return (
     <section aria-label="Partner manifests">
       <PageHeader title="Partner manifests" helpKey="partners.inbox" />
-      {/* T0D-UILIST-3 (LD-353 template 1, rule 2): one filter row; the kit FilterBar markup (role=search, .lims-filter-bar) holds the two switches too. */}
-      <div role="search" className="lims-filter-bar">
+      {/* T0D-UILIST-3 (LD-353 template 1, rule 2): one filter row; the kit FilterBar holds the two switches too (T0D-UIGUARD-1-PARTNERS, LD-441: children plus onReset). */}
+      <FilterBar onReset={() => setUrl({ state: undefined, submitted_at_from: undefined, submitted_at_to: undefined, has_failed_lines: undefined, has_missing_samples: undefined })}>
         <Select label="State" name="state" options={STATES} {...(filters.state ? { value: filters.state } : {})} onChange={(v) => setUrl({ state: v })} />
         <DateRangePicker
           label="Submitted between"
@@ -59,10 +59,7 @@ export function ManifestInbox({ rows, failed, filters }: { rows: readonly Manife
         />
         <Switch label="Has samples needing attention" isSelected={filters.has_failed_lines === 'true'} onChange={(v) => setUrl({ has_failed_lines: v ? 'true' : undefined })} />
         <Switch label="Order exists but sample missing" isSelected={filters.has_missing_samples === 'true'} onChange={(v) => setUrl({ has_missing_samples: v ? 'true' : undefined })} />
-        <Button variant="ghost" onPress={() => setUrl({ state: undefined, submitted_at_from: undefined, submitted_at_to: undefined, has_failed_lines: undefined, has_missing_samples: undefined })}>
-          Reset filters
-        </Button>
-      </div>
+      </FilterBar>
       {/* LD-353 rules 5 and 6: on a failed load the header row stays and the ErrorState (Retry) sits in the table body */}
       <div {...(failed ? { role: 'alert' } : {})}>
         <DataTable caption="Partner manifests" columns={columns} rows={rows} getRowId={(m) => m.id} cellTitle {...(failed ? { error: { title: LOAD_FAILED, onRetry: () => router.refresh() } } : {})} emptyState={{ title: 'No manifests', body: 'Submitted partner boxes will show here.' }} onRowAction={(m) => router.push(`/partners/manifests/${m.id}`)} />

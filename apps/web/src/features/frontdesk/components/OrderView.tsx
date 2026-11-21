@@ -6,7 +6,9 @@ import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Banner } from '@lims/ui/components/Banner';
 import { Button } from '@lims/ui/components/Button';
+import { Card } from '@lims/ui/components/Card';
 import { ConfirmDialog } from '@lims/ui/components/ConfirmDialog';
+import { EmptyRow, PlaceholderRows } from '@lims/ui/components/DataTable';
 import { Dialog } from '@lims/ui/components/Dialog';
 import { Form } from '@lims/ui/components/Form';
 import { MoneyField, type Money as FieldMoney } from '@lims/ui/components/MoneyField';
@@ -109,21 +111,22 @@ export function OrderView({ order, billing, permissions, cancelReasons, removalR
                 <input ref={fileInput} type="file" hidden aria-label="TRF file" accept="image/jpeg,image/png,application/pdf" onChange={(e) => { key.current = newKey(); void upload(e.target.files?.[0]); e.target.value = ''; }} />
               </>
             ) : null}
-            {order.trf_attachments.length === 0 ? <p>No attachments.</p> : (
-              <table>
-                <caption>Test request forms</caption>
-                <thead><tr><th scope="col">File</th><th scope="col">Scan</th><th scope="col">Uploaded by</th><th scope="col">Uploaded</th><th scope="col">Actions</th></tr></thead>
-                <tbody>
-                  {order.trf_attachments.map((a) => (
-                    <tr key={a.id}>
-                      <td>{a.original_filename ?? humanize(a.mime_type)}</td><td>{SCAN_TEXT[a.scan_state] ?? humanize(a.scan_state)}</td><td>{a.uploaded_by?.display_name ?? '—'}</td><td><BsAd utc={a.created_at} /></td>
-                      {/* Preview goes through the BFF content route only; a Storage URL never reaches the browser (07-SECURITY). */}
-                      <td>{a.scan_state === 'clean' ? <a className="lims-link" href={`/frontdesk/trf-attachments/${a.id}/content`}>Preview</a> : null}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
+            {/* T0D-UIGUARD-1-FRONTDESK (LD-353 rule 5): the table keeps its header when there are no attachments. */}
+            <table>
+              <caption>Test request forms</caption>
+              <thead><tr><th scope="col">File</th><th scope="col">Scan</th><th scope="col">Uploaded by</th><th scope="col">Uploaded</th><th scope="col">Actions</th></tr></thead>
+              <tbody>
+                {order.trf_attachments.map((a) => (
+                  <tr key={a.id}>
+                    <td>{a.original_filename ?? humanize(a.mime_type)}</td><td>{SCAN_TEXT[a.scan_state] ?? humanize(a.scan_state)}</td><td>{a.uploaded_by?.display_name ?? '—'}</td><td><BsAd utc={a.created_at} /></td>
+                    {/* Preview goes through the BFF content route only; a Storage URL never reaches the browser (07-SECURITY). */}
+                    <td>{a.scan_state === 'clean' ? <a className="lims-link" href={`/frontdesk/trf-attachments/${a.id}/content`}>Preview</a> : null}</td>
+                  </tr>
+                ))}
+                {order.trf_attachments.length ? null : <EmptyRow colSpan={5}>No attachments.</EmptyRow>}
+              </tbody>
+              {order.trf_attachments.length ? null : <PlaceholderRows colSpan={5} />}
+            </table>
           </>
         ) : null}
       </Tabs>
@@ -194,9 +197,10 @@ function BillingTab({ billing, permissions, onPay }: { billing: OrderBilling; pe
           ))}
         </tbody>
       </table>
-      {billing.open_credit_note_tasks.length ? <section aria-label="Open finance tasks"><h2>Open tasks</h2><ul>{billing.open_credit_note_tasks.map((t) => <li key={t.id}>Credit note needed — {humanize(t.cause)}</li>)}</ul></section> : null}
-      {billing.refund_requests.length ? <section aria-label="Refund requests"><h2>Refunds</h2><ul>{billing.refund_requests.map((r) => <li key={r.id}><span>{npr(r.refund_amount)}</span> by {humanize(r.method_code)} — <span>{humanize(r.status)}</span></li>)}</ul></section> : null}
-      {billing.open_finance_review_items.length ? <section aria-label="Finance review"><h2>Review</h2><ul>{billing.open_finance_review_items.map((r) => <li key={r.id}>{humanize(r.kind ?? 'review')} item to review</li>)}</ul></section> : null}
+      {/* T0D-UIGUARD-1-FRONTDESK (LD-436 R7, LD-439): finance sections are kit Cards with a title row; the items keep list semantics. */}
+      {billing.open_credit_note_tasks.length ? <Card title="Open tasks" region><div role="list">{billing.open_credit_note_tasks.map((t) => <div role="listitem" key={t.id}>Credit note needed — {humanize(t.cause)}</div>)}</div></Card> : null}
+      {billing.refund_requests.length ? <Card title="Refunds" region><div role="list">{billing.refund_requests.map((r) => <div role="listitem" key={r.id}><span>{npr(r.refund_amount)}</span> by {humanize(r.method_code)} — <span>{humanize(r.status)}</span></div>)}</div></Card> : null}
+      {billing.open_finance_review_items.length ? <Card title="Review" region><div role="list">{billing.open_finance_review_items.map((r) => <div role="listitem" key={r.id}>{humanize(r.kind ?? 'review')} item to review</div>)}</div></Card> : null}
     </>
   );
 }

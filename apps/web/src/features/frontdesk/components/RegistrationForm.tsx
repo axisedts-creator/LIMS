@@ -679,11 +679,11 @@ function Registration({ centres, permissions, defaultCentreId, consentTextVersio
                   {testTab === 'favourites' ? (
                     <div role="tabpanel" id={`${moreId}-favs`} aria-labelledby={`${moreId}-tab-favourites`} className="lims-reg-favs">
                       {favs.size === 0 ? <p className="lims-reg-hint">No favourite tests yet. Star a test in the cart to add it.</p> : (
-                        <ul aria-label="Favourite tests" className="lims-reg-fav-list">
+                        <div role="list" aria-label="Favourite tests" className="lims-reg-fav-list">
                           {[...favs].flatMap((id) => (known[id] ? [known[id]] : [])).map((o) => (
-                            <li key={o.id}><button type="button" className="lims-reg-fav" onClick={() => addItem(o)}><strong>{o.code}</strong> {o.name}</button></li>
+                            <div role="listitem" key={o.id}><button type="button" className="lims-reg-fav" onClick={() => addItem(o)}><strong>{o.code}</strong> {o.name}</button></div>
                           ))}
-                        </ul>
+                        </div>
                       )}
                     </div>
                   ) : null}
@@ -803,12 +803,12 @@ function Registration({ centres, permissions, defaultCentreId, consentTextVersio
                     <MoneyField label="Discount amount" name="bill_discount_amount" {...(billAmt !== undefined ? { value: npr(billAmt) } : {})} onChange={(m) => setBillAmt(m?.amountPaisa)} />
                   </div>
                   {discounts.length ? (
-                    <ul aria-label="Applied discounts">
+                    <div role="list" aria-label="Applied discounts">
                       {discounts.map((d, i) => (
-                        <li key={i}>{d.kind === 'percent' ? `${(d.percent_bp ?? 0) / 100}%` : `Rs. ${plain(d.amount_paisa ?? 0)}`} {d.scope === 'line' ? 'on a line' : 'on the bill'} — {d.reason_code}{' '}
-                          <IconButton label={`Remove discount ${i + 1}`} icon="close" onPress={() => { setDiscounts((x) => x.filter((_, j) => j !== i)); setApproval(null); }} /></li>
+                        <div role="listitem" key={i}>{d.kind === 'percent' ? `${(d.percent_bp ?? 0) / 100}%` : `Rs. ${plain(d.amount_paisa ?? 0)}`} {d.scope === 'line' ? 'on a line' : 'on the bill'} — {d.reason_code}{' '}
+                          <IconButton label={`Remove discount ${i + 1}`} icon="close" onPress={() => { setDiscounts((x) => x.filter((_, j) => j !== i)); setApproval(null); }} /></div>
                       ))}
-                    </ul>
+                    </div>
                   ) : null}
                   {needsApproval && quote ? (
                     approval ? <p role="status">Discount approval: {approval.status === 'pending' ? 'Pending' : approval.status === 'approved' ? 'Approved' : approval.status === 'rejected' ? 'Rejected' : 'Expired'}</p>
@@ -821,10 +821,10 @@ function Registration({ centres, permissions, defaultCentreId, consentTextVersio
                     <Button variant="ghost" onPress={applyCoupon}>Apply coupon</Button>
                   </div>
                   {coupon && quote ? (
-                    <ul aria-label="Applied coupons" className="lims-reg-coupons">
-                      <li><span>{coupon}</span> <MoneyText value={npr(quote.totals.discount.amount_paisa)} />{' '}
-                        <IconButton label={`Remove coupon ${coupon}`} icon="close" onPress={() => { setCoupon(undefined); setCouponText(''); }} /></li>
-                    </ul>
+                    <div role="list" aria-label="Applied coupons" className="lims-reg-coupons">
+                      <div role="listitem"><span>{coupon}</span> <MoneyText value={npr(quote.totals.discount.amount_paisa)} />{' '}
+                        <IconButton label={`Remove coupon ${coupon}`} icon="close" onPress={() => { setCoupon(undefined); setCouponText(''); }} /></div>
+                    </div>
                   ) : null}
                   <div className="lims-reg-pair">
                     <MoneyField label="Visiting charge" name="visiting_charge" {...(visitingPaisa !== undefined ? { value: npr(visitingPaisa) } : {})} onChange={(m) => setVisitingPaisa(m?.amountPaisa || undefined)} />
@@ -871,11 +871,12 @@ function Registration({ centres, permissions, defaultCentreId, consentTextVersio
           </div>
 
           <aside className="lims-reg-summary" aria-label="Registration summary">
-            <h2 className="lims-reg-summary-title">Summary</h2>
+            {/* T0D-UIGUARD-1-FRONTDESK (LD-436 R7): no raw h2/ul/li here; heading and list keep their roles (same pattern as the BILLING print headings). */}
+            <p role="heading" aria-level={2} className="lims-reg-summary-title">Summary</p>
             <dl className="lims-reg-summary-list">
               <div className="lims-reg-summary-row">
                 <dt>Tests</dt>
-                <dd>{items.length === 0 ? 'None yet' : `${items.length} selected`}{items.length ? <ul className="lims-reg-summary-tests">{items.map((i) => <li key={i.orderable.id}>{i.orderable.name}</li>)}</ul> : null}</dd>
+                <dd>{items.length === 0 ? 'None yet' : `${items.length} selected`}{items.length ? <div role="list" className="lims-reg-summary-tests">{items.map((i) => <div role="listitem" key={i.orderable.id}>{i.orderable.name}</div>)}</div> : null}</dd>
               </div>
               {sumRow('Total', net + (quote?.totals.discount.amount_paisa ?? 0))}
               {sumRow('Net', net)}

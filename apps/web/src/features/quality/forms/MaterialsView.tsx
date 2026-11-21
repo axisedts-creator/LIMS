@@ -9,7 +9,7 @@ import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
 import { DatePicker, type IsoDate } from '@lims/ui/components/DatePicker';
 import { DateText, type DateTextProps } from '@lims/ui/components/DateText';
 import { DescriptionList } from '@lims/ui/components/DescriptionList';
-import { Drawer } from '@lims/ui/components/Drawer';
+import { Drawer, DrawerSection } from '@lims/ui/components/Drawer';
 import { IntegerField } from '@lims/ui/components/IntegerField';
 import { StatusChip } from '@lims/ui/components/StatusChip';
 import { Switch } from '@lims/ui/components/Switch';
@@ -113,20 +113,20 @@ function MaterialDrawer({ material: m, canManage, onClose }: { material: Materia
           { term: 'Manufacturer', value: m.manufacturer ?? '—' }, { term: 'Matrix', value: m.matrix ?? '—' }, { term: 'Status', value: <ActiveChip on={m.is_active} /> },
         ]} />
         {m.levels.map((l) => (
-          <section key={l.id} aria-label={`Level ${l.level_code}`}>
-            <h3 className="lims-drawer-section-title">{`${l.display_name} (${l.level_code})`}</h3>
+          // T0D-UIGUARD-1-QUALITY (LD-436 R7): each level is a kit DrawerSection (its title row), the lots keep list semantics without a raw ul.
+          <DrawerSection key={l.id} title={`${l.display_name} (${l.level_code})`}>
             {(l.lots ?? []).length ? (
-              <ul>
+              <div role="list" aria-label={`Lots of level ${l.level_code}`}>
                 {(l.lots ?? []).map((x) => (
-                  <li key={x.id}>
+                  <div role="listitem" key={x.id}>
                     {`${x.lot_no} · expires `}<DateText value={x.expires_on as Iso} />{' '}
                     {x.is_expired ? <StatusChip kind="generic" status="expired" tone="danger" label="Expired" /> : null}
-                  </li>
+                  </div>
                 ))}
-              </ul>
+              </div>
             ) : <p className="lims-description">No lots yet.</p>}
             {writable && l.is_active ? <Button size="sm" onPress={() => setLotFor(l)}>Add lot</Button> : null}
-          </section>
+          </DrawerSection>
         ))}
         {writable ? <Button variant="danger" onPress={() => { act.reset(); setConfirm(true); }}>Deactivate material</Button> : null}
       </Drawer>

@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { useId, useState } from 'react';
 import { Button } from '@lims/ui/components/Button';
 import { Dialog } from '@lims/ui/components/Dialog';
+import { FilterBar } from '@lims/ui/components/FilterBar';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { Select } from '@lims/ui/components/Select';
 import { StatusChip } from '@lims/ui/components/StatusChip';
@@ -106,12 +107,13 @@ export function TicketInbox({ rows, parties, permissions, filter, failed, nextCu
       <PageHeader title={t('partners.nav.tickets')} helpKey="partners.tickets"
         actions={<Gate variant="primary" reasonId={blocked} onPress={() => setCreating(true)}>{t('partners.ticket.new')}</Gate>} />
       {blocked ? <ReasonLine id={reasonId}>{t('partners.ticket.reason.manage')}</ReasonLine> : null}
-      <div role="search" className="lims-filter-bar">
+      {/* T0D-UIGUARD-1-PARTNERS (LD-353 rule 2, LD-441): the kit FilterBar holds the row; the native date inputs ride in as children. */}
+      <FilterBar>
         <Select label={t('partners.ticket.filter.status')} name="status" options={statusOptions} value={filter.status ?? ALL} onChange={(v) => go({ status: v === ALL ? undefined : v })} />
         <Select label={t('partners.ticket.filter.party')} name="party_id" options={partyOptions} value={filter.party_id ?? ALL} onChange={(v) => go({ party_id: v === ALL ? undefined : v })} />
         <DateInput label={t('partners.ticket.filter.from')} value={filter.created_from ?? ''} onChange={(v) => go({ created_from: v || undefined })} />
         <DateInput label={t('partners.ticket.filter.to')} value={filter.created_to ?? ''} {...(filter.created_from ? { min: filter.created_from } : {})} onChange={(v) => go({ created_to: v || undefined })} />
-      </div>
+      </FilterBar>
       <SalesTable caption={t('partners.nav.tickets')} columns={columns} rows={rows} getRowId={(r) => r.id} failed={failed} nextCursor={nextCursor}
         empty={{ title: t('partners.ticket.empty'), body: t('partners.ticket.empty_hint') }} />
       {creating ? <NewTicket parties={parties} onClose={() => setCreating(false)} onDone={() => { setCreating(false); toast.show({ tone: 'success', title: t('partners.ticket.created') }); url.refresh(); }} /> : null}

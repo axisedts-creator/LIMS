@@ -4,6 +4,7 @@
 import { useState } from 'react';
 import { Banner } from '@lims/ui/components/Banner';
 import { Button } from '@lims/ui/components/Button';
+import { Card } from '@lims/ui/components/Card';
 import { Checkbox } from '@lims/ui/components/Checkbox';
 import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
 import { Drawer } from '@lims/ui/components/Drawer';
@@ -60,14 +61,16 @@ export function DictionariesTab({ canManage }: { canManage: boolean }) {
   ];
 
   return (
-    <section aria-labelledby="micro-dict">
-      <h2 id="micro-dict">Dictionaries</h2>
+    // T0D-UIGUARD-1-MICRO (LD-436, LD-439): Card title row + DataTable, no raw h2; the region keeps its name.
+    <section aria-label="Dictionaries">
+      <Card title="Dictionaries">
       <Select<CodedSetName> label="Dictionary" name="set" value={set} onChange={setSet} options={SETS} />
       {fixed ? <Banner tone="info" title={AST_NOTE} /> : null}
       <FailNotice fail={fail} />
       {canEdit ? <div><Button onPress={() => setEditing('new')}>Add code</Button></div> : null}
       {/* T0D-UILIST-1, LD-353 rule 5: kit cellTitle keeps cells on one line (title on cut cells), the table scrolls in its box, so "Escherichia coli" does not wrap at 1366 px */}
       <DataTable<MicroCodeDto> cellTitle caption="Codes" columns={columns} rows={rows} getRowId={(c) => c.code} isLoading={!loaded} emptyState={{ title: 'No codes.' }} />
+      </Card>
       {editing ? <CodeDrawer key={editing === 'new' ? 'new' : editing.code} set={set} code={editing === 'new' ? undefined : editing} onClose={() => setEditing(undefined)} onSaved={reload} /> : null}
     </section>
   );

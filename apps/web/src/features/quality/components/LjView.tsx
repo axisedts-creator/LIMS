@@ -14,6 +14,7 @@ import { DateText, type DateTextProps } from '@lims/ui/components/DateText';
 import { DescriptionList } from '@lims/ui/components/DescriptionList';
 import { Drawer } from '@lims/ui/components/Drawer';
 import { EmptyState } from '@lims/ui/components/EmptyState';
+import { FilterBar } from '@lims/ui/components/FilterBar';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { RadioGroup } from '@lims/ui/components/RadioGroup';
 import { Select } from '@lims/ui/components/Select';
@@ -62,8 +63,9 @@ function Controls({ sp, plans, chart }: Common & { chart?: LjChart }) {
   const view = chart?.view ?? 'level';
   const from = sp['from'];
   const to = sp['to'];
+  // T0D-UIGUARD-1-QUALITY (LD-353 rule 2, LD-441): the kit FilterBar; the URL driven controls are its children.
   return (
-    <div role="search" className="lims-filter-bar">
+    <FilterBar aria-label="Chart filters">
       {options.length ? <Select label="Plan" name="plan_id" options={options} {...(planId ? { value: planId } : {})} onChange={(v) => go({ plan_id: v, level_id: undefined, lot_id: undefined })} /> : null}
       {chart ? (
         <>
@@ -77,7 +79,7 @@ function Controls({ sp, plans, chart }: Common & { chart?: LjChart }) {
           <DateRangePicker label="Period" name="period" maxDays={400} {...(from && to ? { value: { from: from as DateRange['from'], to: to as DateRange['to'] } } : {})} onChange={(r) => go({ from: r?.from, to: r?.to })} />
         </>
       ) : null}
-    </div>
+    </FilterBar>
   );
 }
 
@@ -121,8 +123,9 @@ function ChartView({ chart, generatedAt, sp, plans, canManage, exclusionOptions 
       {lost ? <ConnectionLost since={updatedAt} /> : null}
       <Controls sp={sp} plans={plans} chart={data} />
       {data.truncated ? <Banner tone="warning" title="Showing the newest 2,000 points. Narrow the period to see all." /> : null}
+      {/* T0D-UIGUARD-1-QUALITY (LD-436 R7, LD-439): no raw ul for page structure; the items keep list semantics. */}
       <section aria-label="Legend">
-        <ul>{(Object.keys(POINT) as (keyof typeof POINT)[]).map((s) => <li key={s}>{`${POINT[s].marker} ${POINT[s].label}`}</li>)}</ul>
+        <div role="list">{(Object.keys(POINT) as (keyof typeof POINT)[]).map((s) => <div role="listitem" key={s}>{`${POINT[s].marker} ${POINT[s].label}`}</div>)}</div>
       </section>
       {/* T0D-EMPTYTBL-2 (LD-310, LD-336): no series = the points table with its headers and the message in its body. */}
       {data.series.length === 0 ? <DataTable<LjPoint> columns={columns} rows={[]} getRowId={(r) => r.observation_id} density="compact" caption="QC points" emptyState={{ title: 'No QC values in this period.' }} /> : null}
@@ -140,17 +143,17 @@ function ChartView({ chart, generatedAt, sp, plans, canManage, exclusionOptions 
               ]} />
             ) : null}
             {!z ? (
-              <ul aria-label={`Target lines ${group}`}>
+              <div role="list" aria-label={`Target lines ${group}`}>
                 {[...s.targets].sort((a, b) => a.effective_from.localeCompare(b.effective_from)).map((tg, i) => (
-                  <li key={tg.target_id}>
+                  <div role="listitem" key={tg.target_id}>
                     {`Target v${i + 1} (${tg.source})`}
-                    <ul>
-                      <li>{`Mean ${fixed(tg.mean, d)}`}</li>
-                      {SIGMA.map(([l, k]) => <li key={l}>{`${l} ${fixed(String(Number(tg.mean) + k * Number(tg.sd)), d)}`}</li>)}
-                    </ul>
-                  </li>
+                    <div role="list">
+                      <div role="listitem">{`Mean ${fixed(tg.mean, d)}`}</div>
+                      {SIGMA.map(([l, k]) => <div role="listitem" key={l}>{`${l} ${fixed(String(Number(tg.mean) + k * Number(tg.sd)), d)}`}</div>)}
+                    </div>
+                  </div>
                 ))}
-              </ul>
+              </div>
             ) : null}
             <DataTable<LjPoint>
               columns={columns} rows={s.points} getRowId={(r) => r.observation_id} density="compact" caption={`${group} points`}

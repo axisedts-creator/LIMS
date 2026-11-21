@@ -221,13 +221,14 @@ function EstablishDialog({ plan, materials, onClose }: { plan: Plan; materials: 
             <>
               <DescriptionList columns={2} items={[{ term: 'n', value: String(s.n) }, { term: 'Mean', value: fix(s.mean) }, { term: 'SD (sample)', value: fix(s.sd) }, { term: 'CV %', value: s.cv === undefined ? '—' : s.cv.toFixed(2) }]} />
               {truncated ? <FormMessage text="Too many values for a preview. Choose a shorter period." /> : null}
-              <ul>
+              {/* T0D-UIGUARD-1-QUALITY (LD-436 R7): no raw ul; the points keep list semantics. */}
+              <div role="list" aria-label="Points in the preview">
                 {points.map((p) => (
-                  <li key={p.id}>
+                  <div role="listitem" key={p.id}>
                     <Checkbox label={`${PT.format(new Date(p.observed_at))} · ${p.value}`} isSelected={!off.has(p.id)} onChange={(on) => setOff((o) => { const x = new Set(o); if (on) x.delete(p.id); else x.add(p.id); return x; })} />
-                  </li>
+                  </div>
                 ))}
-              </ul>
+              </div>
             </>
           )}
         </>

@@ -26,70 +26,9 @@ export const EXCEPTIONS: GuardException[] = [
   { route: '/[...slug]', rule: 1, reason: 'catch-all placeholder for module routes without a page; not a screen (CR T0D-14)' },
 
   // LD-434 legacy baseline, grouped by rule then feature area. Follow-up task ids: T0D-UIGUARD-1-<AREA> (the lead queues one per area).
-  ...legacy('PARTNERS', 2, 'PartysetCommon.tsx, ManifestInbox.tsx, PenaltyEvents.tsx', [
-    '/partners/manifests',
-    '/partners/penalty-events',
-  ]),
-  // LD-441: TicketInbox.tsx hand builds its filter row (breach arrived with T0D-MSGDESK-1, after UIGUARD-1).
-  ...legacy('PARTNERS', 2, 'TicketInbox.tsx', [
-    '/partners/tickets',
-    '/partners/tickets/[ticket_id]',
-  ]),
-  ...legacy('QUALITY', 2, 'DecisionsView.tsx, LjView.tsx', [
-    '/quality',
-    '/quality/autoverify/decisions',
-    '/quality/lj',
-    '/quality/observations',
-    '/quality/qc-runs/[qc_run_id]',
-    '/quality/runs',
-  ]),
-  ...legacy('FRONTDESK', 4, 'the page itself', [
-    '/frontdesk/orders/[order_id]',
-    '/frontdesk/patients/[patient_id]',
-  ]),
-  ...legacy('FRONTDESK', 5, 'OrderView.tsx, PatientView.tsx', [
-    '/frontdesk/orders/[order_id]',
-    '/frontdesk/patients/[patient_id]',
-  ]),
-  ...legacy('QUALITY', 6, 'ReportView.tsx', [
-    '/quality/autoverify/[version_id]',
-  ]),
 
   // T0D-UIGUARD-2 (LD-436 R7, LD-438, LD-439 c): rule 7 legacy baseline, one entry per route, reason 'legacy baseline LD-436, fix in T0D-UIGUARD-1-<AREA>'.
   // The area is the sidebar group of the route (LD-439 a); the area task rebuilds every screen of its area, so when it ends none of its entries may remain (LD-439 b).
   // Nothing under app/(auth), app/(platform), features/platform or features/admin/auth is walked, so no pinned rule 7 entry is needed (a finding there would fail the pinned test).
   { route: '/[...slug]', rule: 7, reason: 'catch-all placeholder for module routes without a page; not a screen (CR T0D-14): raw h1 in page.tsx' },
-  ...legacy7('FRONTDESK', [
-    ['/frontdesk/discount-approvals', 'DiscountApprovalsInbox.tsx'],
-    ['/frontdesk/orders/[order_id]', 'OrderView.tsx'],
-    ['/frontdesk/patients/[patient_id]', 'PatientView.tsx'],
-    ['/frontdesk/registrations/new', 'RegistrationForm.tsx, ReceiptPrintView.tsx, accountsShared.tsx, InvoiceDocument.tsx'],
-    ['/frontdesk/settings', 'SettingsView.tsx'],
-  ]),
-  ...legacy7('MICRO', [
-    ['/micro/breakpoint-sets', 'MicroForbidden.tsx'],
-    ['/micro/breakpoint-sets/[breakpoint_set_id]', 'MicroForbidden.tsx'],
-    ['/micro/cultures/[culture_id]', 'MicroForbidden.tsx, ReportDrawer.tsx, ReadsTab.tsx, ChooseCultureDialog.tsx'],
-    ['/micro/instrument-records', 'MicroForbidden.tsx'],
-    ['/micro/settings', 'MicroForbidden.tsx, DictionariesTab.tsx, MappingsTab.tsx, PanelsTab.tsx, ProtocolsTab.tsx'],
-    ['/micro/worklist', 'MicroForbidden.tsx, ChooseCultureDialog.tsx'],
-  ]),
-  ...legacy7('PARTNERS', [
-    ['/partners/sales/representatives', 'SalesRepresentatives.tsx'],
-    ['/partners/tickets/[ticket_id]', 'TicketThread.tsx'],
-  ]),
-  ...legacy7('QUALITY', [
-    ['/quality', 'LjView.tsx, RunDetailView.tsx'],
-    ['/quality/autoverify/[version_id]', 'ReportView.tsx, RuleDrawer.tsx'],
-    ['/quality/autoverify/decisions', 'DecisionsView.tsx'],
-    ['/quality/lj', 'LjView.tsx, RunDetailView.tsx'],
-    ['/quality/observations', 'LjView.tsx, RunDetailView.tsx'],
-    ['/quality/qc-runs/[qc_run_id]', 'LjView.tsx, RunDetailView.tsx'],
-    ['/quality/runs', 'LjView.tsx, RunDetailView.tsx'],
-    ['/quality/settings', 'SettingsView.tsx'],
-    ['/quality/setup/maps', 'MaterialsView.tsx, TargetsView.tsx'],
-    ['/quality/setup/materials', 'MaterialsView.tsx, TargetsView.tsx'],
-    ['/quality/setup/plans', 'MaterialsView.tsx, TargetsView.tsx'],
-    ['/quality/setup/targets', 'MaterialsView.tsx, TargetsView.tsx'],
-  ]),
 ];

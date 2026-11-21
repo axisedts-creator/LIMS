@@ -4,6 +4,7 @@
 // LD-140 (2026-11-13): kit components only. Findings are text nodes with their line breaks kept (REQ-SEC-088).
 import { Button } from '@lims/ui/components/Button';
 import { EmptyState } from '@lims/ui/components/EmptyState';
+import { Stack } from '@lims/ui/components/Stack';
 import { KIND_LABEL } from '../../forms/ObservationDialog';
 import { displayOf } from '../../forms/format';
 import { useCodes } from '../../forms/useCodes';
@@ -20,8 +21,9 @@ export function ReadsTab({ culture, canCorrect, onCorrect }: { culture: CultureD
   const plateNo = (id: string | undefined) => (id ? culture.plates.find((p) => p.id === id)?.plate_no : undefined);
   const summary = (o: ObservationDto) =>
     [KIND_LABEL[o.kind] ?? o.kind, plateNo(o.plate_id) !== undefined ? `plate ${plateNo(o.plate_id)}` : undefined, displayOf(growth.rows, o.growth_code), o.quantity_text].filter(Boolean).join(' · ');
+  // T0D-UIGUARD-1-MICRO (LD-436, LD-439): kit Stack with list semantics, no raw ol; each entry keeps the kit timeline item.
   return (
-    <ol className="lims-timeline" aria-label="Reads and stains">
+    <Stack gap={2} role="list" aria-label="Reads and stains">
       {list.map((o) => {
         const body = (
           <>
@@ -45,6 +47,6 @@ export function ReadsTab({ culture, canCorrect, onCorrect }: { culture: CultureD
           </li>
         );
       })}
-    </ol>
+    </Stack>
   );
 }

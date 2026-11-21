@@ -1,0 +1,7 @@
+# T0D-UIGUARD-1-QUALITY impl (writer)
+- Files: features/quality/components/{LjView,RunDetailView}.tsx, forms/{MaterialsView,TargetsView}.tsx, settings/SettingsView.tsx; app/(staff)/quality/autoverify/_components/{DecisionsView,ReportView,RuleDrawer}.tsx; notes/T0D-UIGUARD-1-exceptions.md (both QUALITY blocks deleted, 19 lines). No registry, test, kit, token, route, permission or API change.
+- Rule 2: LjView and DecisionsView rows are the kit FilterBar with the existing controls as children (LD-441 children prop); same URL params and Apply button.
+- Rule 6: ReportView "Why results would be denied" is a ChartCard (isEmpty + note "Nothing would be denied yet." when empty).
+- Rule 7: raw ul become div role=list/listitem (FRONTDESK pattern); MaterialsView level = kit DrawerSection; DecisionsView Inputs = Card title region; SettingsView group titles = p role=heading aria-level 2 .lims-card-title [CONV] (quality-t24 pins no .lims-card inside .lims-settings-fields, LD-353 template 4).
+- Green: uiguard1 36/36, quality-t21 115(+1 skip), t22 188, t24 111, av-t23 136, uidash1 95, uiset1 69. uilist1: quality green; 4 red in features/lab uilist1.lab (critical values, ingest exceptions), lab files untouched here. tsc: 0 quality errors (19 existing in partners tests). No eslint script in apps/web. No rs-cN snapshot covers quality, none re-recorded.
+- Open: changes are the guard-level structure only; a fuller pass of the 8 quality screens against the worklist/Today mocks (Tabs with counts, DataTable pager/total, StatTile hairline row on ReportView) was not done.

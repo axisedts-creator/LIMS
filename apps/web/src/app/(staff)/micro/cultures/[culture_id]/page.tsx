@@ -17,7 +17,7 @@ export default async function CulturePage({ params }: { params: Promise<{ cultur
   if (typeof culture_id !== 'string' || !UUID_RE.test(culture_id)) notFound();
   const session = await getShellSession();
   const culture = await orForbidden(() => orMissing(() => getCulture(culture_id)));
-  if (culture === null) return <MicroForbidden />;
+  if (culture === null) return <MicroForbidden helpKey="micro.culture" />;
   if (!culture) notFound();
   const [patient, specimen] = await Promise.all([getPatient(culture.patient_id), getSpecimen(culture.specimen_id).catch(() => null)]);
   return <CultureScreen culture={culture} patient={patient} specimen={specimen} permissions={session?.actor.permissions ?? []} />;

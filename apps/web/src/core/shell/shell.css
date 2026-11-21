@@ -322,3 +322,5 @@ a.lims-menuitem { display: block; color: inherit; text-decoration: none; }
 .lims-progress::-moz-progress-bar { background: var(--lims-accent); border-radius: var(--lims-radius-full); }
 .lims-card-note, .lims-na { margin: var(--lims-space-2) 0 0; color: var(--lims-neutral-500); font-size: var(--lims-font-size-xs-size); }
 .lims-na { margin: 0; }
+/* T0D-UIGUARD-1-PARTNERS (LD-436 rule 7): the sales manager tree is ARIA roles on div (no raw ul); each team keeps its indent. Tokens only. */
+.lims-tree-group { padding-inline-start: var(--lims-space-4); }

@@ -141,7 +141,8 @@ export function RunDetailView({ run, label, canReview, correctiveOptions }: { ru
         />
       </Card>
       <Card title="Rule hits">
-        {run.rule_detail.length ? <ul>{run.rule_detail.map((r) => <li key={r.rule}>{`${r.rule} — ${r.observation_ids.length} observation${r.observation_ids.length === 1 ? '' : 's'}`}</li>)}</ul> : none('No rule was violated.')}
+        {/* T0D-UIGUARD-1-QUALITY (LD-436 R7): no raw ul; the items keep list semantics. */}
+        {run.rule_detail.length ? <div role="list">{run.rule_detail.map((r) => <div role="listitem" key={r.rule}>{`${r.rule} — ${r.observation_ids.length} observation${r.observation_ids.length === 1 ? '' : 's'}`}</div>)}</div> : none('No rule was violated.')}
       </Card>
       <Card title="Corrective actions">
         {run.corrective_actions.length

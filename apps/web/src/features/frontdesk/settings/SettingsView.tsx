@@ -120,7 +120,8 @@ function SettingsForm({ initial }: { initial: FrontdeskSettings }) {
         {banner?.kind === 'conflict' ? <Banner tone="danger" title={RELOAD_COPY} action={{ label: 'Reload', onPress: () => router.refresh() }} /> : null}
         {banner?.kind === 'error' ? (
           <Banner tone="danger" title={banner.title}>
-            {listed.length ? <ul>{listed.map((m) => <li key={m}>{m}</li>)}</ul> : null}
+            {/* T0D-UIGUARD-1-FRONTDESK (LD-436 R7): no raw ul; the messages keep list semantics. */}
+            {listed.length ? <div role="list">{listed.map((m) => <div role="listitem" key={m}>{m}</div>)}</div> : null}
           </Banner>
         ) : null}
       </div>

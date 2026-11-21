@@ -11,7 +11,7 @@ import { Button } from '@lims/ui/components/Button';
 import { Checkbox } from '@lims/ui/components/Checkbox';
 import { CodedSelect } from '@lims/ui/components/CodedSelect';
 import { DescriptionList } from '@lims/ui/components/DescriptionList';
-import { Drawer } from '@lims/ui/components/Drawer';
+import { Drawer, DrawerSection } from '@lims/ui/components/Drawer';
 import { Form } from '@lims/ui/components/Form';
 import { Inline } from '@lims/ui/components/Inline';
 import { Stack } from '@lims/ui/components/Stack';
@@ -154,10 +154,9 @@ export function ReportDrawer({ culture, phase, onClose, onSent }: { culture: Cul
               }}
             />
           ) : null}
-          <h3 className="lims-drawer-section-title">Included isolates</h3>
-          <IsolatesTable rows={isolateRows} />
-          <h3 className="lims-drawer-section-title">Included AST results</h3>
-          <AstTable rows={astRows} />
+          {/* T0D-UIGUARD-1-MICRO (LD-436, LD-439): kit DrawerSection titles, no raw h3 */}
+          <DrawerSection title="Included isolates"><IsolatesTable rows={isolateRows} /></DrawerSection>
+          <DrawerSection title="Included AST results"><AstTable rows={astRows} /></DrawerSection>
           <TextArea
             label="Summary"
             name="culture_summary_text"

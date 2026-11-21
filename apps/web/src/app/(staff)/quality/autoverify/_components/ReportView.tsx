@@ -4,6 +4,7 @@ import { Fragment } from 'react';
 import { useRouter } from 'next/navigation';
 import { BarChart } from '@lims/ui/components/BarChart';
 import { Card } from '@lims/ui/components/Card';
+import { ChartCard } from '@lims/ui/components/ChartCard';
 import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
 import { DateText, type DateTextProps } from '@lims/ui/components/DateText';
 import { ErrorState } from '@lims/ui/components/ErrorState';
@@ -41,13 +42,11 @@ export function ReportView({ report }: { report: Report | undefined }) {
           ['Allowed and later verified by staff', report.allow_later_manually_verified],
         ].map(([label, n]) => <Fragment key={label}><StatTile label={String(label)} value={String(n)} />{' '}</Fragment>)}
       </Inline>
-      <h3>Why results would be denied</h3>
-      {denied.length ? (
-        <>
-          <BarChart title="Would deny, by reason" categories={denied.map(([r]) => REASON_LABEL[r] ?? 'Other reason')} series={[{ id: 'deny', label: 'Would deny', values: denied.map(([, n]) => n) }]} valueFormat="integer" />
-          <ul>{denied.map(([r, n]) => <li key={r}>{REASON_LABEL[r] ?? 'Other reason'}: {n}</li>)}</ul>
-        </>
-      ) : <p className="lims-description">Nothing would be denied yet.</p>}
+      {/* T0D-UIGUARD-1-QUALITY (LD-353 rule 6, LD-436 R7): the chart sits in ChartCard (its title is the section heading); the counts keep list semantics without a raw ul. */}
+      <ChartCard title="Why results would be denied" isEmpty={!denied.length} {...(denied.length ? {} : { note: 'Nothing would be denied yet.' })}>
+        <BarChart title="Would deny, by reason" categories={denied.map(([r]) => REASON_LABEL[r] ?? 'Other reason')} series={[{ id: 'deny', label: 'Would deny', values: denied.map(([, n]) => n) }]} valueFormat="integer" />
+        {denied.length ? <div role="list">{denied.map(([r, n]) => <div role="listitem" key={r}>{REASON_LABEL[r] ?? 'Other reason'}: {n}</div>)}</div> : null}
+      </ChartCard>
       <DataTable<SampleRow> columns={columns} rows={report.sample} getRowId={(r) => r.decision_id} density="compact" caption="Sample decisions" emptyState={{ title: 'No would-allow decisions yet.' }} />
     </Card>
   );

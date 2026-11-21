@@ -26,17 +26,6 @@ export const EXCEPTIONS: GuardException[] = [
   { route: '/[...slug]', rule: 1, reason: 'catch-all placeholder for module routes without a page; not a screen (CR T0D-14)' },
 
   // LD-434 legacy baseline, grouped by rule then feature area. Follow-up task ids: T0D-UIGUARD-1-<AREA> (the lead queues one per area).
-  ...legacy('QUALITY', 2, 'DecisionsView.tsx, LjView.tsx', [
-    '/quality',
-    '/quality/autoverify/decisions',
-    '/quality/lj',
-    '/quality/observations',
-    '/quality/qc-runs/[qc_run_id]',
-    '/quality/runs',
-  ]),
-  ...legacy('QUALITY', 6, 'ReportView.tsx', [
-    '/quality/autoverify/[version_id]',
-  ]),
 
   // T0D-UIGUARD-2 (LD-436 R7, LD-438, LD-439 c): rule 7 legacy baseline, one entry per route, reason 'legacy baseline LD-436, fix in T0D-UIGUARD-1-<AREA>'.
   // The area is the sidebar group of the route (LD-439 a); the area task rebuilds every screen of its area, so when it ends none of its entries may remain (LD-439 b).
@@ -45,19 +34,5 @@ export const EXCEPTIONS: GuardException[] = [
   ...legacy7('PAYMENTS', [
     ['/payments/refunds', 'RefundsList.tsx, consoleParts.tsx'],
     ['/payments/review', 'ReviewQueue.tsx, consoleParts.tsx'],
-  ]),
-  ...legacy7('QUALITY', [
-    ['/quality', 'LjView.tsx, RunDetailView.tsx'],
-    ['/quality/autoverify/[version_id]', 'ReportView.tsx, RuleDrawer.tsx'],
-    ['/quality/autoverify/decisions', 'DecisionsView.tsx'],
-    ['/quality/lj', 'LjView.tsx, RunDetailView.tsx'],
-    ['/quality/observations', 'LjView.tsx, RunDetailView.tsx'],
-    ['/quality/qc-runs/[qc_run_id]', 'LjView.tsx, RunDetailView.tsx'],
-    ['/quality/runs', 'LjView.tsx, RunDetailView.tsx'],
-    ['/quality/settings', 'SettingsView.tsx'],
-    ['/quality/setup/maps', 'MaterialsView.tsx, TargetsView.tsx'],
-    ['/quality/setup/materials', 'MaterialsView.tsx, TargetsView.tsx'],
-    ['/quality/setup/plans', 'MaterialsView.tsx, TargetsView.tsx'],
-    ['/quality/setup/targets', 'MaterialsView.tsx, TargetsView.tsx'],
   ]),
 ];

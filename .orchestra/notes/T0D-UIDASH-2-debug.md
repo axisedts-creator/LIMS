@@ -1,0 +1,1 @@
+T0D-UIDASH-2 debug: verify fails only on rs-c8 snapshots (5). Cause: stale snapshot vs UIKIT-2 Card lims-card-head wrapper + un-normalised React useId ids (_r_xx_) shifting. Test-side; no impl fix possible. Dispute appended to T0D-UIDASH-2-dispute.md.

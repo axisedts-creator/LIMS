@@ -212,16 +212,6 @@ export const EXCEPTIONS: GuardException[] = [
     ['/admin/users/[membership_id]', 'page-kit.tsx, UserDetailView.tsx, ui.tsx'],
     ['/admin/users/new', 'page-kit.tsx, ui.tsx'],
   ]),
-  ...legacy7('ANATOMIC', [
-    ['/anatomic', 'AnatomicForbidden.tsx'],
-    ['/anatomic/batches', 'AnatomicForbidden.tsx'],
-    ['/anatomic/batches/[batch_id]', 'AnatomicForbidden.tsx, BatchDetailScreen.tsx'],
-    ['/anatomic/cases/[case_id]', 'AnatomicForbidden.tsx, CaseWorkspace.tsx, ImagesTab.tsx, BlocksSlidesTab.tsx, ReportEditor.tsx, ...'],
-    ['/anatomic/cases/[case_id]/labels', 'AnatomicForbidden.tsx'],
-    ['/anatomic/config', 'config-shared.tsx, AssaysTab.tsx'],
-    ['/anatomic/config/templates/[template_id]', 'config-shared.tsx, TemplateEditor.tsx, TemplatePreview.tsx'],
-    ['/anatomic/tracking', 'AnatomicForbidden.tsx, TrackingScreen.tsx, MovementDialog.tsx'],
-  ]),
   ...legacy7('BILLING', [
     ['/billing/accounts/entries', 'AccountReceiptView.tsx, accountsShared.tsx'],
     ['/billing/accounts/ledger', 'AccountLedgerScreen.tsx, accountsShared.tsx'],

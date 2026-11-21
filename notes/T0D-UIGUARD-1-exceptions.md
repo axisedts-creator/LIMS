@@ -6,8 +6,6 @@ Other groups = LD-434 legacy baseline (CR-C0-0D-UIGUARD-1 option A); the heading
 
 ## STANDING (7 entries, 5 routes)
 
-- /admin/* rule 2: pinned: access-log, audit, sessions and users build their own filter row under app/(staff)/admin on the pinned page-kit (rs-c2.static pins features/admin); only shared kit fixes apply
-- /admin/* rule 1: pinned: heading comes from features/admin/server/page-kit Frame (rs-c2.static pins features/admin); only shared kit fixes apply
 - /frontdesk/registrations/new rule 3: registration entry form: frontdesk.css bold totals and registration number (template 6)
 - /frontdesk/registrations/new rule 5: registration entry form: the test line grid is an entry grid, not a list (template 6)
 - /frontdesk/orders/[order_id] rule 3: registration entry form: shares frontdesk.css with the registration entry form
@@ -167,27 +165,6 @@ Other groups = LD-434 legacy baseline (CR-C0-0D-UIGUARD-1 option A); the heading
 ## STANDING (catch-all)
 
 - /[...slug] rule 7: catch-all placeholder for module routes without a page; not a screen (CR T0D-14): raw h1 in page.tsx
-
-## T0D-UIGUARD-1-ADMIN (rule 7: 18 entries)
-
-- /admin/access-log rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ADMIN: rule 7 broken in page-kit.tsx, ui.tsx
-- /admin/access-review rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ADMIN: rule 7 broken in page-kit.tsx
-- /admin/audit rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ADMIN: rule 7 broken in page-kit.tsx, ui.tsx
-- /admin/audit/[audit_id] rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ADMIN: rule 7 broken in page-kit.tsx
-- /admin/branches rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ADMIN: rule 7 broken in page-kit.tsx, OrgUnits.tsx, ui.tsx
-- /admin/centres rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ADMIN: rule 7 broken in page-kit.tsx, OrgUnits.tsx, ui.tsx
-- /admin/exports rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ADMIN: rule 7 broken in page-kit.tsx, ExportsScreen.tsx, ui.tsx
-- /admin/me rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ADMIN: rule 7 broken in page-kit.tsx, MyAccount.tsx, ui.tsx
-- /admin/roles rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ADMIN: rule 7 broken in page-kit.tsx
-- /admin/roles/[role_id] rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ADMIN: rule 7 broken in page-kit.tsx, RoleEditor.tsx, ui.tsx
-- /admin/roles/new rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ADMIN: rule 7 broken in page-kit.tsx, RoleEditor.tsx, ui.tsx
-- /admin/roles/packs rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ADMIN: rule 7 broken in page-kit.tsx
-- /admin/sessions rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ADMIN: rule 7 broken in page-kit.tsx, ui.tsx
-- /admin/settings rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ADMIN: rule 7 broken in page-kit.tsx, SettingsScreen.tsx, ui.tsx
-- /admin/support-access rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ADMIN: rule 7 broken in page-kit.tsx, SupportAccess.tsx, ui.tsx
-- /admin/users rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ADMIN: rule 7 broken in page-kit.tsx, ui.tsx
-- /admin/users/[membership_id] rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ADMIN: rule 7 broken in page-kit.tsx, UserDetailView.tsx, ui.tsx
-- /admin/users/new rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ADMIN: rule 7 broken in page-kit.tsx, ui.tsx
 
 ## T0D-UIGUARD-1-ANATOMIC (rule 7: 8 entries)
 

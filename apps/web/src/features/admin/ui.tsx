@@ -75,7 +75,8 @@ export function ErrorSummary({ errors, ids }: { errors: Record<string, string>; 
   return (
     <div role="alert" className="lims-banner lims-tone-danger" data-tone="danger">
       <p className="lims-banner-title">Check these fields:</p>
-      <ul>{keys.map((k) => <li key={k}><a href={`#${ids[k] ?? k}`}>{errors[k]}</a></li>)}</ul>
+      {/* LD-439 rule 7: one link per line, no raw list */}
+      {keys.map((k) => <p key={k}><a href={`#${ids[k] ?? k}`}>{errors[k]}</a></p>)}
     </div>
   );
 }
@@ -135,7 +136,7 @@ export function Picker({ label, options, value, onChange, multiple, error, disab
     if (!multiple) { onChange([v]); setOpen(false); return; }
     onChange(value.includes(v) ? value.filter((x) => x !== v) : [...value, v]);
   };
-  const onKey = (e: React.KeyboardEvent<HTMLLIElement>, v: string) => {
+  const onKey = (e: React.KeyboardEvent<HTMLDivElement>, v: string) => {
     const el = e.currentTarget;
     if (e.key === 'ArrowDown') { e.preventDefault(); (el.nextElementSibling as HTMLElement | null)?.focus(); }
     else if (e.key === 'ArrowUp') { e.preventDefault(); (el.previousElementSibling as HTMLElement | null)?.focus(); }
@@ -150,13 +151,14 @@ export function Picker({ label, options, value, onChange, multiple, error, disab
         {chosen.length ? chosen.join(', ') : 'None selected'}
       </button>
       {open ? (
-        <ul id={`${auto}-list`} role="listbox" aria-labelledby={`${auto}-lbl`} className="lims-popover lims-listbox" {...(multiple ? { 'aria-multiselectable': true } : {})}>
+        // LD-439 rule 7: the popup is a listbox widget, drawn on divs (no raw ul/li)
+        <div id={`${auto}-list`} role="listbox" aria-labelledby={`${auto}-lbl`} className="lims-popover lims-listbox" {...(multiple ? { 'aria-multiselectable': true } : {})}>
           {options.map((o) => (
-            <li key={o.value} role="option" aria-selected={value.includes(o.value)} tabIndex={-1} className="lims-option" onClick={() => toggle(o.value)} onKeyDown={(e) => onKey(e, o.value)}>
+            <div key={o.value} role="option" aria-selected={value.includes(o.value)} tabIndex={-1} className="lims-option" onClick={() => toggle(o.value)} onKeyDown={(e) => onKey(e, o.value)}>
               {o.label}{o.tag ? <span className="lims-chip lims-chip-sm lims-tone-warning"> {o.tag}</span> : null}
-            </li>
+            </div>
           ))}
-        </ul>
+        </div>
       ) : null}
       {error ? <p id={`${auto}-err`} className="lims-error">{error}</p> : null}
     </div>

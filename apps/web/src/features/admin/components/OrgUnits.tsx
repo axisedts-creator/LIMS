@@ -1,10 +1,11 @@
 'use client';
 // AD-6 Branches / AD-7 Collection centres (US-C1): table, row click → right Drawer editor (LD-140). Code is immutable after create;
 // edits PATCH only changed fields with If-Match; deactivate never deletes (AC-C1.2).
-import { useState, type ReactNode } from 'react';
+import { useState } from 'react';
 import { Button } from '@lims/ui/components/Button';
 import { ConfirmDialog } from '@lims/ui/components/ConfirmDialog';
 import { Drawer, DrawerSection } from '@lims/ui/components/Drawer';
+import { PageHeader } from '@lims/ui/components/PageHeader';
 import { Switch } from '@lims/ui/components/Switch';
 import { useToast } from '@lims/ui/components/Toast';
 import { createUnit, setUnitActive, updateUnit, type UnitKind } from '../actions';
@@ -29,15 +30,13 @@ export function OrgUnits({ kind, units: initial, branches, canEdit }: { kind: Un
 
   return (
     <main className="lims-page">
-      <header className="lims-page-header">
-        <h1>{centres ? 'Collection centres' : 'Branches'}</h1>
-        {canEdit ? <Button variant="primary" onPress={() => setEditing('new')}>{`New ${noun}`}</Button> : null}
-      </header>
-      {units.length === 0 ? (
-        <p>{centres ? 'Add your first collection centre. Home collection can be added as its own centre.' : 'Add your first branch.'}</p>
-      ) : (
-        <Grid
+      {/* T0D-UIGUARD-1-ADMIN (LD-436 worklist mock, LD-439): PageHeader title row; the empty list keeps its header row */}
+      <PageHeader title={centres ? 'Collection centres' : 'Branches'} helpKey={centres ? 'admin.centres' : 'admin.branches'}
+        caption={`${units.length} ${centres ? (units.length === 1 ? 'centre' : 'centres') : (units.length === 1 ? 'branch' : 'branches')}`}
+        {...(canEdit ? { actions: <Button variant="primary" onPress={() => setEditing('new')}>{`New ${noun}`}</Button> } : {})} />
+      <Grid
           label={centres ? 'Collection centres' : 'Branches'}
+          empty={centres ? 'Add your first collection centre. Home collection can be added as its own centre.' : 'Add your first branch.'}
           columns={centres ? ['Code', 'Name', 'Branch', 'Type', 'Phone', 'Status'] : ['Code', 'Name', 'Processing lab', 'Phone', 'Status']}
           rows={units.map((u) => ({
             key: idOf(kind, u),
@@ -51,7 +50,6 @@ export function OrgUnits({ kind, units: initial, branches, canEdit }: { kind: Un
             ],
           }))}
         />
-      )}
       {editing ? (
         <Editor kind={kind} unit={editing === 'new' ? null : editing} branches={branches} canEdit={canEdit}
           onClose={() => setEditing(null)}
@@ -169,8 +167,8 @@ function Editor({ kind, unit, branches, canEdit, onClose, onSaved, onToggle }: {
         </>
       ) : (
         <>
-          <ReadOnlySection title="Details">{details}</ReadOnlySection>
-          <ReadOnlySection title="Contact">{contact}</ReadOnlySection>
+          <DrawerSection title="Details">{details}</DrawerSection>
+          <DrawerSection title="Contact">{contact}</DrawerSection>
         </>
       )}
       {canEdit && unit ? (
@@ -180,15 +178,5 @@ function Editor({ kind, unit, branches, canEdit, onClose, onSaved, onToggle }: {
       ) : null}
       {failure.dialogs}
     </Drawer>
-  );
-}
-
-/** Same layout as the kit DrawerSection, without its Save. */
-function ReadOnlySection({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <section className="lims-drawer-section" aria-label={title}>
-      <div className="lims-drawer-section-header"><h3 className="lims-drawer-section-title">{title}</h3></div>
-      {children}
-    </section>
   );
 }

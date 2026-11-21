@@ -3,6 +3,6 @@ Files: ActionList/{ActionList,ActionList.stories}.tsx (new), _shared/StateArt.ts
 [CONV] Marker ring = outline (ui-r03 bars box-shadow rings); reduced motion uses transition-duration: 0 (m-series bars `transition: none` and literal 0s).
 [CONV] Chip size calc(space-6 + space-1) = 28px (no space-7 token; tokens.json unchanged). EmptyState `icon` prop kept, deprecated, ignored (art replaces it).
 shell.css: lims-card border/radius md/elevation.1 !important after the padding rule (LD-436 R8, LD-438) + `.lims-card-head .lims-card-title { margin: 0 !important }`.
-Runs (21:38, after test revision): verify set ui 230/230, web 59/59, green. web-style-3 config 3 red (1px card border vs no-px pins) — see T0D-UIKIT-2-dispute.md.
+Runs (21:44, after 21:42 ruling: card border written 0.0625rem): ui 230/230, web uikit2 59/59, web-style-1 57/57, -2 79/79, -3 101/101, all green.
 Full packages/ui suite: other failures predate this task (fonts licence/TTF, no-raw-style-literals in apps/web tests, density NaN seen since Nov 18).
 Open: stepper done stage keeps the `success` icon (ui-r03 snapshot pin); web feature tests and visual match to the mock not run.

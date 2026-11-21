@@ -1,0 +1,9 @@
+Tests: apps/web/src/features/analytics/__tests__/uidash2.today.test.tsx (26), apps/web/src/features/frontdesk/__tests__/uidash2.worklist.test.tsx (19); config apps/web/src/__tests__/vitest.uidash2.config.ts.
+Run: .orchestra/notes/T0D-UIDASH-2-verify.cmd (build:nav, then vitest with that config; jsdom, msw for the worklist page cases).
+Now: 39 of 45 fail for the right reason (old markup: raw h2/ul/ol, no Cards, no counts, old headers); the 6 passing are guards (readOnly, no money leak, no NaN, no inline colour, one freshness note, duplicates tab permission).
+Assumptions pinned (arbiter may rule): Billed = invoiced_paisa, Collected = net_collected_paisa, bar = round(collected/billed) = 91; Cash in drawer and Tests by department (no field in the contract: department_top is money) = "Not available yet"; Outstanding = MoneyText or "Not available yet";
+marker on "In testing" (pending_tests) only when something waits; current day bar carries data-current="true" (new additive hook, ChartCard/BarChart); worklist header "Accession no." + Patient, Tests, Registered, Time elapsed (hh mm since registered_at), Status (StatusChip), row menu "Row actions"; pager with "of <total>" (kit DataTable has none: additive prop);
+New registration = link to /frontdesk/registrations/new; age, sex and assignee are not in OrderSummary so nothing is invented.
+OLD PINS THAT WILL CONTRADICT (not edited by me; writer/arbiter): analytics uidash1.dashboard (four-tile row, ol aria-label "Sample pipeline", "Net sales per day"/"Top departments"), unslop1.dashboard, rs-c8.dashboard likely;
+frontdesk fd-t14.screens §6 (tab textContent now carries a count; Resolve button in row), uilist2.lists (headers "Registration no, Patient, Created, Actions", NotAvailable columns in worklist/page.tsx).
+Not tested: pixel match to the mock (no browser run), CSS values (kit/shell web-style tests cover tokens), Today failed read (error.tsx path, already in rs-c8/an-t18).

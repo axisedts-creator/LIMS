@@ -3,16 +3,56 @@
 exports[`RS-C8 key-screen snapshots + axe > Dashboard: populated (pipeline, needs you, money strip, charts) 1`] = `
 "<div class="lims-page-header">
 <div class="lims-page-header-row">
+<div class="lims-page-heading">
 <h1 class="lims-page-title">Dashboard</h1>
+<p class="lims-page-caption">15 Jan 2026 · 2082-10-01 B.S.</p>
+</div>
 <div class="lims-page-status">
 <span>
 <span class="lims-chip lims-chip-sm lims-tone-neutral" data-tone="neutral">Updated 15/01/2026 10:15 AM</span>
 </span>
 </div>
 <div class="lims-page-actions">
+<div class="lims-period">
+<template>
+</template>
+<div class="lims-field" data-rac="">
+<span class="lims-label" id="ID">Period</span>
+<button id="ID" class="lims-input lims-select-trigger" data-rac="" type="button" tabindex="0" data-aria-id="true" aria-labelledby="ID" aria-haspopup="listbox" aria-expanded="false">
+<span id="ID" class="aria-id" data-rac="">Custom</span>
+<svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M6 9l6 6 6-6">
+</path>
+</svg>
+</button>
+<div style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: fixed; width: 1px; white-space: nowrap; top: 0px; left: 0px;" aria-hidden="true" data-aria-id="true" data-a11y-ignore="aria-hidden-focus" data-testid="hidden-select-container">
+<label>
+<select tabindex="-1" name="period.preset">
+<option value="" label="&nbsp;">&nbsp;</option>
+<option value="today">Today</option>
+<option value="yesterday">Yesterday</option>
+<option value="this_ad_month">This A.D. month</option>
+<option value="last_ad_month">Last A.D. month</option>
+<option value="custom">Custom</option>
+</select>
+</label>
+</div>
+</div>
+<div class="lims-period-custom">
+<label class="lims-field">
+<span class="lims-label">From</span>
+<input class="lims-input" type="date" value="2026-01-15" name="period.from">
+</label>
+<label class="lims-field">
+<span class="lims-label">To</span>
+<input class="lims-input" type="date" value="2026-01-15" name="period.to">
+</label>
+</div>
+</div>
 <button class="lims-btn lims-btn-secondary lims-btn-md" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID">
 <span class="lims-btn-label">Refresh</span>
 </button>
+<a class="lims-btn lims-btn-primary" href="/frontdesk/registrations/new">New registration</a>
 <span data-help-key="analytics.dashboard">
 <button class="lims-btn lims-btn-ghost lims-btn-md" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID">
 <svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
@@ -25,183 +65,192 @@ exports[`RS-C8 key-screen snapshots + axe > Dashboard: populated (pipeline, need
 </div>
 </div>
 </div>
-<p>15 Jan 2026 · 2082-10-01 B.S.</p>
-<div class="lims-stat-row">
-<a class="lims-stat lims-stat-link" href="/analytics/reports/volume">
-<span class="lims-stat-label">Patient visits</span>
-<span class="lims-stat-value"> 12</span>
-<span class="lims-stat-delta lims-tone-success" data-tone="success">
-<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
-<path d="M12 19V5M5 12l7-7 7 7">
-</path>
-</svg> Up +2 (20.0%)<span class="lims-stat-judgement"> (better)</span>
-</span>
-</a>
-<a class="lims-stat lims-stat-link" href="/analytics/reports/pending-tests">
-<span class="lims-stat-label">Reports pending</span>
-<span class="lims-stat-value"> 5</span>
-</a>
-<a class="lims-stat lims-stat-link" href="/analytics/reports/income">
-<span class="lims-stat-label">Net sales</span>
-<span class="lims-stat-value"> Rs. 2,25,000.00</span>
-<span class="lims-stat-delta lims-tone-success" data-tone="success">
-<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
-<path d="M12 19V5M5 12l7-7 7 7">
-</path>
-</svg> Up +Rs. 16,900.00 (8.1%)<span class="lims-stat-judgement"> (better)</span>
-</span>
-</a>
-<a class="lims-stat lims-stat-link" href="/analytics/collections">
-<span class="lims-stat-label">Cash collected</span>
-<span class="lims-stat-value"> Rs. 1,90,000.00</span>
-</a>
+<div class="lims-dash">
+<div class="lims-card">
+<div class="lims-card-head">
+<h2 class="lims-card-title">Where the samples are</h2>
+<span class="lims-card-caption">The most waiting is in testing</span>
 </div>
-<p>New patients 4 · Tests ordered 31</p>
-<ol class="lims-stepper-list" aria-label="Sample pipeline">
-<li class="lims-step">
-<span class="lims-step-label">Draft</span>
+<div class="lims-stepper">
+<ol class="lims-stepper-list">
+<li class="lims-step lims-step-done" data-tone="success">
+<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 3a9 9 0 100 18 9 9 0 000-18zM8 12l3 3 5-6">
+</path>
+</svg>
+<span class="lims-step-label">Registered</span> <span class="lims-step-state">(Complete)</span>
 </li>
-<li class="lims-step">
-<span class="lims-step-label">To collect</span>
+<li class="lims-step lims-step-done" data-tone="success">
+<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 3a9 9 0 100 18 9 9 0 000-18zM8 12l3 3 5-6">
+</path>
+</svg>
+<span class="lims-step-label">Collected</span> <span class="lims-step-state">(Complete)</span>
 </li>
-<li class="lims-step">
-<span class="lims-step-label">To receive</span>
+<li class="lims-step lims-step-done" data-tone="success">
+<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 3a9 9 0 100 18 9 9 0 000-18zM8 12l3 3 5-6">
+</path>
+</svg>
+<span class="lims-step-label">Received</span> <span class="lims-step-state">(Complete)</span>
 </li>
-<li class="lims-step">
-<a href="/analytics/reports/pending-tests">
-<span class="lims-step-label">In progress</span> 9</a>
+<li class="lims-step lims-step-current" data-tone="info" aria-current="step">
+<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 3a9 9 0 100 18 9 9 0 000-18zM12 9a3 3 0 100 6 3 3 0 000-6z">
+</path>
+</svg>
+<span class="lims-step-label">In testing</span> <span class="lims-step-state">(Current)</span> <span class="lims-step-marker" aria-hidden="true">
+</span>
+<span class="lims-step-waiting">Most waiting</span> <span class="lims-step-figures">
+<span class="lims-step-count">9</span> <span class="lims-step-note lims-tone-danger" data-tone="danger">1 overdue</span>
+</span>
 </li>
-<li class="lims-step">
-<span class="lims-step-label">To authorise</span>
+<li class="lims-step lims-step-upcoming" data-tone="neutral">
+<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 3a9 9 0 100 18 9 9 0 000-18z">
+</path>
+</svg>
+<span class="lims-step-label">Verified</span> <span class="lims-step-state">(Upcoming)</span> <span class="lims-step-figures">
+<span class="lims-step-count">28</span>
+</span>
 </li>
-<li class="lims-step">
-<a href="/analytics/reports/tests-done">
-<span class="lims-step-label">Authorised</span> 28</a>
-</li>
-<li class="lims-step">
-<span class="lims-step-label">Released</span>
+<li class="lims-step lims-step-upcoming" data-tone="neutral">
+<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 3a9 9 0 100 18 9 9 0 000-18z">
+</path>
+</svg>
+<span class="lims-step-label">Released</span> <span class="lims-step-state">(Upcoming)</span>
 </li>
 </ol>
-<section aria-labelledby="_r_0_">
-<h2 id="_r_0_">Needs you</h2>
-<ul>
-<li>
-<a href="/analytics/reports/pending-tests">Overdue 1</a>
-</li>
-<li>
-<a href="/analytics/reports/pending-tests">Ready, not released 2</a>
-</li>
-<li>
-<a href="/analytics/reports/pending-tests">Reports pending 5</a>
-</li>
-</ul>
-</section>
-<section aria-labelledby="_r_1_">
-<h2 id="_r_1_">Money, 15 Jan 2026</h2>
-<p>Net sales Rs. 2,25,000.00 · Invoiced Rs. 2,30,000.00 · Credit notes Rs. 5,000.00 · Cash collected Rs. 1,90,000.00</p>
-</section>
-<p>vs yesterday</p>
-<ul>
-<li>Counts each patient once per centre per day. Over several days the same person can be counted more than once.</li>
-<li>Income = invoices issued (incl. VAT/other tax) minus credit notes. Cash collected is shown separately.</li>
-</ul>
-<div class="lims-dash-charts">
-<section class="lims-chart-card" aria-labelledby="_r_6_">
-<header class="lims-chart-card-header">
-<h2 id="_r_6_" class="lims-chart-card-title">Net sales per day</h2>
-</header>
-<div class="lims-chart-frame">
-<figure class="lims-chart">
-<figcaption id="_r_7_-t" class="lims-chart-title">Net sales per day</figcaption>
-<svg role="img" aria-labelledby="_r_7_-t" viewBox="0 0 600 240" width="100%" height="240" class="lims-chart-svg">
-<line class="lims-chart-axis" x1="56" y1="212" x2="588" y2="212">
-</line>
-<line class="lims-chart-axis" x1="56" y1="12" x2="56" y2="212">
-</line>
-<text class="lims-chart-tick" x="52" y="112" text-anchor="end">225000</text>
-<text class="lims-chart-unit" x="4" y="16">Rs.</text>
-<text class="lims-chart-tick" x="56" y="232">15/01/2026</text>
-<text class="lims-chart-tick" x="588" y="232" text-anchor="end">15/01/2026</text>
-<g class="lims-chart-series lims-series-0">
-<path d="M322 112" fill="none" stroke="currentColor" stroke-width="2">
+</div>
+</div>
+<div class="lims-dash-row">
+<div class="lims-card">
+<div class="lims-card-head">
+<h2 class="lims-card-title">Needs you</h2>
+<span class="lims-card-caption">3 things waiting</span>
+</div>
+<ul class="lims-action-list" aria-label="Needs you">
+<li class="lims-action-item">
+<a class="lims-action-row" href="/analytics/reports/pending-tests">
+<span class="lims-action-chip lims-tone-danger" data-tone="danger">
+<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 4l9 16H3L12 4zM12 10v4M12 17h.01">
 </path>
-<circle cx="322" cy="112" r="3" fill="currentColor">
-</circle>
-</g>
 </svg>
-<ul class="lims-chart-legend">
-<li class="lims-series-0">
-<svg aria-hidden="true" width="24" height="8">
-<line x1="0" y1="4" x2="24" y2="4" stroke="currentColor" stroke-width="2">
-</line>
+</span>
+<span class="lims-action-text">
+<span class="lims-action-title">Overdue</span>
+<span class="lims-action-detail">Past the turnaround time</span>
+</span>
+<span class="lims-chip lims-chip-sm lims-tone-danger" data-tone="danger">1</span>
+<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon lims-action-chevron">
+<path d="M9 6l6 6-6 6">
+</path>
 </svg>
-<span>Net sales</span>
+</a>
+</li>
+<li class="lims-action-item">
+<a class="lims-action-row" href="/analytics/reports/pending-tests">
+<span class="lims-action-chip lims-tone-success" data-tone="success">
+<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 3a9 9 0 100 18 9 9 0 000-18zM8 12l3 3 5-6">
+</path>
+</svg>
+</span>
+<span class="lims-action-text">
+<span class="lims-action-title">Ready, not released</span>
+<span class="lims-action-detail">Approved, waiting for release</span>
+</span>
+<span class="lims-chip lims-chip-sm lims-tone-success" data-tone="success">2</span>
+<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon lims-action-chevron">
+<path d="M9 6l6 6-6 6">
+</path>
+</svg>
+</a>
+</li>
+<li class="lims-action-item">
+<a class="lims-action-row" href="/analytics/reports/pending-tests">
+<span class="lims-action-chip lims-tone-warning" data-tone="warning">
+<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 3a9 9 0 100 18 9 9 0 000-18zM12 9a3 3 0 100 6 3 3 0 000-6z">
+</path>
+</svg>
+</span>
+<span class="lims-action-text">
+<span class="lims-action-title">Reports pending</span>
+<span class="lims-action-detail">Waiting for results</span>
+</span>
+<span class="lims-chip lims-chip-sm lims-tone-warning" data-tone="warning">5</span>
+<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon lims-action-chevron">
+<path d="M9 6l6 6-6 6">
+</path>
+</svg>
+</a>
 </li>
 </ul>
-<div class="lims-visually-hidden">
-<table>
-<caption>Net sales per day</caption>
-<thead>
-<tr>
-<th scope="col">Time</th>
-<th scope="col">Net sales Rs.</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<th scope="row">15/01/2026 05:45 AM</th>
-<td>225000</td>
-</tr>
-</tbody>
-</table>
 </div>
-</figure>
+<div class="lims-card">
+<div class="lims-card-head">
+<h2 class="lims-card-title">Money, 15 Jan 2026</h2>
+<span class="lims-card-caption">Amounts in NPR</span>
 </div>
-</section>
-<section class="lims-chart-card" aria-labelledby="_r_8_">
+<div class="lims-dash-money">
+<div class="lims-stat">
+<span class="lims-stat-label">Billed</span>
+<span class="lims-stat-value">
+<span class="lims-money">Rs. 2,30,000.00</span>
+</span>
+</div>
+<div class="lims-stat">
+<span class="lims-stat-label">Collected</span>
+<span class="lims-stat-value">
+<span class="lims-money">Rs. 1,90,000.00</span>
+</span>
+</div>
+<div class="lims-stat">
+<span class="lims-stat-label">Outstanding</span>
+<span class="lims-stat-value">
+<span class="lims-na">Not available yet</span>
+</span>
+</div>
+<div class="lims-stat">
+<span class="lims-stat-label">Cash in drawer</span>
+<span class="lims-stat-value">
+<span class="lims-na">Not available yet</span>
+</span>
+</div>
+</div>
+<div class="lims-dash-ratio">
+<span class="lims-dash-ratio-label">
+<span>Collected of billed</span> <span>83%</span>
+</span>
+<progress class="lims-progress" value="83" max="100" aria-label="Collected of billed" aria-valuetext="83%">
+</progress>
+</div>
+<p class="lims-card-note">Billed = invoices issued (incl. VAT/other tax). Cash collected is shown separately.</p>
+</div>
+</div>
+<div class="lims-dash-charts">
+<section class="lims-chart-card" aria-labelledby="ID">
 <header class="lims-chart-card-header">
-<h2 id="_r_8_" class="lims-chart-card-title">Top departments</h2>
+<h2 id="ID" class="lims-chart-card-title">Billed per day</h2>
+<div class="lims-chart-period">1 day</div>
 </header>
 <div class="lims-chart-frame">
-<figure class="lims-chart">
-<figcaption id="_r_9_-t" class="lims-chart-title">Top departments by net sales</figcaption>
-<svg role="img" aria-labelledby="_r_9_-t" viewBox="0 0 600 240" width="100%" height="240" class="lims-chart-svg">
-<line class="lims-chart-axis" x1="56" y1="204" x2="588" y2="204">
-</line>
-<text class="lims-chart-tick" x="52" y="12" text-anchor="end">Rs. 9,000.00</text>
-<g>
-<rect class="lims-chart-bar lims-series-0 lims-pattern-solid" x="109.2" y="12" width="425.6" height="192" fill="currentColor">
-</rect>
-<text class="lims-chart-tick" x="322" y="228" text-anchor="middle">Synthetic Biochemistry</text>
-</g>
-</svg>
-<ul class="lims-chart-legend">
-<li class="lims-series-0 lims-pattern-solid">
-<span class="lims-chart-swatch" aria-hidden="true">
-</span>
-<span>Net sales</span>
-</li>
-</ul>
-<div class="lims-visually-hidden">
-<table>
-<caption>Top departments by net sales</caption>
-<thead>
-<tr>
-<th scope="col">Category</th>
-<th scope="col">Net sales</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<th scope="row">Synthetic Biochemistry</th>
-<td>Rs. 9,000.00</td>
-</tr>
-</tbody>
-</table>
-</div>
-</figure>
+<span class="lims-na">Not available yet</span>
 </div>
 </section>
+<section class="lims-chart-card" aria-labelledby="ID">
+<header class="lims-chart-card-header">
+<h2 id="ID" class="lims-chart-card-title">Tests by department</h2>
+<div class="lims-chart-period">15 Jan 2026</div>
+</header>
+<div class="lims-chart-frame">
+<p class="lims-chart-empty">Not available yet</p>
+</div>
+</section>
+</div>
 </div>
 <div class="lims-toast-region">
 </div>"
@@ -210,16 +259,56 @@ exports[`RS-C8 key-screen snapshots + axe > Dashboard: populated (pipeline, need
 exports[`RS-C8 key-screen snapshots + axe > Dashboard: role without money tiles 1`] = `
 "<div class="lims-page-header">
 <div class="lims-page-header-row">
+<div class="lims-page-heading">
 <h1 class="lims-page-title">Dashboard</h1>
+<p class="lims-page-caption">15 Jan 2026 · 2082-10-01 B.S.</p>
+</div>
 <div class="lims-page-status">
 <span>
 <span class="lims-chip lims-chip-sm lims-tone-neutral" data-tone="neutral">Updated 15/01/2026 10:15 AM</span>
 </span>
 </div>
 <div class="lims-page-actions">
+<div class="lims-period">
+<template>
+</template>
+<div class="lims-field" data-rac="">
+<span class="lims-label" id="ID">Period</span>
+<button id="ID" class="lims-input lims-select-trigger" data-rac="" type="button" tabindex="0" data-aria-id="true" aria-labelledby="ID" aria-haspopup="listbox" aria-expanded="false">
+<span id="ID" class="aria-id" data-rac="">Custom</span>
+<svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M6 9l6 6 6-6">
+</path>
+</svg>
+</button>
+<div style="border: 0px; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: fixed; width: 1px; white-space: nowrap; top: 0px; left: 0px;" aria-hidden="true" data-aria-id="true" data-a11y-ignore="aria-hidden-focus" data-testid="hidden-select-container">
+<label>
+<select tabindex="-1" name="period.preset">
+<option value="" label="&nbsp;">&nbsp;</option>
+<option value="today">Today</option>
+<option value="yesterday">Yesterday</option>
+<option value="this_ad_month">This A.D. month</option>
+<option value="last_ad_month">Last A.D. month</option>
+<option value="custom">Custom</option>
+</select>
+</label>
+</div>
+</div>
+<div class="lims-period-custom">
+<label class="lims-field">
+<span class="lims-label">From</span>
+<input class="lims-input" type="date" value="2026-01-15" name="period.from">
+</label>
+<label class="lims-field">
+<span class="lims-label">To</span>
+<input class="lims-input" type="date" value="2026-01-15" name="period.to">
+</label>
+</div>
+</div>
 <button class="lims-btn lims-btn-secondary lims-btn-md" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID">
 <span class="lims-btn-label">Refresh</span>
 </button>
+<a class="lims-btn lims-btn-primary" href="/frontdesk/registrations/new">New registration</a>
 <span data-help-key="analytics.dashboard">
 <button class="lims-btn lims-btn-ghost lims-btn-md" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID">
 <svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
@@ -232,144 +321,152 @@ exports[`RS-C8 key-screen snapshots + axe > Dashboard: role without money tiles 
 </div>
 </div>
 </div>
-<p>15 Jan 2026 · 2082-10-01 B.S.</p>
-<div class="lims-stat-row">
-<a class="lims-stat lims-stat-link" href="/analytics/reports/volume">
-<span class="lims-stat-label">Patient visits</span>
-<span class="lims-stat-value"> 12</span>
-<span class="lims-stat-delta lims-tone-success" data-tone="success">
-<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
-<path d="M12 19V5M5 12l7-7 7 7">
-</path>
-</svg> Up +2 (20.0%)<span class="lims-stat-judgement"> (better)</span>
-</span>
-</a>
-<a class="lims-stat lims-stat-link" href="/analytics/reports/pending-tests">
-<span class="lims-stat-label">Reports pending</span>
-<span class="lims-stat-value"> 5</span>
-</a>
+<div class="lims-dash">
+<div class="lims-card">
+<div class="lims-card-head">
+<h2 class="lims-card-title">Where the samples are</h2>
+<span class="lims-card-caption">The most waiting is in testing</span>
 </div>
-<p>New patients 4 · Tests ordered 31</p>
-<ol class="lims-stepper-list" aria-label="Sample pipeline">
-<li class="lims-step">
-<span class="lims-step-label">Draft</span>
+<div class="lims-stepper">
+<ol class="lims-stepper-list">
+<li class="lims-step lims-step-done" data-tone="success">
+<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 3a9 9 0 100 18 9 9 0 000-18zM8 12l3 3 5-6">
+</path>
+</svg>
+<span class="lims-step-label">Registered</span> <span class="lims-step-state">(Complete)</span>
 </li>
-<li class="lims-step">
-<span class="lims-step-label">To collect</span>
+<li class="lims-step lims-step-done" data-tone="success">
+<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 3a9 9 0 100 18 9 9 0 000-18zM8 12l3 3 5-6">
+</path>
+</svg>
+<span class="lims-step-label">Collected</span> <span class="lims-step-state">(Complete)</span>
 </li>
-<li class="lims-step">
-<span class="lims-step-label">To receive</span>
+<li class="lims-step lims-step-done" data-tone="success">
+<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 3a9 9 0 100 18 9 9 0 000-18zM8 12l3 3 5-6">
+</path>
+</svg>
+<span class="lims-step-label">Received</span> <span class="lims-step-state">(Complete)</span>
 </li>
-<li class="lims-step">
-<a href="/analytics/reports/pending-tests">
-<span class="lims-step-label">In progress</span> 9</a>
+<li class="lims-step lims-step-current" data-tone="info" aria-current="step">
+<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 3a9 9 0 100 18 9 9 0 000-18zM12 9a3 3 0 100 6 3 3 0 000-6z">
+</path>
+</svg>
+<span class="lims-step-label">In testing</span> <span class="lims-step-state">(Current)</span> <span class="lims-step-marker" aria-hidden="true">
+</span>
+<span class="lims-step-waiting">Most waiting</span> <span class="lims-step-figures">
+<span class="lims-step-count">9</span> <span class="lims-step-note lims-tone-danger" data-tone="danger">1 overdue</span>
+</span>
 </li>
-<li class="lims-step">
-<span class="lims-step-label">To authorise</span>
+<li class="lims-step lims-step-upcoming" data-tone="neutral">
+<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 3a9 9 0 100 18 9 9 0 000-18z">
+</path>
+</svg>
+<span class="lims-step-label">Verified</span> <span class="lims-step-state">(Upcoming)</span> <span class="lims-step-figures">
+<span class="lims-step-count">28</span>
+</span>
 </li>
-<li class="lims-step">
-<a href="/analytics/reports/tests-done">
-<span class="lims-step-label">Authorised</span> 28</a>
-</li>
-<li class="lims-step">
-<span class="lims-step-label">Released</span>
+<li class="lims-step lims-step-upcoming" data-tone="neutral">
+<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 3a9 9 0 100 18 9 9 0 000-18z">
+</path>
+</svg>
+<span class="lims-step-label">Released</span> <span class="lims-step-state">(Upcoming)</span>
 </li>
 </ol>
-<section aria-labelledby="_r_a_">
-<h2 id="_r_a_">Needs you</h2>
-<ul>
-<li>
-<a href="/analytics/reports/pending-tests">Overdue 1</a>
-</li>
-<li>
-<a href="/analytics/reports/pending-tests">Ready, not released 2</a>
-</li>
-<li>
-<a href="/analytics/reports/pending-tests">Reports pending 5</a>
-</li>
-</ul>
-</section>
-<p>vs yesterday</p>
-<ul>
-<li>Counts each patient once per centre per day. Over several days the same person can be counted more than once.</li>
-<li>Income = invoices issued (incl. VAT/other tax) minus credit notes. Cash collected is shown separately.</li>
-</ul>
-<div class="lims-dash-charts">
-<section class="lims-chart-card" aria-labelledby="_r_g_">
-<header class="lims-chart-card-header">
-<h2 id="_r_g_" class="lims-chart-card-title">Net sales per day</h2>
-</header>
-<div class="lims-chart-frame">
-<figure class="lims-chart">
-<figcaption id="_r_h_-t" class="lims-chart-title">Net sales per day</figcaption>
-<svg role="img" aria-labelledby="_r_h_-t" viewBox="0 0 600 240" width="100%" height="240" class="lims-chart-svg">
-<line class="lims-chart-axis" x1="56" y1="212" x2="588" y2="212">
-</line>
-<line class="lims-chart-axis" x1="56" y1="12" x2="56" y2="212">
-</line>
-</svg>
-<ul class="lims-chart-legend">
-<li class="lims-series-0">
-<svg aria-hidden="true" width="24" height="8">
-<line x1="0" y1="4" x2="24" y2="4" stroke="currentColor" stroke-width="2">
-</line>
-</svg>
-<span>Net sales</span>
-</li>
-</ul>
-<div class="lims-visually-hidden">
-<table>
-<caption>Net sales per day</caption>
-<thead>
-<tr>
-<th scope="col">Time</th>
-<th scope="col">Net sales</th>
-</tr>
-</thead>
-<tbody>
-</tbody>
-</table>
 </div>
-</figure>
-<p class="lims-chart-empty">No data yet</p>
 </div>
-</section>
-<section class="lims-chart-card" aria-labelledby="_r_i_">
-<header class="lims-chart-card-header">
-<h2 id="_r_i_" class="lims-chart-card-title">Top departments</h2>
-</header>
-<div class="lims-chart-frame">
-<figure class="lims-chart">
-<figcaption id="_r_j_-t" class="lims-chart-title">Top departments by net sales</figcaption>
-<svg role="img" aria-labelledby="_r_j_-t" viewBox="0 0 600 240" width="100%" height="240" class="lims-chart-svg">
-<line class="lims-chart-axis" x1="56" y1="204" x2="588" y2="204">
-</line>
-<text class="lims-chart-tick" x="52" y="12" text-anchor="end">1</text>
+<div class="lims-dash-row">
+<div class="lims-card">
+<div class="lims-card-head">
+<h2 class="lims-card-title">Needs you</h2>
+<span class="lims-card-caption">3 things waiting</span>
+</div>
+<ul class="lims-action-list" aria-label="Needs you">
+<li class="lims-action-item">
+<a class="lims-action-row" href="/analytics/reports/pending-tests">
+<span class="lims-action-chip lims-tone-danger" data-tone="danger">
+<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 4l9 16H3L12 4zM12 10v4M12 17h.01">
+</path>
 </svg>
-<ul class="lims-chart-legend">
-<li class="lims-series-0 lims-pattern-solid">
-<span class="lims-chart-swatch" aria-hidden="true">
 </span>
-<span>Net sales</span>
+<span class="lims-action-text">
+<span class="lims-action-title">Overdue</span>
+<span class="lims-action-detail">Past the turnaround time</span>
+</span>
+<span class="lims-chip lims-chip-sm lims-tone-danger" data-tone="danger">1</span>
+<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon lims-action-chevron">
+<path d="M9 6l6 6-6 6">
+</path>
+</svg>
+</a>
+</li>
+<li class="lims-action-item">
+<a class="lims-action-row" href="/analytics/reports/pending-tests">
+<span class="lims-action-chip lims-tone-success" data-tone="success">
+<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 3a9 9 0 100 18 9 9 0 000-18zM8 12l3 3 5-6">
+</path>
+</svg>
+</span>
+<span class="lims-action-text">
+<span class="lims-action-title">Ready, not released</span>
+<span class="lims-action-detail">Approved, waiting for release</span>
+</span>
+<span class="lims-chip lims-chip-sm lims-tone-success" data-tone="success">2</span>
+<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon lims-action-chevron">
+<path d="M9 6l6 6-6 6">
+</path>
+</svg>
+</a>
+</li>
+<li class="lims-action-item">
+<a class="lims-action-row" href="/analytics/reports/pending-tests">
+<span class="lims-action-chip lims-tone-warning" data-tone="warning">
+<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 3a9 9 0 100 18 9 9 0 000-18zM12 9a3 3 0 100 6 3 3 0 000-6z">
+</path>
+</svg>
+</span>
+<span class="lims-action-text">
+<span class="lims-action-title">Reports pending</span>
+<span class="lims-action-detail">Waiting for results</span>
+</span>
+<span class="lims-chip lims-chip-sm lims-tone-warning" data-tone="warning">5</span>
+<svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon lims-action-chevron">
+<path d="M9 6l6 6-6 6">
+</path>
+</svg>
+</a>
 </li>
 </ul>
-<div class="lims-visually-hidden">
-<table>
-<caption>Top departments by net sales</caption>
-<thead>
-<tr>
-<th scope="col">Category</th>
-<th scope="col">Net sales</th>
-</tr>
-</thead>
-<tbody>
-</tbody>
-</table>
 </div>
-</figure>
-<p class="lims-chart-empty">No data yet</p>
+</div>
+<div class="lims-dash-charts">
+<section class="lims-chart-card" aria-labelledby="ID">
+<header class="lims-chart-card-header">
+<h2 id="ID" class="lims-chart-card-title">Billed per day</h2>
+<div class="lims-chart-period">1 day</div>
+</header>
+<div class="lims-chart-frame">
+<span class="lims-na">Not available yet</span>
 </div>
 </section>
+<section class="lims-chart-card" aria-labelledby="ID">
+<header class="lims-chart-card-header">
+<h2 id="ID" class="lims-chart-card-title">Tests by department</h2>
+<div class="lims-chart-period">15 Jan 2026</div>
+</header>
+<div class="lims-chart-frame">
+<p class="lims-chart-empty">Not available yet</p>
+</div>
+</section>
+</div>
 </div>
 <div class="lims-toast-region">
 </div>"
@@ -458,12 +555,12 @@ exports[`RS-C8 key-screen snapshots + axe > Income report 1`] = `
 <div>
 <div role="search" class="lims-filter-bar">
 <div class="lims-field">
-<label class="lims-label" id="_r_4p_">Centre</label>
+<label class="lims-label" id="ID">Centre</label>
 <template>
 </template>
 <span data-focus-scope-start="true" hidden="">
 </span>
-<div class="lims-listbox lims-chip-list" data-rac="" aria-labelledby="_r_4p_" aria-multiselectable="true" role="listbox" aria-orientation="horizontal" id="ID" tabindex="0" data-collection="aria-id" data-layout="stack" data-orientation="horizontal">
+<div class="lims-listbox lims-chip-list" data-rac="" aria-labelledby="ID" aria-multiselectable="true" role="listbox" aria-orientation="horizontal" id="ID" tabindex="0" data-collection="aria-id" data-layout="stack" data-orientation="horizontal">
 <div class="lims-option lims-chip" data-rac="" role="option" aria-selected="false" tabindex="-1" data-collection="aria-id" data-key="01a1a98a-ac40-7000-8000-000000000002" data-aria-id="true" id="ID" data-selection-mode="multiple">Synthetic Centre A</div>
 <div class="lims-option lims-chip" data-rac="" role="option" aria-selected="false" tabindex="-1" data-collection="aria-id" data-key="01a1a98a-ac40-7000-8000-000000000003" data-aria-id="true" id="ID" data-selection-mode="multiple">Synthetic Centre B</div>
 </div>
@@ -471,12 +568,12 @@ exports[`RS-C8 key-screen snapshots + axe > Income report 1`] = `
 </span>
 </div>
 <div class="lims-field">
-<label class="lims-label" id="_r_4v_">Branch</label>
+<label class="lims-label" id="ID">Branch</label>
 <template>
 </template>
 <span data-focus-scope-start="true" hidden="">
 </span>
-<div class="lims-listbox lims-chip-list" data-rac="" aria-labelledby="_r_4v_" aria-multiselectable="true" role="listbox" aria-orientation="horizontal" id="ID" tabindex="0" data-collection="aria-id" data-layout="stack" data-orientation="horizontal">
+<div class="lims-listbox lims-chip-list" data-rac="" aria-labelledby="ID" aria-multiselectable="true" role="listbox" aria-orientation="horizontal" id="ID" tabindex="0" data-collection="aria-id" data-layout="stack" data-orientation="horizontal">
 <div class="lims-option lims-chip" data-rac="" role="option" aria-selected="false" tabindex="-1" data-collection="aria-id" data-key="01a1a98a-ac40-7000-8000-000000000004" data-aria-id="true" id="ID" data-selection-mode="multiple">Synthetic Branch North</div>
 </div>
 <span data-focus-scope-end="true" hidden="">
@@ -541,14 +638,14 @@ exports[`RS-C8 key-screen snapshots + axe > Income report 1`] = `
 </div>
 </div>
 <div class="lims-dash-charts">
-<section class="lims-chart-card" aria-labelledby="_r_5i_">
+<section class="lims-chart-card" aria-labelledby="ID">
 <header class="lims-chart-card-header">
-<h2 id="_r_5i_" class="lims-chart-card-title">Net sales per day</h2>
+<h2 id="ID" class="lims-chart-card-title">Net sales per day</h2>
 </header>
 <div class="lims-chart-frame">
 <figure class="lims-chart">
-<figcaption id="_r_5j_-t" class="lims-chart-title">Net sales per day</figcaption>
-<svg role="img" aria-labelledby="_r_5j_-t" viewBox="0 0 600 240" width="100%" height="240" class="lims-chart-svg">
+<figcaption id="ID" class="lims-chart-title">Net sales per day</figcaption>
+<svg role="img" aria-labelledby="ID" viewBox="0 0 600 240" width="100%" height="240" class="lims-chart-svg">
 <line class="lims-chart-axis" x1="56" y1="212" x2="588" y2="212">
 </line>
 <line class="lims-chart-axis" x1="56" y1="12" x2="56" y2="212">
@@ -593,14 +690,14 @@ exports[`RS-C8 key-screen snapshots + axe > Income report 1`] = `
 </figure>
 </div>
 </section>
-<section class="lims-chart-card" aria-labelledby="_r_5k_">
+<section class="lims-chart-card" aria-labelledby="ID">
 <header class="lims-chart-card-header">
-<h2 id="_r_5k_" class="lims-chart-card-title">Net sales by department</h2>
+<h2 id="ID" class="lims-chart-card-title">Net sales by department</h2>
 </header>
 <div class="lims-chart-frame">
 <figure class="lims-chart">
-<figcaption id="_r_5l_-t" class="lims-chart-title">Net sales by department</figcaption>
-<svg role="img" aria-labelledby="_r_5l_-t" viewBox="0 0 600 240" width="100%" height="240" class="lims-chart-svg">
+<figcaption id="ID" class="lims-chart-title">Net sales by department</figcaption>
+<svg role="img" aria-labelledby="ID" viewBox="0 0 600 240" width="100%" height="240" class="lims-chart-svg">
 <line class="lims-chart-axis" x1="56" y1="204" x2="588" y2="204">
 </line>
 <text class="lims-chart-tick" x="52" y="12" text-anchor="end">Rs. 9,000.00</text>
@@ -821,12 +918,12 @@ exports[`RS-C8 key-screen snapshots + axe > Pending tests report 1`] = `
 <div>
 <div role="search" class="lims-filter-bar">
 <div class="lims-field">
-<label class="lims-label" id="_r_80_">Centre</label>
+<label class="lims-label" id="ID">Centre</label>
 <template>
 </template>
 <span data-focus-scope-start="true" hidden="">
 </span>
-<div class="lims-listbox lims-chip-list" data-rac="" aria-labelledby="_r_80_" aria-multiselectable="true" role="listbox" aria-orientation="horizontal" id="ID" tabindex="0" data-collection="aria-id" data-layout="stack" data-orientation="horizontal">
+<div class="lims-listbox lims-chip-list" data-rac="" aria-labelledby="ID" aria-multiselectable="true" role="listbox" aria-orientation="horizontal" id="ID" tabindex="0" data-collection="aria-id" data-layout="stack" data-orientation="horizontal">
 <div class="lims-option lims-chip" data-rac="" role="option" aria-selected="false" tabindex="-1" data-collection="aria-id" data-key="01a1a98a-ac40-7000-8000-000000000002" data-aria-id="true" id="ID" data-selection-mode="multiple">Synthetic Centre A</div>
 <div class="lims-option lims-chip" data-rac="" role="option" aria-selected="false" tabindex="-1" data-collection="aria-id" data-key="01a1a98a-ac40-7000-8000-000000000003" data-aria-id="true" id="ID" data-selection-mode="multiple">Synthetic Centre B</div>
 </div>
@@ -834,36 +931,36 @@ exports[`RS-C8 key-screen snapshots + axe > Pending tests report 1`] = `
 </span>
 </div>
 <div class="lims-field">
-<label class="lims-label" id="_r_86_">Branch</label>
+<label class="lims-label" id="ID">Branch</label>
 <template>
 </template>
 <span data-focus-scope-start="true" hidden="">
 </span>
-<div class="lims-listbox lims-chip-list" data-rac="" aria-labelledby="_r_86_" aria-multiselectable="true" role="listbox" aria-orientation="horizontal" id="ID" tabindex="0" data-collection="aria-id" data-layout="stack" data-orientation="horizontal">
+<div class="lims-listbox lims-chip-list" data-rac="" aria-labelledby="ID" aria-multiselectable="true" role="listbox" aria-orientation="horizontal" id="ID" tabindex="0" data-collection="aria-id" data-layout="stack" data-orientation="horizontal">
 <div class="lims-option lims-chip" data-rac="" role="option" aria-selected="false" tabindex="-1" data-collection="aria-id" data-key="01a1a98a-ac40-7000-8000-000000000004" data-aria-id="true" id="ID" data-selection-mode="multiple">Synthetic Branch North</div>
 </div>
 <span data-focus-scope-end="true" hidden="">
 </span>
 </div>
 <div class="lims-field">
-<label class="lims-label" id="_r_8c_">Department</label>
+<label class="lims-label" id="ID">Department</label>
 <template>
 </template>
 <span data-focus-scope-start="true" hidden="">
 </span>
-<div class="lims-listbox lims-chip-list" data-rac="" aria-labelledby="_r_8c_" aria-multiselectable="true" role="listbox" aria-orientation="horizontal" id="ID" tabindex="0" data-collection="aria-id" data-layout="stack" data-orientation="horizontal">
+<div class="lims-listbox lims-chip-list" data-rac="" aria-labelledby="ID" aria-multiselectable="true" role="listbox" aria-orientation="horizontal" id="ID" tabindex="0" data-collection="aria-id" data-layout="stack" data-orientation="horizontal">
 <div class="lims-option lims-chip" data-rac="" role="option" aria-selected="false" tabindex="-1" data-collection="aria-id" data-key="01a1a98a-ac40-7000-8000-000000000005" data-aria-id="true" id="ID" data-selection-mode="multiple">Synthetic Biochemistry</div>
 </div>
 <span data-focus-scope-end="true" hidden="">
 </span>
 </div>
 <div class="lims-field">
-<label class="lims-label" id="_r_8i_">Status</label>
+<label class="lims-label" id="ID">Status</label>
 <template>
 </template>
 <span data-focus-scope-start="true" hidden="">
 </span>
-<div class="lims-listbox lims-chip-list" data-rac="" aria-labelledby="_r_8i_" aria-multiselectable="true" role="listbox" aria-orientation="horizontal" id="ID" tabindex="0" data-collection="aria-id" data-layout="stack" data-orientation="horizontal">
+<div class="lims-listbox lims-chip-list" data-rac="" aria-labelledby="ID" aria-multiselectable="true" role="listbox" aria-orientation="horizontal" id="ID" tabindex="0" data-collection="aria-id" data-layout="stack" data-orientation="horizontal">
 <div class="lims-option lims-chip" data-rac="" role="option" aria-selected="false" tabindex="-1" data-collection="aria-id" data-key="awaiting_collection" data-aria-id="true" id="ID" data-selection-mode="multiple">Awaiting collection</div>
 <div class="lims-option lims-chip" data-rac="" role="option" aria-selected="false" tabindex="-1" data-collection="aria-id" data-key="awaiting_receipt" data-aria-id="true" id="ID" data-selection-mode="multiple">Awaiting receipt</div>
 <div class="lims-option lims-chip" data-rac="" role="option" aria-selected="false" tabindex="-1" data-collection="aria-id" data-key="in_process" data-aria-id="true" id="ID" data-selection-mode="multiple">In process</div>
@@ -874,12 +971,12 @@ exports[`RS-C8 key-screen snapshots + axe > Pending tests report 1`] = `
 </span>
 </div>
 <div class="lims-field">
-<label class="lims-label" id="_r_8o_">Processing branch</label>
+<label class="lims-label" id="ID">Processing branch</label>
 <template>
 </template>
 <span data-focus-scope-start="true" hidden="">
 </span>
-<div class="lims-listbox lims-chip-list" data-rac="" aria-labelledby="_r_8o_" aria-multiselectable="true" role="listbox" aria-orientation="horizontal" id="ID" tabindex="0" data-collection="aria-id" data-layout="stack" data-orientation="horizontal">
+<div class="lims-listbox lims-chip-list" data-rac="" aria-labelledby="ID" aria-multiselectable="true" role="listbox" aria-orientation="horizontal" id="ID" tabindex="0" data-collection="aria-id" data-layout="stack" data-orientation="horizontal">
 <div class="lims-option lims-chip" data-rac="" role="option" aria-selected="false" tabindex="-1" data-collection="aria-id" data-key="01a1a98a-ac40-7000-8000-000000000004" data-aria-id="true" id="ID" data-selection-mode="multiple">Synthetic Branch North</div>
 </div>
 <span data-focus-scope-end="true" hidden="">
@@ -956,7 +1053,9 @@ exports[`RS-C8 key-screen snapshots + axe > Pending tests report 1`] = `
 </div>
 </div>
 <div class="lims-card">
+<div class="lims-card-head">
 <h2 class="lims-card-title">Reports pending</h2>
+</div>
 <dl class="lims-dl lims-cols-2">
 <div class="lims-dl-item">
 <dt>Reports pending</dt>
@@ -990,8 +1089,8 @@ exports[`RS-C8 key-screen snapshots + axe > Pending tests report 1`] = `
 </div>
 <div class="lims-card">
 <figure class="lims-chart">
-<figcaption id="_r_9m_-t" class="lims-chart-title">Pending tests by department</figcaption>
-<svg role="img" aria-labelledby="_r_9m_-t" viewBox="0 0 600 240" width="100%" height="240" class="lims-chart-svg">
+<figcaption id="ID" class="lims-chart-title">Pending tests by department</figcaption>
+<svg role="img" aria-labelledby="ID" viewBox="0 0 600 240" width="100%" height="240" class="lims-chart-svg">
 <line class="lims-chart-axis" x1="56" y1="204" x2="588" y2="204">
 </line>
 <text class="lims-chart-tick" x="52" y="12" text-anchor="end">6</text>
@@ -1212,12 +1311,12 @@ exports[`RS-C8 key-screen snapshots + axe > Report hub (tabs) 1`] = `
 <div>
 <div role="search" class="lims-filter-bar">
 <div class="lims-field">
-<label class="lims-label" id="_r_17_">Centre</label>
+<label class="lims-label" id="ID">Centre</label>
 <template>
 </template>
 <span data-focus-scope-start="true" hidden="">
 </span>
-<div class="lims-listbox lims-chip-list" data-rac="" aria-labelledby="_r_17_" aria-multiselectable="true" role="listbox" aria-orientation="horizontal" id="ID" tabindex="0" data-collection="aria-id" data-layout="stack" data-orientation="horizontal">
+<div class="lims-listbox lims-chip-list" data-rac="" aria-labelledby="ID" aria-multiselectable="true" role="listbox" aria-orientation="horizontal" id="ID" tabindex="0" data-collection="aria-id" data-layout="stack" data-orientation="horizontal">
 <div class="lims-option lims-chip" data-rac="" role="option" aria-selected="false" tabindex="-1" data-collection="aria-id" data-key="01a1a98a-ac40-7000-8000-000000000002" data-aria-id="true" id="ID" data-selection-mode="multiple">Synthetic Centre A</div>
 <div class="lims-option lims-chip" data-rac="" role="option" aria-selected="false" tabindex="-1" data-collection="aria-id" data-key="01a1a98a-ac40-7000-8000-000000000003" data-aria-id="true" id="ID" data-selection-mode="multiple">Synthetic Centre B</div>
 </div>
@@ -1225,12 +1324,12 @@ exports[`RS-C8 key-screen snapshots + axe > Report hub (tabs) 1`] = `
 </span>
 </div>
 <div class="lims-field">
-<label class="lims-label" id="_r_1d_">Branch</label>
+<label class="lims-label" id="ID">Branch</label>
 <template>
 </template>
 <span data-focus-scope-start="true" hidden="">
 </span>
-<div class="lims-listbox lims-chip-list" data-rac="" aria-labelledby="_r_1d_" aria-multiselectable="true" role="listbox" aria-orientation="horizontal" id="ID" tabindex="0" data-collection="aria-id" data-layout="stack" data-orientation="horizontal">
+<div class="lims-listbox lims-chip-list" data-rac="" aria-labelledby="ID" aria-multiselectable="true" role="listbox" aria-orientation="horizontal" id="ID" tabindex="0" data-collection="aria-id" data-layout="stack" data-orientation="horizontal">
 <div class="lims-option lims-chip" data-rac="" role="option" aria-selected="false" tabindex="-1" data-collection="aria-id" data-key="01a1a98a-ac40-7000-8000-000000000004" data-aria-id="true" id="ID" data-selection-mode="multiple">Synthetic Branch North</div>
 </div>
 <span data-focus-scope-end="true" hidden="">
@@ -1295,14 +1394,14 @@ exports[`RS-C8 key-screen snapshots + axe > Report hub (tabs) 1`] = `
 </div>
 </div>
 <div class="lims-dash-charts">
-<section class="lims-chart-card" aria-labelledby="_r_20_">
+<section class="lims-chart-card" aria-labelledby="ID">
 <header class="lims-chart-card-header">
-<h2 id="_r_20_" class="lims-chart-card-title">Net sales per day</h2>
+<h2 id="ID" class="lims-chart-card-title">Net sales per day</h2>
 </header>
 <div class="lims-chart-frame">
 <figure class="lims-chart">
-<figcaption id="_r_21_-t" class="lims-chart-title">Net sales per day</figcaption>
-<svg role="img" aria-labelledby="_r_21_-t" viewBox="0 0 600 240" width="100%" height="240" class="lims-chart-svg">
+<figcaption id="ID" class="lims-chart-title">Net sales per day</figcaption>
+<svg role="img" aria-labelledby="ID" viewBox="0 0 600 240" width="100%" height="240" class="lims-chart-svg">
 <line class="lims-chart-axis" x1="56" y1="212" x2="588" y2="212">
 </line>
 <line class="lims-chart-axis" x1="56" y1="12" x2="56" y2="212">
@@ -1347,14 +1446,14 @@ exports[`RS-C8 key-screen snapshots + axe > Report hub (tabs) 1`] = `
 </figure>
 </div>
 </section>
-<section class="lims-chart-card" aria-labelledby="_r_22_">
+<section class="lims-chart-card" aria-labelledby="ID">
 <header class="lims-chart-card-header">
-<h2 id="_r_22_" class="lims-chart-card-title">Net sales by department</h2>
+<h2 id="ID" class="lims-chart-card-title">Net sales by department</h2>
 </header>
 <div class="lims-chart-frame">
 <figure class="lims-chart">
-<figcaption id="_r_23_-t" class="lims-chart-title">Net sales by department</figcaption>
-<svg role="img" aria-labelledby="_r_23_-t" viewBox="0 0 600 240" width="100%" height="240" class="lims-chart-svg">
+<figcaption id="ID" class="lims-chart-title">Net sales by department</figcaption>
+<svg role="img" aria-labelledby="ID" viewBox="0 0 600 240" width="100%" height="240" class="lims-chart-svg">
 <line class="lims-chart-axis" x1="56" y1="204" x2="588" y2="204">
 </line>
 <text class="lims-chart-tick" x="52" y="12" text-anchor="end">Rs. 9,000.00</text>

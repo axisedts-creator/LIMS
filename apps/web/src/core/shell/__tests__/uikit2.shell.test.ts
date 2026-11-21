@@ -39,7 +39,7 @@ describe('shell.css staff card surface (LD-436 R8, LD-438)', () => {
   });
 
   it('lims-card sets a 1px neutral.200 hairline, radius md and elevation.1, each with the important flag', () => {
-    expect(last('border')).toBe('1px solid var(--lims-neutral-200) !important');
+    expect(last('border')).toBe('0.0625rem solid var(--lims-neutral-200) !important');
     expect(last('border-radius')).toBe('var(--lims-radius-md) !important');
     expect(last('box-shadow')).toBe('var(--lims-elevation-1) !important');
   });
@@ -50,12 +50,12 @@ describe('shell.css staff card surface (LD-436 R8, LD-438)', () => {
     expect(idx('border')).toBeGreaterThanOrEqual(idx('padding'));
   });
 
-  it('the card rules are tokens only: no hex, rgb/hsl, gradient, and no px except the 1px border width', () => {
+  it('the card rules are tokens only: no hex, rgb/hsl, gradient, and no px', () => {
     expect(cardRules.length).toBeGreaterThan(0);
     for (const r of cardRules) {
       for (const [k, v] of r.decls) {
         expect(v, `.lims-card { ${k} }`).not.toMatch(/#[0-9a-f]{3,8}\b|\b(rgba?|hsla?|oklch)\(|gradient\(/i);
-        const px = v.replace(/^1px solid /, '').match(/\b\d+(\.\d+)?px\b/);
+        const px = v.match(/\b\d+(\.\d+)?px\b/);
         expect(px, `.lims-card { ${k}: ${v} } literal px`).toBeNull();
       }
     }

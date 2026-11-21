@@ -59,9 +59,6 @@ export const EXCEPTIONS: GuardException[] = [
     '/catalog/tests',
     '/catalog/units',
   ]),
-  ...legacy('HOMECOLLECTION', 2, 'DispatchBoard.tsx', [
-    '/homecollection/dispatch',
-  ]),
   ...legacy('INVENTORY', 2, 'RulesView.tsx', [
     '/inventory/reports',
     '/inventory/rules',
@@ -127,9 +124,6 @@ export const EXCEPTIONS: GuardException[] = [
   ...legacy('FRONTDESK', 5, 'OrderView.tsx, PatientView.tsx', [
     '/frontdesk/orders/[order_id]',
     '/frontdesk/patients/[patient_id]',
-  ]),
-  ...legacy('HOMECOLLECTION', 5, 'DispatchBoard.tsx', [
-    '/homecollection/dispatch',
   ]),
   ...legacy('LAB', 5, 'ResultPanels.tsx, DeltaRulesTab.tsx, QcHoldsTab.tsx', [
     '/lab/orders/[order_id]/results',

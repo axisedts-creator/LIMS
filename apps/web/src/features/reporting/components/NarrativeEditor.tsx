@@ -4,6 +4,7 @@
 import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@lims/ui/components/Button';
+import { Card } from '@lims/ui/components/Card';
 import { ConfirmDialog } from '@lims/ui/components/ConfirmDialog';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { RichTextEditor, SafeHtml } from '@lims/ui/components/RichTextEditor';
@@ -111,7 +112,7 @@ export function NarrativeEditor({ narrative, templates, permissions, signedByNam
       <section aria-label="Narrative report">
         {header}
         {cv.sections.map((s) => (
-          <div key={s.key} className="lims-card"><h2>{s.heading}</h2><SafeHtml html={s.html} /></div>
+          <Card key={s.key} title={s.heading}><SafeHtml html={s.html} /></Card>
         ))}
         {cv.signed_at ? <p>{`Signed${signedByName ? ` by ${signedByName}${signedByTitle ? `, ${signedByTitle}` : ''}` : ''} on ${whenText(cv.signed_at)}`}</p> : null}
         {error ? <p role="alert" className="lims-error">{error}</p> : null}
@@ -144,20 +145,20 @@ export function NarrativeEditor({ narrative, templates, permissions, signedByNam
           value={sections[r.key] ?? ''} onChange={(html) => edit(r.key, html)}
         />
       ))}
-      <div className="lims-card">
-        <h2>Images</h2>
+      {/* T0D-UIGUARD-1-REPORTING (LD-436 Card title rows, LD-439 a): kit Card; image rows are a role=list of divs (no raw h2 / ul). */}
+      <Card title="Images">
         {images.length > 0 ? (
-          <ul className="lims-list">
+          <div role="list" aria-label="Images">
             {images.map((img, i) => (
-              <li key={img.image_id} className="lims-list-row">
+              <div role="listitem" key={img.image_id} className="lims-list-row">
                 <TextField
                   label={`Caption for image ${i + 1}`} name={`caption_${img.image_id}`} maxLength={200} value={img.caption ?? ''} isReadOnly={!canWrite}
                   onChange={(v) => { setImages((l) => l.map((x) => (x.image_id === img.image_id ? { ...x, caption: v } : x))); setDirty(true); }}
                 />
                 {canWrite ? <Button size="sm" variant="ghost" onPress={() => { setImages((l) => l.filter((x) => x.image_id !== img.image_id)); setDirty(true); }}>{`Remove image ${i + 1}`}</Button> : null}
-              </li>
+              </div>
             ))}
-          </ul>
+          </div>
         ) : null}
         {canWrite ? (
           <div className="lims-field">
@@ -169,7 +170,7 @@ export function NarrativeEditor({ narrative, templates, permissions, signedByNam
             <p className="lims-description">{`PNG or JPEG, up to ${MAX_IMAGES} images.`}</p>
           </div>
         ) : null}
-      </div>
+      </Card>
       <div className="lims-action-bar">
         {canWrite ? <Button shortcut="Ctrl+S" isLoading={busy} onPress={() => void saveDraft()}>Save draft</Button> : null}
         {canSign ? <Button variant="primary" shortcut="Ctrl+Enter" isDisabled={busy} onPress={() => setDlg('sign')}>Sign report</Button> : null}

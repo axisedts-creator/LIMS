@@ -5,6 +5,7 @@ import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Banner } from '@lims/ui/components/Banner';
 import { Button } from '@lims/ui/components/Button';
+import { Card } from '@lims/ui/components/Card'; // T0D-UIGUARD-1-REPORTING (LD-436 Card title rows, LD-439 a)
 import { Checkbox } from '@lims/ui/components/Checkbox';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { RadioGroup } from '@lims/ui/components/RadioGroup';
@@ -72,16 +73,14 @@ export function ReportingSettingsForm({ settings, contacts, centres, permissions
       >
         {error ? <div role="alert"><Banner tone="danger" title="Could not save the settings">{error}</Banner></div> : null}
 
-        <div className="lims-card">
-          <h2>Release</h2>
+        <Card title="Release">
           <RadioGroup<string> label="Release" name="auto_release" value={d.auto_release} isDisabled={ro} onChange={(v) => set('auto_release', v)} options={[{ value: 'when_eligible', label: 'Release automatically when a report is ready' }, { value: 'manual', label: 'Staff release each report' }]} />
           <RadioGroup<string> label="Narrative reports" name="narrative_report_mode" value={d.narrative_report_mode} isDisabled={ro} onChange={(v) => set('narrative_report_mode', v)} options={[{ value: 'separate', label: 'Separate report for each narrative test' }, { value: 'combined', label: 'Combine with the lab report' }]} />
           <Switch label="Print a critical label on reports with critical results" isDisabled={ro} isSelected={d.print_critical_label} onChange={(v) => set('print_critical_label', v)} />
           <NumberInput label={NUMBERS[1][1]} name="bulk_release_max" min={1} max={200} value={d.bulk_release_max} isReadOnly={ro} onChange={(v) => set('bulk_release_max', v as number)} />
-        </div>
+        </Card>
 
-        <div className="lims-card">
-          <h2>Delivery</h2>
+        <Card title="Delivery">
           <RadioGroup<string> label="Patient mobile channels" name="patient_mobile_channel_order" value={ORDERS[orderKey] ? orderKey : ''} isDisabled={ro} onChange={(v) => set('patient_mobile_channel_order', ORDERS[v] ?? [])} options={Object.keys(ORDERS).map((k) => ({ value: k, label: ORDER_LABEL[k]! }))} />
           <Switch label="Patient email delivery" isDisabled={ro} isSelected={d.patient_email_enabled} onChange={(v) => set('patient_email_enabled', v)} />
           <Switch label="Send reports to the referrer" isDisabled={ro} isSelected={d.referrer_delivery_enabled} onChange={(v) => set('referrer_delivery_enabled', v)} />
@@ -92,10 +91,9 @@ export function ReportingSettingsForm({ settings, contacts, centres, permissions
           <Switch label="Centre delivery" isDisabled={ro} isSelected={d.centre_delivery_enabled} onChange={(v) => set('centre_delivery_enabled', v)} />
           <Switch label="Critical alert messages to the referrer" isDisabled={ro} isSelected={d.critical_alert_referrer_enabled} onChange={(v) => set('critical_alert_referrer_enabled', v)} />
           <NumberInput label={NUMBERS[0][1]} name="whatsapp_fallback_minutes" min={5} max={240} value={d.whatsapp_fallback_minutes} isReadOnly={ro} onChange={(v) => set('whatsapp_fallback_minutes', v as number)} />
-        </div>
+        </Card>
 
-        <div className="lims-card">
-          <h2>Patient portal</h2>
+        <Card title="Patient portal">
           <NumberInput label={NUMBERS[2][1]} name="link_reissue_max_per_day" min={0} max={5} value={d.link_reissue_max_per_day} isReadOnly={ro} onChange={(v) => set('link_reissue_max_per_day', v as number)} />
           <Switch label="Send a payment link when a report is held for dues" isDisabled={ro} isSelected={d.dues_link_enabled} onChange={(v) => set('dues_link_enabled', v)} />
           <fieldset className="lims-fieldset">
@@ -104,15 +102,14 @@ export function ReportingSettingsForm({ settings, contacts, centres, permissions
             <Checkbox label="Khalti" isDisabled={ro} isSelected={d.portal_payment_gateways.includes('khalti')} onChange={(on) => toggle('portal_payment_gateways', 'khalti', on)} />
             <p className="lims-description">Turn on only after online payments are live for your lab.</p>
           </fieldset>
-        </div>
+        </Card>
 
         {canManage ? <Button type="submit" variant="primary" shortcut="Ctrl+Enter" isLoading={busy}>Save settings</Button> : null}
       </form>
 
-      <div className="lims-card">
-        <h2>Centre contacts</h2>
+      <Card title="Centre contacts">
         <SimpleTable caption="Centre contacts" columns={contactCols} rows={contacts} getRowId={(c) => c.id} empty={{ title: 'No centre contacts yet.' }} />
-      </div>
+      </Card>
     </section>
   );
 }

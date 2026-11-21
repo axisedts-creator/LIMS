@@ -3,12 +3,14 @@
 import { useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@lims/ui/components/Button';
+import { Card } from '@lims/ui/components/Card';
 import { PageHeader } from '@lims/ui/components/PageHeader';
+import { Timeline } from '@lims/ui/components/Timeline';
 import { useToast } from '@lims/ui/components/Toast';
 import { retryDeliveryAction } from '../server/actions';
 import type { Delivery } from '../server/types';
 import { CHANNEL } from './DeliveriesList';
-import { Chip, FAILURE_TEXT, When, errorText, hasPerm, humanize, newKey } from './format';
+import { Chip, FAILURE_TEXT, errorText, hasPerm, humanize, newKey } from './format';
 
 export function DeliveryDetail({ delivery, permissions }: { delivery: Delivery; permissions: readonly string[] }) {
   const router = useRouter();
@@ -30,7 +32,8 @@ export function DeliveryDetail({ delivery, permissions }: { delivery: Delivery; 
         actions={canResend ? <Button onPress={() => void resend()}>Resend</Button> : null}
       />
       <p><a className="lims-link" href="/reporting/deliveries">Back to delivery log</a></p>
-      <div className="lims-card">
+      {/* T0D-UIGUARD-1-REPORTING (LD-436 Card title rows, LD-439 a): kit Cards; attempts are a kit Timeline with the outcome chip in `extra`. */}
+      <Card title="Delivery">
         <dl className="lims-dl">
           <dt>Channel</dt><dd>{CHANNEL[delivery.channel] ?? humanize(delivery.channel)}</dd>
           <dt>Purpose</dt><dd>{humanize(delivery.purpose)}</dd>
@@ -39,19 +42,12 @@ export function DeliveryDetail({ delivery, permissions }: { delivery: Delivery; 
           {delivery.report_id ? <><dt>Report</dt><dd><a className="lims-link" href={`/reporting/reports/${delivery.report_id}`}>Open report</a></dd></> : null}
         </dl>
         {delivery.failure_code ? <p>{FAILURE_TEXT[delivery.failure_code] ?? delivery.failure_code}</p> : null}
-      </div>
-      <div className="lims-card">
-        <h2>Attempts</h2>
+      </Card>
+      <Card title="Attempts">
         {(delivery.attempts ?? []).length === 0 ? <p>No attempts recorded yet.</p> : (
-          <ol className="lims-list" aria-label="Delivery attempts">
-            {delivery.attempts!.map((a) => (
-              <li key={a.attempt_no} className="lims-list-row">
-                <strong>{`Attempt ${a.attempt_no}`}</strong> · <When value={a.started_at} /> · <Chip status={a.outcome} />
-              </li>
-            ))}
-          </ol>
+          <Timeline aria-label="Delivery attempts" labelFirst items={delivery.attempts!.map((a) => ({ at: a.started_at, label: `Attempt ${a.attempt_no}`, extra: <>· <Chip status={a.outcome} /></> }))} />
         )}
-      </div>
+      </Card>
     </section>
   );
 }

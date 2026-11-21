@@ -4,6 +4,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@lims/ui/components/Button';
+import { Card } from '@lims/ui/components/Card';
 import { Dialog } from '@lims/ui/components/Dialog';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { Switch } from '@lims/ui/components/Switch';
@@ -38,23 +39,20 @@ export function MessagesChannels({ templates, accounts, permissions, productionM
     { id: 'purpose', header: 'Purpose', cell: (t) => humanize(t.purpose) },
     { id: 'channels', header: 'Channels', cell: (t) => t.channels.map((c) => CHANNEL[c] ?? c).join(', ') },
     { id: 'status', header: 'Status', cell: (t) => (
-      <ul className="lims-plain-list">
-        {t.texts.map((x) => <li key={`${x.channel}-${x.language}`}>{textStatus(x)}{x.channel === 'whatsapp' && x.approval_status !== 'not_required' ? <> · <Chip status={x.approval_status} /></> : null}</li>)}
-      </ul>
+      <>{t.texts.map((x) => <div key={`${x.channel}-${x.language}`}>{textStatus(x)}{x.channel === 'whatsapp' && x.approval_status !== 'not_required' ? <> · <Chip status={x.approval_status} /></> : null}</div>)}</>
     ) },
     { id: 'act', header: 'Actions', cell: (t) => (canTexts ? <Button size="sm" onPress={() => setEdit(t)}>Edit</Button> : null) },
   ];
   return (
     <section aria-label="Messages and channels">
       <PageHeader title={t('nav.reporting.messages')} helpKey="reporting.messages" />
-      <div className="lims-card">
-        <h2>Message templates</h2>
+      {/* T0D-UIGUARD-1-REPORTING (LD-436 Card title rows, LD-439 a): kit Cards; each channel account is its own Card. */}
+      <Card title="Message templates">
         <SimpleTable caption="Message templates" columns={cols} rows={templates} getRowId={(t) => t.code} empty={{ title: 'No message templates yet.' }} />
-      </div>
-      <div className="lims-card">
-        <h2>Channel accounts</h2>
+      </Card>
+      <Card title="Channel accounts">
         {accounts.length === 0 ? <p>No channel accounts yet.</p> : accounts.map((a) => <AccountForm key={`${a.channel}-${a.version}`} account={a} canManage={hasPerm(permissions, 'reporting.channel.manage')} productionMode={productionMode} />)}
-      </div>
+      </Card>
       {edit ? <TextDialog template={edit} onClose={() => setEdit(null)} /> : null}
     </section>
   );
@@ -157,8 +155,7 @@ function AccountForm({ account, canManage, productionMode }: { account: ChannelA
     } finally { inFlight.current = false; }
   };
   return (
-    <div className="lims-subcard">
-      <h3>{CHANNEL[account.channel] ?? account.channel}</h3>
+    <Card title={CHANNEL[account.channel] ?? account.channel}>
       <NativeSelect label="Provider" value={provider} onChange={setProvider} options={providers.map(([value, label]) => ({ value, label }))} placeholder="Choose a provider" />
       <TextField label="Sender ID" name={`sender_${account.channel}`} maxLength={64} value={sender} isReadOnly={!canManage} onChange={setSender} />
       <div className="lims-field">
@@ -181,6 +178,6 @@ function AccountForm({ account, canManage, productionMode }: { account: ChannelA
         <p>Copy this URL into the provider&apos;s settings. It will not be shown again.</p>
         <code className="lims-mono">{url}</code>
       </Dialog>
-    </div>
+    </Card>
   );
 }

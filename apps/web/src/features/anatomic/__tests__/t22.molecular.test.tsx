@@ -66,7 +66,13 @@ describe('table (§4.2.6)', () => {
     await open();
     expect(text()).toContain('No results yet. Add a row for each assay target.');
     expect(btn(/^add row$/i)).toBeTruthy();
-    expect(dataRows()).toHaveLength(0);
+    // LD-436 rule 5: the grid keeps its header row; its one body row is the empty state, never a result row.
+    expect(within(grid()).getAllByRole('columnheader').length).toBeGreaterThan(0);
+    const body = dataRows();
+    expect(body).toHaveLength(1);
+    expect(body[0]!.querySelector('.lims-state')?.textContent ?? '').toContain('No results yet. Add a row for each assay target.');
+    expect(within(grid()).queryAllByRole('gridcell')).toHaveLength(0);
+    expect(within(grid()).queryAllByRole('textbox')).toHaveLength(0);
   });
 
   it('saved results render display names, value + unit, and the word "Abnormal" next to abnormal results only (never colour only)', async () => {

@@ -70,8 +70,9 @@ export function Facts({ items }: { items: readonly (readonly [string, ReactNode]
 export function History({ events }: { events: readonly (readonly [string, string])[] }) {
   return (
     <div>
-      <h3>History</h3>
-      <ul>{events.map(([label, at]) => <li key={label}>{label}: {when(at)}</li>)}</ul>
+      {/* T0D-UIGUARD-1-LAB (LD-436 rule 7): same heading and list semantics without raw h3/ul */}
+      <p role="heading" aria-level={3} className="lims-card-title">History</p>
+      <div role="list">{events.map(([label, at]) => <div role="listitem" key={label}>{label}: {when(at)}</div>)}</div>
     </div>
   );
 }

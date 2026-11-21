@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Badge } from '@lims/ui/components/Badge';
 import { Button } from '@lims/ui/components/Button';
+import { EmptyRow, PlaceholderRows } from '@lims/ui/components/DataTable';
 import { useToast } from '@lims/ui/components/Toast';
 import { VisuallyHidden } from '@lims/ui/components/VisuallyHidden';
 import { updateAnalyteAction } from '../server/actions';
@@ -38,15 +39,6 @@ export function AnalytesTab({ testId, analytes, permissions }: { testId: string;
     } else setFail(r);
   };
 
-  if (rows.length === 0) {
-    return (
-      <div className="lims-stack catalog-gap-3">
-<p>This test has no analytes yet.</p>
-        {canManage ? <div><Button variant="primary" onPress={() => router.push(`${base}?analyte=new`)}>Add analyte</Button></div> : null}
-      </div>
-    );
-  }
-
   return (
     <div className="lims-stack catalog-gap-3">
       {fail ? <FailBanner fail={fail} /> : null}
@@ -59,6 +51,8 @@ export function AnalytesTab({ testId, analytes, permissions }: { testId: string;
           </tr>
         </thead>
         <tbody>
+          {/* T0D-UIGUARD-1-CATALOG (LD-353 rule 5): the header row stays when there are no analytes; the message sits in the body */}
+          {rows.length === 0 ? <EmptyRow colSpan={COLUMNS.length + 1}>This test has no analytes yet.</EmptyRow> : null}
           {rows.map((a, i) => (
             <tr
               key={a.id}
@@ -96,6 +90,7 @@ export function AnalytesTab({ testId, analytes, permissions }: { testId: string;
             </tr>
           ))}
         </tbody>
+        {rows.length === 0 ? <PlaceholderRows colSpan={COLUMNS.length + 1} /> : null}
       </table>
     </div>
   );

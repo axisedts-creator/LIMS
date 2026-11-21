@@ -66,7 +66,8 @@ export function IngestExceptionList({ items, status = 'open', nextCursor }: Inge
 
   const detail = sel ? (
     <>
-      <h2>{reasonText(sel.reason)}</h2>
+      {/* T0D-UIGUARD-1-LAB (LD-436 rule 7): heading semantics without a raw h2 */}
+      <p role="heading" aria-level={2} className="lims-card-title">{reasonText(sel.reason)}</p>
       <Facts items={[
         ['Status', sel.status],
         ['Barcode', sel.sample_barcode ?? 'No barcode'],

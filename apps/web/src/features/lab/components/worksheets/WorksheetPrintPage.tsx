@@ -6,6 +6,7 @@
 import { useEffect, useState } from 'react';
 import { Button } from '@lims/ui/components/Button';
 import { IdText } from '@lims/ui/components/IdText';
+import { PageHeader } from '@lims/ui/components/PageHeader';
 import { getWorksheetAction, listInstrumentsAction } from '../../server/worklist.actions';
 import type { ActionResult, Worksheet } from '../../server/types';
 import { Failure, utc } from '../shared';
@@ -14,7 +15,7 @@ type Load = { s: 'loading' } | { s: 'ok'; sheet: Worksheet; printedAt: string } 
 type Names = { s: 'loading' } | { s: 'ok'; names: Map<string, string> } | { s: 'denied' };
 
 const PRINT_CSS = `@page { size: A4 portrait; margin: 12mm; }
-@media print { .ws-noprint { display: none !important; } .ws-sheet table { width: 100%; border-collapse: collapse; } .ws-sheet th, .ws-sheet td { border: 1px solid currentColor; padding: 4px 6px; } .ws-sheet td.ws-blank { height: 10mm; } }`;
+@media print { .ws-noprint, .ws-sheet .lims-page-actions { display: none !important; } .ws-sheet table { width: 100%; border-collapse: collapse; } .ws-sheet th, .ws-sheet td { border: 1px solid currentColor; padding: 4px 6px; } .ws-sheet td.ws-blank { height: 10mm; } }`;
 
 export function WorksheetPrintPage({ worksheetId }: { worksheetId: string }) {
   const [load, setLoad] = useState<Load>({ s: 'loading' });
@@ -43,9 +44,10 @@ export function WorksheetPrintPage({ worksheetId }: { worksheetId: string }) {
   return (
     <section aria-label="Worksheet" className="ws-sheet" data-testid="print-region">
       <style>{PRINT_CSS}</style>
-      <h1>{sheet.title}</h1>
-      <p>Created {utc(sheet.created_at)} · {sheet.rows.length} tests{sheet.department_id ? <> · Department: <IdText value={sheet.department_id} /></> : null}{instrument ? <> · Instrument: {instrument}</> : null}</p>
-      <div className="ws-noprint"><Button variant="primary" onPress={() => window.print()}>Print</Button></div>
+      {/* T0D-UIGUARD-1-LAB (LD-353 rule 1, LD-436 rule 7): the kit PageHeader; the created line is its caption, Print its one primary action (hidden in print) */}
+      <PageHeader title={sheet.title} helpKey="lab.worksheet_print"
+        caption={<>Created {utc(sheet.created_at)} · {sheet.rows.length} tests{sheet.department_id ? <> · Department: <IdText value={sheet.department_id} /></> : null}{instrument ? <> · Instrument: {instrument}</> : null}</>}
+        actions={<span className="ws-noprint"><Button variant="primary" onPress={() => window.print()}>Print</Button></span>} />
       <table aria-label="Worksheet rows">
         <thead><tr><th scope="col">#</th><th scope="col">Barcode</th><th scope="col">Test</th><th scope="col">Result</th><th scope="col">Remarks</th></tr></thead>
         <tbody>

@@ -80,7 +80,7 @@ describe('RS-C6 report preview and release (s4)', () => {
   it('Deliveries card: counts are status chips (tone + word)', async () => {
     const D = await loadDetail();
     wrap(<D report={detail() as never} permissions={ADMIN} />);
-    const card = screen.getAllByRole('heading', { name: /^deliveries$/i })[0]!.closest('.lims-card, section, article, div')! as HTMLElement;
+    const card = screen.getAllByRole('heading', { name: /^deliveries$/i })[0]!.closest('.lims-card')! as HTMLElement;
     const chips = [...card.querySelectorAll('.lims-chip')].map((c) => (c.textContent ?? '').replace(/\s+/g, ' ').trim());
     expect(chips.length).toBeGreaterThanOrEqual(3);
     for (const re of [/sent/i, /delivered/i, /failed/i]) expect(chips.some((c) => re.test(c) && /\d/.test(c)), `chip for ${re}`).toBe(true);
@@ -89,7 +89,7 @@ describe('RS-C6 report preview and release (s4)', () => {
   it('Deliveries card keeps all six counts visible when every count is 0 (review item 2: nothing displayed may disappear)', async () => {
     const D = await loadDetail();
     wrap(<D report={detail({ deliveries_summary: { queued: 0, sent: 0, delivered: 0, read: 0, failed: 0, suppressed: 0 } }) as never} permissions={ADMIN} />);
-    const card = screen.getAllByRole('heading', { name: /^deliveries$/i })[0]!.closest('.lims-card, section, article, div')! as HTMLElement;
+    const card = screen.getAllByRole('heading', { name: /^deliveries$/i })[0]!.closest('.lims-card')! as HTMLElement;
     const chips = [...card.querySelectorAll('.lims-chip')].map((c) => (c.textContent ?? '').replace(/\s+/g, ' ').trim());
     for (const w of [/queued/i, /sent/i, /delivered/i, /read/i, /failed/i, /suppressed/i]) expect(chips.some((c) => w.test(c) && /0/.test(c)), `chip ${w}`).toBe(true);
   });
@@ -188,8 +188,8 @@ describe('RS-C6 worklist', () => {
     const W = await loadWorklist();
     wrap(<W reports={[summary()] as never} tab="ready_to_release" permissions={BULK} centres={centres} />);
     expect(primaryButtons().length).toBeLessThanOrEqual(1);
-    // LD-395: Status is a FilterBar select since LD-353, so count its options, not tabs.
-    expect(screen.queryAllByRole('tab').length).toBe(0);
+    // LD-439 / LD-436-look: Tabs with counts per status (one tab per status); Status stays a FilterBar select.
+    expect(screen.getAllByRole('tab').length).toBe(6);
     await u.click(within(screen.getByRole('search')).getByRole('button', { name: /status/i }));
     const names = (await screen.findAllByRole('option')).map((o) => o.textContent ?? '');
     expect(names.length).toBe(6);

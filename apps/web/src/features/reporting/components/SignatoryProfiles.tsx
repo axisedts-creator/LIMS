@@ -6,6 +6,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Banner } from '@lims/ui/components/Banner';
 import { Button } from '@lims/ui/components/Button';
+import { Card } from '@lims/ui/components/Card';
 import { Dialog } from '@lims/ui/components/Dialog';
 import { Switch } from '@lims/ui/components/Switch';
 import { TextField } from '@lims/ui/components/TextField';
@@ -64,12 +65,14 @@ export function SignatoryProfiles({ permissions }: { permissions: readonly strin
     ...(canManage ? [{ id: 'edit', header: 'Actions', cell: (r: SignatoryRow) => <button type="button" className="lims-btn lims-btn-secondary lims-btn-sm" aria-label={`Edit ${nameOf(r)}`} onClick={() => setEditing(r)}>Edit</button> }] : []), // native button: the kit Button takes no aria-label
   ];
   return (
-    <section aria-label="Signatories" className="lims-card">
-      <h2>Signatories</h2>
-      <p className="lims-description">Only pathologist sign-offs print as signatures. Technologist sign-offs never print as a signature.</p>
-      {error ? <div role="alert"><Banner tone="danger" title="Could not load the signers">{error} <Button onPress={() => void load()}>Retry</Button></Banner></div> : null}
-      <SimpleTable caption="Signatories" columns={cols} rows={rows} getRowId={(r) => r.user_id} empty={{ title: 'No signers yet.', body: 'Staff whose role can approve results are listed here.' }} />
-      {editing ? <SignerDialog row={editing} onClose={() => setEditing(null)} onSaved={(p) => { setRows((all) => all.map((r) => (r.user_id === p.user_id ? { ...r, profile: p } : r))); setEditing(null); }} /> : null}
+    // T0D-UIGUARD-1-REPORTING (LD-436 Card title row, LD-439 a): kit Card with a title row instead of a raw h2.
+    <section aria-label="Signatories">
+      <Card title="Signatories">
+        <p className="lims-description">Only pathologist sign-offs print as signatures. Technologist sign-offs never print as a signature.</p>
+        {error ? <div role="alert"><Banner tone="danger" title="Could not load the signers">{error} <Button onPress={() => void load()}>Retry</Button></Banner></div> : null}
+        <SimpleTable caption="Signatories" columns={cols} rows={rows} getRowId={(r) => r.user_id} empty={{ title: 'No signers yet.', body: 'Staff whose role can approve results are listed here.' }} />
+        {editing ? <SignerDialog row={editing} onClose={() => setEditing(null)} onSaved={(p) => { setRows((all) => all.map((r) => (r.user_id === p.user_id ? { ...r, profile: p } : r))); setEditing(null); }} /> : null}
+      </Card>
     </section>
   );
 }

@@ -158,7 +158,8 @@ function SettingsForm({ initial, centres }: { initial: EngagementSettings; centr
         {banner?.kind === 'conflict' ? <Banner tone="danger" title={RELOAD_COPY} action={{ label: 'Reload', onPress: () => router.refresh() }} /> : null}
         {banner?.kind === 'error' ? (
           <Banner tone="danger" title={banner.title}>
-            {listed.length ? <ul>{listed.map((m) => <li key={m}>{m}</li>)}</ul> : null}
+            {/* T0D-UIGUARD-1-ENGAGEMENT (LD-436 R7): one line per field message, not a raw list */}
+            {listed.length ? <div className="lims-stack">{listed.map((m) => <p key={m}>{m}</p>)}</div> : null}
           </Banner>
         ) : null}
       </div>

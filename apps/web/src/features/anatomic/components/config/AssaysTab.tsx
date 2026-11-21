@@ -112,7 +112,8 @@ function AssayDrawer({ assay, onClose, onMfa }: { assay: AssayRecord | undefined
       <TextField label="Name" name="display" isRequired maxLength={120} value={display} onChange={setDisplay} />
       <TextField label="Default method" name="method_text_default" maxLength={200} value={method} onChange={setMethod} />
       <Switch label="Active" name="is_active" isSelected={active} onChange={setActive} />
-      <h3>Targets</h3>
+      {/* LD-439 (a), LD-436 rule 7: a form group label, not a raw h3. */}
+      <p className="lims-label">Targets</p>
       <p className="lims-description">Saved codes can&apos;t be deleted, only deactivated.</p>
       {tried && targets.length < 1 ? <p className="lims-error" role="alert">Add at least one target.</p> : null}
       {targets.map((t, i) => (

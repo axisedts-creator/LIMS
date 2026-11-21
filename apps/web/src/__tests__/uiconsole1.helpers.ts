@@ -40,10 +40,10 @@ export const pickItem = (root: ParentNode, id: string) => {
 export const barActions = (root: ParentNode) => [...(actionBar(root)?.querySelectorAll<HTMLElement>('button, a[href]') ?? [])];
 export const barButton = (root: ParentNode, name: RegExp) => (actionBar(root) ? within(actionBar(root)!).queryByRole('button', { name }) : null);
 
-/** LD-353 rule 8 / template 2: the History block of the detail = a heading "History"; its parent holds one <li> per event, each starting with the event label. */
+/** LD-353 rule 8 / template 2: the History block of the detail = a heading "History" (h2-h4 or role=heading); its parent holds one <li> or role=listitem per event, each starting with the event label. */
 export const historyOf = (detail: HTMLElement) => {
-  const h = [...detail.querySelectorAll('h2, h3, h4')].find((x) => /^history$/i.test(norm(x.textContent)));
-  return h ? { heading: h, events: [...(h.parentElement?.querySelectorAll('li') ?? [])].map((li) => norm(li.textContent)) } : undefined;
+  const h = [...detail.querySelectorAll('h2, h3, h4, [role="heading"]')].find((x) => /^history$/i.test(norm(x.textContent)));
+  return h ? { heading: h, events: [...(h.parentElement?.querySelectorAll('li, [role="listitem"]') ?? [])].map((li) => norm(li.textContent)) } : undefined;
 };
 export const historyLabels = (detail: HTMLElement) => (historyOf(detail)?.events ?? []).map((e) => e.split(/[\s:]/)[0]).sort();
 

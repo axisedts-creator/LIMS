@@ -15,6 +15,7 @@ import { ConfirmDialog } from '@lims/ui/components/ConfirmDialog';
 import { Dialog } from '@lims/ui/components/Dialog';
 import { EmptyRow, PlaceholderRows } from '@lims/ui/components/DataTable';
 import { EmptyState } from '@lims/ui/components/EmptyState';
+import { FilterBar } from '@lims/ui/components/FilterBar';
 import { FlagBadge, type ResultFlag } from '@lims/ui/components/FlagBadge';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { SplitConsole } from '@lims/ui/components/SplitConsole';
@@ -319,7 +320,8 @@ export function QueueScreen({ mode, items, permissions, onStepUp, currentUserId,
 
   const detail = sel ? (
     <>
-      <h2>{sel.items[0]!.patient_display.full_name}</h2>
+      {/* T0D-UIGUARD-1-LAB (LD-436 rule 7): heading semantics without a raw h2 */}
+      <p role="heading" aria-level={2} className="lims-card-title">{sel.items[0]!.patient_display.full_name}</p>
       <p className="lims-console-strip">
         {[sel.items[0]!.patient_display.age_sex, sel.items[0]!.patient_display.patient_code, sel.no, sel.items[0]!.priority].join(' · ')}
       </p>
@@ -380,9 +382,10 @@ export function QueueScreen({ mode, items, permissions, onStepUp, currentUserId,
   return (
     <section aria-label={title}>
       <PageHeader title={title} helpKey={`lab.${mode}`} />
-      <div role="search" className="lims-filter-bar">
+      {/* T0D-UIGUARD-1-LAB (LD-353 rule 2, LD-441): the kit FilterBar row around the one switch */}
+      <FilterBar>
         <Checkbox label="Flagged only" isSelected={params.get('flagged_only') === 'true'} onChange={setFlagged} />
-      </div>
+      </FilterBar>
       <StatTileRow>
         <StatTile label="Pending" value={String(regs.length)} />
         <StatTile label="Flagged" value={String(regs.filter(regFlagged).length)} />
@@ -403,18 +406,18 @@ export function QueueScreen({ mode, items, permissions, onStepUp, currentUserId,
       <Dialog title={c.done} isOpen={outcome !== null} onClose={close}>
         <p>{`${(outcome?.length ?? 0) - failed.length} done, ${failed.length} not done`}</p>
         {failed.length ? (
-          <ul>
+          <div role="list">
             {failed.map((o) => {
               const i = byId.get(o.id);
               const ev = o.code === 'lab.critical_ack_required' ? i?.result.critical.critical_event_id : undefined;
               return (
-                <li key={o.id}>
+                <div role="listitem" key={o.id}>
                   {`${i ? `${i.registration_no} · ${i.patient_display.full_name} · ${i.result.analyte_code}` : 'Result'}: `}<span>{reason(o.code)}</span>
                   {ev ? <> <a href={`/lab/critical-values/${encodeURIComponent(ev)}`}>Open critical value</a></> : null}
-                </li>
+                </div>
               );
             })}
-          </ul>
+          </div>
         ) : null}
       </Dialog>
     </section>
@@ -445,13 +448,13 @@ function SignoffCell({ listId, count, required, next, chain, open, onToggle }: {
           : count === 0 || (chain && rows.length === 0) ? <p id={listId}>No sign-offs yet.</p>
           : !chain ? <p id={listId} role="status">Loading…</p>
           : (
-            <ul id={listId} aria-label="Signed by">
+            <div role="list" id={listId} aria-label="Signed by">
               {rows.map((s) => (
-                <li key={`${s.result_version}-${s.seq}`}>
+                <div role="listitem" key={`${s.result_version}-${s.seq}`}>
                   <span>{s.signer_display_name}</span>{[s.signer_title, s.signer_role_code.replace(/_/g, ' '), utc(s.signed_at)].filter(Boolean).map((x) => ` · ${x}`).join('')}
-                </li>
+                </div>
               ))}
-            </ul>
+            </div>
           )
       ) : null}
     </div>

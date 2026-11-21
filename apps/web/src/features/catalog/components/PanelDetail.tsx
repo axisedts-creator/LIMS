@@ -4,6 +4,7 @@
 import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Banner } from '@lims/ui/components/Banner';
+import { Card } from '@lims/ui/components/Card';
 import { Button } from '@lims/ui/components/Button';
 import { CodeField } from '@lims/ui/components/CodeField';
 import { PageHeader } from '@lims/ui/components/PageHeader';
@@ -100,7 +101,9 @@ export function PanelDetail({ panel, departments, orderables, permissions, tests
           <dt>Department</dt><dd>{deptName ?? '—'}</dd>
         </dl>
       )}
-      <h2 className="lims-section-title">Members</h2>
+      {/* T0D-UIGUARD-1-CATALOG (LD-436 R7): the Members section is a kit Card region with its title row, no raw h2 */}
+      <Card title="Members" region>
+      <div className="lims-stack">
       {error ? <div role="alert"><Banner tone="danger" title={error} /></div> : null}
       {tests ? (
         // T0D-TESTMGMT-1 (LD-318): two list picker when the page passes the test list; other members (nested panels) keep their place.
@@ -125,6 +128,8 @@ export function PanelDetail({ panel, departments, orderables, permissions, tests
         />
       )}
       {manage ? <Button variant="primary" isDisabled={!dirty || busy || members.length === 0} onPress={() => void saveMembers()}>Save members</Button> : null}
+      </div>
+      </Card>
       <ExpandedTests ids={members.map((m) => m.orderable_id)} />
     </section>
   );

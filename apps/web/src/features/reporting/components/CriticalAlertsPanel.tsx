@@ -3,6 +3,7 @@
 // Never shows a value, an analyte or a patient name. A load failure is inline (Retry) and never fails the worklist.
 import { useEffect, useRef, useState } from 'react';
 import { Button } from '@lims/ui/components/Button';
+import { Card } from '@lims/ui/components/Card';
 import { ErrorState } from '@lims/ui/components/ErrorState';
 import { listCriticalAlertsAction } from '../server/actions';
 import type { CriticalAlert } from '../server/types';
@@ -37,31 +38,30 @@ export function CriticalAlertsPanel({ alerts, hasMore = false, centreId }: { ale
   if (rows === null) return <ErrorState title="Critical alerts could not be loaded" body="The worklist below still works." onRetry={() => void load().catch(() => undefined)} />;
   const count = more ? '50+' : String(rows.length);
   return (
-    <section className="lims-card" aria-labelledby="crit-title">
-      <div className="lims-card-header">
-        <h2 id="crit-title">Critical alerts</h2>
-        <span className="lims-badge">{count}</span>
+    // T0D-UIGUARD-1-REPORTING (LD-436 Card title row, LD-439 a): Card title with the count as its caption; rows are a role=list of divs (no raw h2 / ul).
+    <section aria-label="Critical alerts">
+      <Card title="Critical alerts" caption={count}>
         <Button size="sm" variant="ghost" onPress={() => setOpen(!open)}>{open ? 'Hide' : 'Show'}</Button>
-      </div>
-      {open ? (
-        rows.length === 0 ? (
-          // LD-353 rule 6: the page's one EmptyState belongs to the worklist table; an empty side panel is one plain line
-          <p className="lims-description">No critical alerts in the last 24 hours.</p>
-        ) : (
-          <ul className="lims-list">
-            {rows.map((a) => (
-              <li key={a.critical_event_id} className="lims-list-row">
-                <code className="lims-mono">{a.registration_no ?? '—'}</code>
-                <When value={a.alerted_at} />
-                <span className="lims-chip-list">
-                  {a.recipients.map((r, i) => <span key={i} className="lims-chip lims-chip-sm lims-tone-neutral">{recipientText(r.recipient_kind, r.status)}</span>)}
-                </span>
-                {a.report_id ? <a className="lims-link" href={`/reporting/reports/${a.report_id}`}>Open report</a> : null}
-              </li>
-            ))}
-          </ul>
-        )
-      ) : null}
+        {open ? (
+          rows.length === 0 ? (
+            // LD-353 rule 6: the page's one EmptyState belongs to the worklist table; an empty side panel is one plain line
+            <p className="lims-description">No critical alerts in the last 24 hours.</p>
+          ) : (
+            <div role="list" aria-label="Critical alerts">
+              {rows.map((a) => (
+                <div role="listitem" key={a.critical_event_id} className="lims-list-row">
+                  <code className="lims-mono">{a.registration_no ?? '—'}</code>
+                  <When value={a.alerted_at} />
+                  <span className="lims-chip-list">
+                    {a.recipients.map((r, i) => <span key={i} className="lims-chip lims-chip-sm lims-tone-neutral">{recipientText(r.recipient_kind, r.status)}</span>)}
+                  </span>
+                  {a.report_id ? <a className="lims-link" href={`/reporting/reports/${a.report_id}`}>Open report</a> : null}
+                </div>
+              ))}
+            </div>
+          )
+        ) : null}
+      </Card>
     </section>
   );
 }

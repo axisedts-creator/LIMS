@@ -102,13 +102,14 @@ export function VerificationPolicyTab({ canManage }: { canManage: boolean }) {
       {scope === 'test' ? (
         <>
           <TextInput label="Search tests" value={q} disabled={ro} onChange={setQ} />
-          <ul className="lims-chip-list" aria-label="Matching tests">
+          {/* T0D-UIGUARD-1-LAB (LD-436 rule 7): list semantics without a raw ul */}
+          <div role="list" className="lims-chip-list" aria-label="Matching tests">
             {matches.map((t) => (
-              <li key={t.id}>
+              <div role="listitem" key={t.id}>
                 <Button variant={target === t.id ? 'primary' : 'secondary'} size="sm" isDisabled={ro} onPress={() => pick('test', t.id)}>{`${t.name} (${t.code})`}</Button>
-              </li>
+              </div>
             ))}
-          </ul>
+          </div>
           {target ? <p className="lims-description">{`Chosen test: ${tests.find((t) => t.id === target)?.name ?? target.slice(0, 8)}`}</p> : null}
         </>
       ) : null}

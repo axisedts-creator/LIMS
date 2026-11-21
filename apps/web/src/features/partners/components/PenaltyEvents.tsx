@@ -7,6 +7,7 @@
 import { useState } from 'react';
 import { Button } from '@lims/ui/components/Button';
 import { Dialog } from '@lims/ui/components/Dialog';
+import { FilterBar } from '@lims/ui/components/FilterBar';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { Select } from '@lims/ui/components/Select';
 import { TextArea } from '@lims/ui/components/TextArea';
@@ -127,12 +128,13 @@ export function PenaltyEvents({ rows, penalties, parties, filter, failed, nextCu
     <section className="lims-stack">
       <PageHeader title={t('partners.nav.penalty_events')} helpKey="partners.penalty_events"
         actions={<Button variant="primary" onPress={() => setRaising(true)}>{t('partners.penalty_events.raise')}</Button>} />
-      <div role="search" className="lims-filter-bar">
+      {/* T0D-UIGUARD-1-PARTNERS (LD-353 rule 2, LD-441): the kit FilterBar holds the row; the native date inputs ride in as children. */}
+      <FilterBar>
         <Select label={t('partners.penalty_events.filter.status')} name="status" options={options} value={status}
           onChange={(s) => { if (s !== status) url.go({ status: s === ALL ? undefined : s, cursor: undefined }); }} />
         <DateField label={t('partners.penalty_events.filter.from')} value={filter.from_date ?? ''} onChange={(v) => url.go({ from_date: v || undefined, cursor: undefined })} />
         <DateField label={t('partners.penalty_events.filter.to')} value={filter.to_date ?? ''} {...(filter.from_date ? { min: filter.from_date } : {})} onChange={(v) => url.go({ to_date: v || undefined, cursor: undefined })} />
-      </div>
+      </FilterBar>
       <SalesTable caption={t('partners.nav.penalty_events')} columns={columns} rows={rows} getRowId={(e) => e.id} failed={failed} nextCursor={nextCursor}
         empty={{ title: t('partners.penalty_events.empty'), body: t('partners.penalty_events.empty_hint') }} />
       {raising ? <RaiseDialog parties={parties} penalties={penalties} onClose={() => setRaising(false)} onDone={() => done(t('partners.penalty_events.raised'))} /> : null}

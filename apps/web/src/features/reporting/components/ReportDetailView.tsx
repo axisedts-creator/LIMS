@@ -5,12 +5,14 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Banner } from '@lims/ui/components/Banner';
 import { Button } from '@lims/ui/components/Button';
+import { Card } from '@lims/ui/components/Card';
 import { Checkbox } from '@lims/ui/components/Checkbox';
 import { Dialog } from '@lims/ui/components/Dialog';
 import { Menu } from '@lims/ui/components/Menu';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { RadioGroup } from '@lims/ui/components/RadioGroup';
 import { Switch } from '@lims/ui/components/Switch';
+import { Timeline } from '@lims/ui/components/Timeline';
 import { useToast } from '@lims/ui/components/Toast';
 import { t } from '@/core/i18n/messages';
 import { isOnline, useOfflineFlows, useOfflineSnapshot } from '@/core/offline/ui/OfflineProvider';
@@ -155,16 +157,19 @@ export function ReportDetailView({ report, permissions }: ReportDetailViewProps)
     { id: 'out', header: 'Outsourced', cell: (i) => (i.requires_outsourced ? (i.outsourced_ready ? 'Confirmed' : 'Waiting') : '—') },
     { id: 'st', header: 'Status', cell: (i) => humanize(i.item_status) },
   ];
-  const versionRow = (v: VersionSummary) => (
-    <li key={v.id} className="lims-list-row">
-      <strong>{`v${v.version_no} ${KIND[v.report_kind ?? 'final'] ?? 'Amended'}`}</strong>
-      {' '}<Chip status={v.status} />
-      {v.released_at ? <> · Released <When value={v.released_at} /></> : null}
-      {v.release_basis ? <> · basis: {BASIS[v.release_basis] ?? humanize(v.release_basis)}</> : null}
-      {v.page_count ? <> · {v.page_count} pages</> : null}
-      {['rendered', 'released', 'superseded'].includes(v.status) ? <> · <a className="lims-link" href={pdfHref(v.id)} aria-label={`Download version ${v.version_no}`}>Download</a></> : null}
-    </li>
-  );
+  // T0D-UIGUARD-1-REPORTING (LD-436, LD-439 a): versions are kit Timeline rows (time = released, else rendered); chip, basis, pages and Download ride in `extra`.
+  const versionItem = (v: VersionSummary) => ({
+    at: v.released_at ?? v.rendered_at ?? '',
+    label: `v${v.version_no} ${KIND[v.report_kind ?? 'final'] ?? 'Amended'}`,
+    extra: (
+      <>
+        <Chip status={v.status} />
+        {v.release_basis ? <> · basis: {BASIS[v.release_basis] ?? humanize(v.release_basis)}</> : null}
+        {v.page_count ? <> · {v.page_count} pages</> : null}
+        {['rendered', 'released', 'superseded'].includes(v.status) ? <> · <a className="lims-link" href={pdfHref(v.id)} aria-label={`Download version ${v.version_no}`}>Download</a></> : null}
+      </>
+    ),
+  });
 
   const menuItems = [
     ...(canRegenerate ? [{ id: 'regenerate', label: 'Regenerate' }] : []),
@@ -214,36 +219,33 @@ export function ReportDetailView({ report, permissions }: ReportDetailViewProps)
           </div>
         </section>
       ) : null}
-      <div className="lims-card">
-        <h2>Report</h2>
+      {/* T0D-UIGUARD-1-REPORTING (LD-436 Card title rows, LD-439 a): Report, Items, Versions, Deliveries are kit Cards with a title row. */}
+      <Card title="Report">
         <dl className="lims-dl">
           <dt>Patient</dt><dd>{report.patient_display_name}{report.age_display ? `, ${report.age_display}` : ''}{report.sex ? ` ${report.sex}` : ''}</dd>
           <dt>Centre</dt><dd>{report.centre_code ?? '—'}</dd>
           <dt>Referrer</dt><dd>{report.referrer_name ?? 'SELF'}</dd>
           <dt>Registered</dt><dd><When value={report.registered_at} /></dd>
         </dl>
-      </div>
-      <div className="lims-card">
-        <h2>Items</h2>
+      </Card>
+      <Card title="Items">
         <SimpleTable caption="Report items" columns={itemCols} rows={report.items} getRowId={(i) => i.order_item_id} empty={{ title: 'No items.' }} />
-      </div>
-      <div className="lims-card">
-        <h2>Versions</h2>
-        {live.length === 0 ? <p>No versions yet.</p> : <ol className="lims-list" aria-label="Report versions">{live.map(versionRow)}</ol>}
+      </Card>
+      <Card title="Versions">
+        {live.length === 0 ? <p>No versions yet.</p> : <Timeline aria-label="Report versions" items={live.map(versionItem)} />}
         {discarded.length > 0 ? (
           <>
             <Button size="sm" variant="ghost" onPress={() => setShowDiscarded(!showDiscarded)}>{showDiscarded ? 'Hide discarded' : 'Show discarded'}</Button>
-            {showDiscarded ? <ol className="lims-list" aria-label="Discarded versions">{discarded.map(versionRow)}</ol> : null}
+            {showDiscarded ? <Timeline aria-label="Discarded versions" items={discarded.map(versionItem)} /> : null}
           </>
         ) : null}
-      </div>
-      <div className="lims-card">
-        <h2>Deliveries</h2>
-        <ul className="rpt-chips" aria-label="Delivery counts">
-          {(['queued', 'sent', 'delivered', 'read', 'failed', 'suppressed'] as const).map((s) => <li key={s}><Chip status={s} label={`${humanize(s)} ${ds[s]}`} /></li>)}
-        </ul>
+      </Card>
+      <Card title="Deliveries">
+        <div className="rpt-chips" role="group" aria-label="Delivery counts">
+          {(['queued', 'sent', 'delivered', 'read', 'failed', 'suppressed'] as const).map((s) => <Chip key={s} status={s} label={`${humanize(s)} ${ds[s]}`} />)}
+        </div>
         <a className="lims-link" href={`/reporting/deliveries?report_id=${report.id}`}>Open delivery log filtered to this report</a>
-      </div>
+      </Card>
 
       <Dialog
         title="Release report" isOpen={dlg === 'release'} onClose={() => setDlg(null)} size="sm" isDismissable={false}

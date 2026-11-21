@@ -1,0 +1,1 @@
+pnpm --dir apps/web run build:nav && pnpm --dir apps/web exec vitest run -c src/core/__tests__/vitest.uiguard1.config.ts --maxWorkers=1 && pnpm --dir apps/web exec vitest run -c "src/app/(staff)/offline/__tests__/vitest.uiguard1-offline.config.ts" --maxWorkers=1

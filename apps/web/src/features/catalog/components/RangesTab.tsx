@@ -181,14 +181,15 @@ export function RangesTab({ analyte, kind, sets, valueSet, specimenTypes, permis
       {fail ? <FailBanner fail={fail} /> : null}
       {sets.length === 0 ? <p>{EMPTY[kind]}</p> : null}
       {sets.length > 0 ? (
-        <ul className="lims-inline catalog-gap-2 catalog-plain-list" aria-label="Versions">
+        // T0D-UIGUARD-1-CATALOG (LD-436 R7): list semantics by role, no raw ul
+        <div role="list" className="lims-inline catalog-gap-2 catalog-plain-list" aria-label="Versions">
           {sets.map((s) => (
-            <li key={s.id}>
+            <div role="listitem" key={s.id}>
               <Button size="sm" variant={s.id === set?.id ? 'primary' : 'secondary'} onPress={() => setSelectedId(s.id)}>{`v${s.version_no}`}</Button>{' '}
               <Badge tone={STATUS_TONE[s.status] ?? 'neutral'}>{STATUS_LABEL[s.status] ?? s.status}</Badge>
-            </li>
+            </div>
           ))}
-        </ul>
+        </div>
       ) : null}
       <div className="lims-inline catalog-gap-2">
         {canManage ? <Button isDisabled={!!draftSet} onPress={() => void newVersion()}>New version</Button> : null}

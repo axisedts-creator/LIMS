@@ -1,0 +1,3 @@
+APPROVE
+Round 3 review of `git diff 35f6afcb6..HEAD`. Round 2 item 1 is fixed in e5efd95d5. t19.worklist.test.tsx:164 and :170 now match `/clear filters/i` and `/^clear filters$/i`, the title is updated, the click, push and URL assertions are unchanged, and t19.worklist is in verify.cmd. Since round 2 the only other change is the impl note. No code, route, permission, API, token, kit or registry additions. No PHI or secrets. Paths are owned.
+I reran these myself: verify.cmd uiguard1 36/36 green, and its anatomic files 227/227 green. The full anatomic suite is 1076/1077. The one failure is t19.nav chord 'g t' (nav.manifest). It is pre-existing and owned outside this display-only task, as accepted in round 2, and it stays with the debugger or lead.

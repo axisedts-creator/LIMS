@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation';
 import { Badge } from '@lims/ui/components/Badge';
 import { Banner } from '@lims/ui/components/Banner';
 import { Button } from '@lims/ui/components/Button';
+import { FilterBar } from '@lims/ui/components/FilterBar';
 import { Combobox } from '@lims/ui/components/Combobox';
 import { DateTimePicker } from '@lims/ui/components/DateTimePicker';
 import { EditableGrid, type EditableGridRow } from '@lims/ui/components/EditableGrid';
@@ -271,8 +272,15 @@ export function PriceVersionEditor({ priceList, version, items, currentItems, or
             </div>
           ) : null}
           {!editable && manage ? <div className="lims-inline">{createButton}</div> : null}
-          <div className="lims-filter-bar">
-            <input type="search" className="lims-input" aria-label="Search prices" placeholder="Search code or name" maxLength={100} value={query} onChange={(e) => setQuery(e.target.value)} />
+          {/* T0D-UIGUARD-1-CATALOG (LD-353 rule 2): the search is the kit FilterBar; the editing tools follow it in one row */}
+          <FilterBar
+            filters={[{ id: 'q', label: 'Search prices', kind: 'text', maxLength: 100, search: true }]}
+            value={{ q: query }}
+            onChange={(v) => setQuery(typeof v['q'] === 'string' ? v['q'] : '')}
+            onReset={() => setQuery('')}
+            resetLabel="Clear filters"
+          />
+          <div className="lims-inline catalog-gap-2">
             <Button isDisabled={!!bulkWhy} onPress={() => setBulk(true)}>{t('catalog.price_tools.bulk.button')}</Button>
             {bulkWhy ? <span className="lims-description">{bulkWhy}</span> : null}
             {editable ? (

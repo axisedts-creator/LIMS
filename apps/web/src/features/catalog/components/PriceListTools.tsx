@@ -7,6 +7,7 @@
 import { useRef, useState, type RefObject } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@lims/ui/components/Button';
+import { Card } from '@lims/ui/components/Card';
 import { Combobox } from '@lims/ui/components/Combobox';
 import { EmptyRow, PlaceholderRows } from '@lims/ui/components/DataTable';
 import { Dialog } from '@lims/ui/components/Dialog';
@@ -55,7 +56,7 @@ export function UploadAndCheck({ priceList, manage, tpl, sectionRef }: {
   priceList: Pick<PriceListDetail, 'id' | 'code'>;
   manage: boolean;
   tpl: ReturnType<typeof useTemplateDownload>;
-  sectionRef: RefObject<HTMLElement | null>;
+  sectionRef: RefObject<HTMLDivElement | null>;
 }) {
   const router = useRouter();
   const [refused, setRefused] = useState(false);
@@ -137,8 +138,9 @@ export function UploadAndCheck({ priceList, manage, tpl, sectionRef }: {
   ];
   const head = ['Row', 'Column', 'Code', 'Message'];
   return (
-    <section aria-labelledby="pt-upload" className="lims-stack" ref={sectionRef}>
-      <h2 id="pt-upload" className="lims-section-title">{t('catalog.price_tools.upload.title')}</h2>
+    // T0D-UIGUARD-1-CATALOG (LD-436 R7): a kit Card region with its title row, no raw h2
+    <Card title={t('catalog.price_tools.upload.title')} region>
+    <div className="lims-stack" ref={sectionRef}>
       <p className="lims-description">{t('catalog.price_tools.upload.hint')}</p>
       {manage ? null : <p className="lims-description">{t('catalog.price_tools.need_manage')}</p>}
       <div className="lims-inline catalog-gap-2">
@@ -206,7 +208,8 @@ export function UploadAndCheck({ priceList, manage, tpl, sectionRef }: {
           {commitFail ? <Alert text={commitFail} /> : null}
         </div>
       </Dialog>
-    </section>
+    </div>
+    </Card>
   );
 }
 
@@ -215,8 +218,8 @@ const BATCH_STATUS = (s: string) => t(`catalog.price_tools.status.${s}`);
 export function ImportHistory({ priceListId, history }: { priceListId: string; history: readonly PriceImportBatch[] | null }) {
   const head = ['Time', 'Uploaded by', 'Status', 'Rows', 'Errors', 'Draft'];
   return (
-    <section aria-labelledby="pt-history" className="lims-stack">
-      <h2 id="pt-history" className="lims-section-title">{t('catalog.price_tools.history.title')}</h2>
+    <Card title={t('catalog.price_tools.history.title')} region>
+    <div className="lims-stack">
       {history === null ? <p className="lims-description">{t('catalog.price_tools.history.hidden')}</p> : (
         <div className="lims-table-scroll">
           <table className="lims-table lims-table-compact">
@@ -239,7 +242,8 @@ export function ImportHistory({ priceListId, history }: { priceListId: string; h
           </table>
         </div>
       )}
-    </section>
+    </div>
+    </Card>
   );
 }
 

@@ -53,14 +53,14 @@ function TargetCombobox({ label, options, value, onChange }: { label: string; op
         }}
       />
       {open ? (
-        <ul id={`${id}-list`} role="listbox" aria-label={label} className="lims-listbox" onMouseDown={(e) => e.preventDefault()}>
-          {shown.length === 0 ? <li role="presentation" className="lims-option">No matching doctor.</li> : null}
+        <div id={`${id}-list`} role="listbox" aria-label={label} className="lims-listbox" onMouseDown={(e) => e.preventDefault()}>
+          {shown.length === 0 ? <div role="presentation" className="lims-option">No matching doctor.</div> : null}
           {shown.map((o, i) => (
-            <li key={o.id} id={`${id}-o${i}`} role="option" aria-selected={value?.id === o.id} className="lims-option" onClick={() => pick(o)}>
+            <div key={o.id} id={`${id}-o${i}`} role="option" aria-selected={value?.id === o.id} className="lims-option" onClick={() => pick(o)}>
               {`${o.doctor_code} — ${o.display_name}`}
-            </li>
+            </div>
           ))}
-        </ul>
+        </div>
       ) : null}
     </div>
   );

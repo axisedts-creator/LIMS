@@ -9,9 +9,7 @@ import { Badge } from '@lims/ui/components/Badge';
 import { Button } from '@lims/ui/components/Button';
 import { EmptyRow, PlaceholderRows } from '@lims/ui/components/DataTable';
 import { PageHeader } from '@lims/ui/components/PageHeader';
-import { RadioGroup } from '@lims/ui/components/RadioGroup';
-import { Select } from '@lims/ui/components/Select';
-import { TextField } from '@lims/ui/components/TextField';
+import { FilterBar } from '@lims/ui/components/FilterBar';
 import { t } from '@/core/i18n/messages';
 import { formatNpr } from '../server/types';
 import { PERM } from './shared';
@@ -65,33 +63,27 @@ export function TestsList({ rows, filters, page, pages, filtered, departments, s
     <section aria-label={t('catalog.tests.list_label')}>
       <PageHeader title={t('catalog.tests.title')} helpKey="catalog.tests" actions={newButton} />
       {manage ? null : <p className="lims-description">{t('catalog.tests.need_manage')}</p>}
-      <div className="lims-filter-bar">
-        <div onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); go({ q: q.trim().slice(0, 100) }); } }}>
-          <TextField label={t('catalog.tests.search')} name="q" maxLength={100} value={q} onChange={setQ} />
-        </div>
-        <Select
-          label={t('catalog.tests.department')}
-          name="department_id"
-          value={filters.department_id || ALL}
-          onChange={(v) => go({ department_id: v === ALL ? '' : v })}
-          options={[{ value: ALL, label: t('catalog.tests.all_departments') }, ...departments.map((d) => ({ value: d.id, label: d.name }))]}
-        />
-        <Select
-          label={t('catalog.tests.specimen')}
-          name="specimen_type_id"
-          value={filters.specimen_type_id || ALL}
-          onChange={(v) => go({ specimen_type_id: v === ALL ? '' : v })}
-          options={[{ value: ALL, label: t('catalog.tests.all_specimens') }, ...specimenTypes.map((s) => ({ value: s.id, label: s.name }))]}
-        />
-        <RadioGroup<string>
-          label={t('catalog.tests.status')}
-          name="is_active"
-          orientation="horizontal"
-          value={filters.is_active || ALL}
-          onChange={(v) => go({ is_active: v === 'true' || v === 'false' ? v : '' })}
-          options={[{ value: ALL, label: t('catalog.tests.status_all') }, { value: 'true', label: t('catalog.tests.active') }, { value: 'false', label: t('catalog.tests.inactive') }]}
-        />
-      </div>
+      {/* T0D-UIGUARD-1-CATALOG (LD-353 rule 2, LD-436 worklist mock): the kit FilterBar; search on Enter or Search, filters in the address bar */}
+      <FilterBar
+        filters={[
+          { id: 'q', label: t('catalog.tests.search'), kind: 'text', maxLength: 100, search: true },
+          { id: 'department_id', label: t('catalog.tests.department'), kind: 'select', options: [{ value: ALL, label: t('catalog.tests.all_departments') }, ...departments.map((d) => ({ value: d.id, label: d.name }))] },
+          { id: 'specimen_type_id', label: t('catalog.tests.specimen'), kind: 'select', options: [{ value: ALL, label: t('catalog.tests.all_specimens') }, ...specimenTypes.map((x) => ({ value: x.id, label: x.name }))] },
+          { id: 'is_active', label: t('catalog.tests.status'), kind: 'select', options: [{ value: ALL, label: t('catalog.tests.status_all') }, { value: 'true', label: t('catalog.tests.active') }, { value: 'false', label: t('catalog.tests.inactive') }] },
+        ]}
+        value={{ q, department_id: filters.department_id || ALL, specimen_type_id: filters.specimen_type_id || ALL, is_active: filters.is_active || ALL }}
+        onChange={(v) => {
+          const s = (k: string) => (typeof v[k] === 'string' ? (v[k] as string) : ALL);
+          setQ(typeof v['q'] === 'string' ? v['q'] : '');
+          const dept = s('department_id') === ALL ? '' : s('department_id');
+          const spec = s('specimen_type_id') === ALL ? '' : s('specimen_type_id');
+          const act = s('is_active') === 'true' || s('is_active') === 'false' ? (s('is_active') as 'true' | 'false') : '';
+          if (dept !== filters.department_id || spec !== filters.specimen_type_id || act !== filters.is_active) go({ department_id: dept, specimen_type_id: spec, is_active: act });
+        }}
+        onSearch={() => go({ q: q.trim().slice(0, 100) })}
+        onReset={() => { setQ(''); router.push(testsHref({ q: '', department_id: '', specimen_type_id: '', is_active: '' })); }}
+        resetLabel="Clear filters"
+      />
       <table className="lims-table lims-table-regular">
         <caption className="lims-visually-hidden">{t('catalog.tests.list_label')}</caption>
         <thead>
@@ -123,7 +115,7 @@ export function TestsList({ rows, filters, page, pages, filtered, departments, s
         {rows.length === 0 ? <PlaceholderRows colSpan={heads.length} /> : null}
       </table>
       {pages > 1 ? (
-        <nav aria-label={t('catalog.tests.pages')} className="lims-filter-bar">
+        <nav aria-label={t('catalog.tests.pages')} className="lims-inline catalog-gap-2">
           {page > 1 ? <a href={testsHref(filters, page - 1)}>{t('catalog.tests.previous')}</a> : null}
           <span>{t('catalog.tests.page_of').replace('{page}', String(page)).replace('{pages}', String(pages))}</span>
           {page < pages ? <a href={testsHref(filters, page + 1)}>{t('catalog.tests.next')}</a> : null}

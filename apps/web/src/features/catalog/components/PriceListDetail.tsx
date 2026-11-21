@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation';
 import { Badge } from '@lims/ui/components/Badge';
 import { Banner } from '@lims/ui/components/Banner';
 import { Button } from '@lims/ui/components/Button';
+import { Card } from '@lims/ui/components/Card';
 import { Combobox } from '@lims/ui/components/Combobox';
 import { EmptyRow, PlaceholderRows } from '@lims/ui/components/DataTable';
 import { PageHeader } from '@lims/ui/components/PageHeader';
@@ -59,7 +60,7 @@ export function PriceListDetail({ priceList, ownerLabels, permissions, history }
   const [copying, setCopying] = useState(false);
   const [copied, setCopied] = useState<{ targetId: string; version: PriceListVersion }>();
   const editing = useRef(false);
-  const uploadRef = useRef<HTMLElement>(null);
+  const uploadRef = useRef<HTMLDivElement>(null);
   const tpl = useTemplateDownload(priceList);
 
   const editPrices = async () => {
@@ -123,10 +124,10 @@ export function PriceListDetail({ priceList, ownerLabels, permissions, history }
         </p>
       ) : null}
 
-      <section aria-label="General">
-        <h2 className="lims-section-title">General</h2>
+      {/* T0D-UIGUARD-1-CATALOG (LD-436 R7): sections are kit Card regions with a title row, no raw h2 */}
+      <Card title="General" region>
         {manage ? <SaveForm savedText="Price list saved." keepOpen check={() => changed} save={saveGeneral} onDuplicate={() => undefined}>{fields}</SaveForm> : <div className="lims-stack">{fields}</div>}
-      </section>
+      </Card>
 
       {priceList.owner_kind === 'default' ? (
         <p>The default list applies to everyone who has no list of their own.</p>
@@ -134,8 +135,7 @@ export function PriceListDetail({ priceList, ownerLabels, permissions, history }
         <Assignments priceList={priceList} ownerLabels={ownerLabels} manage={manage} canCentres={permissions.includes('identity.centre.read')} />
       )}
 
-      <section aria-label="Versions">
-        <h2 className="lims-section-title">Versions</h2>
+      <Card title="Versions" region>
         <p><a className="lims-link" href={compareHref}>{t('catalog.price_tools.compare_versions')}</a></p>
         <table className="lims-table lims-table-regular">
           <caption className="lims-visually-hidden">Versions</caption>
@@ -157,7 +157,7 @@ export function PriceListDetail({ priceList, ownerLabels, permissions, history }
             ))}
           </tbody>
         </table>
-      </section>
+      </Card>
 
       <UploadAndCheck priceList={priceList} manage={manage} tpl={tpl} sectionRef={uploadRef} />
       {history !== undefined ? <ImportHistory priceListId={priceList.id} history={history} /> : null}
@@ -208,8 +208,7 @@ function Assignments({ priceList, ownerLabels, manage, canCentres }: { priceList
   };
   const cols = manage ? 4 : 3;
   return (
-    <section aria-label="Assignments">
-      <h2 className="lims-section-title">Assignments</h2>
+    <Card title="Assignments" region>
       {fail?.code === 'catalog.code_duplicate' ? (
         <div role="alert"><Banner tone="danger" title={fail.detail ?? t('catalog.price_tools.assign.overlap')} /></div>
       ) : fail ? <FailBanner fail={fail} /> : null}
@@ -260,7 +259,8 @@ function Assignments({ priceList, ownerLabels, manage, canCentres }: { priceList
       </div>
       {manage ? (
         <>
-          <div className="lims-filter-bar">
+          {/* T0D-UIGUARD-1-CATALOG: the assignment period is a form row, not a filter row */}
+          <div className="lims-inline catalog-gap-3">
             <label className="lims-field">
               <span className="lims-label">{t('catalog.price_tools.assign.from')}</span>
               <input type="date" className="lims-input" name="effective_from" value={from} onChange={(e) => setFrom(e.target.value)} />
@@ -275,6 +275,6 @@ function Assignments({ priceList, ownerLabels, manage, canCentres }: { priceList
           <Button variant="primary" isDisabled={!(dirty || from || to) || badRange} isLoading={busy} onPress={save}>Save assignments</Button>
         </>
       ) : null}
-    </section>
+    </Card>
   );
 }

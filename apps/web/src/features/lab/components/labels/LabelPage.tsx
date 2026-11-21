@@ -6,6 +6,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '@lims/ui/components/Button';
 import { ErrorState } from '@lims/ui/components/ErrorState';
+import { PageHeader } from '@lims/ui/components/PageHeader';
 import { useToast } from '@lims/ui/components/Toast';
 import { printSpecimenLabels, requestOrderLabelPrint } from '../../server/printSpecimenLabels.server';
 import type { ActionResult } from '../../server/types';
@@ -133,22 +134,22 @@ export function LabelPage({ orderId, waitSeconds = 15 }: { orderId: string; wait
     <section aria-label="Labels">
       <style>{'@media print{body *{visibility:hidden}.lbl-print-region,.lbl-print-region *{visibility:visible}.lbl-print-region{position:absolute;left:0;top:0}}'}</style>
       <div className="lbl-noprint">
-        <h1>Labels</h1>
-        {meta ? <p>{meta.registrationNo} · {meta.patientName}</p> : null}
+        {/* T0D-UIGUARD-1-LAB (LD-353 rule 1, LD-436 rule 7): the kit PageHeader, the order line as its caption */}
+        <PageHeader title="Labels" helpKey="lab.labels" {...(meta ? { caption: `${meta.registrationNo} · ${meta.patientName}` } : {})} />
         {tooSmall ? <p role="alert">{TOO_SMALL}</p> : null}
         {reprintFail ? <Failure r={reprintFail} onRetry={() => { void reprint(); }} /> : null}
-        <ul aria-label="Specimens">
+        <div role="list" aria-label="Specimens">
           {specimens.map((s) => {
             const dead = inactive.has(s.specimen_id);
             return (
-              <li key={s.specimen_id}>
+              <div role="listitem" key={s.specimen_id}>
                 <label>
                   <input type="checkbox" checked={!dead && selected.has(s.specimen_id)} disabled={dead} onChange={() => toggle(s.specimen_id)} /> {s.barcode}{dead ? ' — Not printable (order cancelled)' : ''}
                 </label>
-              </li>
+              </div>
             );
           })}
-        </ul>
+        </div>
         <div>
           <label htmlFor="lbl-copies">Copies</label>{' '}
           <select id="lbl-copies" value={copies} onChange={(e) => setCopies(clampCopies(Number(e.target.value)))}>

@@ -161,13 +161,13 @@ describe('empty states (§4.1)', () => {
     await mount([], queue);
     expect(document.body.textContent).toContain(head);
     if (body) expect(document.body.textContent).toContain(body);
-    expect(screen.queryByRole('button', { name: /reset filters/i })).toBeNull();
+    expect(screen.queryByRole('button', { name: /clear filters/i })).toBeNull();
   });
 
-  it.each(['signed_out', 'cancelled', 'all'] as const)('%s: "No cases match these filters." with [Reset filters] that clears filter params', async (queue) => {
+  it.each(['signed_out', 'cancelled', 'all'] as const)('%s: "No cases match these filters." with [Clear filters] (LD-436 mock) that clears filter params', async (queue) => {
     await mount([], queue);
     expect(document.body.textContent).toContain('No cases match these filters.');
-    await userEvent.click(screen.getByRole('button', { name: /^reset filters$/i }));
+    await userEvent.click(screen.getByRole('button', { name: /^clear filters$/i }));
     await waitFor(() => expect(router.push).toHaveBeenCalled());
     expect(pushed()[0]).toMatch(new RegExp(`^/anatomic\\?queue=${queue}$`));
   });

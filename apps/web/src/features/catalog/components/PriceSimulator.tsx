@@ -89,14 +89,15 @@ export function PriceSimulator({ permissions }: { permissions: readonly string[]
           }}
         />
         {picked.length ? (
-          <ul aria-label="Selected tests and panels">
+          // T0D-UIGUARD-1-CATALOG (LD-436 R7): list semantics by role, no raw ul
+          <div role="list" aria-label="Selected tests and panels" className="lims-stack">
             {picked.map((o) => (
-              <li key={o.id}>
+              <div role="listitem" key={o.id}>
                 {`${o.code} — ${o.name}`}{' '}
                 <Button size="sm" variant="ghost" onPress={() => setPicked((p) => p.filter((x) => x.id !== o.id))}>Remove<VisuallyHidden> {o.code}</VisuallyHidden></Button>
-              </li>
+              </div>
             ))}
-          </ul>
+          </div>
         ) : null}
         <RadioGroup<Priority> label="Priority" name="priority" orientation="horizontal" value={priority} onChange={setPriority} options={[{ value: 'routine', label: 'Routine' }, { value: 'urgent', label: 'Urgent' }]} />
         </div>

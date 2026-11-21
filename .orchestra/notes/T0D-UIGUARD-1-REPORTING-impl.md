@@ -1,0 +1,7 @@
+# T0D-UIGUARD-1-REPORTING impl (writer)
+- Files: reporting/components ReportsWorklist (PageHeader caption, kit Tabs with the FilterBar inside the panel, Status select kept, resetLabel "Clear filters", kit DataTable for the worklist, the bulk result and the matches), CriticalAlertsPanel, ReportDetailView, DeliveryDetail, MessagesChannels, NarrativeEditor, ReportingSettingsForm, SignatoryProfiles, TemplateEditor (Card title rows; versions and attempts drawn by Timeline; raw ul/ol replaced by role=list divs or a chip group); notes/T0D-UIGUARD-1-exceptions.md (REPORTING section deleted). Registry not touched.
+- Kit prop (LD-441, additive): Timeline item `extra?: ReactNode`, drawn after the label in the same row (chip, Download link). Default markup unchanged.
+- [CONV] GAP: no read gives a count per status, so the tabs have no count pill (no invented numbers). The caption leaves out "barcode" when the user lacks lab.specimen.read. Version time = released_at, else rendered_at, else "—".
+- rs-c6.screens snapshots re-recorded (LD-440): worklist and delivery detail. Display-only diff.
+- Green after ruling (tester revised tests): uiguard1 reporting 96/96, c6-t31 200/200, rs-c6 60/60 (snapshots match, no re-record), printcfg1 72/72; web tsc 0 errors in reporting (19 elsewhere, not this task). packages/ui not rerun (unchanged since 1671/1678, 7 pre-existing fails).
+- OPEN: pixel match to the mocks not checked in a browser; pages with no own mock rebuilt to the guard rules only; tab count pills omitted (no count read).

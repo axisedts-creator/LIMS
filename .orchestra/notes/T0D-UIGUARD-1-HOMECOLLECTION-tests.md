@@ -1,0 +1,7 @@
+# T0D-UIGUARD-1-HOMECOLLECTION tests (tester)
+Run: `.orchestra/notes/T0D-UIGUARD-1-HOMECOLLECTION-verify.cmd` (build:nav, the uiguard1 guard config, then the homecollection config).
+1. Registry (LD-441 step 1): deleted both HOMECOLLECTION entries (rule 2, rule 5, route /homecollection/dispatch) from `apps/web/src/core/__tests__/uiguard1.exceptions.ts`; no rule 7 entry existed for this area. Guard now red on rule 2 and rule 5 for DispatchBoard.tsx.
+2. WRITER: delete the 2 lines under "T0D-UIGUARD-1-HOMECOLLECTION" in `notes/T0D-UIGUARD-1-exceptions.md` (tester may not edit notes/).
+3. New `features/homecollection/__tests__/uiguard1.homecollection.board.test.tsx` (+ `vitest.uiguard1-homecollection.config.ts`): rule 2 source uses `<FilterBar`, one `search` landmark (Date, Centre, Status, Kind, Needs attention, Reset in order, above both grids, Refresh stays in PageHeader), Reset keeps date+centre in URL; rule 5 empty Unassigned grid keeps headers, empty routes still draw a grid with headers. Red now: 3 tests (source FilterBar, routes ternary swap, empty routes grid). 7 are green regressions.
+4. Existing `hc-t18.board`, `uilist3.homecollection`, `uiset1.homecollection` tests pin old markup only where the writer changes it; the writer edits those.
+Not tested: pixel match to the Worklist mock (no browser), rs-cN snapshots (writer re-records, LD-440), rule 7 beyond the guard source walk (T0D-UIGUARD-2 not in this lane).

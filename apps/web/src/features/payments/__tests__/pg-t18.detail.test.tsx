@@ -109,7 +109,7 @@ describe('§2.2 header + DescriptionList', () => {
   it('shows status chip text, lakh-grouped amount, gateway, and all 13 spec terms', async () => {
     await view(settled());
     expect(screen.getAllByText('Paid').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('NPR 1,23,456.00').length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Rs\. 1,23,456\.00/).length).toBeGreaterThan(0); // kit MoneyText (LD-439 done_when 2)
     expect(document.body.textContent).toMatch(/eSewa/);
     for (const t of ['Order', 'Centre', 'Amount', 'Provider reference', 'Provider transaction', 'Created', 'Expires', 'Paid at', 'Verified amount', 'Verification', 'Hold reason', 'Ledger entry', 'Refunded']) {
       expect(screen.getAllByText(new RegExp(`^${t}$`, 'i')).length, `term ${t}`).toBeGreaterThan(0);

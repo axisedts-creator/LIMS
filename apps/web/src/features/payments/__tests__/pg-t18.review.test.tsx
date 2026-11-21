@@ -98,7 +98,7 @@ describe('§2.1 ReviewQueue — table', () => {
     await view();
     const r1 = rowOf(1);
     expect(within(r1).getByText(/eSewa/)).toBeTruthy();
-    expect(within(r1).getByText('NPR 1,23,456.00')).toBeTruthy();
+    expect(within(r1).getByText(/^Rs\. 1,23,456\.00$/)).toBeTruthy(); // kit MoneyText (LD-439 done_when 2)
     expect(within(r1).getByText('Under review')).toBeTruthy();
     expect(within(r1).getByText('Amount does not match')).toBeTruthy();
     expect(r1.textContent).not.toMatch(/amount_mismatch/);
@@ -106,7 +106,7 @@ describe('§2.1 ReviewQueue — table', () => {
     expect(actionBar(document.body)!.querySelector(`a[href="/payments/intents/${U(101)}"]`)).toBeTruthy();
     const r2 = rowOf(2);
     expect(within(r2).getByText(/Khalti/)).toBeTruthy();
-    expect(within(r2).getByText('NPR 500.00')).toBeTruthy();
+    expect(within(r2).getByText(/^Rs\. 500\.00$/)).toBeTruthy();
     expect(within(r2).getByText(/Waiting for provider|Pending/i)).toBeTruthy();
     expect(within(rowOf(3)).getByText(/Failed/i)).toBeTruthy();
     expect(within(rowOf(4)).getByText('Paid')).toBeTruthy(); // settled → "Paid" only because the server says settled

@@ -2,6 +2,7 @@
 // shows this calm state, never the red error page. The page keeps its menu title (h1) and, for a list screen, the header row of its table.
 // Not a failure: no alert, Retry or reference. No hooks and no handlers, so server pages (pendingOr) can render it.
 import { PageHeader } from '../PageHeader/PageHeader';
+import { StateArt } from '../_shared/StateArt';
 
 export interface NotAvailableProps {
   /** The PAGE title (the menu label, LD-353 rule 8), rendered as the h1. */
@@ -18,6 +19,7 @@ const HINT = 'This part of the system is being built. It appears here once it is
 export function NotAvailable({ title, columns, helpKey = 'shell.not_available', body = HINT }: NotAvailableProps) {
   const calm = (
     <div className="lims-state">
+      <StateArt kind="not-available" />
       <p className="lims-state-title">Not available yet</p>
       <p className="lims-state-body">{body}</p>
     </div>

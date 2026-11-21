@@ -178,7 +178,11 @@ textarea.lims-input, .lims-input.lims-rte-surface, .lims-egrid-table .lims-input
 .lims-queueboard__row, .lims-queueboard__banner, .lims-tokenslip { border-radius: var(--lims-radius-md); }
 @media print { .lims-tokenslip { border-radius: 0; } }
 .lims-card { padding: var(--lims-space-6); border: 0; border-radius: var(--lims-radius-xl); background: var(--lims-neutral-0); box-shadow: none; }
-.lims-card-title { margin: 0 0 var(--lims-space-3); font-size: var(--lims-font-size-md-size); }
+.lims-card-title { margin: 0 0 var(--lims-space-3); font-size: var(--lims-font-size-md-size); font-weight: var(--lims-font-weight-medium); }
+/* T0D-UIKIT-2 (LD-436 Card title row): h2 left, one short caption right, on one baseline. */
+.lims-card-head { display: flex; justify-content: space-between; align-items: baseline; gap: var(--lims-space-2); margin: 0 0 var(--lims-space-3); }
+.lims-card-head .lims-card-title { margin: 0; }
+.lims-card-caption { color: var(--lims-neutral-500); font-size: var(--lims-font-size-xs-size); font-weight: var(--lims-font-weight-regular); white-space: nowrap; }
 .lims-divider { border: 0; border-top: 1px solid var(--lims-neutral-200); margin: var(--lims-space-4) 0; }
 
 /* T0D-12b Phase-1 components */
@@ -200,6 +204,26 @@ textarea.lims-input, .lims-input.lims-rte-surface, .lims-egrid-table .lims-input
 .lims-step[data-tone='info'] { color: var(--lims-tone-info-fg); }
 .lims-step[data-tone='danger'] { color: var(--lims-tone-danger-fg); }
 .lims-step[aria-current='step'] .lims-step-label { font-weight: var(--lims-font-weight-medium); }
+/* T0D-UIKIT-2 (LD-436 pipeline): completed stages in accent, later stages outlined, ONE lime marker (ring by outline: ui-r03 bars a box-shadow ring). */
+.lims-step.lims-step-done { color: var(--lims-accent); }
+.lims-step.lims-step-upcoming .lims-icon { border: 1px solid var(--lims-neutral-300); border-radius: var(--lims-radius-full); color: var(--lims-neutral-300); }
+.lims-step-marker { display: inline-block; width: var(--lims-space-3); height: var(--lims-space-3); border-radius: var(--lims-radius-full); background: var(--lims-accent-highlight); border: 0; outline: var(--lims-space-1) solid var(--lims-accent-subtle); box-shadow: none; }
+.lims-step-waiting { color: var(--lims-accent); font-size: var(--lims-font-size-xs-size); font-weight: var(--lims-font-weight-medium); }
+/* T0D-UIKIT-2 (LD-436 R16): the drawn state illustration. */
+.lims-state-art { display: block; flex: none; }
+/* T0D-UIKIT-2 (LD-436 "Needs you"): ActionList rows. 150 ms token motion, nothing loops, reduced motion honoured. */
+.lims-action-list { list-style: none; margin: 0; padding: 0; }
+.lims-action-item { border-bottom: 1px solid var(--lims-neutral-200); }
+.lims-action-row { display: flex; align-items: center; gap: var(--lims-space-3); width: 100%; padding: var(--lims-space-2) var(--lims-space-4); border: 0; background: var(--lims-neutral-0); color: inherit; font: inherit; text-align: start; text-decoration: none; cursor: pointer; transition: background-color var(--lims-motion-duration-fast) var(--lims-motion-easing); }
+.lims-action-row:hover { background: var(--lims-neutral-50); }
+.lims-action-row:focus-visible { outline: 2px solid var(--lims-focus-ring); outline-offset: -2px; }
+.lims-action-chip { display: inline-flex; align-items: center; justify-content: center; flex: none; width: calc(var(--lims-space-6) + var(--lims-space-1)); height: calc(var(--lims-space-6) + var(--lims-space-1)); border-radius: var(--lims-radius-sm); }
+.lims-action-text { display: flex; flex: 1; flex-direction: column; min-width: 0; }
+.lims-action-title { font-weight: var(--lims-font-weight-medium); }
+.lims-action-detail { color: var(--lims-neutral-500); font-size: var(--lims-font-size-xs-size); }
+.lims-action-row .lims-chip { font-variant-numeric: tabular-nums; }
+.lims-action-chevron { flex: none; color: var(--lims-neutral-500); }
+@media (prefers-reduced-motion: reduce) { .lims-action-row { transition-duration: 0; } }
 .lims-thumbs { display: grid; grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr)); gap: var(--lims-space-3); list-style: none; padding: 0; }
 .lims-thumb { display: flex; flex-direction: column; gap: var(--lims-space-1); }
 .lims-thumb-img { max-width: 100%; aspect-ratio: 1; object-fit: cover; }

@@ -10,6 +10,8 @@ export interface StatusStepperProps {
   currentId: string;
   /** Terminal failure/cancellation at the current step. */
   outcome?: { kind: 'failed' | 'cancelled'; label: string };
+  /** T0D-UIKIT-2 (LD-436 pipeline): the ONE stage the page names as having the most waiting; gets the lime marker and the words. */
+  mostWaitingId?: string;
   'data-testid'?: string;
 }
 
@@ -18,7 +20,7 @@ const ICON = { done: 'success', current: 'current', upcoming: 'neutral', failed:
 const STATE = { done: 'Complete', current: 'Current', upcoming: 'Upcoming', failed: 'Failed', cancelled: 'Cancelled' } as const;
 
 /** Linear progress (C3 import batches). Each step's state is text (04 §5.4). Unknown currentId -> all upcoming. */
-export function StatusStepper({ steps, currentId, outcome, ...rest }: StatusStepperProps) {
+export function StatusStepper({ steps, currentId, outcome, mostWaitingId, ...rest }: StatusStepperProps) {
   const cur = steps.findIndex((s) => s.id === currentId);
   return (
     <div className="lims-stepper" {...rest}>
@@ -30,6 +32,13 @@ export function StatusStepper({ steps, currentId, outcome, ...rest }: StatusStep
             <li key={s.id} className={`lims-step lims-step-${state}`} data-tone={tone} {...(i === cur ? { 'aria-current': 'step' as const } : {})}>
               <Icon name={ICON[state]} size={14} />
               <span className="lims-step-label">{s.label}</span> <span className="lims-step-state">({STATE[state]})</span>
+              {s.id === mostWaitingId ? (
+                <>
+                  {' '}
+                  <span className="lims-step-marker" aria-hidden="true" />
+                  <span className="lims-step-waiting">Most waiting</span>
+                </>
+              ) : null}
             </li>
           );
         })}

@@ -111,7 +111,7 @@ describe('worklist page', () => {
     const { default: Page } = await page('worklist');
     wrap(await Page({ searchParams: Promise.resolve({}) }));
     expect(screen.getByRole('link', { name: 'R-0001-000001' })).toBeTruthy();
-    expect(screen.getByRole('tab', { name: 'Recollection needed' })).toBeTruthy();
+    expect(screen.getByRole('tab', { name: /^Recollection needed(\s\d+)?$/ })).toBeTruthy(); // T0D-UIDASH-2: the tab carries its count
   });
 
   it('banner-level error (03-APP-FLOW §4: Error = banner): a failing list endpoint does not blank the whole page', async () => {

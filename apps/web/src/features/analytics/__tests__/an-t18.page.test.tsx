@@ -103,6 +103,9 @@ const tileEl = (label: string) => {
   return hit as HTMLElement;
 };
 const norm = (s: string | null | undefined) => (s ?? '').replace(/\s+/g, ' ');
+// T0D-UIDASH-2 (LD-436 mock): the pipeline stage <li> by its label, and the Needs-you ActionList row by its title
+const stage = (label: string) => { const li = Array.from(document.querySelectorAll('.lims-stepper li.lims-step')).find((e) => norm(e.querySelector('.lims-step-label')?.textContent) === label); if (!li) throw new Error(`stage "${label}" not rendered`); return li as HTMLElement; };
+const needRow = (title: string) => { const a = Array.from(document.querySelectorAll<HTMLAnchorElement>('ul.lims-action-list a.lims-action-row')).find((e) => norm(e.querySelector('.lims-action-title')?.textContent) === title); if (!a) throw new Error(`Needs you row "${title}" not rendered`); return a; };
 const axeClean = async () => {
   const r = await axe.run(document.body, { rules: { 'color-contrast': { enabled: false }, region: { enabled: false } } });
   expect(r.violations.map((v) => `${v.id}: ${v.nodes[0]?.html}`)).toEqual([]);
@@ -145,102 +148,94 @@ describe('S1 dashboard — request (US-01.1, 07-SECURITY)', () => {
   });
 });
 
-describe('S1 dashboard — tiles (US-01.1, 04-UI-UX §3)', () => {
-  // LD-353 template 5 + done_when (1) (ruling T0D-UIDASH-1-ruling.md): exactly four tiles; the Results approved (28) and Pending tests (9) values now live in the pipeline stepper.
-  it('shows the four tiles with their labels and values; money in lakh grouping; sub-values; period header in A.D. and B.S.', async () => {
+describe('S1 dashboard — Today blocks (US-01.1, 04-UI-UX §3; re-pinned by T0D-UIDASH-2 to the LD-436 mock)', () => {
+  // The mock has no header tile row: StatTile cells live only in the Money card (Billed, Collected, Outstanding, Cash in drawer); the pipeline holds In testing (pending_tests) and Verified (results_approved).
+  it('shows the Money cells with their values in lakh grouping, the pipeline counts, the needs-you counts and the period header in A.D. and B.S.', async () => {
     const { container } = await show();
-    expect(norm(tileEl('Patient visits').textContent)).toContain('12');
-    expect(norm(tileEl('Net sales').textContent)).toMatch(/2,25,000/);
-    expect(norm(tileEl('Reports pending').textContent)).toContain('5');
-    const labels = Array.from(document.querySelectorAll('.lims-stat-label')).map((e) => e.textContent);
-    expect(labels).toEqual(['Patient visits', 'Reports pending', 'Net sales']);
+    expect(Array.from(document.querySelectorAll('.lims-stat-label')).map((e) => norm(e.textContent).replace(/^(Cash in drawer).*/, '$1'))).toEqual(['Billed', 'Collected', 'Outstanding', 'Cash in drawer']);
+    expect(norm(tileEl('Billed').textContent)).toContain('Rs. 2,30,000.00');
+    expect(norm(stage('Verified').textContent)).toMatch(/\b28\b/);
+    expect(norm(stage('In testing').textContent)).toMatch(/\b9\b/);
+    expect(norm(needRow('Reports pending').textContent)).toMatch(/5$/);
+    expect(norm(needRow('Ready, not released').textContent)).toMatch(/2$/);
+    expect(norm(needRow('Overdue').textContent)).toMatch(/1$/);
     const text = norm(container.textContent);
-    expect(text).toMatch(/Authorised\s*28/);
-    expect(text).toMatch(/In progress\s*9/);
-    for (const s of ['New patients 4', 'Tests ordered 31', 'Ready, not released 2', 'Overdue 1', '15 Jan 2026', '2082-10-01']) expect(text).toContain(s);
-    expect(text).toMatch(/Invoiced.*2,30,000/);
-    expect(text).toMatch(/Credit notes.*5,000/);
+    for (const s of ['15 Jan 2026', '2082-10-01']) expect(text).toContain(s);
   });
 
-  it('links each tile to its report (app-relative hrefs)', async () => {
+  it('links each Needs you row to its report (app-relative hrefs)', async () => {
     await show();
-    const href = (l: string) => tileEl(l).closest('a')?.getAttribute('href');
-    expect(href('Patient visits')).toBe('/analytics/reports/volume');
-    expect(href('Net sales')).toBe('/analytics/reports/income');
-    expect(href('Reports pending')).toBe('/analytics/reports/pending-tests');
+    for (const t of ['Reports pending', 'Ready, not released', 'Overdue']) expect(needRow(t).getAttribute('href')).toBe('/analytics/reports/pending-tests');
   });
 
-  it('shows "Cash collected" → /analytics/collections only when the API sent net_collected_paisa (omitted otherwise, never an empty tile)', async () => {
+  it('shows "Collected" as an amount only when the API sent net_collected_paisa (otherwise "Not available yet", never an invented amount)', async () => {
     await show();
-    expect(Array.from(document.querySelectorAll('.lims-stat-label')).map((e) => e.textContent)).not.toContain('Cash collected');
+    expect(norm(tileEl('Collected').textContent)).toMatch(/not available yet/i);
+    expect(tileEl('Collected').querySelector('.lims-money')).toBeNull();
     cleanup();
     dash = () => HttpResponse.json(dashboard({ tiles: { net_collected_paisa: tile(1234500, 'paisa', { previous: 1000000, delta: 234500, delta_bp: 2345 }) } }));
     await show();
-    expect(norm(tileEl('Cash collected').textContent)).toMatch(/12,345/);
-    expect(tileEl('Cash collected').closest('a')?.getAttribute('href')).toBe('/analytics/collections');
+    expect(norm(tileEl('Collected').textContent)).toMatch(/12,345/);
   });
 
-  it('explains T1 and T2 (help text from the copy catalogue)', async () => {
+  it('explains the billed figure (copy note under the Money cells)', async () => {
     const { container } = await show();
     const t = norm(container.textContent) + [...container.querySelectorAll('[title],[aria-label],[aria-description]')].map((e) => e.getAttribute('title') ?? e.getAttribute('aria-label')).join(' ');
-    expect(t).toContain('Counts each patient once per centre per day. Over several days the same person can be counted more than once.');
-    expect(t).toContain('Income = invoices issued (incl. VAT/other tax) minus credit notes. Cash collected is shown separately.');
+    expect(t).toContain('Billed = invoices issued (incl. VAT/other tax). Cash collected is shown separately.');
   });
 
-  it('lists the top departments (inactive-safe label text) and "Multiple departments" for is_multiple rows; hostile labels stay text', async () => {
+  it('"Tests by department" says "Not available yet" (no test count per department in the contract); a hostile department label is never rendered, not even as text', async () => {
     dash = () => HttpResponse.json(dashboard({ department_top: [
       { department_id: DEPT, label: '<img src=x onerror=alert(1)>', is_multiple: false, net_paisa: 900000, share_bp: 6000 },
       { label: 'ignored for multiple', is_multiple: true, net_paisa: 100000, share_bp: 4000 },
     ] }));
     const { container } = await show();
     expect(container.querySelector('img')).toBeNull();
-    expect(container.textContent).toContain('<img src=x onerror=alert(1)>');
-    expect(container.textContent).toContain('Multiple departments');
+    const card = Array.from(container.querySelectorAll('.lims-chart-card')).find((c) => norm(c.querySelector('.lims-chart-card-title')?.textContent) === 'Tests by department')!;
+    expect(norm(card.textContent)).toMatch(/not available yet/i);
   });
 });
 
-describe('S1 dashboard — deltas (US-01.2)', () => {
+describe('S1 dashboard — deltas (US-01.2; the delta lines now sit on the Money cells)', () => {
+  const collected = (t: Record<string, unknown>) => dashboard({ tiles: { net_collected_paisa: t } });
   it('shows absolute and percent (from delta_bp, one decimal) with the caption "vs yesterday" for a one-day period', async () => {
-    dash = () => HttpResponse.json(dashboard({ tiles: { patient_visits: tile(120, 'count', { previous: 111, delta: 9, delta_bp: 811 }) } }));
+    dash = () => HttpResponse.json(collected(tile(12000000, 'paisa', { previous: 11100000, delta: 900000, delta_bp: 811 })));
     await show();
-    const t = norm(tileEl('Patient visits').textContent);
-    expect(t).toContain('+9 (8.1%)');
+    const t = norm(tileEl('Collected').textContent);
+    expect(t).toContain('+Rs. 9,000.00 (8.1%)');
     expect(t).toContain('Up');
     expect(norm(document.body.textContent)).toContain('vs yesterday');
   });
 
   it('uses "vs previous {n} days" for a multi-day period', async () => {
-    dash = () => HttpResponse.json(dashboard({ period: { business_date_from: '2026-01-09', business_date_to: '2026-01-16', days: 7, label_ad: '09 Jan – 15 Jan 2026', label_bs: '2082-09-25 – 2082-10-01', timezone: 'Asia/Kathmandu' } }));
+    dash = () => HttpResponse.json(dashboard({ period: { business_date_from: '2026-01-09', business_date_to: '2026-01-16', days: 7, label_ad: '09 Jan – 15 Jan 2026', label_bs: '2082-09-25 – 2082-10-01', timezone: 'Asia/Kathmandu' }, tiles: { net_collected_paisa: tile(12000000, 'paisa', { previous: 11100000, delta: 900000, delta_bp: 811 }) } }));
     await show();
     expect(norm(document.body.textContent)).toContain('vs previous 7 days');
     expect(norm(document.body.textContent)).not.toContain('vs yesterday');
   });
 
   it('omits the percent when previous is 0 (no delta_bp) but keeps the absolute delta', async () => {
-    dash = () => HttpResponse.json(dashboard({ tiles: { patient_visits: tile(28, 'count', { previous: 0, delta: 28 }) } }));
+    dash = () => HttpResponse.json(collected(tile(2800000, 'paisa', { previous: 0, delta: 2800000 })));
     await show();
-    const t = norm(tileEl('Patient visits').textContent);
-    expect(t).toContain('+28');
+    const t = norm(tileEl('Collected').textContent);
+    expect(t).toContain('+Rs. 28,000.00');
     expect(t).not.toContain('%');
     expect(t).not.toContain('Infinity');
     expect(t).not.toContain('NaN');
   });
 
   it('shows a decrease as "Down" with its magnitude and percent', async () => {
-    dash = () => HttpResponse.json(dashboard({ tiles: { patient_visits: tile(100, 'count', { previous: 120, delta: -20, delta_bp: -1667 }) } }));
+    dash = () => HttpResponse.json(collected(tile(10000000, 'paisa', { previous: 12000000, delta: -2000000, delta_bp: -1667 })));
     await show();
-    const t = norm(tileEl('Patient visits').textContent);
+    const t = norm(tileEl('Collected').textContent);
     expect(t).toContain('Down');
-    expect(t).toContain('20');
+    expect(t).toContain('20,000.00');
     expect(t).toContain('16.7%');
   });
 
-  it('shows no delta on the snapshot tile (Reports pending)', async () => {
+  it('shows no delta on the snapshot rows (Reports pending in Needs you)', async () => {
     await show();
-    for (const l of ['Reports pending']) {
-      const t = norm(tileEl(l).textContent);
-      expect(t).not.toMatch(/Up|Down|No change|%/);
-    }
+    expect(norm(needRow('Reports pending').textContent)).not.toMatch(/Up|Down|No change|%/);
   });
 });
 
@@ -260,7 +255,7 @@ describe('S1 dashboard — freshness (US-01.4, 04-UI-UX §2)', () => {
     await show();
     expect(screen.getAllByText('Data may be out of date').length).toBeGreaterThan(0);
     expect(norm(document.body.textContent)).toMatch(/Updated /);
-    expect(norm(tileEl('Net sales').textContent)).toMatch(/2,25,000/);
+    expect(norm(tileEl('Billed').textContent)).toMatch(/2,30,000/);
   });
 
   // T0D-UNSLOP-1 (C), LD-353 rule 8, ruling T0D-UNSLOP-1-ruling.md: ONE freshness note per page replaces the old "stale badge per tile" (03-APP-FLOW §5 S1, overridden by LD-353).
@@ -280,9 +275,9 @@ describe('S1 dashboard — freshness (US-01.4, 04-UI-UX §2)', () => {
     expect(found[0]!.closest('.lims-stat')).toBeNull();
     for (const stat of container.querySelectorAll('.lims-stat')) expect(norm(stat.parentElement!.textContent)).not.toContain(STALE);
     expect(reachable(found[0]!)).toContain('Recent changes are still being processed');
-    expect(norm(tileEl('Net sales').textContent)).toMatch(/2,25,000/);
-    expect(norm(tileEl('Patient visits').textContent)).toMatch(/\b12\b/);
-    expect(norm(container.textContent)).toMatch(/Authorised\s*28/);
+    expect(norm(tileEl('Billed').textContent)).toMatch(/2,30,000/);
+    expect(norm(stage('In testing').textContent)).toMatch(/\b9\b/);
+    expect(norm(stage('Verified').textContent)).toMatch(/\b28\b/);
   });
 
   it.each(['orders', 'results'])('stale %s family: still exactly one note on the page and none in a tile; last values shown', async (family) => {
@@ -291,8 +286,8 @@ describe('S1 dashboard — freshness (US-01.4, 04-UI-UX §2)', () => {
     const found = notes(container);
     expect(found).toHaveLength(1);
     expect(found[0]!.closest('.lims-stat')).toBeNull();
-    for (const l of ['Patient visits', 'Net sales', 'Reports pending']) expect(norm(tileEl(l).textContent)).not.toContain(STALE);
-    expect(norm(tileEl('Patient visits').textContent)).toMatch(/\b12\b/);
+    for (const l of ['Billed', 'Collected']) expect(norm(tileEl(l).textContent)).not.toContain(STALE);
+    expect(norm(stage('In testing').textContent)).toMatch(/\b9\b/);
   });
 
   it('never_refreshed shows the marker without crashing when refreshed_at is absent', async () => {
@@ -319,11 +314,10 @@ describe('S1 dashboard — scope (US-01.5, 07-SECURITY)', () => {
 });
 
 describe('S1 dashboard — empty (03-APP-FLOW §5)', () => {
-  it('all zeros: tiles still render with 0, plus "No activity in this period" and a "Show yesterday" action', async () => {
+  it('all zeros: the Money cells still render with 0.00, plus "No activity in this period" and a "Show yesterday" action', async () => {
     dash = () => HttpResponse.json(dashboard({ tiles: zeros, series: { days: [] }, department_top: [] }));
     await show();
-    expect(norm(tileEl('Patient visits').textContent)).toContain('0');
-    expect(norm(tileEl('Net sales').textContent)).toMatch(/0\.00|0\b/);
+    expect(norm(tileEl('Billed').textContent)).toMatch(/0\.00/);
     expect(screen.getByText('No activity in this period')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Show yesterday' })).toBeTruthy();
   });
@@ -360,8 +354,8 @@ describe('S1 dashboard — error / permission states (03-APP-FLOW §5)', () => {
 
   it('secondary reads failing (live pending 503, X20) does not take the other tiles down', async () => {
     await show();
-    expect(norm(tileEl('Patient visits').textContent)).toContain('12');
-    expect(norm(tileEl('Net sales').textContent)).toMatch(/2,25,000/);
+    expect(norm(tileEl('Billed').textContent)).toMatch(/2,30,000/);
+    expect(norm(stage('In testing').textContent)).toMatch(/\b9\b/);
   });
 });
 

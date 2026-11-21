@@ -67,7 +67,8 @@ describe(W, () => {
     const { container } = await show('worklist/page');
     await screen.findByText(/nothing pending/i);
     expectHeader(container, W);
-    expectTable(container, W, { min: 4, headers: ['Registration no', 'Patient', 'Created', 'Actions'] });
+    // re-pinned by T0D-UIDASH-2 (LD-436 worklist mock): Accession no., Patient, Tests, Registered, Time elapsed, Status, then the row menu column
+    expectTable(container, W, { min: 4, headers: ['Accession no.', 'Patient', 'Tests', 'Registered', 'Time elapsed', 'Status', 'Actions'] });
     expectEmptyState(container, W);
   });
 
@@ -150,6 +151,7 @@ describe('same empty table look', () => {
     expect(w.box).toBe(d.box);
     expect(w.table).toBe(d.table);
     expect(w.state, 'EmptyState children: title, the same hint lines').toEqual(d.state);
-    expect(w.th, 'header cells drawn the same way').toEqual(d.th);
+    // T0D-UIDASH-2: the worklist now also draws the two kit columns of the mock (StatusChip column, row menu column); the data header cells are drawn the same way
+    expect(w.th.filter((c) => c !== 'lims-col lims-col-status' && c !== 'lims-col-actions'), 'header cells drawn the same way').toEqual(d.th);
   });
 });

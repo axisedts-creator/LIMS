@@ -8,3 +8,10 @@ What the implementation must do:
 - In apps/web/src/core/__tests__/uiguard1.exceptions.ts add two rule 2 entries via the existing LD-434 helper (exceptions.ts:11), feature PARTNERS, for '/partners/tickets' and '/partners/tickets/[ticket_id]', files features/partners/components/TicketInbox.tsx. Reason must read 'legacy baseline LD-434, fix in T0D-UIGUARD-1-PARTNERS: ...'.
 - Add the two matching lines to notes/T0D-UIGUARD-1-exceptions.md (noting the breach came from T0D-MSGDESK-1 after UIGUARD-1), and do not touch TicketInbox.tsx.
 - The stale check (guard.test.ts:75-78) then fails on them, which forces their removal, once T0D-UIGUARD-1-PARTNERS swaps in kit FilterBar; LD-439 (b) bars any PARTNERS legacy entry surviving that task.
+
+
+LEAD ITEM LD-441 (2026-11-21 22:51 NPT):
+The ruling above (option B, legacy baseline entries) is right, but it names the wrong role for the registry edit. apps/web/src/core/__tests__/uiguard1.exceptions.ts is tester-owned: Enforce reverted the writer and the debugger edits (22:41 to 22:43 NPT), that is why the task blocked.
+TESTER: add the two rule 2 legacy entries (feature PARTNERS, file features/partners/components/TicketInbox.tsx, routes /partners/tickets and /partners/tickets/[ticket_id], reason legacy baseline LD-434, fix in T0D-UIGUARD-1-PARTNERS) to uiguard1.exceptions.ts with the existing legacy helper. Do not touch notes/ or TicketInbox.tsx.
+WRITER: the two matching lines are already in notes/T0D-UIGUARD-1-exceptions.md; do not edit the registry or TicketInbox.tsx. DEBUGGER: same; if the registry is red, that is a tester item, dispute it, do not edit it.
+Check: the verify cmd (36 tests) must pass with the registry edit committed by the tester pass.

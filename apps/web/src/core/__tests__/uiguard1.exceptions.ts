@@ -109,6 +109,11 @@ export const EXCEPTIONS: GuardException[] = [
     '/partners/penalties',
     '/partners/penalty-events',
   ]),
+  // LD-441: TicketInbox.tsx hand builds its filter row (breach arrived with T0D-MSGDESK-1, after UIGUARD-1).
+  ...legacy('PARTNERS', 2, 'TicketInbox.tsx', [
+    '/partners/tickets',
+    '/partners/tickets/[ticket_id]',
+  ]),
   ...legacy('QUALITY', 2, 'DecisionsView.tsx, LjView.tsx', [
     '/quality',
     '/quality/autoverify/decisions',

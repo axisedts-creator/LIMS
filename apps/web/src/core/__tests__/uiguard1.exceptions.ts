@@ -171,9 +171,6 @@ export const EXCEPTIONS: GuardException[] = [
   ...legacy('HOMECOLLECTION', 5, 'DispatchBoard.tsx', [
     '/homecollection/dispatch',
   ]),
-  ...legacy('INSTRUMENTS', 5, 'ReprocessDialog.tsx', [
-    '/instruments/messages/[instrument_message_id]',
-  ]),
   ...legacy('LAB', 5, 'ResultPanels.tsx, DeltaRulesTab.tsx, QcHoldsTab.tsx', [
     '/lab/orders/[order_id]/results',
     '/lab/settings',
@@ -301,12 +298,6 @@ export const EXCEPTIONS: GuardException[] = [
     ['/frontdesk/patients/[patient_id]', 'PatientView.tsx'],
     ['/frontdesk/registrations/new', 'RegistrationForm.tsx, ReceiptPrintView.tsx, accountsShared.tsx, InvoiceDocument.tsx'],
     ['/frontdesk/settings', 'SettingsView.tsx'],
-  ]),
-  ...legacy7('INSTRUMENTS', [
-    ['/instruments/instruments', 'InstrumentForm.tsx'],
-    ['/instruments/instruments/[instrument_id]', 'InstrumentForm.tsx'],
-    ['/instruments/instruments/[instrument_id]/mappings', 'InstrumentMappings.tsx'],
-    ['/instruments/messages/[instrument_message_id]', 'MessageDetail.tsx'],
   ]),
   ...legacy7('INVENTORY', [
     ['/inventory/bench', 'BenchView.tsx'],

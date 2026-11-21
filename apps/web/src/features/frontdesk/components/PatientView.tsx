@@ -5,7 +5,9 @@ import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Banner } from '@lims/ui/components/Banner';
 import { Button } from '@lims/ui/components/Button';
+import { Card } from '@lims/ui/components/Card';
 import { Checkbox } from '@lims/ui/components/Checkbox';
+import { EmptyRow, PlaceholderRows } from '@lims/ui/components/DataTable';
 import { Dialog } from '@lims/ui/components/Dialog';
 import { Form } from '@lims/ui/components/Form';
 import { PageHeader } from '@lims/ui/components/PageHeader';
@@ -46,8 +48,8 @@ export function PatientView({ patient, orders, permissions }: { patient: Patient
       />
       {notice ? <div role="alert"><Banner tone="danger" title={notice.title} {...(notice.reload ? { action: { label: 'Reload', onPress: () => router.refresh() } } : {})} /></div> : null}
 
-      <section aria-label="Demographics">
-        <h2>Demographics</h2>
+      {/* T0D-UIGUARD-1-FRONTDESK (LD-436 R7, LD-439): page sections are kit Cards with a title row (region), not raw h2/ul. */}
+      <Card title="Demographics" region>
         <dl>
           <div><dt>Patient code</dt><dd>{patient.patient_code}</dd></div>
           <div><dt>Sex</dt><dd>{humanize(patient.sex)}</dd></div>
@@ -55,40 +57,38 @@ export function PatientView({ patient, orders, permissions }: { patient: Patient
           {anonymised ? null : <div><dt>Phone</dt><dd>{patient.phone_masked}</dd></div>}
         </dl>
         {editing ? <EditForm patient={patient} onClose={() => setEditing(false)} onDone={() => { setEditing(false); toast.show({ tone: 'success', title: 'Patient updated.' }); router.refresh(); }} onFail={fail} /> : null}
-      </section>
+      </Card>
 
-      <section aria-label="Consents">
-        <h2>Consents</h2>
-        <ul>
-          {CONSENT_LABELS.map(([k, label]) => <li key={k}>{label}: {patient.consents[k] ? 'Yes' : 'No'}</li>)}
-        </ul>
+      <Card title="Consents" region>
+        <div role="list">
+          {CONSENT_LABELS.map(([k, label]) => <div role="listitem" key={k}>{label}: {patient.consents[k] ? 'Yes' : 'No'}</div>)}
+        </div>
         <p>Consent text version {patient.consents.consent_text_version}</p>
-      </section>
+      </Card>
 
-      <section aria-label="Visits">
-        <h2>Visits</h2>
-        {orders.length === 0 ? <p>No visits yet</p> : (
-          <table>
-            <caption>Visits</caption>
-            <thead><tr><th scope="col">Registration no</th><th scope="col">Date</th><th scope="col">Source</th><th scope="col">Status</th></tr></thead>
-            <tbody>
-              {orders.map((o) => (
-                <tr key={o.id}>
-                  <td><a className="lims-link" href={`/frontdesk/orders/${o.id}`}>{o.registration_no}</a></td><td><Ad value={o.registered_at} /></td><td>{humanize(o.source)}</td><td><Status status={o.status} /></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </section>
+      <Card title="Visits" region>
+        {/* LD-353 rule 5: the table keeps its header when there are no visits. */}
+        <table>
+          <caption>Visits</caption>
+          <thead><tr><th scope="col">Registration no</th><th scope="col">Date</th><th scope="col">Source</th><th scope="col">Status</th></tr></thead>
+          <tbody>
+            {orders.map((o) => (
+              <tr key={o.id}>
+                <td><a className="lims-link" href={`/frontdesk/orders/${o.id}`}>{o.registration_no}</a></td><td><Ad value={o.registered_at} /></td><td>{humanize(o.source)}</td><td><Status status={o.status} /></td>
+              </tr>
+            ))}
+            {orders.length ? null : <EmptyRow colSpan={4}>No visits yet</EmptyRow>}
+          </tbody>
+          {orders.length ? null : <PlaceholderRows colSpan={4} />}
+        </table>
+      </Card>
 
       {canAnonymise ? (
-        <section aria-label="Anonymise">
-          <h2>Anonymise</h2>
+        <Card title="Anonymise" region>
           <p>Personal details are removed. Orders and invoices are retained for the legal retention period. Needs MFA (aal2).</p>
           {/* ponytail: the anonymise POST (F-anonymisePatient) belongs to FD-T15; enable this button there. */}
           <Button variant="danger" isDisabled>Anonymise patient</Button>
-        </section>
+        </Card>
       ) : null}
 
       {consentOpen ? (

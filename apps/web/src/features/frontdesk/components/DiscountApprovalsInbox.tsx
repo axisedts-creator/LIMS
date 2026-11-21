@@ -118,9 +118,10 @@ export function DiscountApprovalsInbox({ approvals, permissions, currentMembersh
       {dlg?.kind === 'reject' ? <RejectDialog a={dlg.a} idempotencyKey={key.current} onClose={() => setDlg(null)} onDone={() => done('Discount rejected.')} onFail={fail} /> : null}
       {dlg?.kind === 'details' ? (
         <Drawer title="Discount details" isOpen onClose={() => setDlg(null)}>
-          <ul>
-            {dlg.a.discounts.map((l, i) => <li key={i}>{humanize(l.scope)} — {humanize(l.kind)} {lineValue(l)} — {humanize(l.reason_code)}</li>)}
-          </ul>
+          {/* T0D-UIGUARD-1-FRONTDESK (LD-436 R7): no raw ul; the lines keep list semantics. */}
+          <div role="list">
+            {dlg.a.discounts.map((l, i) => <div role="listitem" key={i}>{humanize(l.scope)} — {humanize(l.kind)} {lineValue(l)} — {humanize(l.reason_code)}</div>)}
+          </div>
         </Drawer>
       ) : null}
     </section>

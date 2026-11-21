@@ -343,7 +343,9 @@ exports[`RS-C4 key-screen snapshots > Register: blank 1`] = `
 <div class="lims-reg-layout">
 <div data-reg-column="context" class="lims-reg-col">
 <div class="lims-card">
+<div class="lims-card-head">
 <h2 class="lims-card-title">Patient</h2>
+</div>
 <div class="lims-reg-section">
 <div data-field="patient">
 <template>
@@ -553,7 +555,9 @@ exports[`RS-C4 key-screen snapshots > Register: blank 1`] = `
 </div>
 <div data-reg-column="tests" class="lims-reg-col">
 <div class="lims-card">
+<div class="lims-card-head">
 <h2 class="lims-card-title">Tests</h2>
+</div>
 <div class="lims-reg-section lims-reg-fill">
 <div class="lims-field lims-radio-group" data-rac="" role="radiogroup" aria-orientation="horizontal" id="ID" aria-labelledby="ID" data-orientation="horizontal">
 <span class="lims-label" id="ID">Search tests by</span>
@@ -643,7 +647,9 @@ exports[`RS-C4 key-screen snapshots > Register: blank 1`] = `
 </div>
 <div data-reg-column="payment" class="lims-reg-col">
 <div class="lims-card">
+<div class="lims-card-head">
 <h2 class="lims-card-title">Billing</h2>
+</div>
 <div class="lims-reg-section">
 <div class="lims-field lims-radio-group" data-rac="" role="radiogroup" aria-orientation="horizontal" id="ID" aria-labelledby="ID" data-orientation="horizontal">
 <span class="lims-label" id="ID">Billing mode</span>
@@ -771,7 +777,7 @@ exports[`RS-C4 key-screen snapshots > Register: blank 1`] = `
 </div>
 </div>
 <aside class="lims-reg-summary" aria-label="Registration summary">
-<h2 class="lims-reg-summary-title">Summary</h2>
+<p role="heading" aria-level="2" class="lims-reg-summary-title">Summary</p>
 <dl class="lims-reg-summary-list">
 <div class="lims-reg-summary-row">
 <dt>Tests</dt>
@@ -875,7 +881,9 @@ exports[`RS-C4 key-screen snapshots > Register: new-patient form open 1`] = `
 <div class="lims-reg-layout">
 <div data-reg-column="context" class="lims-reg-col">
 <div class="lims-card">
+<div class="lims-card-head">
 <h2 class="lims-card-title">Patient</h2>
+</div>
 <div class="lims-reg-section">
 <div role="group" aria-label="New patient" class="lims-reg-section">
 <div class="lims-reg-pair">
@@ -1432,7 +1440,9 @@ exports[`RS-C4 key-screen snapshots > Register: new-patient form open 1`] = `
 </div>
 <div data-reg-column="tests" class="lims-reg-col">
 <div class="lims-card">
+<div class="lims-card-head">
 <h2 class="lims-card-title">Tests</h2>
+</div>
 <div class="lims-reg-section lims-reg-fill">
 <div class="lims-field lims-radio-group" data-rac="" role="radiogroup" aria-orientation="horizontal" id="ID" aria-labelledby="ID" data-orientation="horizontal">
 <span class="lims-label" id="ID">Search tests by</span>
@@ -1522,7 +1532,9 @@ exports[`RS-C4 key-screen snapshots > Register: new-patient form open 1`] = `
 </div>
 <div data-reg-column="payment" class="lims-reg-col">
 <div class="lims-card">
+<div class="lims-card-head">
 <h2 class="lims-card-title">Billing</h2>
+</div>
 <div class="lims-reg-section">
 <div class="lims-field lims-radio-group" data-rac="" role="radiogroup" aria-orientation="horizontal" id="ID" aria-labelledby="ID" data-orientation="horizontal">
 <span class="lims-label" id="ID">Billing mode</span>
@@ -1652,7 +1664,7 @@ exports[`RS-C4 key-screen snapshots > Register: new-patient form open 1`] = `
 </div>
 </div>
 <aside class="lims-reg-summary" aria-label="Registration summary">
-<h2 class="lims-reg-summary-title">Summary</h2>
+<p role="heading" aria-level="2" class="lims-reg-summary-title">Summary</p>
 <dl class="lims-reg-summary-list">
 <div class="lims-reg-summary-row">
 <dt>Tests</dt>
@@ -1756,7 +1768,9 @@ exports[`RS-C4 key-screen snapshots > Register: returning patient, one test, quo
 <div class="lims-reg-layout">
 <div data-reg-column="context" class="lims-reg-col">
 <div class="lims-card">
+<div class="lims-card-head">
 <h2 class="lims-card-title">Patient</h2>
+</div>
 <div class="lims-reg-section">
 <div data-field="patient">
 <template>
@@ -1969,7 +1983,9 @@ exports[`RS-C4 key-screen snapshots > Register: returning patient, one test, quo
 </div>
 <div data-reg-column="tests" class="lims-reg-col">
 <div class="lims-card">
+<div class="lims-card-head">
 <h2 class="lims-card-title">Tests</h2>
+</div>
 <div class="lims-reg-section lims-reg-fill">
 <div class="lims-field lims-radio-group" data-rac="" role="radiogroup" aria-orientation="horizontal" id="ID" aria-labelledby="ID" data-orientation="horizontal">
 <span class="lims-label" id="ID">Search tests by</span>
@@ -2123,7 +2139,9 @@ exports[`RS-C4 key-screen snapshots > Register: returning patient, one test, quo
 </div>
 <div data-reg-column="payment" class="lims-reg-col">
 <div class="lims-card">
+<div class="lims-card-head">
 <h2 class="lims-card-title">Billing</h2>
+</div>
 <div class="lims-reg-section">
 <div class="lims-field lims-radio-group" data-rac="" role="radiogroup" aria-orientation="horizontal" id="ID" aria-labelledby="ID" data-orientation="horizontal">
 <span class="lims-label" id="ID">Billing mode</span>
@@ -2327,13 +2345,13 @@ exports[`RS-C4 key-screen snapshots > Register: returning patient, one test, quo
 </div>
 </div>
 <aside class="lims-reg-summary" aria-label="Registration summary">
-<h2 class="lims-reg-summary-title">Summary</h2>
+<p role="heading" aria-level="2" class="lims-reg-summary-title">Summary</p>
 <dl class="lims-reg-summary-list">
 <div class="lims-reg-summary-row">
 <dt>Tests</dt>
-<dd>1 selected<ul class="lims-reg-summary-tests">
-<li>Complete blood count</li>
-</ul>
+<dd>1 selected<div role="list" class="lims-reg-summary-tests">
+<div role="listitem">Complete blood count</div>
+</div>
 </dd>
 </div>
 <div class="lims-reg-summary-row">

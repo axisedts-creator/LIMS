@@ -10,7 +10,8 @@ export function ReceiptPrintView({ receipt: r }: { receipt: ReceiptDocument }) {
   return (
     <article className="lims-receipt-doc" aria-label={`Payment receipt ${r.receipt_no}`}>
       {r.branding?.legal_name ? <header><p><strong>{r.branding.legal_name}</strong></p></header> : null}
-      <h2>PAYMENT RECEIPT</h2>
+      {/* T0D-UIGUARD-1-FRONTDESK (LD-436 R7): print heading as p role=heading, same as the T0D-UIGUARD-1-BILLING print documents. */}
+      <p role="heading" aria-level={2} className="lims-card-title">PAYMENT RECEIPT</p>
       <IssuedOfflineWatermark numbers={[r.receipt_no, ...r.invoice_nos]} />
       <dl>
         <dt>Receipt no</dt><dd><DocNumber value={r.receipt_no} /></dd>

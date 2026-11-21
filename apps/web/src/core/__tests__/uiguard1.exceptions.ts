@@ -43,14 +43,6 @@ export const EXCEPTIONS: GuardException[] = [
     '/quality/qc-runs/[qc_run_id]',
     '/quality/runs',
   ]),
-  ...legacy('FRONTDESK', 4, 'the page itself', [
-    '/frontdesk/orders/[order_id]',
-    '/frontdesk/patients/[patient_id]',
-  ]),
-  ...legacy('FRONTDESK', 5, 'OrderView.tsx, PatientView.tsx', [
-    '/frontdesk/orders/[order_id]',
-    '/frontdesk/patients/[patient_id]',
-  ]),
   ...legacy('QUALITY', 6, 'ReportView.tsx', [
     '/quality/autoverify/[version_id]',
   ]),
@@ -68,13 +60,6 @@ export const EXCEPTIONS: GuardException[] = [
     ['/anatomic/config', 'config-shared.tsx, AssaysTab.tsx'],
     ['/anatomic/config/templates/[template_id]', 'config-shared.tsx, TemplateEditor.tsx, TemplatePreview.tsx'],
     ['/anatomic/tracking', 'AnatomicForbidden.tsx, TrackingScreen.tsx, MovementDialog.tsx'],
-  ]),
-  ...legacy7('FRONTDESK', [
-    ['/frontdesk/discount-approvals', 'DiscountApprovalsInbox.tsx'],
-    ['/frontdesk/orders/[order_id]', 'OrderView.tsx'],
-    ['/frontdesk/patients/[patient_id]', 'PatientView.tsx'],
-    ['/frontdesk/registrations/new', 'RegistrationForm.tsx, ReceiptPrintView.tsx, accountsShared.tsx, InvoiceDocument.tsx'],
-    ['/frontdesk/settings', 'SettingsView.tsx'],
   ]),
   ...legacy7('MICRO', [
     ['/micro/breakpoint-sets', 'MicroForbidden.tsx'],

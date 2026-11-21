@@ -11,7 +11,8 @@ export function AccountReceiptView({ entry: e, party, particular, centre }: { en
   const row = (key: string, value: ReactNode) => (value === undefined || value === '' ? null : <><dt>{t(key)}</dt><dd>{value}</dd></>);
   return (
     <article className="lims-receipt-doc" aria-label={fill('billing.accounts.receipt.label', { no: e.receipt_no })}>
-      <h2>{t('billing.accounts.receipt.heading')}</h2>
+      {/* T0D-UIGUARD-1-BILLING (LD-436 R7): print heading with heading semantics, not a raw h2. */}
+      <p role="heading" aria-level={2} className="lims-card-title">{t('billing.accounts.receipt.heading')}</p>
       <dl>
         {row('billing.accounts.receipt.no', e.receipt_no)}
         {row('billing.accounts.receipt.date', <DateText value={e.entry_date as never} mode="AD_BS" />)}

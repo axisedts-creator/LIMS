@@ -1,6 +1,6 @@
 'use client';
 // 04-UI-UX §2.5 FilterBar. date_range values are [from, to] A.D. IsoDates ([CONV]: the value map only holds string | string[]).
-import { useId } from 'react';
+import { useId, type ReactNode } from 'react';
 import { Label, ListBox, ListBoxItem, type Selection } from 'react-aria-components';
 import { Button } from '../Button/Button';
 import { DateRangePicker } from '../DateRangePicker/DateRangePicker';
@@ -17,14 +17,19 @@ export type FilterDef = { id: string; label: string } & (
 export type FilterValue = Readonly<Record<string, string | readonly string[] | undefined>>;
 
 export interface FilterBarProps {
-  filters: readonly FilterDef[];
-  value: FilterValue;
-  onChange: (v: FilterValue) => void;
-  onReset: () => void;
+  /** T0D-UIGUARD-1-BILLING (LD-441 additive): filters, value and onChange may be left out when the row is all `children`. */
+  filters?: readonly FilterDef[];
+  value?: FilterValue;
+  onChange?: (v: FilterValue) => void;
+  /** T0D-UIGUARD-1-BILLING (LD-441 additive): optional; without it the row has no reset button. */
+  onReset?: () => void;
   /** T0D-UIKIT-1, LD-353 rule 2: a "Search" button right after the (first) text filter, inside `.lims-filter-search`. */
   onSearch?: () => void;
   /** T0D-UIDASH-2 (LD-436 worklist mock "Clear filters"). Default "Reset filters". */
   resetLabel?: string;
+  /** T0D-UIGUARD-1-BILLING (LD-441 additive): screen controls the defs cannot express (single date, live select, apply button), drawn after the defs and before the reset button. */
+  children?: ReactNode;
+  'aria-label'?: string;
   'data-testid'?: string;
 }
 
@@ -53,7 +58,9 @@ function MultiSelect({ label, options, value, onChange }: { label: string; optio
   );
 }
 
-export function FilterBar({ filters, value, onChange, onReset, onSearch, resetLabel = 'Reset filters', ...rest }: FilterBarProps) {
+const NO_FILTERS: readonly FilterDef[] = [];
+const noop = () => {};
+export function FilterBar({ filters = NO_FILTERS, value = {}, onChange = noop, onReset, onSearch, resetLabel = 'Reset filters', children, ...rest }: FilterBarProps) {
   const set = (id: string, v: string | readonly string[] | undefined) => onChange({ ...value, [id]: v });
   const str = (id: string) => (typeof value[id] === 'string' ? (value[id] as string) : undefined);
   const arr = (id: string) => (Array.isArray(value[id]) ? (value[id] as readonly string[]) : []);
@@ -91,9 +98,12 @@ export function FilterBar({ filters, value, onChange, onReset, onSearch, resetLa
         const v = str(f.id);
         return <Select key={key} label={f.label} name={f.id} options={f.options} {...(v ? { value: v } : {})} onChange={(x) => set(f.id, x)} />;
       })}
-      <Button variant="ghost" onPress={onReset}>
-        {resetLabel}
-      </Button>
+      {children}
+      {onReset ? (
+        <Button variant="ghost" onPress={onReset}>
+          {resetLabel}
+        </Button>
+      ) : null}
     </div>
   );
 }

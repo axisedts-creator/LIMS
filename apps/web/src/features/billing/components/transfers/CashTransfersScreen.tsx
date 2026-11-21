@@ -10,6 +10,7 @@ import { ConfirmDialog } from '@lims/ui/components/ConfirmDialog';
 import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
 import { DateText } from '@lims/ui/components/DateText';
 import { Dialog } from '@lims/ui/components/Dialog';
+import { FilterBar } from '@lims/ui/components/FilterBar';
 import { Form } from '@lims/ui/components/Form';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { Select } from '@lims/ui/components/Select';
@@ -89,11 +90,12 @@ export function CashTransfersScreen({ transfers, centres, members, currentMember
   return (
     <section aria-label={X('title')}>
       <PageHeader title={t('nav.billing.cash_transfers')} helpKey="billing.accounts" actions={<GatedButton variant="primary" label={X('new')} blocked={canManage ? undefined : X('reason.no_manage')} onPress={() => setCreating(true)} />} />
-      <div role="search" aria-label={X('filters')} className="lims-filter-bar">
+      {/* T0D-UIGUARD-1-BILLING (LD-353 rule 2): the kit FilterBar holds the row; From, To and Search stay as they were. */}
+      <FilterBar aria-label={X('filters')}>
         <Select label={X('col.from')} name="from_id" options={parties} {...(f.from_id ? { value: f.from_id } : {})} onChange={(v) => setF({ ...f, from_id: v })} />
         <Select label={X('col.to')} name="to_id" options={parties} {...(f.to_id ? { value: f.to_id } : {})} onChange={(v) => setF({ ...f, to_id: v })} />
         <Button variant="primary" onPress={() => go({ tab, ...f })}>{X('search')}</Button>
-      </div>
+      </FilterBar>
       <Tabs aria-label={X('title')} items={TABS.map((id) => ({ id, label: X(`tab.${id}`) }))} selectedId={tab} onChange={(id) => go({ tab: id })}>
         <DataTable caption={X(`tab.${tab}`)} density="compact" columns={columns} rows={transfers} getRowId={(r) => r.id} emptyState={{ title: X('empty') }} />
       </Tabs>

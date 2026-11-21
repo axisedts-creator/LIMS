@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { Banner } from '@lims/ui/components/Banner';
 import { Button } from '@lims/ui/components/Button';
+import { FilterBar } from '@lims/ui/components/FilterBar';
 import { Select } from '@lims/ui/components/Select';
 import { t } from '@/core/i18n/messages';
 import type { AccountParticular, AccountStatement, Named } from '../../server/accounts.server';
@@ -50,12 +51,13 @@ export function PocketLedgerScreen({ statement, ownerId, currentMembershipId, ow
         emptyText={t(statement ? 'billing.accounts.ledger.empty' : 'billing.accounts.pocket.unavailable')}
         filters={
           <>
-            <h2>{heading}</h2>
-            <div role="search" aria-label={t('billing.accounts.ledger.filters')} className="lims-filter-bar">
+            {/* T0D-UIGUARD-1-BILLING (LD-436 R7, LD-353 rule 2): sub-heading with heading semantics (no raw h2); the kit FilterBar holds the row. */}
+            <p role="heading" aria-level={2} className="lims-card-title">{heading}</p>
+            <FilterBar aria-label={t('billing.accounts.ledger.filters')}>
               {canSeeOthers ? <Select label={t('billing.accounts.pocket.owner')} name="owner_id" options={owners.map((o) => ({ value: o.id, label: o.name }))} {...(owner ? { value: owner } : {})} onChange={(v) => { setOwner(v); show(v); }} /> : null}
               <DateFields range={range} setRange={setRange} />
               <Button variant="primary" onPress={() => show()}>{t('billing.accounts.ledger.show')}</Button>
-            </div>
+            </FilterBar>
           </>
         }
         {...(allowed ? {} : { body: <Banner tone="warning" title={t('billing.accounts.pocket.not_allowed')} /> })}

@@ -4,7 +4,9 @@ import { useRef, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { BarChart } from '@lims/ui/components/BarChart';
 import { Button } from '@lims/ui/components/Button';
+import { Card } from '@lims/ui/components/Card';
 import { ChartCard } from '@lims/ui/components/ChartCard';
+import { FilterBar } from '@lims/ui/components/FilterBar';
 import { StatTile, StatTileRow } from '@lims/ui/components/StatTile';
 import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
 import { DatePicker, type IsoDate } from '@lims/ui/components/DatePicker';
@@ -60,9 +62,10 @@ export function DailyCashView({ report, session, permissions }: { report: DailyC
     <section aria-label="Daily cash">
       {/* the business date is written once, in the header slot (LD-353 template 5) */}
       <PageHeader title={t('nav.billing.daily_cash')} helpKey="billing.daily_cash" status={<BsAd bs={report.business_date_bs} ad={report.business_date} />} actions={hasPerm(permissions, 'billing.data.export') ? <ExportButtons kind="daily_cash" formats={['xlsx']} filters={{ from: report.business_date, to: report.business_date }} /> : null} />
-      <div role="search" className="lims-filter-bar">
+      {/* T0D-UIGUARD-1-BILLING (LD-353 rule 2): the kit FilterBar holds the business date picker. */}
+      <FilterBar>
         <DatePicker label="Business date" name="date" showAlternate={false} value={report.business_date as IsoDate} onChange={(d) => d && nav.replace(`${pathname}?date=${d}`)} />
-      </div>
+      </FilterBar>
       <StatTileRow>
         <StatTile label="Gross" value={npr(report.totals.gross)} />
         <StatTile label="Reversed" value={npr(report.totals.reversed)} />
@@ -74,21 +77,29 @@ export function DailyCashView({ report, session, permissions }: { report: DailyC
       </ChartCard>
       {session && session.status === 'open' ? <MyShift session={session} /> : null}
       <DataTable caption="Collections by staff and method" columns={collections} rows={lines} getRowId={(l) => (isTotal(l) ? 'total' : `${l.collected_by.membership_id}-${l.method_code}`)} emptyState={{ title: 'No collections for this date.' }} />
-      <h2>Sessions</h2>
-      <DataTable caption="Cash sessions" columns={sessions} rows={report.sessions} getRowId={(s) => s.id} emptyState={{ title: 'No cash sessions for this date.' }} />
+      <Card title="Sessions">
+        <DataTable caption="Cash sessions" columns={sessions} rows={report.sessions} getRowId={(s) => s.id} emptyState={{ title: 'No cash sessions for this date.' }} />
+      </Card>
     </section>
   );
 }
 
 const cashRow = (s: CashSession) => s.rows.find((r) => r.method_code === 'cash') ?? s.rows[0];
+const SHIFT_COLUMNS: ColumnDef<CashSession['rows'][number]>[] = [
+  { id: 'method', header: 'Method', isRowHeader: true, cell: (r) => humanize(r.method_code) },
+  { id: 'expected', header: 'Expected', align: 'end', cell: (r) => npr(r.expected) },
+];
 
 function MyShift({ session }: { session: CashSession }) {
   const [closing, setClosing] = useState(false);
   return (
+    // T0D-UIGUARD-1-BILLING (LD-436 R7, LD-439): Card with its title row; the expected amounts per method are a DataTable, not a raw ul.
     <section aria-label="My shift">
-      <h2>My shift <PendingSyncBadge id={session.id} /></h2>
-      <ul>{session.rows.map((r) => <li key={r.method_code}>{humanize(r.method_code)}: {npr(r.expected)}</li>)}</ul>
-      <Button variant="primary" onPress={() => setClosing(true)}>Close shift</Button>
+      <Card title="My shift">
+        <PendingSyncBadge id={session.id} />
+        <DataTable caption="Expected by method" density="compact" columns={SHIFT_COLUMNS} rows={session.rows} getRowId={(r) => r.method_code} emptyState={{ title: 'No payment methods in this shift.' }} />
+        <Button variant="primary" onPress={() => setClosing(true)}>Close shift</Button>
+      </Card>
       {closing ? <CloseShiftDialog session={session} onClose={() => setClosing(false)} /> : null}
     </section>
   );

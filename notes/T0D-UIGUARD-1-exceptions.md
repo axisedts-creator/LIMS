@@ -22,17 +22,6 @@ Other groups = LD-434 legacy baseline (CR-C0-0D-UIGUARD-1 option A); the heading
 - /analytics/reports rule 6: legacy baseline LD-434, fix in T0D-UIGUARD-1-ANALYTICS: rule 6 broken in ReportView.tsx
 - /analytics/reports/[reportCode] rule 6: legacy baseline LD-434, fix in T0D-UIGUARD-1-ANALYTICS: rule 6 broken in ReportView.tsx
 
-## T0D-UIGUARD-1-BILLING (8 entries, 8 routes)
-
-- /billing/accounts/entries rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-BILLING: rule 2 broken in AccountEntriesScreen.tsx, AccountLedgerScreen.tsx, PocketLedgerScreen.tsx, CashTransfersScreen.tsx, DailyCashView.tsx, DailyCollectionScreen.tsx, PartysetCommon.tsx, DiscountSlabsScreen.tsx, ExpensesScreen.tsx
-- /billing/accounts/ledger rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-BILLING: rule 2 broken in AccountEntriesScreen.tsx, AccountLedgerScreen.tsx, PocketLedgerScreen.tsx, CashTransfersScreen.tsx, DailyCashView.tsx, DailyCollectionScreen.tsx, PartysetCommon.tsx, DiscountSlabsScreen.tsx, ExpensesScreen.tsx
-- /billing/accounts/pocket rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-BILLING: rule 2 broken in AccountEntriesScreen.tsx, AccountLedgerScreen.tsx, PocketLedgerScreen.tsx, CashTransfersScreen.tsx, DailyCashView.tsx, DailyCollectionScreen.tsx, PartysetCommon.tsx, DiscountSlabsScreen.tsx, ExpensesScreen.tsx
-- /billing/cash-transfers rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-BILLING: rule 2 broken in AccountEntriesScreen.tsx, AccountLedgerScreen.tsx, PocketLedgerScreen.tsx, CashTransfersScreen.tsx, DailyCashView.tsx, DailyCollectionScreen.tsx, PartysetCommon.tsx, DiscountSlabsScreen.tsx, ExpensesScreen.tsx
-- /billing/daily-cash rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-BILLING: rule 2 broken in AccountEntriesScreen.tsx, AccountLedgerScreen.tsx, PocketLedgerScreen.tsx, CashTransfersScreen.tsx, DailyCashView.tsx, DailyCollectionScreen.tsx, PartysetCommon.tsx, DiscountSlabsScreen.tsx, ExpensesScreen.tsx
-- /billing/discounts/slabs rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-BILLING: rule 2 broken in AccountEntriesScreen.tsx, AccountLedgerScreen.tsx, PocketLedgerScreen.tsx, CashTransfersScreen.tsx, DailyCashView.tsx, DailyCollectionScreen.tsx, PartysetCommon.tsx, DiscountSlabsScreen.tsx, ExpensesScreen.tsx
-- /billing/expenses rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-BILLING: rule 2 broken in AccountEntriesScreen.tsx, AccountLedgerScreen.tsx, PocketLedgerScreen.tsx, CashTransfersScreen.tsx, DailyCashView.tsx, DailyCollectionScreen.tsx, PartysetCommon.tsx, DiscountSlabsScreen.tsx, ExpensesScreen.tsx
-- /billing/invoices/[invoice_id] rule 5: legacy baseline LD-434, fix in T0D-UIGUARD-1-BILLING: rule 5 broken in InvoiceDetailView.tsx
-
 ## T0D-UIGUARD-1-CATALOG (44 entries, 22 routes)
 
 - /catalog/credit-parties/[credit_party_id] rule 1: legacy baseline LD-434, fix in T0D-UIGUARD-1-CATALOG: rule 1 broken in the page itself
@@ -213,24 +202,6 @@ Other groups = LD-434 legacy baseline (CR-C0-0D-UIGUARD-1 option A); the heading
 - /anatomic/config rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ANATOMIC: rule 7 broken in config-shared.tsx, AssaysTab.tsx
 - /anatomic/config/templates/[template_id] rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ANATOMIC: rule 7 broken in config-shared.tsx, TemplateEditor.tsx, TemplatePreview.tsx
 - /anatomic/tracking rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ANATOMIC: rule 7 broken in AnatomicForbidden.tsx, TrackingScreen.tsx, MovementDialog.tsx
-
-## T0D-UIGUARD-1-BILLING (rule 7: 15 entries)
-
-- /billing/accounts/entries rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-BILLING: rule 7 broken in AccountReceiptView.tsx, accountsShared.tsx
-- /billing/accounts/ledger rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-BILLING: rule 7 broken in AccountLedgerScreen.tsx, accountsShared.tsx
-- /billing/accounts/masters rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-BILLING: rule 7 broken in AccountMastersScreen.tsx, accountsShared.tsx
-- /billing/accounts/pocket rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-BILLING: rule 7 broken in PocketLedgerScreen.tsx, accountsShared.tsx, AccountLedgerScreen.tsx
-- /billing/accounts/summary rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-BILLING: rule 7 broken in accountsShared.tsx
-- /billing/cash-transfers rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-BILLING: rule 7 broken in accountsShared.tsx
-- /billing/daily-cash rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-BILLING: rule 7 broken in DailyCashView.tsx, accountsShared.tsx
-- /billing/discounts/authorities rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-BILLING: rule 7 broken in accountsShared.tsx
-- /billing/discounts/limits rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-BILLING: rule 7 broken in accountsShared.tsx
-- /billing/discounts/reasons rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-BILLING: rule 7 broken in accountsShared.tsx
-- /billing/discounts/slabs rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-BILLING: rule 7 broken in accountsShared.tsx
-- /billing/expenses rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-BILLING: rule 7 broken in accountsShared.tsx
-- /billing/expenses/types rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-BILLING: rule 7 broken in accountsShared.tsx
-- /billing/invoices/[invoice_id] rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-BILLING: rule 7 broken in InvoiceDetailView.tsx, InvoiceDocument.tsx
-- /billing/settings rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-BILLING: rule 7 broken in PrintStationery.tsx
 
 ## T0D-UIGUARD-1-CATALOG (rule 7: 22 entries)
 

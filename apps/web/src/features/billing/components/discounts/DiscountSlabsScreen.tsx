@@ -9,6 +9,7 @@ import { Button } from '@lims/ui/components/Button';
 import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
 import { DateText } from '@lims/ui/components/DateText';
 import { Dialog } from '@lims/ui/components/Dialog';
+import { FilterBar } from '@lims/ui/components/FilterBar';
 import { Form } from '@lims/ui/components/Form';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { TextField } from '@lims/ui/components/TextField';
@@ -83,12 +84,12 @@ export function DiscountSlabsScreen({ slabs, parties, permissions, filters = {},
         actions={<GatedButton variant="primary" label={DT('slabs.new')} blocked={blocked} reasonId={REASON_ID} onPress={() => setEditing({})} />}
       />
       {blocked ? <p id={REASON_ID} className="lims-description">{blocked}</p> : null}
-      <div role="search" aria-label={DT('slabs.filters')} className="lims-filter-bar">
+      {/* T0D-UIGUARD-1-BILLING (LD-353 rule 2): the kit FilterBar holds the row; party kind, party, Search and Reset stay as they were. */}
+      <FilterBar aria-label={DT('slabs.filters')} onReset={() => { setF({}); router.push(pathname); }} resetLabel={DT('reset')}>
         <LabelOnlySelect label={DT('field.party_kind')} value={f.party_kind} options={kindOptions} onChange={(v) => setF({ party_kind: v })} />
         <LabelOnlySelect label={DT('field.party')} value={f.party_id} options={filterParties} onChange={(v) => setF({ ...f, party_id: v })} />
         <Button variant="primary" onPress={search}>{DT('search')}</Button>
-        <Button variant="ghost" onPress={() => { setF({}); router.push(pathname); }}>{DT('reset')}</Button>
-      </div>
+      </FilterBar>
       <DataTable
         caption={DT('slabs.title')}
         density="compact"

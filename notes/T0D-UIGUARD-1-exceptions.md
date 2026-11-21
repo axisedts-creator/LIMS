@@ -181,12 +181,3 @@ Other groups = LD-434 legacy baseline (CR-C0-0D-UIGUARD-1 option A); the heading
 - /quality/setup/plans rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-QUALITY: rule 7 broken in MaterialsView.tsx, TargetsView.tsx
 - /quality/setup/targets rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-QUALITY: rule 7 broken in MaterialsView.tsx, TargetsView.tsx
 
-## T0D-UIGUARD-1-REPORTING (rule 7: 7 entries)
-
-- /reporting rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-REPORTING: rule 7 broken in CriticalAlertsPanel.tsx, ReportsWorklist.tsx
-- /reporting/deliveries/[delivery_id] rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-REPORTING: rule 7 broken in DeliveryDetail.tsx
-- /reporting/messages rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-REPORTING: rule 7 broken in MessagesChannels.tsx
-- /reporting/narratives/[narrative_id] rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-REPORTING: rule 7 broken in NarrativeEditor.tsx
-- /reporting/reports/[report_id] rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-REPORTING: rule 7 broken in ReportDetailView.tsx
-- /reporting/settings rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-REPORTING: rule 7 broken in PrintStationery.tsx, ReportingSettingsForm.tsx, SignatoryProfiles.tsx
-- /reporting/templates/[template_id] rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-REPORTING: rule 7 broken in TemplateEditor.tsx

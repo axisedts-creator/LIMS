@@ -182,13 +182,4 @@ export const EXCEPTIONS: GuardException[] = [
     ['/quality/setup/plans', 'MaterialsView.tsx, TargetsView.tsx'],
     ['/quality/setup/targets', 'MaterialsView.tsx, TargetsView.tsx'],
   ]),
-  ...legacy7('REPORTING', [
-    ['/reporting', 'CriticalAlertsPanel.tsx, ReportsWorklist.tsx'],
-    ['/reporting/deliveries/[delivery_id]', 'DeliveryDetail.tsx'],
-    ['/reporting/messages', 'MessagesChannels.tsx'],
-    ['/reporting/narratives/[narrative_id]', 'NarrativeEditor.tsx'],
-    ['/reporting/reports/[report_id]', 'ReportDetailView.tsx'],
-    ['/reporting/settings', 'PrintStationery.tsx, ReportingSettingsForm.tsx, SignatoryProfiles.tsx'],
-    ['/reporting/templates/[template_id]', 'TemplateEditor.tsx'],
-  ]),
 ];

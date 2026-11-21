@@ -230,14 +230,6 @@ export const EXCEPTIONS: GuardException[] = [
     ['/lab/verification', 'QueueScreen.tsx, consoleParts.tsx, ResultDialogs.tsx'],
     ['/lab/worksheets/[worksheet_id]', 'WorksheetPrintPage.tsx'],
   ]),
-  ...legacy7('MICRO', [
-    ['/micro/breakpoint-sets', 'MicroForbidden.tsx'],
-    ['/micro/breakpoint-sets/[breakpoint_set_id]', 'MicroForbidden.tsx'],
-    ['/micro/cultures/[culture_id]', 'MicroForbidden.tsx, ReportDrawer.tsx, ReadsTab.tsx, ChooseCultureDialog.tsx'],
-    ['/micro/instrument-records', 'MicroForbidden.tsx'],
-    ['/micro/settings', 'MicroForbidden.tsx, DictionariesTab.tsx, MappingsTab.tsx, PanelsTab.tsx, ProtocolsTab.tsx'],
-    ['/micro/worklist', 'MicroForbidden.tsx, ChooseCultureDialog.tsx'],
-  ]),
   ...legacy7('OFFLINE', [
     ['/offline', 'OfflinePanel.tsx, OfflineShell.tsx'],
   ]),

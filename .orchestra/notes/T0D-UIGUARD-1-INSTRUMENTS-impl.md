@@ -1,0 +1,6 @@
+# T0D-UIGUARD-1-INSTRUMENTS impl (writer)
+- Files: instruments/components ReprocessDialog.tsx (rule 5: header row kept, empty text is the one body row), InstrumentForm.tsx (preset regions use kit Card; codes as DataTable; checklists as kit StatusStepper, all steps Upcoming; multi-alert list as paragraphs), InstrumentMappings.tsx + MessageDetail.tsx (raw h2 replaced by Card title rows; section region names kept); notes/T0D-UIGUARD-1-exceptions.md (INSTRUMENTS rule 5 + rule 7 lines deleted).
+- Snapshot (LD-440): re-recorded rs-c7.screens.test.tsx.snap; diff is React useId drift only (_r_xx_ ids), no amount/permission/route/contract change.
+- [CONV] regions named by aria-label instead of aria-labelledby (kit Card renders its h2 without an id). No kit prop added.
+- Green: vitest.uiguard1-instruments (55/55), h80-t06, met-t05, web-t02, web-t04, web-t05, web-t06, uilist1 + uiset1 instruments, rs-c7.screens; tsc clean for instruments.
+- OPEN (pre-existing, files not touched here, tester-owned tests): rs-c7.static "same permission strings" now sees i18n key `instruments.nav.settings` (InstrumentSettingsForm PageHeader) as a permission literal; web-t03 "one link card per instrument (no columns)" pins the old InstrumentsList card markup, the list is a table now.

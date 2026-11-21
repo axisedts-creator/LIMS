@@ -4,6 +4,6 @@
 3. Rule 7: Card title rows replace raw h2 (SlotsAdmin x2, BookingDetail History + Booking, Broadcasts history); raw ul replaced: thread messages = Card + kit Timeline, chosen tests / profile hits = role=group, sample / settings messages / booking tests = text lines.
 4. Kit additive props (LD-441): FilterDef date_range `maxDays?`, Timeline `aria-label?`. tokens.json, kit.css, shell.css untouched.
 5. notes/T0D-UIGUARD-1-exceptions.md: 16 ENGAGEMENT lines + their 2 empty headings deleted. Registry untouched.
-6. Test changed (pinned old markup): t-r2 range helper tabs out after typing (kit DatePicker commits on blur). No rs-cN snapshot covers engagement; none re-recorded.
-7. Green: uiguard1 guard 36/36, engagement states 20/20, t-n1, t-m1, t-r2, t-b6, msgdesk1, content1, adminpage-eng-1, t-l1, t-q4, uilist3, uiset1, web tsc (non-test). packages/ui: 7 failures pre-existing (fonts, density, no-raw-style in other areas' files).
+6. Writer changed no test. t-r2 range helper (tab out after typing; kit DatePicker commits on blur) was fixed by the TESTER in 4a7d96110 (review item 1). No rs-cN snapshot covers engagement; none re-recorded.
+7. Green: uiguard1 guard 36/36, t-r2 33/33 (after tester fix 4a7d96110), engagement states 20/20, t-n1, t-m1, t-b6, msgdesk1, content1, adminpage-eng-1, t-l1, t-q4, uilist3, uiset1, web tsc (non-test). packages/ui: 7 failures pre-existing (fonts, density, no-raw-style in other areas' files).
 8. Open: pixel match to the worklist mock not verified in a browser; ui-r03-kit-pass .snap shows as modified (CRLF only, empty diff) after the kit run, could not restore from this shell.

@@ -81,7 +81,7 @@ describe('§2.1 ReviewQueue — table', () => {
   it('title "Payment review", caption "Payments needing review", the eight columns in spec order, no header actions', async () => {
     await view();
     expect(screen.getByRole('heading', { name: 'Payment review' })).toBeTruthy();
-    expect(screen.getByRole('table', { name: /Payments needing review/ })).toBeTruthy();
+    expect(screen.getByRole('grid', { name: /Payments needing review/ })).toBeTruthy();
     const heads = screen.getAllByRole('columnheader').map((h) => (h.textContent ?? '').trim().toLowerCase());
     expect(heads[0]).toMatch(/^age/); // the age leads the queue list
     const want = ['created', 'gateway', 'amount', 'status', 'reason'];
@@ -229,7 +229,7 @@ describe('review page.tsx — request (P1/P24)', () => {
     expect((to - from) / 86_400_000).toBeLessThan(8.1);
     expect(headers.get('authorization')).toBe('Bearer jwt-synthetic');
     expect(container.innerHTML).not.toContain('jwt-synthetic');
-    expect(await within(screen.getByRole('table')).findByText('Amount does not match')).toBeTruthy();
+    expect(await within(screen.getByRole('grid')).findByText('Amount does not match')).toBeTruthy();
   });
 
   it('forwards only whitelisted, well-formed params and drops everything else (tenant_id, evil, injected query)', async () => {

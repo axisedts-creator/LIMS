@@ -1,6 +1,6 @@
 'use client';
 // 04-UI-UX §2.5 FilterBar. date_range values are [from, to] A.D. IsoDates ([CONV]: the value map only holds string | string[]).
-import { useId } from 'react';
+import { useId, type ReactNode } from 'react';
 import { Label, ListBox, ListBoxItem, type Selection } from 'react-aria-components';
 import { Button } from '../Button/Button';
 import { DateRangePicker } from '../DateRangePicker/DateRangePicker';
@@ -25,6 +25,8 @@ export interface FilterBarProps {
   onSearch?: () => void;
   /** T0D-UIDASH-2 (LD-436 worklist mock "Clear filters"). Default "Reset filters". */
   resetLabel?: string;
+  /** T0D-UIGUARD-1-INVENTORY (LD-441 additive prop): extra controls the filter defs cannot draw (an async item Combobox, a switch), placed before the reset button. */
+  children?: ReactNode;
   'data-testid'?: string;
 }
 
@@ -53,7 +55,7 @@ function MultiSelect({ label, options, value, onChange }: { label: string; optio
   );
 }
 
-export function FilterBar({ filters, value, onChange, onReset, onSearch, resetLabel = 'Reset filters', ...rest }: FilterBarProps) {
+export function FilterBar({ filters, value, onChange, onReset, onSearch, resetLabel = 'Reset filters', children, ...rest }: FilterBarProps) {
   const set = (id: string, v: string | readonly string[] | undefined) => onChange({ ...value, [id]: v });
   const str = (id: string) => (typeof value[id] === 'string' ? (value[id] as string) : undefined);
   const arr = (id: string) => (Array.isArray(value[id]) ? (value[id] as readonly string[]) : []);
@@ -91,6 +93,7 @@ export function FilterBar({ filters, value, onChange, onReset, onSearch, resetLa
         const v = str(f.id);
         return <Select key={key} label={f.label} name={f.id} options={f.options} {...(v ? { value: v } : {})} onChange={(x) => set(f.id, x)} />;
       })}
+      {children}
       <Button variant="ghost" onPress={onReset}>
         {resetLabel}
       </Button>

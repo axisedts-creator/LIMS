@@ -1087,7 +1087,11 @@ exports[`RS-C8 key-screen snapshots + axe > Pending tests report 1`] = `
 </div>
 </dl>
 </div>
-<div class="lims-card">
+<section class="lims-chart-card" aria-labelledby="ID">
+<header class="lims-chart-card-header">
+<h2 id="ID" class="lims-chart-card-title">Pending tests by department</h2>
+</header>
+<div class="lims-chart-frame">
 <figure class="lims-chart">
 <figcaption id="ID" class="lims-chart-title">Pending tests by department</figcaption>
 <svg role="img" aria-labelledby="ID" viewBox="0 0 600 240" width="100%" height="240" class="lims-chart-svg">
@@ -1135,6 +1139,7 @@ exports[`RS-C8 key-screen snapshots + axe > Pending tests report 1`] = `
 </div>
 </figure>
 </div>
+</section>
 <div class="lims-data-table">
 <div class="lims-table-scroll">
 <template>

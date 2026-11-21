@@ -108,11 +108,10 @@ function IssueForm({ storeId, row, departments, instruments, onClose }: { storeI
     return (
       <Stack>
         <p>{`Issued ${row.item_code} · ${row.item_name}`}</p>
-        <ul>
-          {done.movements.map((m) => (
-            <li key={m.id}>{`${m.lot_no ?? 'No lot'}: ${m.qty_base.replace('-', '')} issued`}</li>
-          ))}
-        </ul>
+        {/* T0D-UIGUARD-1-INVENTORY (LD-436 R7): one line per lot used, plain paragraphs instead of a raw ul. */}
+        {done.movements.map((m) => (
+          <p key={m.id}>{`${m.lot_no ?? 'No lot'}: ${m.qty_base.replace('-', '')} issued`}</p>
+        ))}
         <Button variant="primary" onPress={onClose}>Done</Button>
       </Stack>
     );

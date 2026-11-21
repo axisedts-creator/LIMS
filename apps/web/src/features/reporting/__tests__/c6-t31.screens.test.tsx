@@ -116,7 +116,8 @@ describe('§2.1 ReportsWorklist', () => {
     expect(tabs.filter((t) => six.includes(t))).toEqual(six);
     await user().keyboard('{Escape}');
     for (const h of ['Reg no', 'Patient', 'Centre', 'Family', 'Items', 'Status', 'Version', 'Registered', 'Updated']) expect(screen.getByRole('columnheader', { name: new RegExp(h, 'i') })).toBeTruthy();
-    expect(screen.getByRole('table').querySelector('caption')).toBeTruthy();
+    // LD-439: kit DataTable is a react-aria grid named by aria-label, no <caption>
+    expect(screen.getByRole('grid', { name: /^Reports/ })).toBeTruthy();
     const link = screen.getByRole('link', { name: 'R2611050001' });
     expect(link.getAttribute('href')).toBe(`/reporting/reports/${REPORT}`);
     const row = link.closest('tr')!;
@@ -154,10 +155,10 @@ describe('§2.1 ReportsWorklist', () => {
   it('selection column only on Ready-to-release / Held tabs', async () => {
     const W = await load();
     const a = view(W, [summary()], { tab: 'ready_to_release' });
-    expect(within(screen.getByRole('table')).getAllByRole('checkbox').length).toBeGreaterThan(0);
+    expect(within(screen.getByRole('grid', { name: /^Reports/ })).getAllByRole('checkbox').length).toBeGreaterThan(0);
     a.unmount();
     view(W, [summary()], { tab: 'all' });
-    expect(within(screen.getByRole('table')).queryAllByRole('checkbox')).toHaveLength(0);
+    expect(within(screen.getByRole('grid', { name: /^Reports/ })).queryAllByRole('checkbox')).toHaveLength(0);
   });
 
   it('shortcuts (§1.1) registered on staff.reporting.worklist: Alt+1…Alt+6, "/" and Alt+R (with bulk-release permission)', async () => {
@@ -183,7 +184,7 @@ describe('§2.1 ReportsWorklist', () => {
     const W = await load();
     view(W, [summary()], { permissions: READ });
     expect(await shortcut('staff.reporting.worklist', /^alt\+r$/i)).toBeUndefined();
-    expect(within(screen.getByRole('table')).queryAllByRole('checkbox')).toHaveLength(0);
+    expect(within(screen.getByRole('grid', { name: /^Reports/ })).queryAllByRole('checkbox')).toHaveLength(0);
     expect(screen.queryByRole('button', { name: /release \d+/i })).toBeNull();
   });
 

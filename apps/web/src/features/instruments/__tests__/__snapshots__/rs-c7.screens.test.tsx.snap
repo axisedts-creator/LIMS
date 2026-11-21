@@ -405,13 +405,13 @@ exports[`RS-C7 key screens (DOM snapshots) > messages: log table with the existi
 </div>
 <div id="ID" aria-labelledby="ID" role="tabpanel" class="lims-tabpanel" data-rac="">
 <div role="search" class="lims-filter-bar">
-<div role="group" aria-labelledby="_r_27_-l" class="lims-field lims-date-range">
-<span id="_r_27_-l" class="lims-label">Received</span>
+<div role="group" aria-labelledby="_r_1v_-l" class="lims-field lims-date-range">
+<span id="_r_1v_-l" class="lims-label">Received</span>
 <div class="lims-inline">
 <div class="lims-field lims-date-field">
-<label class="lims-label" for="_r_28_">From</label>
+<label class="lims-label" for="_r_20_">From</label>
 <div class="lims-input-group">
-<input id="_r_28_" class="lims-input" placeholder="DD/MM/YYYY" autocomplete="off" type="text" value="" name="received_from">
+<input id="_r_20_" class="lims-input" placeholder="DD/MM/YYYY" autocomplete="off" type="text" value="" name="received_from">
 <button type="button" class="lims-btn lims-btn-ghost lims-icon-btn" aria-label="Open calendar for From" aria-expanded="false">
 <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 <rect x="4" y="5" width="16" height="15">
@@ -423,9 +423,9 @@ exports[`RS-C7 key screens (DOM snapshots) > messages: log table with the existi
 </div>
 </div>
 <div class="lims-field lims-date-field">
-<label class="lims-label" for="_r_29_">To</label>
+<label class="lims-label" for="_r_21_">To</label>
 <div class="lims-input-group">
-<input id="_r_29_" class="lims-input" placeholder="DD/MM/YYYY" autocomplete="off" type="text" value="" name="received_to">
+<input id="_r_21_" class="lims-input" placeholder="DD/MM/YYYY" autocomplete="off" type="text" value="" name="received_to">
 <button type="button" class="lims-btn lims-btn-ghost lims-icon-btn" aria-label="Open calendar for To" aria-expanded="false">
 <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 <rect x="4" y="5" width="16" height="15">
@@ -479,12 +479,12 @@ exports[`RS-C7 key screens (DOM snapshots) > messages: log table with the existi
 </div>
 </div>
 <div class="lims-field">
-<label class="lims-label" id="_r_2u_">Kind</label>
+<label class="lims-label" id="_r_2m_">Kind</label>
 <template>
 </template>
 <span data-focus-scope-start="true" hidden="">
 </span>
-<div class="lims-listbox lims-chip-list" data-rac="" aria-labelledby="_r_2u_" aria-multiselectable="true" role="listbox" aria-orientation="horizontal" id="ID" tabindex="0" data-collection="ID" data-layout="stack" data-orientation="horizontal">
+<div class="lims-listbox lims-chip-list" data-rac="" aria-labelledby="_r_2m_" aria-multiselectable="true" role="listbox" aria-orientation="horizontal" id="ID" tabindex="0" data-collection="ID" data-layout="stack" data-orientation="horizontal">
 <div class="lims-option lims-chip" data-rac="" role="option" aria-selected="false" tabindex="-1" data-collection="ID" data-key="data" data-ID="true" id="ID" data-selection-mode="multiple">Data</div>
 <div class="lims-option lims-chip" data-rac="" role="option" aria-selected="false" tabindex="-1" data-collection="ID" data-key="host_query" data-ID="true" id="ID" data-selection-mode="multiple">Host query</div>
 <div class="lims-option lims-chip" data-rac="" role="option" aria-selected="false" tabindex="-1" data-collection="ID" data-key="attachment" data-ID="true" id="ID" data-selection-mode="multiple">Attachment</div>
@@ -494,12 +494,12 @@ exports[`RS-C7 key screens (DOM snapshots) > messages: log table with the existi
 </span>
 </div>
 <div class="lims-field">
-<label class="lims-label" id="_r_34_">Latest outcome</label>
+<label class="lims-label" id="_r_2s_">Latest outcome</label>
 <template>
 </template>
 <span data-focus-scope-start="true" hidden="">
 </span>
-<div class="lims-listbox lims-chip-list" data-rac="" aria-labelledby="_r_34_" aria-multiselectable="true" role="listbox" aria-orientation="horizontal" id="ID" tabindex="0" data-collection="ID" data-layout="stack" data-orientation="horizontal">
+<div class="lims-listbox lims-chip-list" data-rac="" aria-labelledby="_r_2s_" aria-multiselectable="true" role="listbox" aria-orientation="horizontal" id="ID" tabindex="0" data-collection="ID" data-layout="stack" data-orientation="horizontal">
 <div class="lims-option lims-chip" data-rac="" role="option" aria-selected="false" tabindex="-1" data-collection="ID" data-key="parsed" data-ID="true" id="ID" data-selection-mode="multiple">Parsed</div>
 <div class="lims-option lims-chip" data-rac="" role="option" aria-selected="false" tabindex="-1" data-collection="ID" data-key="shadow" data-ID="true" id="ID" data-selection-mode="multiple">Shadow</div>
 <div class="lims-option lims-chip" data-rac="" role="option" aria-selected="false" tabindex="-1" data-collection="ID" data-key="quarantined" data-ID="true" id="ID" data-selection-mode="multiple">Quarantined</div>
@@ -530,8 +530,8 @@ exports[`RS-C7 key screens (DOM snapshots) > messages: log table with the existi
 </span>Has unmapped codes</label>
 <div>
 <div class="lims-field lims-barcode">
-<label class="lims-label" for="_r_3g_">Barcode</label>
-<input id="_r_3g_" class="lims-input lims-mono" autocomplete="off" autocapitalize="characters" spellcheck="false" type="text" name="search">
+<label class="lims-label" for="_r_38_">Barcode</label>
+<input id="_r_38_" class="lims-input lims-mono" autocomplete="off" autocapitalize="characters" spellcheck="false" type="text" name="search">
 <span role="status" class="lims-visually-hidden">
 </span>
 </div>

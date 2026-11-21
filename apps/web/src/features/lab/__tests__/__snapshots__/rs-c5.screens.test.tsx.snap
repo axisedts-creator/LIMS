@@ -54,9 +54,15 @@ exports[`RS-C5 key screens (DOM snapshots) > collect / dispatch: tabs with count
 <tr class="lims-row-empty">
 <td class="lims-cell" colspan="3">
 <div class="lims-state">
-<svg aria-hidden="true" focusable="false" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
-<path d="M4 7h16v12H4zM4 7l3-3h10l3 3">
+<svg class="lims-state-art" data-art="empty" aria-hidden="true" focusable="false" width="64" height="64" viewBox="0 0 64 64" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+<path d="M12 30h40l-6 -12H18z" stroke="var(--lims-neutral-300)">
 </path>
+<path d="M12 30v16h40V30" stroke="var(--lims-neutral-300)">
+</path>
+<path d="M24 38h16" stroke="var(--lims-accent)">
+</path>
+<circle cx="32" cy="12" r="3" stroke="var(--lims-accent-subtle)">
+</circle>
 </svg>
 <p class="lims-state-title">Scan a label to start.</p>
 </div>
@@ -188,9 +194,15 @@ exports[`RS-C5 key screens (DOM snapshots) > receive: scan box, location, sessio
 <tr class="lims-row-empty">
 <td class="lims-cell" colspan="2">
 <div class="lims-state">
-<svg aria-hidden="true" focusable="false" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
-<path d="M4 7h16v12H4zM4 7l3-3h10l3 3">
+<svg class="lims-state-art" data-art="empty" aria-hidden="true" focusable="false" width="64" height="64" viewBox="0 0 64 64" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+<path d="M12 30h40l-6 -12H18z" stroke="var(--lims-neutral-300)">
 </path>
+<path d="M12 30v16h40V30" stroke="var(--lims-neutral-300)">
+</path>
+<path d="M24 38h16" stroke="var(--lims-accent)">
+</path>
+<circle cx="32" cy="12" r="3" stroke="var(--lims-accent-subtle)">
+</circle>
 </svg>
 <p class="lims-state-title">Scan a label to start</p>
 </div>
@@ -598,7 +610,9 @@ exports[`RS-C5 key screens (DOM snapshots) > worklist: table with the right pane
 </div>
 <aside aria-label="Result entry">
 <div class="lims-card">
+<div class="lims-card-head">
 <h2 class="lims-card-title">Result entry</h2>
+</div>
 <dl>
 <dt>Reg no</dt>
 <dd>R2611050001</dd>

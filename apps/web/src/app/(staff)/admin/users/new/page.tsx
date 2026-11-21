@@ -14,7 +14,7 @@ export default async function InviteUserPage() {
   ]);
   const failed = [roles, centres, branches].find((r) => !r.ok);
   return (
-    <Frame title={t('admin.nav.user_new')}>
+    <Frame title={t('admin.nav.user_new')} helpKey="admin.user-new">
       {failed && !failed.ok ? <LoadError fail={failed} what="the invitation form" /> : roles.ok && centres.ok && branches.ok ? (
         <InviteForm roles={roles.data.data} centres={centres.data.data} branches={branches.data.data} />
       ) : null}

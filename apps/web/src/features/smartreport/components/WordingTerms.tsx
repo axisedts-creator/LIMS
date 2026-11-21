@@ -60,10 +60,9 @@ export function WordingTerms({ rows }: { rows: Term[] }) {
     <>
       <PageHeader title={t('smartreport.nav.wording')} helpKey="smartreport.wording" actions={<Button variant="primary" onPress={() => setAdding(true)}>Add term</Button>} />
       {alert ? <div role="alert"><Banner tone="danger" title={alert} /></div> : null}
-      {hasTenant ? null : <p>{EMPTY}</p>}
-      {rows.length ? (
-        <DataTable<Term> columns={columns} rows={rows} getRowId={(t) => `${t.scope}:${t.id ?? t.term}:${t.language}`} caption="Wording terms" density="compact" emptyState={{ title: EMPTY }} />
-      ) : null}
+      {hasTenant || rows.length === 0 ? null : <p>{EMPTY}</p>}
+      {/* LD-436 rule 5: the table keeps its header when empty; EmptyState inside it carries the empty text */}
+      <DataTable<Term> columns={columns} rows={rows} getRowId={(t) => `${t.scope}:${t.id ?? t.term}:${t.language}`} caption="Wording terms" density="compact" emptyState={{ title: EMPTY }} />
       <ConfirmDialog
         title="Deactivate this term?" confirmLabel="Deactivate" tone="danger" isOpen={!!target} onCancel={() => setTarget(undefined)} onConfirm={deactivate}
         body={<p>Texts that contain this term will no longer be flagged. Earlier checks are not changed.</p>}

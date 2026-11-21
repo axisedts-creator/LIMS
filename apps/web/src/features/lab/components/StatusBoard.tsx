@@ -13,6 +13,7 @@ import { StatTileRow } from '@lims/ui/components/StatTile';
 import { t } from '@/core/i18n/messages';
 import { EmptyRow, PlaceholderRows } from '@lims/ui/components/DataTable';
 import { EmptyState } from '@lims/ui/components/EmptyState';
+import { FilterBar } from '@lims/ui/components/FilterBar';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { StatusChip } from '@lims/ui/components/StatusChip';
 import { getStatusBoardAction } from '../server/actions';
@@ -127,8 +128,8 @@ function Board({ centres, initialRows, initialNextCursor, initialRange }: Status
           </button>
         ))}
       </StatTileRow>
-      {/* T0D-UILIST-1 (LD-353 rule 2): the one filter row is a search landmark like the kit FilterBar */}
-      <div className="lims-filter-bar" role="search" aria-label="Filters">
+      {/* T0D-UILIST-1 (LD-353 rule 2); T0D-UIGUARD-1-LAB (LD-441): the kit FilterBar draws the search landmark around the screen's own controls */}
+      <FilterBar aria-label="Filters">
         <label>From date <input type="date" className="lims-input" value={fromDay} onChange={(e) => changeDays(e.target.value, toDay)} aria-describedby={rangeErr ? 'board-range-err' : undefined} /></label>
         <label>To date <input type="date" className="lims-input" value={toDay} onChange={(e) => changeDays(fromDay, e.target.value)} aria-describedby={rangeErr ? 'board-range-err' : undefined} /></label>
         <label>Centre{' '}
@@ -137,7 +138,7 @@ function Board({ centres, initialRows, initialNextCursor, initialRange }: Status
             {centres.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
         </label>
-      </div>
+      </FilterBar>
       {rangeErr ? <p id="board-range-err" role="alert" className="lims-error">{rangeErr}</p> : null}
       {error ? <p role="alert" className="lims-error">{error}</p> : null}
       {/* T0D-EMPTYTBL-1 (LD-310): headers always drawn; the empty message is a body row. T0D-UILIST-1 / LD-353 rule 5: full width, scrolls in its own box. */}

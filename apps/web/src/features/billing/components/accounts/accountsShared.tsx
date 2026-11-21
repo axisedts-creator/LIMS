@@ -88,7 +88,7 @@ export function LabelOnlySelect<V extends string>({ label, value, options, onCha
   const id = useId();
   const [open, setOpen] = useState(false);
   const trigger = useRef<HTMLButtonElement>(null);
-  const list = useRef<HTMLUListElement>(null);
+  const list = useRef<HTMLDivElement>(null);
   const items = () => Array.from(list.current?.querySelectorAll<HTMLElement>('[role="option"]') ?? []);
   useEffect(() => {
     if (!open) return;
@@ -100,7 +100,7 @@ export function LabelOnlySelect<V extends string>({ label, value, options, onCha
     setOpen(false);
     trigger.current?.focus();
   };
-  const onListKey = (e: KeyboardEvent<HTMLUListElement>) => {
+  const onListKey = (e: KeyboardEvent<HTMLDivElement>) => {
     const all = items();
     const i = all.indexOf(document.activeElement as HTMLElement);
     if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
@@ -132,9 +132,10 @@ export function LabelOnlySelect<V extends string>({ label, value, options, onCha
         <span id={`${id}-v`}>{current?.label ?? ''}</span>
       </button>
       {open ? (
-        <ul ref={list} role="listbox" aria-labelledby={`${id}-l`} className="lims-popover lims-listbox" onKeyDown={onListKey}>
+        // T0D-UIGUARD-1-BILLING (LD-436 R7, LD-439): the popover list is a div listbox (same roles), not a raw ul.
+        <div ref={list} role="listbox" aria-labelledby={`${id}-l`} className="lims-popover lims-listbox" onKeyDown={onListKey}>
           {options.map((o) => (
-            <li
+            <div
               key={o.value}
               role="option"
               aria-selected={o.value === value}
@@ -144,9 +145,9 @@ export function LabelOnlySelect<V extends string>({ label, value, options, onCha
               onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); choose(o.value); } }}
             >
               {o.label}
-            </li>
+            </div>
           ))}
-        </ul>
+        </div>
       ) : null}
       {error ? <p id={`${id}-e`} className="lims-error">{error}</p> : null}
     </div>

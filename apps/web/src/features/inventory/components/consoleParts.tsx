@@ -2,6 +2,7 @@
 // T0D-UICONSOLE-1 (LD-353 template 2 CONSOLE): small parts of the Waiting consumption console. Display only: no fetch, no action.
 // Same shape as features/lab/components/consoleParts.tsx; copied because a feature never imports another feature's folder (02-CONVENTIONS, REQ-ARCH-076).
 import { useEffect, useState, type KeyboardEvent, type ReactNode } from 'react';
+import { Timeline } from '@lims/ui/components/Timeline';
 
 const TICK_MS = 30_000;
 
@@ -59,12 +60,7 @@ export function Facts({ items }: { items: readonly (readonly [string, ReactNode]
   );
 }
 
-/** History block of the detail: a heading and one li per event (label first). */
+/** History block of the detail: a heading and one row per event (label first). T0D-UIGUARD-1-INVENTORY (LD-436 R7): the kit Timeline, no raw h3/ul. */
 export function History({ events }: { events: readonly (readonly [string, string])[] }) {
-  return (
-    <div>
-      <h3>History</h3>
-      <ul>{events.map(([label, at]) => <li key={label}>{label}: {when(at)}</li>)}</ul>
-    </div>
-  );
+  return <Timeline title="History" labelFirst items={events.map(([label, at]) => ({ label, at }))} />;
 }

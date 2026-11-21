@@ -7,8 +7,10 @@ import { Button } from '@lims/ui/components/Button';
 import { Dialog } from '@lims/ui/components/Dialog';
 import { RadioGroup } from '@lims/ui/components/RadioGroup';
 import { Select } from '@lims/ui/components/Select';
+import { Stack } from '@lims/ui/components/Stack';
 import { TextField } from '@lims/ui/components/TextField';
 import { previewAction } from '../server/actions';
+import { TextList } from './common';
 import { FIXTURES, UUID_RE, type Fixture, type Preview } from '../library';
 
 const FIXTURE_LABEL: Record<Fixture, string> = { synthetic_basic: 'Basic', synthetic_all_in_range: 'All in range', synthetic_critical: 'Critical value' };
@@ -64,22 +66,17 @@ export function PreviewDialog({ versionId, canPreviewOrder, isOpen, onClose }: {
   );
 }
 
+// LD-436 rule 7: titled cards of text lines instead of raw h3 / ul.
 function PreviewResult({ p }: { p: Preview }) {
-  const list = (title: string, items: string[]) => (items.length ? (
-    <section aria-label={title}>
-      <h3>{title}</h3>
-      <ul>{items.map((t, i) => <li key={i}>{t}</li>)}</ul>
-    </section>
-  ) : null);
   return (
-    <div>
+    <Stack gap={3}>
       {p.score ? <p><strong>Health score: {p.score.value}</strong> ({p.score.band})</p> : null}
       {p.score?.explanation ? <p>{p.score.explanation}</p> : null}
-      {list('Body systems', p.panels.map((x) => `${x.name} — ${x.status}`))}
-      {list('Findings', p.deranged)}
-      {list('Advice', p.advice)}
-      {list('Follow-up', p.followUps)}
+      <TextList title="Body systems" items={p.panels.map((x) => `${x.name} — ${x.status}`)} />
+      <TextList title="Findings" items={p.deranged} />
+      <TextList title="Advice" items={p.advice} />
+      <TextList title="Follow-up" items={p.followUps} />
       {p.disclaimer ? <p>{p.disclaimer}</p> : null}
-    </div>
+    </Stack>
   );
 }

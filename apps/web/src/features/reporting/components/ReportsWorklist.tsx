@@ -4,14 +4,16 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@lims/ui/components/Button';
+import { Card } from '@lims/ui/components/Card';
 import { ConfirmDialog } from '@lims/ui/components/ConfirmDialog';
+import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
 import { FilterBar } from '@lims/ui/components/FilterBar';
 import { PageHeader } from '@lims/ui/components/PageHeader';
+import { Tabs } from '@lims/ui/components/Tabs';
 import { useToast } from '@lims/ui/components/Toast';
 import { bulkReleaseAction, searchReportsAction } from '../server/actions';
 import { REPORT_TABS, type BulkResult, type Centre, type ReportSummary, type ReportTab } from '../server/types';
 import { Chip, When, errorText, formatNpr, hasPerm, newKey } from './format';
-import { SimpleTable, type Col } from './SimpleTable';
 import { useShortcuts } from './useShortcuts';
 import { useUrlFilters } from './useUrlFilters';
 
@@ -95,8 +97,9 @@ export function ReportsWorklist({ reports, tab, permissions, centres, nextCursor
     else setFound(r.data);
   };
 
-  // LD-353 template 1 (T0D-UILIST-1): ONE FilterBar holds the lookup, the URL filters and the status (formerly the tab bar).
-  // The lookup stays in component state, never in the URL (PHI, 04-UI-UX §1.2); the status still goes through goTab.
+  // LD-353 template 1 (T0D-UILIST-1): ONE FilterBar holds the lookup, the URL filters and the status.
+  // T0D-UIGUARD-1-REPORTING (LD-436 worklist mock, LD-437, LD-439): the statuses are ALSO a kit Tabs bar above the FilterBar; both go through goTab.
+  // The lookup stays in component state, never in the URL (PHI, 04-UI-UX §1.2).
   const barValue = { ...f.value, tab, lookup: query };
   const onBar = (v: Readonly<Record<string, string | readonly string[] | undefined>>) => {
     const { lookup, tab: nextTab, ...rest } = v;
@@ -105,12 +108,12 @@ export function ReportsWorklist({ reports, tab, permissions, centres, nextCursor
     if (FILTER_KEYS.some((k) => String(rest[k] ?? '') !== String(f.value[k] ?? ''))) f.onChange(rest);
   };
 
-  const columns: Col<ReportSummary>[] = [
-    { id: 'reg', header: 'Reg no', rowHeader: true, cell: (r) => <a className="lims-link lims-mono" href={`/reporting/reports/${r.id}`}>{r.registration_no}</a> },
+  const columns: ColumnDef<ReportSummary>[] = [
+    { id: 'reg', header: 'Reg no', isRowHeader: true, cell: (r) => <a className="lims-link lims-mono" href={`/reporting/reports/${r.id}`}>{r.registration_no}</a> },
     { id: 'patient', header: 'Patient', cell: (r) => r.patient_display_name },
     { id: 'centre', header: 'Centre', cell: (r) => r.centre_code ?? '—' },
     { id: 'family', header: 'Family', cell: (r) => (r.family === 'laboratory' ? 'Lab' : 'Narrative') },
-    { id: 'items', header: 'Items', cell: (r) => `${r.items_ready}/${r.items_total}` },
+    { id: 'items', header: 'Items', numeric: true, cell: (r) => `${r.items_ready}/${r.items_total}` },
     { id: 'status', header: 'Status', cell: (r) => (
       <>
         <Chip status={r.display_status} label={r.display_status === 'held' && r.balance_due_paisa !== undefined ? `Held — ${formatNpr(r.balance_due_paisa)}` : undefined} />
@@ -123,51 +126,63 @@ export function ReportsWorklist({ reports, tab, permissions, centres, nextCursor
   ];
 
   const counts = result ? { ok: result.rows.filter((x) => x.outcome === 'released').length, held: result.rows.filter((x) => x.outcome === 'blocked_due').length } : null;
+  // [CONV] GAP (T0D-UIGUARD-1-REPORTING): no read gives a count per status (read.server.ts lists one tab at a time), so the tabs carry no count pill (no invented numbers).
+  const caption = canBarcode ? 'Find a report by registration number or barcode, or choose a status.' : 'Find a report by registration number, or choose a status.';
   return (
     <section aria-label="Reports">
       <PageHeader
         title="Reports"
+        caption={caption}
         helpKey="reporting.worklist"
         actions={selectable && selected.size > 0 ? <Button variant="primary" shortcut="Alt+R" onPress={askBulk}>{`Release ${selected.size}`}</Button> : null}
       />
       {alerts}
-      <div ref={searchBox} onKeyDown={(e) => { if (e.key === 'Enter' && (e.target as HTMLElement).getAttribute('name') === 'lookup') { e.preventDefault(); void search(); } }}>
-        <FilterBar
-          filters={[
-            { id: 'lookup', label: canBarcode ? 'Registration no. or barcode' : 'Registration no.', kind: 'text', maxLength: 20 },
-            { id: 'tab', label: 'Status', kind: 'select', options: REPORT_TABS.map((t) => ({ value: t, label: TAB_LABEL[t] })) },
-            { id: 'centre_id', label: 'Centre', kind: 'select', options: centres.map((c) => ({ value: c.id, label: c.name })) },
-            { id: 'family', label: 'Family', kind: 'select', options: [{ value: 'laboratory', label: 'Lab' }, { value: 'narrative', label: 'Narrative' }] },
-            { id: 'registered', label: 'Registered', kind: 'date_range' },
-            { id: 'review', label: 'Review flag', kind: 'select', options: [{ value: 'yes', label: 'Needs review' }, { value: 'no', label: 'No review flag' }] },
-          ]}
-          value={barValue} onChange={onBar} onReset={() => { setQuery(''); f.onReset(); }} onSearch={() => void search()}
+      <Tabs aria-label="Report status" items={REPORT_TABS.map((t) => ({ id: t, label: TAB_LABEL[t] }))} selectedId={tab} onChange={(t) => { if (t !== tab) goTab(t); }}>
+        <div ref={searchBox} onKeyDown={(e) => { if (e.key === 'Enter' && (e.target as HTMLElement).getAttribute('name') === 'lookup') { e.preventDefault(); void search(); } }}>
+          <FilterBar
+            filters={[
+              { id: 'lookup', label: canBarcode ? 'Registration no. or barcode' : 'Registration no.', kind: 'text', maxLength: 20 },
+              { id: 'tab', label: 'Status', kind: 'select', options: REPORT_TABS.map((t) => ({ value: t, label: TAB_LABEL[t] })) },
+              { id: 'centre_id', label: 'Centre', kind: 'select', options: centres.map((c) => ({ value: c.id, label: c.name })) },
+              { id: 'family', label: 'Family', kind: 'select', options: [{ value: 'laboratory', label: 'Lab' }, { value: 'narrative', label: 'Narrative' }] },
+              { id: 'registered', label: 'Registered', kind: 'date_range' },
+              { id: 'review', label: 'Review flag', kind: 'select', options: [{ value: 'yes', label: 'Needs review' }, { value: 'no', label: 'No review flag' }] },
+            ]}
+            value={barValue} onChange={onBar} onReset={() => { setQuery(''); f.onReset(); }} onSearch={() => void search()}
+            resetLabel="Clear filters"
+          />
+        </div>
+        {searchMsg ? <p role="status" className="lims-description">{searchMsg}</p> : null}
+        {found.length > 0 ? (
+          <Card title="Matching reports">
+            <DataTable
+              caption="Matching reports" density="compact" rows={found} getRowId={(r) => r.id} emptyState={{ title: 'No report found.' }}
+              columns={[
+                { id: 'reg', header: 'Reg no', isRowHeader: true, cell: (r) => <a className="lims-link lims-mono" href={`/reporting/reports/${r.id}`}>{r.registration_no}</a> },
+                { id: 'patient', header: 'Patient', cell: (r) => r.patient_display_name },
+              ]}
+            />
+          </Card>
+        ) : null}
+        {counts ? <p role="status">{`${counts.ok} released · ${counts.held} held for dues · ${result!.sent - counts.ok - counts.held} not released`}</p> : null}
+        {result ? (
+          <DataTable
+            caption="Bulk release result" density="compact"
+            rows={result.rows} getRowId={(x) => x.id}
+            columns={[
+              { id: 'r', header: 'Report', isRowHeader: true, cell: (x) => byId.get(x.id)?.registration_no ?? '—' },
+              { id: 'o', header: 'Outcome', cell: (x) => OUTCOME[x.outcome] ?? errorText(x.outcome) },
+            ]}
+            emptyState={{ title: 'Nothing was released.' }}
+          />
+        ) : null}
+        <DataTable
+          caption={`Reports: ${TAB_LABEL[tab]}`} density="compact"
+          columns={columns} rows={reports} getRowId={(r) => r.id} emptyState={{ title: EMPTY[tab] }}
+          {...(selectable ? { selection: { mode: 'multiple' as const, selectedIds: selected, onChange: setSelected } } : {})}
         />
-      </div>
-      {searchMsg ? <p role="status" className="lims-description">{searchMsg}</p> : null}
-      {found.length > 0 ? (
-        <ul className="lims-list" aria-label="Matching reports">
-          {found.map((r) => <li key={r.id} className="lims-list-row"><a className="lims-link lims-mono" href={`/reporting/reports/${r.id}`}>{r.registration_no}</a> {r.patient_display_name}</li>)}
-        </ul>
-      ) : null}
-      {counts ? <p role="status">{`${counts.ok} released · ${counts.held} held for dues · ${result!.sent - counts.ok - counts.held} not released`}</p> : null}
-      {result ? (
-        <SimpleTable
-          caption="Bulk release result"
-          rows={result.rows} getRowId={(x) => x.id}
-          columns={[
-            { id: 'r', header: 'Report', rowHeader: true, cell: (x) => byId.get(x.id)?.registration_no ?? '—' },
-            { id: 'o', header: 'Outcome', cell: (x) => OUTCOME[x.outcome] ?? errorText(x.outcome) },
-          ]}
-          empty={{ title: 'Nothing was released.' }}
-        />
-      ) : null}
-      <SimpleTable
-        caption={`Reports: ${TAB_LABEL[tab]}`}
-        columns={columns} rows={reports} getRowId={(r) => r.id} empty={{ title: EMPTY[tab] }}
-        {...(selectable ? { selection: { selectedIds: selected, onChange: setSelected, label: (id: string) => `Select ${byId.get(id)?.registration_no ?? 'report'}` } } : {})}
-      />
-      {nextCursor ? <p><a className="lims-link" href={`/reporting?${new URLSearchParams({ ...Object.fromEntries(sp.entries()), tab, cursor: nextCursor }).toString()}`}>Next page</a></p> : null}
+        {nextCursor ? <p><a className="lims-link" href={`/reporting?${new URLSearchParams({ ...Object.fromEntries(sp.entries()), tab, cursor: nextCursor }).toString()}`}>Next page</a></p> : null}
+      </Tabs>
       <ConfirmDialog
         title={`Release ${selected.size} reports?`}
         body="Reports with dues will stay held unless an override exists. Messages are sent to patients who agreed to them."

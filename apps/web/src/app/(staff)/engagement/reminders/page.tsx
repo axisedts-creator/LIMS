@@ -2,6 +2,7 @@
 import 'server-only';
 import { notFound } from 'next/navigation';
 import { getShellSession } from '@/core/session/server';
+import { loadOr } from '@/core/shell/NotAvailable';
 import { searchPatientsAction } from './actions';
 import { kindFilter, listReminderReasons, listReminders, remindersQuery } from './reminders.server';
 import { RemindersView } from './RemindersView';
@@ -14,16 +15,19 @@ export default async function RemindersPage({ searchParams }: { searchParams: Pr
   const sp = await searchParams;
   const q = remindersQuery(sp);
   const kind = kindFilter(sp);
-  const [res, reasons] = await Promise.all([listReminders(q), listReminderReasons()]);
-  // [CONV] R1 has no `kind` param (CR .orchestra/cr/T-R2.md): filter the returned page by kind.
-  const reminders = (Array.isArray(res?.data) ? res.data : []).slice(0, 50)
-    .filter((r) => !kind || r.kind === kind)
-    .map((r) => ({ ...r, patient_display: r.patient_display ?? `Patient …${r.patient_id.slice(-6)}` }));
-  const next = res?.page?.next_cursor;
-  return (
-    <RemindersView
-      reminders={reminders} permissions={permissions} reasons={reasons} searchPatients={searchPatientsAction}
-      hasPrevious={q.has('cursor')} {...(next ? { nextCursor: next } : {})}
-    />
-  );
+  // T0D-UIGUARD-1-ENGAGEMENT (LD-353 rule 4, LD-436): 501 pending -> NotAvailable, 5xx -> ErrorState in the page (title and table header kept); 4xx still throw.
+  return loadOr('Reminders', ['Due', 'Patient', 'Kind', 'Reason', 'Status', 'Sent at', 'Result'], async () => {
+    const [res, reasons] = await Promise.all([listReminders(q), listReminderReasons()]);
+    // [CONV] R1 has no `kind` param (CR .orchestra/cr/T-R2.md): filter the returned page by kind.
+    const reminders = (Array.isArray(res?.data) ? res.data : []).slice(0, 50)
+      .filter((r) => !kind || r.kind === kind)
+      .map((r) => ({ ...r, patient_display: r.patient_display ?? `Patient …${r.patient_id.slice(-6)}` }));
+    const next = res?.page?.next_cursor;
+    return (
+      <RemindersView
+        reminders={reminders} permissions={permissions} reasons={reasons} searchPatients={searchPatientsAction}
+        hasPrevious={q.has('cursor')} {...(next ? { nextCursor: next } : {})}
+      />
+    );
+  });
 }

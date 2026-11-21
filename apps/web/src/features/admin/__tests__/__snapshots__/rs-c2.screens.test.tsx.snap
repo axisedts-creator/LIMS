@@ -3,36 +3,56 @@
 exports[`visual snapshots of the key screens are recorded > snapshot: centres drawer 1`] = `
 "<div aria-hidden="true">
 <main class="lims-page">
-<header class="lims-page-header">
-<h1>Collection centres</h1>
+<div class="lims-page-header">
+<div class="lims-page-header-row">
+<div class="lims-page-heading">
+<h1 class="lims-page-title">Collection centres</h1>
+<p class="lims-page-caption">1 centre</p>
+</div>
+<div class="lims-page-actions">
 <button class="lims-btn lims-btn-primary lims-btn-md" data-rac="" type="button" tabindex="0" data-#id="true" id="#id">
 <span class="lims-btn-label">New centre</span>
 </button>
-</header>
-<table role="grid" aria-label="Collection centres" class="lims-table">
+<span data-help-key="admin.centres">
+<button class="lims-btn lims-btn-ghost lims-btn-md" data-rac="" type="button" tabindex="0" data-#id="true" id="#id">
+<svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 3a9 9 0 100 18 9 9 0 000-18zM9.5 9.5a2.5 2.5 0 115 0c0 2-2.5 2-2.5 4M12 17h.01">
+</path>
+</svg>
+<span class="lims-btn-label">Help</span>
+</button>
+</span>
+</div>
+</div>
+</div>
+<div class="lims-data-table">
+<div class="lims-table-scroll">
+<table role="grid" aria-label="Collection centres" class="lims-table lims-table-compact">
 <thead>
 <tr role="row">
-<th role="columnheader" scope="col">Code</th>
-<th role="columnheader" scope="col">Name</th>
-<th role="columnheader" scope="col">Branch</th>
-<th role="columnheader" scope="col">Type</th>
-<th role="columnheader" scope="col">Phone</th>
-<th role="columnheader" scope="col">Status</th>
+<th role="columnheader" scope="col" class="lims-col">Code</th>
+<th role="columnheader" scope="col" class="lims-col">Name</th>
+<th role="columnheader" scope="col" class="lims-col">Branch</th>
+<th role="columnheader" scope="col" class="lims-col">Type</th>
+<th role="columnheader" scope="col" class="lims-col">Phone</th>
+<th role="columnheader" scope="col" class="lims-col">Status</th>
 </tr>
 </thead>
 <tbody>
-<tr role="row" class="lims-row-click">
-<td role="gridcell">C01</td>
-<td role="gridcell">
+<tr role="row" class="lims-row lims-row-click">
+<td role="gridcell" class="lims-cell">C01</td>
+<td role="gridcell" class="lims-cell">
 <button type="button" class="lims-link">Central Collection</button>
 </td>
-<td role="gridcell">Kathmandu lab</td>
-<td role="gridcell">Own</td>
-<td role="gridcell">+97711111111</td>
-<td role="gridcell">Active</td>
+<td role="gridcell" class="lims-cell">Kathmandu lab</td>
+<td role="gridcell" class="lims-cell">Own</td>
+<td role="gridcell" class="lims-cell">+97711111111</td>
+<td role="gridcell" class="lims-cell">Active</td>
 </tr>
 </tbody>
 </table>
+</div>
+</div>
 </main>
 <div class="lims-toast-region">
 </div>
@@ -122,10 +142,25 @@ exports[`visual snapshots of the key screens are recorded > snapshot: centres dr
 exports[`visual snapshots of the key screens are recorded > snapshot: roles-edit-privileged 1`] = `
 "<div>
 <main class="lims-page">
-<header class="lims-page-header">
-<h1>Lab admin</h1>
+<div class="lims-page-header">
+<div class="lims-page-header-row">
+<h1 class="lims-page-title">Lab admin</h1>
+<div class="lims-page-status">
 <span class="lims-chip lims-chip-sm lims-tone-warning" data-tone="warning">MFA required</span>
-</header>
+</div>
+<div class="lims-page-actions">
+<span data-help-key="admin.role-editor">
+<button class="lims-btn lims-btn-ghost lims-btn-md" data-rac="" type="button" tabindex="0" data-#id="true" id="#id">
+<svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 3a9 9 0 100 18 9 9 0 000-18zM9.5 9.5a2.5 2.5 0 115 0c0 2-2.5 2-2.5 4M12 17h.01">
+</path>
+</svg>
+<span class="lims-btn-label">Help</span>
+</button>
+</span>
+</div>
+</div>
+</div>
 <p>Changing a role logs out everyone who has it.</p>
 <div class="lims-field">
 <label for="#id" class="lims-label">Name</label> <p class="lims-description">Required</p> <input id="#id" class="lims-input" maxlength="80" aria-required="true" type="text" value="Lab admin">
@@ -270,9 +305,22 @@ exports[`visual snapshots of the key screens are recorded > snapshot: roles-edit
 exports[`visual snapshots of the key screens are recorded > snapshot: settings 1`] = `
 "<div>
 <main class="lims-page">
-<header class="lims-page-header">
-<h1>Lab settings</h1>
-</header>
+<div class="lims-page-header">
+<div class="lims-page-header-row">
+<h1 class="lims-page-title">Lab settings</h1>
+<div class="lims-page-actions">
+<span data-help-key="admin.settings">
+<button class="lims-btn lims-btn-ghost lims-btn-md" data-rac="" type="button" tabindex="0" data-#id="true" id="#id">
+<svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
+<path d="M12 3a9 9 0 100 18 9 9 0 000-18zM9.5 9.5a2.5 2.5 0 115 0c0 2-2.5 2-2.5 4M12 17h.01">
+</path>
+</svg>
+<span class="lims-btn-label">Help</span>
+</button>
+</span>
+</div>
+</div>
+</div>
 <div class="lims-tabs">
 <div role="tablist" aria-label="Settings sections" class="lims-tablist">
 <button id="#id-General-tab" type="button" role="tab" class="lims-tab" aria-selected="true" tabindex="0" aria-controls="#id-General-panel">General</button>
@@ -342,33 +390,37 @@ exports[`visual snapshots of the key screens are recorded > snapshot: users 1`] 
 <label for="user-search" class="lims-label">Search users</label>
 <input id="user-search" class="lims-input" maxlength="100" type="search" value="">
 </div>
-<table role="grid" aria-label="Users" class="lims-table">
+<div class="lims-data-table">
+<div class="lims-table-scroll">
+<table role="grid" aria-label="Users" class="lims-table lims-table-compact">
 <thead>
 <tr role="row">
-<th role="columnheader" scope="col">Name</th>
-<th role="columnheader" scope="col">Email</th>
-<th role="columnheader" scope="col">Status</th>
-<th role="columnheader" scope="col">Roles</th>
-<th role="columnheader" scope="col">Centres</th>
-<th role="columnheader" scope="col">MFA</th>
-<th role="columnheader" scope="col">Last login</th>
+<th role="columnheader" scope="col" class="lims-col">Name</th>
+<th role="columnheader" scope="col" class="lims-col">Email</th>
+<th role="columnheader" scope="col" class="lims-col">Status</th>
+<th role="columnheader" scope="col" class="lims-col">Roles</th>
+<th role="columnheader" scope="col" class="lims-col">Centres</th>
+<th role="columnheader" scope="col" class="lims-col">MFA</th>
+<th role="columnheader" scope="col" class="lims-col">Last login</th>
 </tr>
 </thead>
 <tbody>
-<tr role="row">
-<td role="gridcell">
+<tr role="row" class="lims-row">
+<td role="gridcell" class="lims-cell">
 <a href="/admin/users/01a1a98a-ac40-7000-8000-000000000002">Synthetic Sita Rai</a>
 </td>
-<td role="gridcell">te***@example.test</td>
-<td role="gridcell">Active</td>
-<td role="gridcell">Front desk</td>
-<td role="gridcell">2</td>
-<td role="gridcell">On</td>
-<td role="gridcell">
+<td role="gridcell" class="lims-cell">te***@example.test</td>
+<td role="gridcell" class="lims-cell">Active</td>
+<td role="gridcell" class="lims-cell">Front desk</td>
+<td role="gridcell" class="lims-cell">2</td>
+<td role="gridcell" class="lims-cell">On</td>
+<td role="gridcell" class="lims-cell">
 <time datetime="2026-11-10T09:00:00.000Z" title="2026-11-10T09:00:00.000Z (UTC)">10/11/2026 02:45 PM</time>
 </td>
 </tr>
 </tbody>
 </table>
+</div>
+</div>
 </div>"
 `;

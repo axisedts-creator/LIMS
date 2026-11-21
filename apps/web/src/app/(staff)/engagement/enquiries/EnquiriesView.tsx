@@ -4,8 +4,8 @@
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
 import { DateText, type DateTextProps } from '@lims/ui/components/DateText';
+import { FilterBar } from '@lims/ui/components/FilterBar';
 import { PageHeader } from '@lims/ui/components/PageHeader';
-import { Select } from '@lims/ui/components/Select';
 import { StatusChip } from '@lims/ui/components/StatusChip';
 import type { EnquirySummary } from './enquiries.server';
 
@@ -46,11 +46,11 @@ export function EnquiriesView({ enquiries, categories, nextCursor, hasPrevious }
   return (
     <section aria-label="Enquiries">
       <PageHeader title="Enquiries" helpKey="engagement.enquiries" />
-      {/* T0D-UILIST-3 (LD-353 template 1): the one filter row is the kit FilterBar look */}
-      <div className="lims-filter-bar" role="search" aria-label="Enquiry filters">
-        <Select label="Status" name="status" value={status} onChange={go}
-          options={[{ value: ALL, label: 'All' }, ...Object.entries(STATUS_LABEL).map(([value, [label]]) => ({ value, label }))]} />
-      </div>
+      {/* T0D-UIGUARD-1-ENGAGEMENT (LD-353 rule 2, LD-436 worklist mock): the one filter row is the kit FilterBar */}
+      <FilterBar
+        resetLabel="Clear filters" value={{ status }} onChange={(v) => go(typeof v['status'] === 'string' ? v['status'] : ALL)} onReset={() => go(ALL)}
+        filters={[{ id: 'status', label: 'Status', kind: 'select', options: [{ value: ALL, label: 'All' }, ...Object.entries(STATUS_LABEL).map(([value, [label]]) => ({ value, label }))] }]}
+      />
       <DataTable<EnquirySummary>
         columns={columns} rows={enquiries} getRowId={(r) => r.id} density="compact" caption="Enquiries" cellTitle
         emptyState={{ title: 'No open enquiries', body: 'Patient questions from the app appear here.' }}

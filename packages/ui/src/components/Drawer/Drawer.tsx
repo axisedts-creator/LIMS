@@ -22,7 +22,8 @@ export type DrawerSectionProps = {
   isSaving?: boolean;
   children: ReactNode;
 } & (
-  | { onSave: () => void; action?: never }
+  /** T0D-UIGUARD-1-ADMIN (LD-439): onSave optional; a read-only viewer gets the same section without its Save. */
+  | { onSave?: () => void; action?: never }
   /** T0D-UIGUARD-1-CATALOG (additive, LD-441): the caller's own save control (e.g. a submit button of the surrounding form) in place of the default Save. */
   | { action: ReactNode; onSave?: never }
 );
@@ -36,12 +37,12 @@ export function DrawerSection({ title, onSave, action, isSaving = false, childre
         <h3 id={id} className="lims-drawer-section-title">
           {title}
         </h3>
-        {action ?? (
-          <Button size="sm" isDisabled={isSaving} onPress={() => onSave?.()}>
+        {action ?? (onSave ? (
+          <Button size="sm" isDisabled={isSaving} onPress={onSave}>
             {isSaving ? 'Saving…' : 'Save'}
             <VisuallyHidden> {title}</VisuallyHidden>
           </Button>
-        )}
+        ) : null)}
       </div>
       {children}
     </section>

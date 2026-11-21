@@ -7,6 +7,7 @@ import { Badge } from '@lims/ui/components/Badge';
 import { Banner } from '@lims/ui/components/Banner';
 import { Button } from '@lims/ui/components/Button';
 import { ConfirmDialog } from '@lims/ui/components/ConfirmDialog';
+import { PageHeader } from '@lims/ui/components/PageHeader';
 import { PermissionMatrix } from '@lims/ui/components/PermissionMatrix';
 import { Switch } from '@lims/ui/components/Switch';
 import { useToast } from '@lims/ui/components/Toast';
@@ -60,7 +61,8 @@ export function RoleEditor({ role: initial, catalog, canEdit }: { role?: Role; c
   return (
     <main className="lims-page">
       {/* LD-140 / 10-DESIGN-SYSTEM §4 Roles: MFA badge (word + tone) on a role that holds privileged permissions or requires MFA. */}
-      <header className="lims-page-header"><h1>{role ? role.name : 'New role'}</h1>{mfaOn ? <Badge tone="warning">MFA required</Badge> : null}</header>
+      {/* T0D-UIGUARD-1-ADMIN (LD-439): the title row is the kit PageHeader; the MFA chip sits in its status slot */}
+      <PageHeader title={role ? role.name : 'New role'} helpKey="admin.role-editor" {...(mfaOn ? { status: <Badge tone="warning">MFA required</Badge> } : {})} />
       {failure.banner}
       {role ? <p>Changing a role logs out everyone who has it.</p> : null}
       <Field label="Name" value={name} onChange={setName} maxLength={80} readOnly={!canEdit} error={errors['name']} required />

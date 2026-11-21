@@ -10,6 +10,7 @@ import { Combobox } from '@lims/ui/components/Combobox';
 import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
 import { DateText, type DateTextProps } from '@lims/ui/components/DateText';
 import { Form } from '@lims/ui/components/Form';
+import { Inline } from '@lims/ui/components/Inline';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { RadioGroup } from '@lims/ui/components/RadioGroup';
 import { Select } from '@lims/ui/components/Select';
@@ -151,14 +152,15 @@ export function ScheduleEditor({ init, reports, recipients, centres, id, version
             getKey={(r) => r.id} renderValue={(r) => r.name} renderOption={(r) => r.name}
             onChange={(r) => { if (r) setPeople((l) => toggle(l, r.id, true, MAX_RECIPIENTS)); setErrors((x) => ({ ...x, recipients: undefined })); }}
           />
-          <ul className="lims-inline" aria-label="Chosen recipients">
+          {/* T0D-UIGUARD-1-ANALYTICS (LD-436 rule 7): kit Inline row with list semantics, no raw ul */}
+          <Inline role="list" aria-label="Chosen recipients">
             {people.map((pid) => (
-              <li key={pid}>
+              <div role="listitem" key={pid}>
                 <span>{nameOf(pid)}</span>
                 <Button size="sm" variant="ghost" onPress={() => setPeople((l) => l.filter((x) => x !== pid))}>{`Remove ${nameOf(pid)}`}</Button>
-              </li>
+              </div>
             ))}
-          </ul>
+          </Inline>
           {errors.recipients ? <p role="alert" className="lims-error">{errors.recipients}</p> : null}
         </div>
 

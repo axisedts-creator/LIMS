@@ -1,16 +1,18 @@
 'use client';
 // SCR-06 Instrument form (04-UI-UX §3): create in a Dialog (SCR-05), edit on the SCR-07 Configuration tab.
 // Schema-driven: client validation = forms/instrument.ts (same rules as the BFF), server errors[] are mapped by JSON Pointer.
-import { memo, useCallback, useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { Banner } from '@lims/ui/components/Banner';
 import { Button } from '@lims/ui/components/Button';
 import { Card } from '@lims/ui/components/Card';
 import { Checkbox } from '@lims/ui/components/Checkbox';
+import { DataTable } from '@lims/ui/components/DataTable';
 import { Form } from '@lims/ui/components/Form';
 import { IntegerField } from '@lims/ui/components/IntegerField';
 import { RadioGroup } from '@lims/ui/components/RadioGroup';
 import { Select } from '@lims/ui/components/Select';
+import { StatusStepper } from '@lims/ui/components/StatusStepper';
 import { Switch } from '@lims/ui/components/Switch';
 import { TextArea } from '@lims/ui/components/TextArea';
 import { TextField } from '@lims/ui/components/TextField';
@@ -187,7 +189,6 @@ export function InstrumentForm({ mode, agents, drivers, instrument, permissions 
   const declaresHostQuery = !!driver?.capabilities.host_query;
   const supportsHostQuery = declaresHostQuery && driver?.status === 'verified'; // 02-TRD §6.6 step 2: host query is inert until verified (LD-139)
   const optFields = useMemo(() => (edit ? [] : optionFields(driverOptionsSchema(driver))), [edit, driver]);
-  const presetId = useId();
   const patch = (p: Partial<State>, ...ptrs: string[]) => {
     setS((x) => ({ ...x, ...p }));
     if (ptrs.length) setServerErr((e) => Object.fromEntries(Object.entries(e).filter(([k]) => !ptrs.includes(k))));
@@ -366,9 +367,12 @@ export function InstrumentForm({ mode, agents, drivers, instrument, permissions 
   const hostDesc = 'error' in hostErr ? hostErr.error : supportsHostQuery ? undefined
     : declaresHostQuery ? `Host query stays off while this driver's status is ${driverStatusLabel(driver!.status).toLowerCase()}. It can be switched on only after commissioning is signed off and the driver is promoted to verified.`
     : 'This driver does not support host query.';
-  const regionCard = (id: string, title: string, children: ReactNode) => (
-    <div className="lims-card"><section aria-labelledby={`${presetId}-${id}`}><h2 id={`${presetId}-${id}`} className="lims-card-title">{title}</h2>{children}</section></div>
+  const regionCard = (title: string, children: ReactNode) => (
+    // T0D-UIGUARD-1-INSTRUMENTS (LD-436 R7, LD-439 a): the kit Card title row replaces the raw h2; the section keeps the region name.
+    <section aria-label={title}><Card title={title}>{children}</Card></section>
   );
+  // A preset checklist is not started yet: every step reads Upcoming (no current id); the kit StatusStepper is the ordered list.
+  const checklist = (items: readonly string[]) => <StatusStepper steps={items.map((t, i) => ({ id: String(i), label: t }))} currentId="" />;
   const section = (title: string, children: ReactNode) => <Card title={title}>{children}</Card>;
 
   return (
@@ -388,7 +392,7 @@ export function InstrumentForm({ mode, agents, drivers, instrument, permissions 
       {alerts.length ? (
         <div role="alert">
           <Banner tone="danger" title={alerts.length === 1 ? alerts[0]! : 'Some values were not accepted'}>
-            {alerts.length > 1 ? <ul>{alerts.map((a, i) => <li key={i}>{a}</li>)}</ul> : null}
+            {alerts.length > 1 ? alerts.map((a, i) => <p key={i}>{a}</p>) : null}
           </Banner>
         </div>
       ) : null}
@@ -493,20 +497,20 @@ export function InstrumentForm({ mode, agents, drivers, instrument, permissions 
         {tf('Active to', '/silence_active_to', s.to, 5, (v) => patch({ to: v }), { description: 'HH:MM, optional.' })}
       </>)}
 
-      {h80 ? regionCard('codes', 'Suggested analyte codes', <>
+      {h80 ? regionCard('Suggested analyte codes', <>
         <p className="lims-description">Codes the analyser sends (manual). Nothing is created here: map them to the lab's tests on the instrument's code map after it is created.</p>
-        <ul>{H80E_CODES.map((c) => <li key={c}><code>{c}</code></li>)}</ul>
+        <DataTable caption="Suggested analyte codes" columns={[{ id: 'code', header: 'Code', cell: (c) => <code>{c}</code>, isRowHeader: true }]} rows={H80E_CODES} getRowId={(c) => c} emptyState={{ title: 'No codes.' }} />
       </>) : null}
-      {h80 ? regionCard('checklist', 'Commissioning checklist', <>
-        <ol>{H80E_CHECKLIST.map((t, i) => <li key={i}>{t}</li>)}</ol>
+      {h80 ? regionCard('Commissioning checklist', <>
+        {checklist(H80E_CHECKLIST)}
         <p className="lims-description">Runbook: {H80E_RUNBOOK}</p>
       </>) : null}
-      {metis ? regionCard('codes', 'Suggested analyte codes', <>
+      {metis ? regionCard('Suggested analyte codes', <>
         <p className="lims-description">Item ids shown in the addendum's examples. Item ids are the analyser's own; which ones this lab runs is confirmed at commissioning from the analyser's item list. Nothing is created here: map them to the lab's tests on the instrument's code map after it is created.</p>
-        <ul>{METIS_CODES.map(([id, name]) => <li key={id}><code>{id}</code> {name}</li>)}</ul>
+        <DataTable caption="Suggested analyte codes" columns={[{ id: 'id', header: 'Item id', cell: ([itemId]) => <code>{itemId}</code>, isRowHeader: true }, { id: 'name', header: 'Name', cell: ([, name]) => name }]} rows={METIS_CODES} getRowId={([itemId]) => itemId} emptyState={{ title: 'No codes.' }} />
       </>) : null}
-      {metis ? regionCard('checklist', 'Commissioning checklist', <>
-        <ol>{METIS_CHECKLIST.map((t, i) => <li key={i}>{t}</li>)}</ol>
+      {metis ? regionCard('Commissioning checklist', <>
+        {checklist(METIS_CHECKLIST)}
         <p className="lims-description">Runbook: {METIS_RUNBOOK}</p>
       </>) : null}
 

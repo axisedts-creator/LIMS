@@ -1,0 +1,6 @@
+# T0D-UIGUARD-1-LAB tests (tester)
+Test file: apps/web/src/core/__tests__/uiguard1.exceptions.ts (registry, LD-441). I deleted every LAB legacy entry: rule 1 (/lab/orders/[order_id]/labels, /lab/worksheets/[worksheet_id]), rule 2 (5 routes: approval, pending, status-board, verification, worklists/[department_id]), rule 5 (/lab/orders/[order_id]/results, /lab/settings), rule 6 (/lab/orders/[order_id]/results), rule 7 (9 routes). No new test file; the existing guard (uiguard1.guard.test.ts) is the proof.
+Run: `.orchestra/notes/T0D-UIGUARD-1-LAB-verify.cmd` (build:nav, then the uiguard1 config; it runs only core/__tests__/uiguard1.*).
+Expected red: the guard reports the real violations in LabelPage, WorksheetPrintPage, QueueScreen, PendingPage, StatusBoard, WorklistPage, ResultPanels, DeltaRulesTab, QcHoldsTab and the rule 7 files (CommentCell, ResultDialogs, consoleParts, CriticalValueList, IngestExceptionList, VerificationPolicyTab, SpecimenDetail). NOT RUN by me: the sandbox refused to run the verify, so the red result is unconfirmed.
+WRITER: also delete the matching LAB lines from notes/T0D-UIGUARD-1-exceptions.md (mirror; tester may not edit it). Do not touch other areas' lines.
+Left alone: T0D-VERLEVEL-1 owns the verification and approval queues while it is not done; rs-cN snapshots belong to the writer (LD-440).

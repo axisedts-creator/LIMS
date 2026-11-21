@@ -180,11 +180,11 @@ describe.each(QUEUES)('T0D-VERLEVEL-1 %s — who signed', (_name, mount) => {
     signoffs[id(1)] = [signoff(1, OTHER, 'Synthetic Signer One'), signoff(2, THIRD, 'Synthetic Signer Two', { signer_title: 'Consultant Pathologist', signer_role_code: 'pathologist', signer_is_pathologist: true, signed_at: '2026-11-17T09:30:00.000Z', action: 'approve' })];
     mount([lvl(1, 3, 2, 'approve')]);
     await user.click(await chipBtn(user, 'REG0001', /signed 2 of 3/i));
-    const one =(await screen.findByText('Synthetic Signer One')).closest('li')!;
+    const one =(await screen.findByText('Synthetic Signer One')).closest('li, [role="listitem"]')!;
     expect(one.textContent).toContain('Senior Technologist');
     expect(one.textContent).toMatch(/technologist/);
     expect(one.textContent).toContain('2026-11-17 04:15');
-    const two = screen.getByText('Synthetic Signer Two').closest('li')!;
+    const two = screen.getByText('Synthetic Signer Two').closest('li, [role="listitem"]')!;
     expect(two.textContent).toContain('Consultant Pathologist');
     expect(two.textContent).toMatch(/pathologist/i);
     expect(two.textContent).toContain('2026-11-17 09:30');

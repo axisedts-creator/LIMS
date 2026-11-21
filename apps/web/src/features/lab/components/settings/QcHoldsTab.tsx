@@ -3,6 +3,7 @@
 // (lab.qc_hold.release; a privileged session below aal2 gets auth.mfa_required -> re-authentication hint). The API enforces the permission — the UI only hides the button.
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '@lims/ui/components/Button';
+import { EmptyRow } from '@lims/ui/components/DataTable';
 import { Dialog } from '@lims/ui/components/Dialog';
 import { listQcHoldsAction, releaseQcHoldAction } from '../../server/qc.actions';
 import type { QcHold, QcHoldStatus } from '../../server/qc.types';
@@ -44,10 +45,12 @@ export function QcHoldsTab({ canRelease }: { canRelease: boolean }) {
       <p>Holds are created by the QC module.</p>
       <NativeSelect label="Status" value={status} placeholder={null} onChange={(v) => { setRows(null); setStatus(v as QcHoldStatus); }} options={STATUS_OPTIONS} />
       {target ? null : <AlertText text={err} />}
-      {rows === null ? <p role="status">Loading…</p> : rows.length === 0 ? <p>No QC holds.</p> : (
+      {/* T0D-UIGUARD-1-LAB (LD-353 rule 5): once loaded the header row stays; the empty line is a body row */}
+      {rows === null ? <p role="status">Loading…</p> : (
         <table className="lims-table">
           <thead><tr>{['Instrument', 'Analyte', 'Status', 'Held at', 'Released at', 'Comment'].map((h) => <th key={h} scope="col">{h}</th>)}</tr></thead>
           <tbody>
+            {rows.length ? null : <EmptyRow colSpan={6}>No QC holds.</EmptyRow>}
             {rows.map((h) => (
               <tr key={h.id}>
                 <td><ShortId value={h.instrument_id} /></td><td><ShortId value={h.analyte_id} /></td>

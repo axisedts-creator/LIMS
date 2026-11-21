@@ -7,6 +7,7 @@ import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Banner } from '@lims/ui/components/Banner';
 import { Button } from '@lims/ui/components/Button';
+import { Card } from '@lims/ui/components/Card';
 import { Checkbox } from '@lims/ui/components/Checkbox';
 import { DescriptionList } from '@lims/ui/components/DescriptionList';
 import { Dialog } from '@lims/ui/components/Dialog';
@@ -167,20 +168,24 @@ export function SpecimenDetail({ specimen: s, rejectionReasons, recollectionDefa
 
       {has('lab.result.read') && s.results_summary ? (
         <section aria-label="Results summary">
-          <h2>Results summary</h2>
-          <p>{s.results_summary.total} total, {s.results_summary.resulted} resulted, {s.results_summary.verified} verified, {s.results_summary.approved} approved</p>
+          {/* T0D-UIGUARD-1-LAB (LD-436 rule 7): Card title rows instead of raw h2 */}
+          <Card title="Results summary">
+            <p>{s.results_summary.total} total, {s.results_summary.resulted} resulted, {s.results_summary.verified} verified, {s.results_summary.approved} approved</p>
+          </Card>
         </section>
       ) : null}
 
-      <h2>Tests</h2>
-      <table>
-        <caption className="lims-visually-hidden">Tests on this specimen</caption>
-        <thead><tr><th scope="col">Test</th></tr></thead>
-        <tbody>{s.tests.map((t) => <tr key={t.test_id}><td>{t.test_code}</td></tr>)}</tbody>
-      </table>
+      <Card title="Tests">
+        <table>
+          <caption className="lims-visually-hidden">Tests on this specimen</caption>
+          <thead><tr><th scope="col">Test</th></tr></thead>
+          <tbody>{s.tests.map((t) => <tr key={t.test_id}><td>{t.test_code}</td></tr>)}</tbody>
+        </table>
+      </Card>
 
-      <h2>Timeline</h2>
-      <Timeline aria-label="Timeline" items={timeline.map((t) => ({ at: t.at, label: label(t.to_status) }))} />
+      <Card title="Timeline">
+        <Timeline aria-label="Timeline" items={timeline.map((t) => ({ at: t.at, label: label(t.to_status) }))} />
+      </Card>
 
       {kind === 'store' ? (
         <Dialog title="Store specimen" isOpen onClose={close} footer={confirmBtn('Store', confirmStore)}>

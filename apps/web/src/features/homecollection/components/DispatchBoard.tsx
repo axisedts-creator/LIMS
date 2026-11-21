@@ -11,8 +11,7 @@ import { Card } from '@lims/ui/components/Card';
 import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
 import { DatePicker, type IsoDate } from '@lims/ui/components/DatePicker';
 import { DateText, type DateTextProps } from '@lims/ui/components/DateText';
-import { EmptyState } from '@lims/ui/components/EmptyState';
-import type { FilterValue } from '@lims/ui/components/FilterBar';
+import { FilterBar, type FilterValue } from '@lims/ui/components/FilterBar';
 import { Grid } from '@lims/ui/components/Grid';
 import { Icon } from '@lims/ui/components/Icon';
 import { IconButton } from '@lims/ui/components/IconButton';
@@ -81,8 +80,7 @@ function VisitStatusCell({ status }: { status: string }) {
 }
 
 function Flags({ kinds }: { kinds: readonly string[] }) {
-  if (!kinds.length) return <>—</>;
-  return (
+  return kinds.length === 0 ? <>—</> : (
     <Inline gap={1}>
       {kinds.map((k) => {
         const [tone, label] = flagOf(k);
@@ -103,6 +101,16 @@ function tubesText(v: VisitDto): string {
   if (s.expected === 0) return v.order_id ? 'Tubes: preparing…' : '—';
   return `${s.collected}/${s.expected}`;
 }
+
+/** Header of the empty routes table (rule 5): the RouteCard columns without the per-row buttons. */
+const ROUTE_HEAD: ColumnDef<VisitDto>[] = [
+  { id: 'seq', header: '#', align: 'end', cell: () => '' },
+  { id: 'window', header: 'Window', cell: windowText },
+  { id: 'patient', header: 'Patient', isRowHeader: true, cell: (v) => v.patient_display_name },
+  { id: 'status', header: 'Status', cell: (v) => <VisitStatusCell status={v.status} /> },
+  { id: 'tubes', header: 'Tubes', align: 'end', cell: tubesText },
+  { id: 'flags', header: 'Flags', cell: (v) => <Flags kinds={v.open_flag_kinds} /> },
+];
 
 export function DispatchBoard({ date, centreId, centres, visits, routes, permissions, codes, filter, nextCursor }: DispatchBoardProps) {
   const router = useRouter();
@@ -185,17 +193,16 @@ export function DispatchBoard({ date, centreId, centres, visits, routes, permiss
   return (
     <div ref={root}>
       <PageHeader title="Home visits" helpKey="homecollection.dispatch" actions={<Button onPress={() => router.refresh()}>Refresh</Button>} />
-      {/* T0D-UILIST-3, LD-353 template 1 and rule 2: every filter (date, centre, status, kind, needs attention) in ONE filter row of single-height
-          controls. The kit FilterBar has no single-date or switch filter, so the row uses its class and role with kit controls. [CONV] status is one
+      {/* T0D-UIGUARD-1-HOMECOLLECTION, LD-353 rule 2, LD-436 worklist mock: every filter (date, centre, status, kind, needs attention) in ONE kit
+          FilterBar row. Single date and switch are FilterBar children (LD-441 additive prop); Reset keeps date and centre. [CONV] status is one
           value here (the chip list was taller than the other controls); the URL still takes a comma list. */}
-      <div role="search" className="lims-filter-bar">
+      <FilterBar aria-label="Filter home visits" onReset={() => router.replace(go({ filter: { status: [] } }))}>
         <DatePicker label="Date" name="date" value={date as IsoDate} onChange={(d) => { if (d && d !== date) router.replace(go({ date: d })); }} />
         {centres.length ? <Select label="Centre" name="centre_id" options={centres.map((c) => ({ value: c.id, label: c.name }))} {...(centreId ? { value: centreId } : {})} onChange={(c) => router.replace(go({ centreId: c }))} /> : null}
         <Select label="Status" name="status" options={STATUS_OPTIONS} value={f.status.length === 1 ? f.status[0]! : ALL} onChange={(st) => onFilter({ ...fv, status: st === ALL ? [] : [st] })} />
         <Select label="Kind" name="kind" options={KIND_OPTIONS} value={f.kind ?? ALL} onChange={(k) => onFilter({ ...fv, kind: k })} />
         <Switch label="Needs attention" isSelected={!!f.has_open_flags} onChange={(on) => router.replace(go({ filter: { ...f, ...(on ? { has_open_flags: true } : { has_open_flags: false }) } }))} />
-        <Button variant="ghost" onPress={() => router.replace(go({ filter: { status: [] } }))}>Reset filters</Button>
-      </div>
+      </FilterBar>
       <Grid columns={2}>
         <Card title="Unassigned">
           <div ref={unassignedBox}>
@@ -218,7 +225,13 @@ export function DispatchBoard({ date, centreId, centres, visits, routes, permiss
                 />
               ))
             ) : (
-              <EmptyState title="No routes for this date." body="Assigned visits appear here, one card per phlebotomist." />
+              // LD-353 rule 5: with no route the routes table keeps its header row; the empty text sits under it.
+              <Card title="Routes">
+                <DataTable<VisitDto>
+                  caption="Routes" columns={ROUTE_HEAD} rows={[]} getRowId={(v) => v.id} density="compact"
+                  emptyState={{ title: 'No routes for this date.', body: 'Assigned visits appear here, one card per phlebotomist.' }}
+                />
+              </Card>
             )}
           </Stack>
         </section>

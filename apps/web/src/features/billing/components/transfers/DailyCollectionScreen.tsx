@@ -8,6 +8,7 @@ import { useRef, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { Button } from '@lims/ui/components/Button';
 import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
+import { FilterBar } from '@lims/ui/components/FilterBar';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { Select } from '@lims/ui/components/Select';
 import { TextField } from '@lims/ui/components/TextField';
@@ -89,14 +90,15 @@ export function DailyCollectionScreen({ summary, centres, centreId, day, particu
   return (
     <section aria-label={D('title')}>
       <PageHeader title={D('title')} helpKey="billing.accounts" />
-      <div role="search" aria-label={D('filters')} className="lims-filter-bar">
+      {/* T0D-UIGUARD-1-BILLING (LD-353 rule 2): the kit FilterBar holds the row; Lab, Day and Search stay as they were. */}
+      <FilterBar aria-label={D('filters')}>
         <Select label={D('col.lab')} name="centre_id" options={centres.map((c) => ({ value: c.id, label: c.name }))} {...(centre ? { value: centre } : {})} onChange={setCentre} />
         <div className="lims-field">
           <label className="lims-label" htmlFor="daily-summary-day">{D('col.day')}</label>
           <input id="daily-summary-day" type="date" className="lims-input" value={date} onChange={(e) => setDate(e.target.value)} />
         </div>
         <Button variant="primary" onPress={search}>{D('search')}</Button>
-      </div>
+      </FilterBar>
       <DataTable caption={D('title')} density="compact" columns={columns} rows={summary?.rows ?? []} getRowId={(r) => r.payment_mode} emptyState={{ title: D('empty') }} />
       {summary ? <p className="lims-inline"><span>{D('total')}</span><strong>{formatNpr(summary.total_paisa)}</strong></p> : null}
       <div className="lims-inline">

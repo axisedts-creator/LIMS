@@ -7,6 +7,7 @@ import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'rea
 import { useRouter } from 'next/navigation';
 import { Banner } from '@lims/ui/components/Banner';
 import { Button } from '@lims/ui/components/Button';
+import { Card } from '@lims/ui/components/Card';
 import { Combobox } from '@lims/ui/components/Combobox';
 import { ConfirmDialog } from '@lims/ui/components/ConfirmDialog';
 import { DateText } from '@lims/ui/components/DateText';
@@ -115,8 +116,9 @@ export function InstrumentMappings({ instrument, observed, maps = [], tests = {}
         ) : null}
       />
       <div className="lims-grid">
-        <section aria-labelledby="obs-h" className={manage ? 'lims-col-5' : 'lims-col-12'}>
-          <h2 id="obs-h">Observed codes</h2>
+        {/* T0D-UIGUARD-1-INSTRUMENTS (LD-436 R7, LD-439 a): kit Card title rows replace the raw h2. */}
+        <section aria-label="Observed codes" className={manage ? 'lims-col-5' : 'lims-col-12'}>
+          <Card title="Observed codes">
           <Switch label="Unmapped only" isSelected={unmappedOnly} onChange={setUnmappedOnly} />
           {/* T0D-EMPTYTBL-2 (LD-310, LD-336): both tables are always drawn; the empty message is the one body row, four placeholder rows follow. */}
           <table className="lims-table">
@@ -145,11 +147,12 @@ export function InstrumentMappings({ instrument, observed, maps = [], tests = {}
               </tbody>
               {observed.length === 0 ? <PlaceholderRows colSpan={manage ? 6 : 5} /> : null}
             </table>
+          </Card>
         </section>
 
         {manage ? (
-          <section aria-labelledby="maps-h" className="lims-col-7">
-            <h2 id="maps-h">Mappings</h2>
+          <section aria-label="Mappings" className="lims-col-7">
+            <Card title="Mappings">
             <table className="lims-table">
                 <caption className="lims-visually-hidden">Mappings</caption>
                 <thead>
@@ -177,6 +180,7 @@ export function InstrumentMappings({ instrument, observed, maps = [], tests = {}
                 </tbody>
                 {maps.length === 0 ? <PlaceholderRows colSpan={8} /> : null}
               </table>
+            </Card>
           </section>
         ) : (
           <section aria-label="Mappings" className="lims-col-12">

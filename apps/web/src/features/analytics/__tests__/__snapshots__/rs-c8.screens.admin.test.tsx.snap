@@ -514,14 +514,14 @@ exports[`RS-C8 schedule and export screens: snapshots + axe > New schedule form 
 <label class="lims-label" id="ID" for="ID">Recipients</label>
 <input aria-autocomplete="list" autocomplete="off" autocorrect="off" spellcheck="false" tabindex="0" id="ID" aria-labelledby="ID" role="combobox" aria-expanded="false" class="lims-input" data-rac="" type="text" value="" name="recipients">
 </div>
-<ul class="lims-inline" aria-label="Chosen recipients">
-<li>
+<div class="lims-inline" style="gap: var(--lims-space-2); align-items: center; justify-content: flex-start; flex-wrap: wrap;" role="list" aria-label="Chosen recipients">
+<div role="listitem">
 <span>Synthetic Owner</span>
 <button class="lims-btn lims-btn-ghost lims-btn-sm" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID">
 <span class="lims-btn-label">Remove Synthetic Owner</span>
 </button>
-</li>
-</ul>
+</div>
+</div>
 </div>
 <p class="lims-description">Recipients get an email with a link only. They must sign in to see the figures.</p>
 <div class="lims-inline">

@@ -34,7 +34,9 @@ export function Modal({ title, role = 'dialog', onClose, wide, children }: { tit
     <div className="lims-overlay">
       <div ref={box} role={role} aria-modal="true" aria-labelledby={id} className={`lims-dialog lims-surface ${wide ? 'lims-dialog-lg' : 'lims-dialog-sm'}`} onKeyDown={onKey}>
         <div className="lims-dialog-body">
-          <h2 id={id} className="lims-dialog-title">{title}</h2>
+          {/* T0D-UIGUARD-1-OFFLINE (LD-436 R7, LD-439 a): no raw heading tag; same accessible h2. [CONV] kept the own Modal, not the kit Dialog:
+              the kit Dialog has no alertdialog role and no non-dismissable PIN prompt without a close button, which offline2 pins. */}
+          <p role="heading" aria-level={2} id={id} className="lims-dialog-title">{title}</p>
           {children}
         </div>
       </div>

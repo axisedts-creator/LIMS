@@ -145,14 +145,15 @@ export function BookingNew({ centres, workingCentreId, today, bookableItems, act
         onChange={(i) => { setLastTest(i); if (i && tests.length < MAX_TESTS) setTests((t) => (t.some((x) => x.orderable_id === i.orderable_id) ? t : [...t, i])); }}
       />
       {tests.length ? (
-        <ul className="lims-list" aria-label="Chosen tests">
+        // T0D-UIGUARD-1-ENGAGEMENT (LD-436 R7): chosen tests are a group of removable chips, not a raw list
+        <div role="group" className="lims-inline" aria-label="Chosen tests">
           {tests.map((t) => (
-            <li key={t.orderable_id} className="lims-inline">
+            <span key={t.orderable_id} className="lims-inline">
               {t.display_name}
               <IconButton label={`Remove ${t.display_name}`} icon="close" onPress={() => setTests((x) => x.filter((y) => y.orderable_id !== t.orderable_id))} />
-            </li>
+            </span>
           ))}
-        </ul>
+        </div>
       ) : null}
       {failure ? <p role="alert" className="lims-error">{failure}</p> : null}
       <div className="lims-inline">

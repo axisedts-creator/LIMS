@@ -40,15 +40,6 @@ export const EXCEPTIONS: GuardException[] = [
   ...legacy('OFFLINE', 1, 'the page itself', [
     '/offline',
   ]),
-  ...legacy('BILLING', 2, 'AccountEntriesScreen.tsx, AccountLedgerScreen.tsx, PocketLedgerScreen.tsx, CashTransfersScreen.tsx, DailyCashView.tsx, DailyCollectionScreen.tsx, PartysetCommon.tsx, DiscountSlabsScreen.tsx, ExpensesScreen.tsx', [
-    '/billing/accounts/entries',
-    '/billing/accounts/ledger',
-    '/billing/accounts/pocket',
-    '/billing/cash-transfers',
-    '/billing/daily-cash',
-    '/billing/discounts/slabs',
-    '/billing/expenses',
-  ]),
   ...legacy('CATALOG', 2, 'CommentCodesScreen.tsx, master-ui.tsx, DoctorsList.tsx, ImportsScreen.tsx, TestImportScreen.tsx, PriceListDetail.tsx, PriceVersionEditor.tsx, PriceCompare.tsx, TestMgmtViews.tsx, TestsList.tsx', [
     '/catalog/comment-codes',
     '/catalog/credit-parties',
@@ -158,9 +149,6 @@ export const EXCEPTIONS: GuardException[] = [
   ...legacy('OFFLINE', 4, 'the page itself', [
     '/offline',
   ]),
-  ...legacy('BILLING', 5, 'InvoiceDetailView.tsx', [
-    '/billing/invoices/[invoice_id]',
-  ]),
   ...legacy('CATALOG', 5, 'AnalytesTab.tsx', [
     '/catalog/tests/[test_id]',
   ]),
@@ -242,23 +230,6 @@ export const EXCEPTIONS: GuardException[] = [
     ['/anatomic/config', 'config-shared.tsx, AssaysTab.tsx'],
     ['/anatomic/config/templates/[template_id]', 'config-shared.tsx, TemplateEditor.tsx, TemplatePreview.tsx'],
     ['/anatomic/tracking', 'AnatomicForbidden.tsx, TrackingScreen.tsx, MovementDialog.tsx'],
-  ]),
-  ...legacy7('BILLING', [
-    ['/billing/accounts/entries', 'AccountReceiptView.tsx, accountsShared.tsx'],
-    ['/billing/accounts/ledger', 'AccountLedgerScreen.tsx, accountsShared.tsx'],
-    ['/billing/accounts/masters', 'AccountMastersScreen.tsx, accountsShared.tsx'],
-    ['/billing/accounts/pocket', 'PocketLedgerScreen.tsx, accountsShared.tsx, AccountLedgerScreen.tsx'],
-    ['/billing/accounts/summary', 'accountsShared.tsx'],
-    ['/billing/cash-transfers', 'accountsShared.tsx'],
-    ['/billing/daily-cash', 'DailyCashView.tsx, accountsShared.tsx'],
-    ['/billing/discounts/authorities', 'accountsShared.tsx'],
-    ['/billing/discounts/limits', 'accountsShared.tsx'],
-    ['/billing/discounts/reasons', 'accountsShared.tsx'],
-    ['/billing/discounts/slabs', 'accountsShared.tsx'],
-    ['/billing/expenses', 'accountsShared.tsx'],
-    ['/billing/expenses/types', 'accountsShared.tsx'],
-    ['/billing/invoices/[invoice_id]', 'InvoiceDetailView.tsx, InvoiceDocument.tsx'],
-    ['/billing/settings', 'PrintStationery.tsx'],
   ]),
   ...legacy7('CATALOG', [
     ['/catalog', 'CatalogHome.tsx'],

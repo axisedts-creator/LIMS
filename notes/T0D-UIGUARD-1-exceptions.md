@@ -181,17 +181,6 @@ Other groups = LD-434 legacy baseline (CR-C0-0D-UIGUARD-1 option A); the heading
 - /admin/users/[membership_id] rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ADMIN: rule 7 broken in page-kit.tsx, UserDetailView.tsx, ui.tsx
 - /admin/users/new rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ADMIN: rule 7 broken in page-kit.tsx, ui.tsx
 
-## T0D-UIGUARD-1-ANATOMIC (rule 7: 8 entries)
-
-- /anatomic rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ANATOMIC: rule 7 broken in AnatomicForbidden.tsx
-- /anatomic/batches rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ANATOMIC: rule 7 broken in AnatomicForbidden.tsx
-- /anatomic/batches/[batch_id] rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ANATOMIC: rule 7 broken in AnatomicForbidden.tsx, BatchDetailScreen.tsx
-- /anatomic/cases/[case_id] rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ANATOMIC: rule 7 broken in AnatomicForbidden.tsx, CaseWorkspace.tsx, ImagesTab.tsx, BlocksSlidesTab.tsx, ReportEditor.tsx, ...
-- /anatomic/cases/[case_id]/labels rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ANATOMIC: rule 7 broken in AnatomicForbidden.tsx
-- /anatomic/config rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ANATOMIC: rule 7 broken in config-shared.tsx, AssaysTab.tsx
-- /anatomic/config/templates/[template_id] rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ANATOMIC: rule 7 broken in config-shared.tsx, TemplateEditor.tsx, TemplatePreview.tsx
-- /anatomic/tracking rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-ANATOMIC: rule 7 broken in AnatomicForbidden.tsx, TrackingScreen.tsx, MovementDialog.tsx
-
 ## T0D-UIGUARD-1-BILLING (rule 7: 15 entries)
 
 - /billing/accounts/entries rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-BILLING: rule 7 broken in AccountReceiptView.tsx, accountsShared.tsx

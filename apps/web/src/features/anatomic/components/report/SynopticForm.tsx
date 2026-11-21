@@ -99,12 +99,12 @@ function Instance({ index, inst, def, readOnly, onChange, onRemove }: { index: n
     <Card title={inst.title}>
       {def ? (
         def.sections.map((s) => (
-          <section key={s.key}>
-            <h3 className="lims-card-title">{s.heading}</h3>
+          // LD-439 (a), LD-436 rule 7: section heading is a Card title row (kit h2, plain text), not a raw h3.
+          <Card key={s.key} title={s.heading}>
             {s.fields.filter((f) => isVisible(f, inst.values)).map((f) => (
               <FieldView key={f.key} f={f} name={`synoptic/${index}/values/${f.key}`} value={inst.values[f.key]} onChange={(v) => set(f.key, v)} readOnly={readOnly} />
             ))}
-          </section>
+          </Card>
         ))
       ) : (
         <p className="lims-description">This template could not be loaded. Reload the page to try again.</p>

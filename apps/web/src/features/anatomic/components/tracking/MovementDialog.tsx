@@ -6,6 +6,7 @@
 import { useRef, useState } from 'react';
 import { ConfirmDialog } from '@lims/ui/components/ConfirmDialog';
 import { Button } from '@lims/ui/components/Button';
+import { DescriptionList } from '@lims/ui/components/DescriptionList';
 import { Dialog } from '@lims/ui/components/Dialog';
 import { Form } from '@lims/ui/components/Form';
 import { RadioGroup } from '@lims/ui/components/RadioGroup';
@@ -101,10 +102,8 @@ function MovementForm({ items, isOpen, onClose, onMfa, onDone }: Props) {
       >
         <div ref={body}>
           <FailNotice fail={fail} />
-          <p className="lims-label" id="movement-items">Items ({items.length})</p>
-          <ul aria-labelledby="movement-items">
-            {items.map((i) => <li key={i.id} className="lims-mono">{i.label}</li>)}
-          </ul>
+          {/* LD-439 (a), LD-436 rule 7: DescriptionList instead of a raw ul. */}
+          <DescriptionList items={[{ term: `Items (${items.length})`, value: <span className="lims-mono">{items.map((i) => i.label).join(', ')}</span> }]} />
           <Form onSubmit={submit} {...(problem ? { problem } : {})}>
             <RadioGroup label="Movement" name="movement" isRequired options={MOVEMENT_OPTIONS} {...(movement ? { value: movement } : {})} onChange={setMovement} />
             <TextField label="Location" name="location_text" maxLength={120} isRequired={movement === 'stored'} description="For example: Block cabinet 3, drawer 2" value={location} onChange={setLocation} />

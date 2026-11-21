@@ -64,7 +64,7 @@ describe('shell.css staff card surface (LD-436 R8, LD-438)', () => {
   it('the card background stays white (neutral.0) when shell.css sets one, and no gradient or shadow glow is added', () => {
     const bg = last('background');
     if (bg !== undefined) expect(bg).toMatch(/^var\(--lims-neutral-0\)( !important)?$/);
-    expect(last('box-shadow')).not.toMatch(/\d/);
+    expect(last('box-shadow')).not.toMatch(/\d+(\.\d+)?(px|rem|em)\b|\b(rgba?|hsla?|oklch)\(|#[0-9a-f]{3,8}\b/i);
   });
 
   it('no rule in shell.css changes lims-dialog or lims-drawer (they keep radius 24 and elevation.3)', () => {

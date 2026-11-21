@@ -81,17 +81,18 @@ describe('Card title row (done_when 2)', () => {
 
 describe('StatusStepper (done_when 3)', () => {
   const steps = ['Received', 'In testing', 'Review', 'Ready'].map((label, i) => ({ id: `s${i}`, label }));
-  const CHECK = 'M5 12l5 5L20 7';
+  // Binding text says only "accent with a check"; the kit `success` icon path ends in a check stroke.
+  const CHECK = /l3 3 5-6|L20 7/;
   const lis = (c: HTMLElement) => [...c.querySelectorAll('li.lims-step')] as HTMLElement[];
-  const paths = (el: Element) => [...el.querySelectorAll('svg path')].map((p) => p.getAttribute('d'));
+  const hasCheck = (el: Element) => [...el.querySelectorAll('svg path')].some((p) => CHECK.test(p.getAttribute('d') ?? ''));
 
   it('completed stages carry a check; later stages do not', () => {
     const { container } = render(<StatusStepper steps={steps} currentId="s2" />);
     const [a, b, c, d] = lis(container);
-    expect(paths(a)).toContain(CHECK);
-    expect(paths(b)).toContain(CHECK);
-    expect(paths(c)).not.toContain(CHECK);
-    expect(paths(d)).not.toContain(CHECK);
+    expect(hasCheck(a)).toBe(true);
+    expect(hasCheck(b)).toBe(true);
+    expect(hasCheck(c)).toBe(false);
+    expect(hasCheck(d)).toBe(false);
   });
 
   it('ONE marker on the stage the page names, with the words "Most waiting" (not colour alone), aria-hidden dot', () => {

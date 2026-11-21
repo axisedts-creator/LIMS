@@ -9,6 +9,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen, within } from '@testing-library/react';
 import { ToastProvider } from '@lims/ui/components/Toast';
 import { t } from '@/core/i18n/messages';
+import { cardNotAvailable } from '@/__tests__/uidash1.helpers';
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn(), refresh: vi.fn(), back: vi.fn() }),
@@ -229,19 +230,16 @@ describe('Today charts (two ChartCards, mock row 4)', () => {
     expect(a.parentElement, 'same row').toBe(b.parentElement);
     expect(a.parentElement!.className).toMatch(/lims-[a-z-]*(charts|chart-row)/);
     expect(norm(a.querySelector('.lims-chart-period')?.textContent).length, 'caption such as "Last 14 days"').toBeGreaterThan(0);
-    expect(a.querySelectorAll('.lims-chart-bar').length, 'bars, one per day').toBe(2);
-    const rows = [...a.querySelectorAll('tbody tr')].map((tr) => norm(tr.textContent));
-    expect(rows.join(' | ')).toMatch(/2026-01-14|14 Jan/);
-    expect(rows.join(' | ')).toMatch(/2026-01-15|15 Jan/);
   });
 
-  it('data: the current day is the accent bar, marked data-current="true", exactly one, and it is the last day', () => {
+  // RULING T0D-UIDASH-2 (item 1 to 4): the title stays "Billed per day" (mock :294); the contract has no invoiced per day (net_sales_paisa is not "Billed"), so the card says "Not available yet", draws no bar and leaks no amount.
+  it('data: the contract has no billed per day (only net_sales_paisa), so "Billed per day" says "Not available yet": no bar, no day row, no amount', () => {
     const { container } = mount(withData());
     const a = cardOf(container, 'Billed per day')!;
-    const cur = [...a.querySelectorAll('[data-current="true"]')];
-    expect(cur).toHaveLength(1);
-    const bars = [...a.querySelectorAll('.lims-chart-bar')];
-    expect(bars.at(-1)!.matches('[data-current="true"]') || bars.at(-1)!.closest('[data-current="true"]') !== null || cur[0]!.contains(bars.at(-1)!)).toBe(true);
+    expect(cardNotAvailable(a)).toBe(true);
+    expect(a.querySelectorAll('.lims-chart-bar').length, 'no bars').toBe(0);
+    expect(a.querySelectorAll('[data-current="true"]')).toHaveLength(0);
+    expect(a.textContent).not.toMatch(/Rs\.|NPR|2,00,000|2,25,000|200,000|225,000/);
   });
 
   it('data: the contract has no tests per department (department_top is net sales money), so "Tests by department" says "Not available yet" and shows no department name or amount', () => {

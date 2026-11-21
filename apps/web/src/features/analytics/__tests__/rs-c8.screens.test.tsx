@@ -18,6 +18,7 @@ const norm = (html: string) =>
   html
     .replace(/react-aria\d*-:?[\w-]+:?/g, 'aria-id')
     .replace(/:r[0-9a-z]+:/g, ':rN:')
+    .replace(/_r_[0-9a-z]+_/g, ':rN:')
     .replace(/(id|for|aria-labelledby|aria-describedby|aria-controls|aria-owns|aria-activedescendant)="[^"]*(?:aria-id|:rN:)[^"]*"/g, '$1="ID"')
     .replace(/></g, '>\n<');
 const snap = (el: Element) => expect(norm(el.innerHTML)).toMatchSnapshot();

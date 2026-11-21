@@ -107,7 +107,7 @@ describe('/analytics chart row (LD-353 rule 10: the frame ALWAYS draws)', () => 
     expect(cs.map(cardTitle)).toEqual(['Billed per day', 'Tests by department']);
     expect(cs[0]!.parentElement, 'same row').toBe(cs[1]!.parentElement);
     expect([...cs[0]!.parentElement!.children]).toEqual(cs);
-    expect(frameDraws(cs[0]!)).toBe(true); expect(frameSaysNoData(cs[0]!)).toBe(false);
+    expect(frameDraws(cs[0]!)).toBe(true); expect(cardNotAvailable(cs[0]!), 'Billed per day: Not available yet (ruling T0D-UIDASH-2)').toBe(true);
     expect(cardNotAvailable(cs[1]!), 'Tests by department: Not available yet').toBe(true);
     expect(norm(container.textContent), 'department_top is net sales money, not a test count: not drawn as tests').not.toContain(DEPT);
   });
@@ -122,7 +122,7 @@ describe('/analytics chart row (LD-353 rule 10: the frame ALWAYS draws)', () => 
     const { container } = mount(emptyPeriod());
     const cs = cards(container);
     expect(cs.map(cardTitle)).toEqual(['Billed per day', 'Tests by department']);
-    expect(frameDraws(cs[0]!), 'Billed per day draws').toBe(true); expect(frameSaysNoData(cs[0]!), 'Billed per day says No data yet').toBe(true);
+    expect(frameDraws(cs[0]!), 'Billed per day draws').toBe(true); expect(cardNotAvailable(cs[0]!), 'Billed per day says Not available yet').toBe(true);
     expect(cardNotAvailable(cs[1]!)).toBe(true);
   });
 
@@ -130,7 +130,7 @@ describe('/analytics chart row (LD-353 rule 10: the frame ALWAYS draws)', () => 
     const { container } = mount(noMoney());
     const cs = cards(container);
     expect(cs.map(cardTitle)).toEqual(['Billed per day', 'Tests by department']);
-    expect(frameDraws(cs[0]!)).toBe(true); expect(frameSaysNoData(cs[0]!)).toBe(true);
+    expect(frameDraws(cs[0]!)).toBe(true); expect(cardNotAvailable(cs[0]!)).toBe(true);
     expect(cardNotAvailable(cs[1]!)).toBe(true);
     expect(container.textContent).not.toContain(DEPT);
     expect(container.textContent).not.toMatch(/Rs\.|NPR|225,000|123,456/);

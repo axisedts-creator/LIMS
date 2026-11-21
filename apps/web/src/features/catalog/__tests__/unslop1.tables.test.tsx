@@ -6,7 +6,7 @@
 //          (no far-right lone button); the stylesheet limits a search box in a filter bar to at most 24rem.
 // Shared tables covered: catalog MasterTable and reporting SimpleTable (every catalog / reporting list uses one of them). Synthetic data only.
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, render, screen, within } from '@testing-library/react';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { ReactElement } from 'react';
@@ -76,23 +76,24 @@ describe('SimpleTable (reporting lists)', () => {
 });
 
 describe('Doctors filter bar: one row, search box next to its button', () => {
-  it('the search field and every radio group share ONE .lims-filter-bar', () => {
+  // T0D-UIGUARD-1-CATALOG ruling: the kit FilterBar (search + selects) replaced the radio groups.
+  it('the search field and the filter selects share ONE .lims-filter-bar', () => {
     const { container } = wrap(<DoctorsList doctors={[]} permissions={['catalog.referrer.read', 'catalog.referrer.manage']} />);
     const input = container.querySelector<HTMLInputElement>('input[type="search"]')!;
     const bar = input.closest('.lims-filter-bar')!;
     expect(bar).toBeTruthy();
-    const groups = screen.getAllByRole('radiogroup');
-    expect(groups.length).toBeGreaterThanOrEqual(3);
-    for (const g of groups) expect(g.closest('.lims-filter-bar'), 'radio groups sit in the same filter row as the search').toBe(bar);
+    for (const label of [/^verified/i, /^status/i, /^source/i]) {
+      expect(bar.contains(screen.getByLabelText(label)), `${label} select sits in the same filter row as the search`).toBe(true);
+    }
     expect(container.querySelectorAll('.lims-filter-bar').length, 'no second filter row').toBe(1);
   });
   it('the Search button follows the search input directly (not a lone button at the far right)', () => {
     const { container } = wrap(<DoctorsList doctors={[]} permissions={['catalog.referrer.read']} />);
     const input = container.querySelector<HTMLInputElement>('input[type="search"]')!;
-    const next = input.nextElementSibling ?? input.parentElement!.nextElementSibling;
-    expect(next?.tagName, 'element after the search input').toBe('BUTTON');
-    expect(next?.textContent).toMatch(/^search$/i);
-    expect((next as HTMLElement).style.marginInlineStart + (next as HTMLElement).style.marginLeft).not.toMatch(/auto/);
+    const box = input.closest('.lims-filter-search')!;
+    const button = within(box as HTMLElement).getByRole('button', { name: /^search$/i });
+    expect(input.closest('.lims-field')!.nextElementSibling, 'element after the search field').toBe(button);
+    expect(button.style.marginInlineStart + button.style.marginLeft).not.toMatch(/auto/);
   });
 });
 

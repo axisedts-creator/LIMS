@@ -71,11 +71,6 @@ export const EXCEPTIONS: GuardException[] = [
     '/catalog/tests',
     '/catalog/units',
   ]),
-  ...legacy('ENGAGEMENT', 2, 'EnquiriesView.tsx, RemindersView.tsx', [
-    '/engagement/enquiries',
-    '/engagement/enquiries/[enquiry_id]',
-    '/engagement/reminders',
-  ]),
   ...legacy('HOMECOLLECTION', 2, 'DispatchBoard.tsx', [
     '/homecollection/dispatch',
   ]),
@@ -144,12 +139,6 @@ export const EXCEPTIONS: GuardException[] = [
     '/catalog/tests',
     '/catalog/tests/[test_id]',
     '/catalog/units',
-  ]),
-  ...legacy('ENGAGEMENT', 4, 'the page itself', [
-    '/engagement/enquiries',
-    '/engagement/enquiries/[enquiry_id]',
-    '/engagement/memberships',
-    '/engagement/reminders',
   ]),
   ...legacy('FRONTDESK', 4, 'the page itself', [
     '/frontdesk/orders/[order_id]',
@@ -283,17 +272,6 @@ export const EXCEPTIONS: GuardException[] = [
     ['/catalog/tests', 'CatalogForbidden.tsx, TestDetailsView.tsx, compact-ui.tsx, master-ui.tsx'],
     ['/catalog/tests/[test_id]', 'ParameterForm.tsx, RangesTab.tsx, TestHeader.tsx, compact-ui.tsx'],
     ['/catalog/units', 'CatalogForbidden.tsx, master-ui.tsx'],
-  ]),
-  ...legacy7('ENGAGEMENT', [
-    ['/engagement/bookable-items', 'BookingDetail.tsx, BookingNew.tsx, SlotsAdmin.tsx'],
-    ['/engagement/bookings', 'BookingDetail.tsx, BookingNew.tsx, SlotsAdmin.tsx'],
-    ['/engagement/bookings/[booking_id]', 'BookingDetail.tsx, BookingNew.tsx, SlotsAdmin.tsx'],
-    ['/engagement/bookings/new', 'BookingDetail.tsx, BookingNew.tsx, SlotsAdmin.tsx'],
-    ['/engagement/content', 'ProfileImages.tsx'],
-    ['/engagement/enquiries/[enquiry_id]', 'EnquiryThread.tsx'],
-    ['/engagement/messages/broadcasts', 'Broadcasts.tsx'],
-    ['/engagement/settings', 'SettingsView.tsx'],
-    ['/engagement/slots', 'BookingDetail.tsx, BookingNew.tsx, SlotsAdmin.tsx'],
   ]),
   ...legacy7('FRONTDESK', [
     ['/frontdesk/discount-approvals', 'DiscountApprovalsInbox.tsx'],

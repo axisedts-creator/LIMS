@@ -120,9 +120,8 @@ export function MappingTab({ mappings, groupName, organGroups, minMapped }: { ma
   return (
     <div>
       <ErrorAlert text={alert} />
-      {mappings.length === 0 ? <p>{`No analytes mapped yet — summaries need at least ${minMapped} mapped results`}</p> : (
-        <DataTable columns={columns} rows={mappings} getRowId={(m) => m.analyte_id} caption="Analyte mapping" density="compact" emptyState={{ title: 'No analytes mapped yet' }} />
-      )}
+      {/* LD-436 rule 5: the table keeps its header when empty */}
+      <DataTable columns={columns} rows={mappings} getRowId={(m) => m.analyte_id} caption="Analyte mapping" density="compact" emptyState={{ title: `No analytes mapped yet — summaries need at least ${minMapped} mapped results` }} />
       {editing ? <MappingDrawer mapping={editing} organGroups={organGroups} onClose={() => setEditing(undefined)} /> : null}
       <ConfirmDialog
         title="Remove this mapping?" body="The analyte will no longer count towards this body system in this version." confirmLabel="Remove" tone="danger"

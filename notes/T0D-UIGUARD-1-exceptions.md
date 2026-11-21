@@ -162,14 +162,6 @@ Other groups = LD-434 legacy baseline (CR-C0-0D-UIGUARD-1 option A); the heading
 - /quality/runs rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-QUALITY: rule 2 broken in DecisionsView.tsx, LjView.tsx
 - /quality/autoverify/[version_id] rule 6: legacy baseline LD-434, fix in T0D-UIGUARD-1-QUALITY: rule 6 broken in ReportView.tsx
 
-## T0D-UIGUARD-1-SMARTREPORT (5 entries, 5 routes)
-
-- /smartreport/library rule 5: legacy baseline LD-434, fix in T0D-UIGUARD-1-SMARTREPORT: rule 5 broken in WordingTerms.tsx, CheckTab.tsx, GroupsTab.tsx
-- /smartreport/library/[library_version_id] rule 5: legacy baseline LD-434, fix in T0D-UIGUARD-1-SMARTREPORT: rule 5 broken in WordingTerms.tsx, CheckTab.tsx, GroupsTab.tsx
-- /smartreport/library/[library_version_id]/review rule 5: legacy baseline LD-434, fix in T0D-UIGUARD-1-SMARTREPORT: rule 5 broken in WordingTerms.tsx, CheckTab.tsx, GroupsTab.tsx
-- /smartreport/wording rule 5: legacy baseline LD-434, fix in T0D-UIGUARD-1-SMARTREPORT: rule 5 broken in WordingTerms.tsx, CheckTab.tsx, GroupsTab.tsx
-- /smartreport/summaries/[summary_id] rule 6: legacy baseline LD-434, fix in T0D-UIGUARD-1-SMARTREPORT: rule 6 broken in SummaryReview.tsx
-
 # Rule 7 (T0D-UIGUARD-2, LD-436 R7, LD-439 c): no raw h1 to h4, no raw ul or ol for page structure. One entry per route; heading = follow-up area task.
 
 ## STANDING (catch-all)
@@ -351,11 +343,3 @@ Other groups = LD-434 legacy baseline (CR-C0-0D-UIGUARD-1 option A); the heading
 - /reporting/reports/[report_id] rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-REPORTING: rule 7 broken in ReportDetailView.tsx
 - /reporting/settings rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-REPORTING: rule 7 broken in PrintStationery.tsx, ReportingSettingsForm.tsx, SignatoryProfiles.tsx
 - /reporting/templates/[template_id] rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-REPORTING: rule 7 broken in TemplateEditor.tsx
-
-## T0D-UIGUARD-1-SMARTREPORT (rule 7: 5 entries)
-
-- /smartreport/library rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-SMARTREPORT: rule 7 broken in ReviewPanel.tsx, TextsTab.tsx, PreviewDialog.tsx
-- /smartreport/library/[library_version_id] rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-SMARTREPORT: rule 7 broken in ReviewPanel.tsx, TextsTab.tsx, PreviewDialog.tsx
-- /smartreport/library/[library_version_id]/review rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-SMARTREPORT: rule 7 broken in ReviewPanel.tsx, TextsTab.tsx, PreviewDialog.tsx
-- /smartreport/summaries/[summary_id] rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-SMARTREPORT: rule 7 broken in SummaryReview.tsx
-- /smartreport/wording rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-SMARTREPORT: rule 7 broken in ReviewPanel.tsx, TextsTab.tsx, PreviewDialog.tsx

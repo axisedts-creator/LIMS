@@ -3,7 +3,9 @@
 import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@lims/ui/components/Button';
+import { Card } from '@lims/ui/components/Card';
 import { ConfirmDialog } from '@lims/ui/components/ConfirmDialog';
+import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
 import { Drawer } from '@lims/ui/components/Drawer';
 import { Form } from '@lims/ui/components/Form';
 import { Select } from '@lims/ui/components/Select';
@@ -31,33 +33,35 @@ export function TextsTab({ blocks }: { blocks: Block[] }) {
     if (r.ok) { setAlert(undefined); router.refresh(); } else setAlert(ed.failed(r));
   };
 
+  const columns: ColumnDef<Block>[] = [
+    { id: 'key', header: 'Key', isRowHeader: true, cell: (b) => b.block_key },
+    { id: 'text', header: 'Text', cell: (b) => text(b) },
+    ...(ed.readOnly ? [] : [{
+      id: 'actions', header: 'Actions',
+      cell: (b: Block) => (
+        <span className="lims-inline">
+          <Button size="sm" variant="ghost" onPress={() => setEditing(b)}>{`Edit ${b.block_key}`}</Button>
+          <Button size="sm" variant="ghost" onPress={() => setRemoving(b)}>{`Remove ${b.block_key}`}</Button>
+        </span>
+      ),
+    }]),
+  ];
+
   return (
     <div>
       <ErrorAlert text={alert} />
       {ed.readOnly ? null : <Button variant="primary" onPress={() => setEditing('new')}>Add text</Button>}
-      {KINDS.map((k) => {
-        const list = blocks.filter((b) => b.kind === k);
-        return (
-          <section key={k} aria-labelledby={`kind-${k}`}>
-            <h2 id={`kind-${k}`}>{KIND_LABEL[k]}</h2>
-            {list.length === 0 ? <p>No blocks yet</p> : (
-              <ul>
-                {list.map((b) => (
-                  <li key={b.id}>
-                    <strong>{b.block_key}</strong> <span>{text(b)}</span>
-                    {ed.readOnly ? null : (
-                      <span className="lims-inline">
-                        <Button size="sm" variant="ghost" onPress={() => setEditing(b)}>{`Edit ${b.block_key}`}</Button>
-                        <Button size="sm" variant="ghost" onPress={() => setRemoving(b)}>{`Remove ${b.block_key}`}</Button>
-                      </span>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-        );
-      })}
+      {/* LD-436 rule 7 (and rule 5): one Card per kind with a DataTable that keeps its header when empty, instead of raw h2 / ul */}
+      {KINDS.map((k) => (
+        <section key={k} aria-label={KIND_LABEL[k]}>
+          <Card title={KIND_LABEL[k]}>
+            <DataTable<Block>
+              columns={columns} rows={blocks.filter((b) => b.kind === k)} getRowId={(b) => b.id}
+              caption={KIND_LABEL[k]} density="compact" emptyState={{ title: 'No blocks yet' }}
+            />
+          </Card>
+        </section>
+      ))}
       {editing ? <BlockDrawer block={editing === 'new' ? undefined : editing} onClose={() => setEditing(undefined)} /> : null}
       <ConfirmDialog
         title="Remove this text?" body="Rules that use it must point to another text before submission. Earlier versions keep it." confirmLabel="Remove" tone="danger"

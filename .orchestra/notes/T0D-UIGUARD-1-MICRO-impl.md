@@ -4,4 +4,4 @@
 - Kit prop (additive, LD-441): Stack gets role ('list'|'group') and aria-label, same shape as Inline's.
 - [CONV] regions named by aria-label (Card h2 has no id). [CONV] ReadsTab items stay li inside the role=list Stack: t20.reads pins closest('li').
 - Green: uiguard1 36/36, micro t20 188, t21 157, t22 159, t23 154, t24 147, t26 32, uilist1 micro 12, uiset1 micro 4, packages/ui layout+axe+uikit1.static 289; tsc clean for touched paths. No rs-cN snapshots in micro.
-- OPEN: t19.pages 3 fails (500/503/400 "rejects so error.tsx renders") are pre-existing: T0D-UILIST-1 made the worklist page render MicroLoadError in-page; tests not touched here, see -dispute.md. eslint not runnable from apps/web (command not found).
+- t19.pages: arbiter TESTS_WRONG (LD-353 in-page ErrorState), tester revised; now t19 134/134 with no impl change. OPEN: eslint not runnable from apps/web (command not found).

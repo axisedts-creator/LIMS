@@ -12,6 +12,7 @@ import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
 import { DecimalField } from '@lims/ui/components/DecimalField';
 import { Dialog } from '@lims/ui/components/Dialog';
 import { Drawer } from '@lims/ui/components/Drawer';
+import { FilterBar } from '@lims/ui/components/FilterBar';
 import { Inline } from '@lims/ui/components/Inline';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { Stack } from '@lims/ui/components/Stack';
@@ -19,7 +20,7 @@ import { useToast } from '@lims/ui/components/Toast';
 import { deactivateRuleAction, searchItemsAction, supersedeRuleAction } from '../server/actions';
 import { RULE_KINDS, type Analyte, type Instrument, type ItemSummary, type Rule, type RuleKind, type Store, type TestRef } from '../server/types';
 import { KIND_LABEL, RuleForm } from './RuleForm';
-import { Chip, isoDate, newKey, Pick, ProblemBanner, qtyError, useAttemptKey, type Failure } from './shared';
+import { Chip, isoDate, newKey, ProblemBanner, qtyError, useAttemptKey, type Failure } from './shared';
 
 const ALL = '__all';
 export const CONSUMPTION_HELP = '/help/inventory.help.consumption_model';
@@ -101,11 +102,22 @@ export function RulesView(p: RulesViewProps) {
       <Stack>
         <a className="lims-link" href={CONSUMPTION_HELP}>Help: how automatic deduction works</a>
         <ProblemBanner problem={problem} />
-        {/* T0D-UILIST-3 (LD-353 template 1): the filters are the page's one FilterBar row (kit .lims-filter-bar). */}
-        <div role="search" className="lims-filter-bar">
-          <Pick label="Kind filter" name="kind" options={[{ value: ALL, label: 'All kinds' }, ...RULE_KINDS.map((k) => ({ value: k, label: KIND_LABEL[k] }))]} value={p.filters.kind ?? ALL} onChange={pickFilter('kind')} />
-          <Pick label="Test filter" name="test" options={[{ value: ALL, label: 'All tests' }, ...p.tests.map((t) => ({ value: t.id, label: `${t.code} · ${t.name}` }))]} value={p.filters.test ?? ALL} onChange={pickFilter('test')} />
-          <Pick label="Analyser filter" name="analyser" options={[{ value: ALL, label: 'All analysers' }, ...p.instruments.map((i) => ({ value: i.id, label: `${i.instrument_code} · ${i.display_name}` }))]} value={p.filters.analyser ?? ALL} onChange={pickFilter('analyser')} />
+        {/* T0D-UIGUARD-1-INVENTORY (LD-353 rule 2, LD-436 worklist mock): the filters are the page's one kit FilterBar; the item Combobox and the
+            history switch sit in its children slot (LD-441 additive prop). Same URL keys as before (display only, LD-438 d). */}
+        <FilterBar
+          filters={[
+            { id: 'kind', label: 'Kind filter', kind: 'select', options: [{ value: ALL, label: 'All kinds' }, ...RULE_KINDS.map((k) => ({ value: k, label: KIND_LABEL[k] }))] },
+            { id: 'test', label: 'Test filter', kind: 'select', options: [{ value: ALL, label: 'All tests' }, ...p.tests.map((t) => ({ value: t.id, label: `${t.code} · ${t.name}` }))] },
+            { id: 'analyser', label: 'Analyser filter', kind: 'select', options: [{ value: ALL, label: 'All analysers' }, ...p.instruments.map((i) => ({ value: i.id, label: `${i.instrument_code} · ${i.display_name}` }))] },
+          ]}
+          value={{ kind: p.filters.kind ?? ALL, test: p.filters.test ?? ALL, analyser: p.filters.analyser ?? ALL }}
+          onChange={(v) => {
+            const k = (['kind', 'test', 'analyser'] as const).find((x) => (v[x] ?? ALL) !== (p.filters[x] ?? ALL));
+            if (k) pickFilter(k)(String(v[k] ?? ALL));
+          }}
+          onReset={() => go({ kind: undefined, test: undefined, analyser: undefined, item: undefined, history: undefined })}
+          resetLabel="Clear filters"
+        >
           {/* Item filter (04-UI-UX S13 "Filters: kind, test, analyser, item, show history"); clearing the text = all items. */}
           <Combobox<ItemSummary>
             label="Item filter"
@@ -121,7 +133,7 @@ export function RulesView(p: RulesViewProps) {
             onChange={(v) => go({ item: v?.id })}
           />
           <Checkbox label="Show history" isSelected={p.filters.history} onChange={(v) => go({ history: v ? '1' : undefined })} />
-        </div>
+        </FilterBar>
         <DataTable caption="Consumption rules" columns={columns} rows={p.rules} getRowId={(r) => r.id} cellTitle emptyState={{ title: 'No consumption rules. Automatic deduction does nothing until you add rules.' }} />
       </Stack>
       <Drawer title="New consumption rule" isOpen={creating} onClose={() => setCreating(false)}>

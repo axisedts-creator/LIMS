@@ -6,6 +6,8 @@ import { useState, type ReactNode } from 'react';
 import { BarChart } from '@lims/ui/components/BarChart';
 import { Banner } from '@lims/ui/components/Banner';
 import { Button } from '@lims/ui/components/Button';
+import { Card } from '@lims/ui/components/Card';
+import { ChartCard } from '@lims/ui/components/ChartCard';
 import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
 import { Drawer } from '@lims/ui/components/Drawer';
 import { MoneyText } from '@lims/ui/components/MoneyText';
@@ -110,10 +112,13 @@ export function ReportBody({ code, result, canCost }: { code: ReportCode; result
     return (
       <Stack>
         {truncated}
-        <h2>Tests: C12 verified results against the lab</h2>
-        <Table caption="Tests" columns={apiColumns(result, canCost, [], skip)} rows={tests} />
-        <h2>Analysers: QC observations against analyser QC records</h2>
-        <Table caption="Analysers" columns={aCols} rows={analysers} />
+        {/* T0D-UIGUARD-1-INVENTORY (LD-436 R7): the two blocks are kit Cards with a title row, not raw h2. */}
+        <Card title="Tests: C12 verified results against the lab">
+          <Table caption="Tests" columns={apiColumns(result, canCost, [], skip)} rows={tests} />
+        </Card>
+        <Card title="Analysers: QC observations against analyser QC records">
+          <Table caption="Analysers" columns={aCols} rows={analysers} />
+        </Card>
       </Stack>
     );
   }
@@ -172,7 +177,12 @@ export function ReportBody({ code, result, canCost }: { code: ReportCode; result
   return (
     <Stack>
       {truncated}
-      {code === 'daily_consumption' && days.length ? <BarChart title="Daily consumption: quantity per day" categories={days} series={[{ id: 'qty', label: 'Quantity', values: perDay }]} /> : null}
+      {/* T0D-UIGUARD-1-INVENTORY (LD-353 rule 6, LD-436 Today mock): the chart sits in a ChartCard. */}
+      {code === 'daily_consumption' && days.length ? (
+        <ChartCard title="Daily consumption: quantity per day">
+          <BarChart title="Daily consumption: quantity per day" categories={days} series={[{ id: 'qty', label: 'Quantity', values: perDay }]} />
+        </ChartCard>
+      ) : null}
       <Table caption={code === 'daily_consumption' ? 'Daily consumption' : code === 'wastage' ? 'Wastage by category' : code === 'expiry' ? 'Expiry' : 'Stock valuation'} columns={apiColumns(result, canCost)} rows={rows} />
     </Stack>
   );

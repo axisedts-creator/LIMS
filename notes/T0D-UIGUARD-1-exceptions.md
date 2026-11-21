@@ -66,13 +66,6 @@ Other groups = LD-434 legacy baseline (CR-C0-0D-UIGUARD-1 option A); the heading
 - /frontdesk/orders/[order_id] rule 5: legacy baseline LD-434, fix in T0D-UIGUARD-1-FRONTDESK: rule 5 broken in OrderView.tsx, PatientView.tsx
 - /frontdesk/patients/[patient_id] rule 5: legacy baseline LD-434, fix in T0D-UIGUARD-1-FRONTDESK: rule 5 broken in OrderView.tsx, PatientView.tsx
 
-## T0D-UIGUARD-1-INVENTORY (4 entries, 3 routes)
-
-- /inventory/reports rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-INVENTORY: rule 2 broken in RulesView.tsx
-- /inventory/rules rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-INVENTORY: rule 2 broken in RulesView.tsx
-- /inventory/unresolved rule 2: legacy baseline LD-434, fix in T0D-UIGUARD-1-INVENTORY: rule 2 broken in RulesView.tsx
-- /inventory/reports rule 6: legacy baseline LD-434, fix in T0D-UIGUARD-1-INVENTORY: rule 6 broken in ReportBody.tsx
-
 ## T0D-UIGUARD-1-LAB (10 entries, 9 routes)
 
 - /lab/orders/[order_id]/labels rule 1: legacy baseline LD-434, fix in T0D-UIGUARD-1-LAB: rule 1 broken in the page itself
@@ -171,14 +164,6 @@ Other groups = LD-434 legacy baseline (CR-C0-0D-UIGUARD-1 option A); the heading
 - /frontdesk/patients/[patient_id] rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-FRONTDESK: rule 7 broken in PatientView.tsx
 - /frontdesk/registrations/new rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-FRONTDESK: rule 7 broken in RegistrationForm.tsx, ReceiptPrintView.tsx, accountsShared.tsx, InvoiceDocument.tsx
 - /frontdesk/settings rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-FRONTDESK: rule 7 broken in SettingsView.tsx
-
-## T0D-UIGUARD-1-INVENTORY (rule 7: 5 entries)
-
-- /inventory/bench rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-INVENTORY: rule 7 broken in BenchView.tsx
-- /inventory/reports rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-INVENTORY: rule 7 broken in ReportBody.tsx
-- /inventory/stock rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-INVENTORY: rule 7 broken in StockView.tsx, IssueDrawer.tsx
-- /inventory/unresolved rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-INVENTORY: rule 7 broken in UnresolvedView.tsx, consoleParts.tsx
-- /inventory/wastage rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-INVENTORY: rule 7 broken in IssueDrawer.tsx
 
 ## T0D-UIGUARD-1-LAB (rule 7: 9 entries)
 

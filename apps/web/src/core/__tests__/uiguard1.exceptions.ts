@@ -59,11 +59,6 @@ export const EXCEPTIONS: GuardException[] = [
     '/catalog/tests',
     '/catalog/units',
   ]),
-  ...legacy('INVENTORY', 2, 'RulesView.tsx', [
-    '/inventory/reports',
-    '/inventory/rules',
-    '/inventory/unresolved',
-  ]),
   ...legacy('LAB', 2, 'QueueScreen.tsx, PendingPage.tsx, StatusBoard.tsx, WorklistPage.tsx', [
     '/lab/approval',
     '/lab/pending',
@@ -129,9 +124,6 @@ export const EXCEPTIONS: GuardException[] = [
     '/lab/orders/[order_id]/results',
     '/lab/settings',
   ]),
-  ...legacy('INVENTORY', 6, 'ReportBody.tsx', [
-    '/inventory/reports',
-  ]),
   ...legacy('LAB', 6, 'ResultPanels.tsx', [
     '/lab/orders/[order_id]/results',
   ]),
@@ -183,13 +175,6 @@ export const EXCEPTIONS: GuardException[] = [
     ['/frontdesk/patients/[patient_id]', 'PatientView.tsx'],
     ['/frontdesk/registrations/new', 'RegistrationForm.tsx, ReceiptPrintView.tsx, accountsShared.tsx, InvoiceDocument.tsx'],
     ['/frontdesk/settings', 'SettingsView.tsx'],
-  ]),
-  ...legacy7('INVENTORY', [
-    ['/inventory/bench', 'BenchView.tsx'],
-    ['/inventory/reports', 'ReportBody.tsx'],
-    ['/inventory/stock', 'StockView.tsx, IssueDrawer.tsx'],
-    ['/inventory/unresolved', 'UnresolvedView.tsx, consoleParts.tsx'],
-    ['/inventory/wastage', 'IssueDrawer.tsx'],
   ]),
   ...legacy7('LAB', [
     ['/lab/approval', 'QueueScreen.tsx, consoleParts.tsx, ResultDialogs.tsx'],

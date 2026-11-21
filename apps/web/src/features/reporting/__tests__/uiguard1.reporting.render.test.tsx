@@ -101,7 +101,7 @@ describe('/reporting worklist is the Front-desk worklist look', () => {
     for (const l of [/status/i, /centre/i, /family/i, /review flag/i]) expect(within(bar).getAllByText(l).length, String(l)).toBeGreaterThan(0);
     expect(within(bar).getAllByText(/registered/i).length).toBeGreaterThan(0);
     expect([...bar.querySelectorAll('button')].map(txt), 'reset button reads Clear filters').toContain('Clear filters');
-    expect(bar.querySelectorAll('input[type="date"], [role="spinbutton"]').length, 'registered from and to').toBeGreaterThanOrEqual(2);
+    expect(bar.querySelectorAll('input[name="registered_from"], input[name="registered_to"]').length, 'registered from and to').toBeGreaterThanOrEqual(2);
   });
 
   it('no rows: header row drawn in the scroll box, ONE EmptyState in the body, caption and tabs stay', async () => {

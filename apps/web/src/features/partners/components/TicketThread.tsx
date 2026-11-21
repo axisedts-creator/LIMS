@@ -5,6 +5,7 @@
 // keeps the typed text.
 import Link from 'next/link';
 import { useId, useState } from 'react';
+import { Card } from '@lims/ui/components/Card';
 import { EmptyState } from '@lims/ui/components/EmptyState';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { TextArea } from '@lims/ui/components/TextArea';
@@ -64,22 +65,24 @@ export function TicketThread({ detail, party, permissions }: { detail: PartnerTi
           : <Gate variant="secondary" reasonId={canManage ? undefined : manageId} isLoading={busy} onPress={() => void write(() => closeTicketAction(ticket.id, ticket.version, newKey()), t('partners.ticket.closed_done'))}>{t('partners.ticket.close')}</Gate>} />
       <p className="lims-description">{`${t('partners.ticket.col.party')}: ${party}`}</p>
       {!canManage ? <ReasonLine id={manageId}>{t('partners.ticket.reason.manage')}</ReasonLine> : null}
-      <h2 className="lims-section-title">{t('partners.ticket.messages')}</h2>
-      {messages.length === 0 ? (
-        <div className="ticket-empty-state"><EmptyState title={t('partners.ticket.messages_empty')} body={t('partners.ticket.messages_empty_hint')} /></div>
-      ) : (
-        <ol className="lims-stack">
-          {messages.map((m) => (
-            <li key={m.id} className="lims-card">
-              <p className="lims-label">
-                <span>{t(`partners.ticket.sender.${m.sender_kind}`)}</span>{' '}
-                <Ad value={m.created_at} withTime />
-              </p>
-              <p className="lims-pre-wrap">{m.body}</p>
-            </li>
-          ))}
-        </ol>
-      )}
+      {/* T0D-UIGUARD-1-PARTNERS (LD-436/LD-439 rule 7): the messages sit in a kit Card with its title row (no raw h2); the list is ARIA roles, no raw ol. */}
+      <Card title={t('partners.ticket.messages')}>
+        {messages.length === 0 ? (
+          <div className="ticket-empty-state"><EmptyState title={t('partners.ticket.messages_empty')} body={t('partners.ticket.messages_empty_hint')} /></div>
+        ) : (
+          <div role="list" className="lims-timeline">
+            {messages.map((m) => (
+              <div role="listitem" key={m.id} className="lims-timeline-item">
+                <p className="lims-label">
+                  <span>{t(`partners.ticket.sender.${m.sender_kind}`)}</span>{' '}
+                  <Ad value={m.created_at} withTime />
+                </p>
+                <p className="lims-pre-wrap">{m.body}</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
       <div className="lims-stack">
         <TextArea label={t('partners.ticket.reply_label')} name="reply" maxLength={2000} rows={4} value={reply} isDisabled={closed || !canManage}
           onChange={(v) => { setReply(v); setError(undefined); }} {...(error ? { error } : {})} />

@@ -1,7 +1,6 @@
-# T0D-UIKIT-2 tests (tester)
-Files (packages/ui/src/components/__tests__/): `uikit2.actionlist.test.tsx` (ActionList, whole file fails: module missing), `uikit2.kit.test.tsx` (Card title row, StatusStepper marker, state illustrations, kit.css tokens/motion, tokens.json hash pin, stories).
-Run: `.orchestra\notes\T0D-UIKIT-2-verify.cmd` = `pnpm --dir packages/ui exec vitest run src/components/__tests__/uikit2.actionlist.test.tsx src/components/__tests__/uikit2.kit.test.tsx`
-Now: kit file 22 failed / 10 passed (the 10 are guards: tokens.json pin, existing stepper behaviour, existing state stories); actionlist file fails on import. Contracts (prop names, class names, markup) are in each file's header comment.
-DISPUTE for arbiter: done_when 2 (Card hairline + radius 12 + elevation.1) contradicts m-series-kit.test.tsx:184-200 (radius 24, "no border, no shadow") and ui-r03-kit-pass.test.tsx:133 (.lims-card -> xl). I followed done_when and did NOT edit those tests; the writer must get a ruling to update them (they cannot both pass).
-Not tested: shell.css `.lims-card` !important padding/title size override in apps/web (LD-344/352 values), web feature tests, visual match to the mock (no renderer), the 7 named pins beyond the Card conflict above.
-Gap: Icon has no chevron-right; writer adds it additively.
+# T0D-UIKIT-2 tests (tester, updated for LD-438)
+Files: packages/ui/src/components/__tests__/uikit2.actionlist.test.tsx (ActionList + mock text checks: title 500, detail xs neutral.500, 1px hairline rows), uikit2.kit.test.tsx (Card title row + baseline, StatusStepper marker, state art, kit.css tokens/motion, tokens.json pin, NEW guard: kit.css lims-card unchanged radius xl / no border / no shadow); apps/web/src/core/shell/__tests__/uikit2.shell.test.ts (NEW: shell.css lims-card border 1px neutral.200, radius md, elevation.1, each !important, after padding rule, tokens only, no dialog/drawer rule) + vitest.uikit2.config.ts (also runs m2.source, m4.source, r04.source).
+Run: `.orchestra\notes\T0D-UIKIT-2-verify.cmd` (ui: uikit2 x2 + m-series-kit + ui-r03-kit-pass; then web uikit2 config).
+Now: ui 21 failed (new parts missing) / 188 passed incl. m-series-kit and ui-r03; web 3 failed (shell.css card rule missing) / 56 passed incl. m2, m4, r04 sources.
+m-series-kit.test.tsx and ui-r03-kit-pass.test.tsx NOT edited. Card-surface dispute closed by LD-438.
+Not tested: visual match to mock (no renderer), web feature tests, other pins (elabmenu1.sidebar, web-style-3) beyond the ones above.

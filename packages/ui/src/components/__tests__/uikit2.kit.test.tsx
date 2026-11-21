@@ -10,8 +10,9 @@
 //     or var(--lims-neutral-N); at least one accent and one neutral stroke; no image, style, animation or hex colour. It replaces the 32px icon.
 //   * kit.css: only tokens in every new rule; .lims-step-done in accent; .lims-step-upcoming outlined in a neutral token;
 //     .lims-step-marker = accent.highlight fill with an accent.subtle ring made with border or outline (a box-shadow ring is barred by ui-r03).
-//   * DISPUTE for the arbiter (see .orchestra/notes/T0D-UIKIT-2-tests.md): m-series-kit.test.tsx lines 184-200 and ui-r03-kit-pass.test.tsx
-//     (.lims-card -> xl, "no border, no shadow") assert the OLD card; done_when 2 says hairline + radius 12 + elevation.1. The tests below follow done_when.
+//   * CARD SURFACE, RULED (LD-438, CR-C0-0D-UIKIT2 option C): kit.css lims-card stays radius 24, no border, no shadow (m-series-kit and
+//     ui-r03-kit-pass stay green, not edited). The staff web hairline + radius md + elevation.1 is in apps/web shell.css, tested by
+//     apps/web/src/core/shell/__tests__/uikit2.shell.test.ts.
 import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { join } from 'node:path';
@@ -58,6 +59,7 @@ describe('Card title row (done_when 2)', () => {
   it('the head row puts title left and caption right (flex, space-between)', () => {
     expect(declared(/^\.lims-card-head$/, 'display')).toBe('flex');
     expect(declared(/^\.lims-card-head$/, 'justify-content')).toBe('space-between');
+    expect(declared(/^\.lims-card-head$/, 'align-items')).toBe('baseline'); // mock: title and caption share a baseline
   });
 
   it('title weight 500, md size; caption small and neutral (weights 400 and 500 only)', () => {
@@ -67,11 +69,13 @@ describe('Card title row (done_when 2)', () => {
     expect(declared(/^\.lims-card-caption$/, 'font-weight') ?? 'var(--lims-font-weight-regular)').not.toMatch(/600|700|semibold|bold/);
   });
 
-  it('the card keeps white fill and gets a 1px neutral.200 hairline, radius 12 (md) and elevation.1', () => {
+  // LD-438 (option C): the kit base card STAYS the M series card; the hairline, radius md and elevation.1 live in apps/web shell.css
+  // (apps/web/src/core/shell/__tests__/uikit2.shell.test.ts). This guard fails if the kit rule is changed.
+  it('kit.css lims-card is unchanged: white fill, radius xl (24), no border, no shadow (LD-438)', () => {
     expect(declared(/^\.lims-card$/, 'background')).toBe('var(--lims-neutral-0)');
-    expect(declared(/^\.lims-card$/, 'border')).toBe('1px solid var(--lims-neutral-200)');
-    expect(declared(/^\.lims-card$/, 'border-radius')).toBe('var(--lims-radius-md)');
-    expect(declared(/^\.lims-card$/, 'box-shadow')).toBe('var(--lims-elevation-1)');
+    expect(declared(/^\.lims-card$/, 'border-radius')).toBe('var(--lims-radius-xl)');
+    expect(declared(/^\.lims-card$/, 'border')).toMatch(/^(0|none)$/);
+    expect(declared(/^\.lims-card$/, 'box-shadow')).toBe('none');
   });
 });
 

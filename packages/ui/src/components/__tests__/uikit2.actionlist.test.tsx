@@ -176,6 +176,20 @@ describe('ActionList: keyboard focus, hover, 150 ms token motion, reduced motion
       }
     }
   });
+
+  // LD-438 (5): the Today mock fixes these in the "Needs you" rows (title weight 500, detail line caption size in neutral.500, 1px hairline between rows).
+  const decl = (re: RegExp, prop: string) => rulesMatching(re).flatMap((r) => (r.decls.has(prop) ? [r.decls.get(prop)!] : []));
+
+  it('mock: row title is weight 500; detail line is caption size (xs) in neutral.500', () => {
+    expect(decl(/\.lims-action-title$/, 'font-weight').join(' ')).toMatch(/\b500\b|var\(--lims-font-weight-medium\)/);
+    expect(decl(/\.lims-action-detail$/, 'color').join(' ')).toContain('var(--lims-neutral-500)');
+    expect(decl(/\.lims-action-detail$/, 'font-size').join(' ')).toContain('var(--lims-font-size-xs-size)');
+  });
+
+  it('mock: rows are separated by a 1px neutral.200 hairline (border-top or border-bottom on the item or row)', () => {
+    const all = rulesMatching(/\.lims-action-(list|item|row)\b/).flatMap((r) => ['border', 'border-top', 'border-bottom'].map((p) => r.decls.get(p) ?? ''));
+    expect(all.some((v) => /1px solid var\(--lims-neutral-200\)/.test(v))).toBe(true);
+  });
 });
 
 describe('ActionList: sample data and axe', () => {

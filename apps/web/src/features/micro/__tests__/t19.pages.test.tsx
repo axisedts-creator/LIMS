@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 // C10.T-19 — /micro/worklist page (04-UI-UX §2; 03-APP-FLOW §5; AC-02.1; AC-02.3 is server-side RLS, the UI never widens it; REQ-SEC-026/027).
 // "all page states": populated · empty · loading · error · forbidden. Server components are awaited directly and their element rendered (MSW plays the API).
-// ASSUMED: page is an async server component; 403 on the culture list -> MicroForbidden (no table, no scan bar, no data); other failures reject (error.tsx);
+// ASSUMED: page is an async server component; 403 on the culture list -> MicroForbidden (no table, no scan bar, no data); other failures render the in-page ErrorState (LD-353);
 // counts for the other four tabs come from limit=1&include_total=true calls; Reg no from GET /v1/lab/specimens/{id}; centres from GET /v1/identity/centres?is_active=true.
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/react';
@@ -200,14 +200,24 @@ describe('permission and failure states (03-APP-FLOW §5)', () => {
     expect(hit('GET', /\/v1\/lab\/specimens\//)).toHaveLength(0);
   });
 
-  it.each([500, 503])('%i from the list rejects so error.tsx renders (no partial table)', async (status) => {
+  // LD-353 rule 6 / LD-436 look spec: a failed read renders in the page (title + ErrorState), never throws to error.tsx; no partial table, no stale rows.
+  const expectInPageError = () => {
+    expect(screen.getAllByText('Microbiology').length).toBeGreaterThan(0);
+    expect(document.body.textContent).toContain('This list could not be loaded.');
+    expect(screen.queryAllByRole('row').filter((r) => r.querySelector('td'))).toHaveLength(0);
+    expect(document.body.textContent).not.toContain('Synthetic culture');
+  };
+
+  it.each([500, 503])('%i from the list renders the in-page error state with the title (no partial table)', async (status) => {
     api.use(http.get(`${ORIGIN}/v1/micro/cultures`, () => problem('common.internal', status)));
-    await expect(worklist()).rejects.toBeTruthy();
+    await worklist();
+    expectInPageError();
   });
 
-  it('400 (invalid cursor) rejects rather than showing stale rows', async () => {
+  it('400 (invalid cursor) renders the in-page error state, no stale rows', async () => {
     api.use(http.get(`${ORIGIN}/v1/micro/cultures`, () => problem('common.invalid_cursor', 400)));
-    await expect(worklist({ cursor: 'abc' })).rejects.toBeTruthy();
+    await worklist({ cursor: 'abc' });
+    expectInPageError();
   });
 
   it('no session token -> the API is never called with an empty bearer', async () => {

@@ -20,7 +20,7 @@ export default async function BreakpointSetPage({ params }: { params: Promise<{ 
     const [issues, rows] = checking ? [[], []] : await Promise.all([listBreakpointImportIssues(breakpoint_set_id).then((p) => p.data), listBreakpointRows(breakpoint_set_id).then((p) => p.data)]);
     return { set, issues, rows };
   }));
-  if (loaded === null) return <MicroForbidden />;
+  if (loaded === null) return <MicroForbidden helpKey="micro.breakpoint_sets" />;
   if (!loaded) notFound();
   return <BreakpointSetDetail set={loaded.set} issues={loaded.issues} rows={loaded.rows} permissions={session?.actor.permissions ?? []} />;
 }

@@ -219,15 +219,6 @@ Other groups = LD-434 legacy baseline (CR-C0-0D-UIGUARD-1 option A); the heading
 - /lab/verification rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-LAB: rule 7 broken in QueueScreen.tsx, consoleParts.tsx, ResultDialogs.tsx
 - /lab/worksheets/[worksheet_id] rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-LAB: rule 7 broken in WorksheetPrintPage.tsx
 
-## T0D-UIGUARD-1-MICRO (rule 7: 6 entries)
-
-- /micro/breakpoint-sets rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-MICRO: rule 7 broken in MicroForbidden.tsx
-- /micro/breakpoint-sets/[breakpoint_set_id] rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-MICRO: rule 7 broken in MicroForbidden.tsx
-- /micro/cultures/[culture_id] rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-MICRO: rule 7 broken in MicroForbidden.tsx, ReportDrawer.tsx, ReadsTab.tsx, ChooseCultureDialog.tsx
-- /micro/instrument-records rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-MICRO: rule 7 broken in MicroForbidden.tsx
-- /micro/settings rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-MICRO: rule 7 broken in MicroForbidden.tsx, DictionariesTab.tsx, MappingsTab.tsx, PanelsTab.tsx, ProtocolsTab.tsx
-- /micro/worklist rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-MICRO: rule 7 broken in MicroForbidden.tsx, ChooseCultureDialog.tsx
-
 ## T0D-UIGUARD-1-OFFLINE (rule 7: 1 entries)
 
 - /offline rule 7: legacy baseline LD-436, fix in T0D-UIGUARD-1-OFFLINE: rule 7 broken in OfflinePanel.tsx, OfflineShell.tsx

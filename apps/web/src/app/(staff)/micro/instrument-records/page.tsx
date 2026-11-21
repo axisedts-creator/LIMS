@@ -22,7 +22,7 @@ export default async function MicroInstrumentRecordsPage({ searchParams }: { sea
 async function records(sp: SearchParams) {
   const session = await getShellSession();
   const page = await orForbidden(() => listInstrumentRecordsPage(sp));
-  if (!page) return <MicroForbidden />;
+  if (!page) return <MicroForbidden helpKey="micro.instrument_records" />;
   return (
     <InstrumentRecordsScreen
       rows={page.rows}

@@ -3,6 +3,7 @@
 // Read schedule: ascending whole hours 1..720, at most 10. Media rows (1..12) are re-checked by the API; the UI sends what was entered.
 import { useEffect, useState } from 'react';
 import { Button } from '@lims/ui/components/Button';
+import { Card } from '@lims/ui/components/Card';
 import { Checkbox } from '@lims/ui/components/Checkbox';
 import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
 import { Drawer } from '@lims/ui/components/Drawer';
@@ -43,11 +44,13 @@ export function ProtocolsTab({ canManage }: { canManage: boolean }) {
     ...(canManage ? [{ id: 'new', header: 'Actions', cell: (p: PlatingProtocolDto) => <Button size="sm" variant="ghost" onPress={() => setEditing(p)}>New version<VisuallyHidden> {p.code}</VisuallyHidden></Button> }] : []),
   ];
   return (
-    <section aria-labelledby="micro-protocols">
-      <h2 id="micro-protocols">Plating protocols</h2>
+    // T0D-UIGUARD-1-MICRO (LD-436, LD-439): Card title row + DataTable, no raw h2; the region keeps its name.
+    <section aria-label="Plating protocols">
+      <Card title="Plating protocols">
       <FailNotice fail={fail} />
       {canManage ? <div><Button onPress={() => setEditing('new')}>Add protocol</Button></div> : null}
       <DataTable<PlatingProtocolDto> caption="Plating protocols" columns={columns} rows={rows} getRowId={(p) => p.id} isLoading={!loaded} emptyState={{ title: 'No plating protocols.' }} />
+      </Card>
       {editing ? <ProtocolDrawer key={editing === 'new' ? 'new' : editing.id} base={editing === 'new' ? undefined : editing} onClose={() => setEditing(undefined)} onSaved={reload} /> : null}
     </section>
   );

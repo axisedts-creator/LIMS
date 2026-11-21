@@ -8,6 +8,6 @@ import { getMicroSettings } from '@/features/micro/server/settings.server';
 export default async function MicroSettingsPage() {
   const session = await getShellSession();
   const settings = await orForbidden(() => getMicroSettings());
-  if (!settings) return <MicroForbidden />;
+  if (!settings) return <MicroForbidden helpKey="micro.settings" />;
   return <MicroSettingsScreen settings={settings} permissions={session?.actor.permissions ?? []} />;
 }

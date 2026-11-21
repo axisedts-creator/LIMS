@@ -3,6 +3,7 @@
 // TextField replaces the Select. Per instrument: the vocabulary maps (instrument code → local code) and the default AST standard (+ version ≤ 32).
 import { useEffect, useState } from 'react';
 import { Button } from '@lims/ui/components/Button';
+import { Card } from '@lims/ui/components/Card';
 import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
 import { Drawer } from '@lims/ui/components/Drawer';
 import { Form } from '@lims/ui/components/Form';
@@ -34,8 +35,9 @@ export function MappingsTab({ canManage }: { canManage: boolean }) {
   ];
 
   return (
-    <section aria-labelledby="micro-mappings">
-      <h2 id="micro-mappings">Instrument mappings</h2>
+    // T0D-UIGUARD-1-MICRO (LD-436, LD-439): Card title rows + DataTable, no raw h2 or h3; the regions keep their names.
+    <section aria-label="Instrument mappings">
+      <Card title="Instrument mappings">
       {listForbidden ? (
         <TextField label="Instrument ID" name="instrument_id" maxLength={36} description="You can't list instruments here. Paste the instrument id from the instruments screen." value={picked} onChange={setPicked} />
       ) : (
@@ -46,10 +48,11 @@ export function MappingsTab({ canManage }: { canManage: boolean }) {
           <FailNotice fail={maps.fail} />
           {canManage ? <div><Button onPress={() => setAdding(true)}>Add mapping</Button></div> : null}
           <DataTable<VocabMapDto> caption="Instrument code mappings" columns={columns} rows={maps.rows} getRowId={(m) => m.id} isLoading={!maps.loaded} emptyState={{ title: 'No mappings for this instrument.' }} />
-          <DefaultStandard key={instrumentId} instrumentId={instrumentId} current={defaults.rows.find((d) => d.instrument_id === instrumentId)} ready={defaults.loaded} canManage={canManage} />
           {adding ? <MappingDrawer instrumentId={instrumentId} onClose={() => setAdding(false)} onSaved={maps.reload} /> : null}
         </>
       ) : null}
+      </Card>
+      {instrumentId ? <DefaultStandard key={instrumentId} instrumentId={instrumentId} current={defaults.rows.find((d) => d.instrument_id === instrumentId)} ready={defaults.loaded} canManage={canManage} /> : null}
     </section>
   );
 }
@@ -71,14 +74,15 @@ function DefaultStandard({ instrumentId, current, ready, canManage }: { instrume
     if (r.ok) { setSaved(r.data.version); toast.show({ tone: 'success', title: 'Default standard saved' }); } else setFail(r);
   };
   return (
-    <section aria-labelledby="micro-default-std">
-      <h3 id="micro-default-std">Default standard</h3>
+    <section aria-label="Default standard">
+      <Card title="Default standard">
       <FailNotice fail={fail} />
       <Form onSubmit={save}>
         <Select<Standard> label="Standard" name="standard" isDisabled={!canManage} placeholder="Not set" {...(standard ? { value: standard } : {})} onChange={setStandard} options={STANDARDS.map((s) => ({ value: s, label: s }))} />
         <TextField label="Standard version" name="standard_version" maxLength={32} isDisabled={!canManage} value={version} onChange={setVersion} />
         {canManage ? <Button type="submit">Save default</Button> : null}
       </Form>
+      </Card>
     </section>
   );
 }

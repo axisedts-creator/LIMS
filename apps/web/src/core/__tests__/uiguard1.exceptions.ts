@@ -33,10 +33,6 @@ export const EXCEPTIONS: GuardException[] = [
     '/catalog/credit-parties/[credit_party_id]',
     '/catalog/tests/[test_id]',
   ]),
-  ...legacy('LAB', 1, 'the page itself', [
-    '/lab/orders/[order_id]/labels',
-    '/lab/worksheets/[worksheet_id]',
-  ]),
   ...legacy('OFFLINE', 1, 'the page itself', [
     '/offline',
   ]),
@@ -74,13 +70,6 @@ export const EXCEPTIONS: GuardException[] = [
     '/inventory/reports',
     '/inventory/rules',
     '/inventory/unresolved',
-  ]),
-  ...legacy('LAB', 2, 'QueueScreen.tsx, PendingPage.tsx, StatusBoard.tsx, WorklistPage.tsx', [
-    '/lab/approval',
-    '/lab/pending',
-    '/lab/status-board',
-    '/lab/verification',
-    '/lab/worklists/[department_id]',
   ]),
   ...legacy('PARTNERS', 2, 'PartysetCommon.tsx, ManifestInbox.tsx, PenaltyEvents.tsx', [
     '/partners/manifests',
@@ -145,15 +134,8 @@ export const EXCEPTIONS: GuardException[] = [
   ...legacy('HOMECOLLECTION', 5, 'DispatchBoard.tsx', [
     '/homecollection/dispatch',
   ]),
-  ...legacy('LAB', 5, 'ResultPanels.tsx, DeltaRulesTab.tsx, QcHoldsTab.tsx', [
-    '/lab/orders/[order_id]/results',
-    '/lab/settings',
-  ]),
   ...legacy('INVENTORY', 6, 'ReportBody.tsx', [
     '/inventory/reports',
-  ]),
-  ...legacy('LAB', 6, 'ResultPanels.tsx', [
-    '/lab/orders/[order_id]/results',
   ]),
   ...legacy('QUALITY', 6, 'ReportView.tsx', [
     '/quality/autoverify/[version_id]',
@@ -241,17 +223,6 @@ export const EXCEPTIONS: GuardException[] = [
     ['/inventory/stock', 'StockView.tsx, IssueDrawer.tsx'],
     ['/inventory/unresolved', 'UnresolvedView.tsx, consoleParts.tsx'],
     ['/inventory/wastage', 'IssueDrawer.tsx'],
-  ]),
-  ...legacy7('LAB', [
-    ['/lab/approval', 'QueueScreen.tsx, consoleParts.tsx, ResultDialogs.tsx'],
-    ['/lab/critical-values', 'CriticalValueList.tsx, consoleParts.tsx'],
-    ['/lab/ingest-exceptions', 'IngestExceptionList.tsx, consoleParts.tsx'],
-    ['/lab/orders/[order_id]/labels', 'LabelPage.tsx'],
-    ['/lab/orders/[order_id]/results', 'CommentCell.tsx, ResultDialogs.tsx, ResultPanels.tsx'],
-    ['/lab/settings', 'VerificationPolicyTab.tsx'],
-    ['/lab/specimens/[specimen_id]', 'SpecimenDetail.tsx'],
-    ['/lab/verification', 'QueueScreen.tsx, consoleParts.tsx, ResultDialogs.tsx'],
-    ['/lab/worksheets/[worksheet_id]', 'WorksheetPrintPage.tsx'],
   ]),
   ...legacy7('MICRO', [
     ['/micro/breakpoint-sets', 'MicroForbidden.tsx'],

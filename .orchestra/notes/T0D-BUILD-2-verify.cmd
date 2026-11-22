@@ -1,0 +1,1 @@
+cd /d "%~dp0..\.." && "C:\Program Files\Git\bin\bash.exe" tests/partners/T0D-BUILD-2.pg.sh && pnpm --dir apps/web run build:nav && pnpm --dir apps/web exec vitest run -c src/features/partners/__tests__/vitest.build2.config.ts --maxWorkers=1

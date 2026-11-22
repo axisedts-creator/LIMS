@@ -42,7 +42,8 @@ export function TatView({ page, generatedAt, sp, canAck, departments = [], centr
   const level = (l: string) => rows.filter((r) => r.alert_level === l).length;
   const escalated = level('escalated');
   // T0D-BUILD-5 (LD-455): listTatAlerts has no total/count field (notes/T0D-BUILD-5-left.md); with a next page the counts are a lower bound.
-  const more = !!data.next;
+  // A later page (cursor set) is not the whole list either (T0D-BUILD-5 review item 1).
+  const more = !!data.next || !!sp['cursor'];
   const shown = (n: number) => (more ? `at least ${n}` : String(n));
   // T0D-BUILD-5: names from the lookups the page already loads (listDepartments, listCentres); the id only when the name is unknown.
   const deptName = new Map(departments.map((o) => [o.value, o.label]));
@@ -144,7 +145,7 @@ export function TatView({ page, generatedAt, sp, canAck, departments = [], centr
       <StatTileRow>
         {LEVEL_OPTIONS.map((l) => <StatTile key={l.value} label={l.label} value={` ${shown(level(l.value))} `} />)}
       </StatTileRow>
-      <ChartCard title="Alerts by level" isEmpty={rows.length === 0} {...(more ? { note: 'Counts of this page only: there are at least this many, more on the next page.' } : {})}>
+      <ChartCard title="Alerts by level" isEmpty={rows.length === 0} {...(more ? { note: 'Counts of this page only: there are at least this many, other pages hold more.' } : {})}>
         <ChartTable title="Alerts by level" label="Level" valueHeader="Alerts" rows={LEVEL_OPTIONS.map((l) => ({ label: l.label, value: level(l.value) }))} />
       </ChartCard>
       <div onKeyDown={onKeyDown}>

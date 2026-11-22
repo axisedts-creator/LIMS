@@ -212,7 +212,7 @@ describe("analytics.yaml (T0C-10.C8)", () => {
     it(`${TOTAL} operations; table ids unique; file has exactly these`, () => {
       expect(SPECS.length).toBe(TOTAL);
       expect(new Set(SPECS.map((s) => s.id)).size).toBe(TOTAL);
-      expect(Object.keys(ops).sort()).toEqual(SPECS.map((s) => s.id).sort());
+      expect(Object.keys(ops).sort()).toEqual([...SPECS.map((s) => s.id), "getMisReportPage"].sort()); // T0D-BUILD-4 (LD-447): the one additive operation; its own pins are tools/codegen/__tests__/build4-mis-page-openapi.test.ts
     });
     it("every operationId named in the TRD §5 table is in the test table (TRD drift guard)", () => {
       const lines = readFileSync(TRD, "utf8").split("\n");
@@ -296,7 +296,7 @@ describe("analytics.yaml (T0C-10.C8)", () => {
       for (const n of DTOS) expect(schema(n), n).toBeDefined();
     });
     it("request bodies are JSON; no tenant_id / created_by in any JSON body (rule 7)", () => {
-      expect(Object.keys(ops).length, "no operations").toBe(TOTAL);
+      expect(Object.keys(ops).length, "no operations").toBe(TOTAL + 1);
       for (const [id, { op }] of Object.entries(ops)) {
         for (const k of Object.keys(op.requestBody?.content ?? {})) expect(k, id).toBe("application/json");
         const s = deref(op.requestBody?.content?.["application/json"]?.schema);
@@ -697,7 +697,7 @@ describe("analytics.yaml (T0C-10.C8)", () => {
       expect(n).toBeGreaterThanOrEqual(TOTAL - 1);
     });
     it("every operation has a 2xx response with a servable example Prism can serve", () => {
-      expect(Object.keys(ops).length).toBe(TOTAL);
+      expect(Object.keys(ops).length).toBe(TOTAL + 1);
       for (const { op, path, method } of Object.values(ops)) {
         const two = Object.entries<any>(op.responses ?? {}).filter(([c]) => /^2/.test(c));
         expect(two.length, `${method} ${path}: no 2xx`).toBeGreaterThan(0);

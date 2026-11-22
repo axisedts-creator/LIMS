@@ -34,6 +34,7 @@ const EXPECTED_OPS = [
   'createAnalyticsExport', 'listAnalyticsExports', 'getAnalyticsExport', 'downloadAnalyticsExport', 'listReportSchedules',
   'createReportSchedule', 'getReportSchedule', 'updateReportSchedule', 'deactivateReportSchedule', 'getReportRun',
   'getCollectionsFilterOptions',
+  'getMisReportPage', // T0D-BUILD-4 (LD-447): the one additive operation, the HTTP read of the MIS report definitions
 ];
 /** operationIds whose stub a later task has replaced; that task moves its ids here (tester-owned list). */
 const IMPLEMENTED: readonly string[] = [
@@ -46,6 +47,7 @@ const IMPLEMENTED: readonly string[] = [
   'getAnalyticsDashboard', 'getAnalyticsFreshness', 'requestAnalyticsRefresh', // AN-T14
   'createAnalyticsExport', 'listAnalyticsExports', 'getAnalyticsExport', 'downloadAnalyticsExport', // AN-T15
   'listReportSchedules', 'createReportSchedule', 'getReportSchedule', 'updateReportSchedule', 'deactivateReportSchedule', 'getReportRun', // AN-T16
+  'getMisReportPage', // T0D-BUILD-4
 ];
 
 const FAKE_REQ = { params: {}, query: {}, headers: {}, body: {} };
@@ -77,10 +79,10 @@ describe('AN-T01 manifest', () => {
   });
 });
 
-describe('AN-T01 handler map (30 operationIds)', () => {
-  it('the spec has the 30 operationIds of 06-PLAN, unique', () => {
-    expect(OPS.length).toBe(30);
-    expect(new Set(OPS).size).toBe(30);
+describe('AN-T01 handler map (31 operationIds: the 30 of 06-PLAN + getMisReportPage of T0D-BUILD-4)', () => {
+  it('the spec has the 30 operationIds of 06-PLAN plus getMisReportPage, unique', () => {
+    expect(OPS.length).toBe(31);
+    expect(new Set(OPS).size).toBe(31);
     expect([...OPS].sort()).toEqual([...EXPECTED_OPS].sort());
   });
 
@@ -230,7 +232,7 @@ describe('AN-T01 boot against the real repo (default modulesDir, real analytics.
   };
   const toUrl = (path: string) => path.replace(/\{[^}]+\}/g, '01a1a98a-ac40-7000-8000-000000090001');
 
-  it('boots and mounts every analytics operation at its spec path and method (30 of 30)', async () => {
+  it('boots and mounts every analytics operation at its spec path and method (31 of 31)', async () => {
     const app = await boot();
     const unmounted: string[] = [];
     let n = 0;
@@ -241,7 +243,7 @@ describe('AN-T01 boot against the real repo (default modulesDir, real analytics.
         if (!app.hasRoute({ method: method.toUpperCase() as any, url: path.replace(/\{([^}]+)\}/g, ':$1') })) unmounted.push(`${method.toUpperCase()} ${path}`);
       }
     }
-    expect(n).toBe(30);
+    expect(n).toBe(31);
     expect(unmounted).toEqual([]);
   }, 60_000);
 

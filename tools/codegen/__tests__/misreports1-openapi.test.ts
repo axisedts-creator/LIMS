@@ -97,10 +97,10 @@ describe("T0C-MISREPORTS-1 analytics.yaml: lint and additive baseline (done_when
     const v = (await lintRepo(ROOT)).filter((x) => x.file === "analytics.yaml");
     expect(v, JSON.stringify(v.slice(0, 3))).toEqual([]);
   });
-  it("NO new route: exactly the 30 original operations, unique ids, same x-permission on the export and schedule operations", () => {
+  it("NO new route but the one read of T0D-BUILD-4 (getMisReportPage): the 30 original operations, unique ids, same x-permission on the export and schedule operations", () => {
     const ids = idsOf(A);
-    expect([...ids].sort()).toEqual([...OLD_OPS].sort());
-    expect(new Set(ids).size).toBe(30);
+    expect([...ids].sort()).toEqual([...OLD_OPS, "getMisReportPage"].sort());
+    expect(new Set(ids).size).toBe(31);
     expect(opOf("createAnalyticsExport")["x-permission"]).toBe("analytics.data.export");
     expect(opOf("createReportSchedule")["x-permission"]).toBe("analytics.schedule.manage");
     expect(opOf("getReferralIncentiveReport")["x-permission"]).toBe(REF);

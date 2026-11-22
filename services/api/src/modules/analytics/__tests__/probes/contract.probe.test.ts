@@ -17,9 +17,9 @@ function sources(dir: string): string[] {
   });
 }
 
-describe('P1 generator input: the spec is the source of truth (30 operations, every one authenticated + permissioned)', () => {
-  it('analytics.yaml has exactly 30 operations; each has one analytics.* permission', () => {
-    expect(OPS.length).toBe(30);
+describe('P1 generator input: the spec is the source of truth (31 operations, every one authenticated + permissioned)', () => {
+  it('analytics.yaml has exactly 31 operations (30 + getMisReportPage, T0D-BUILD-4); each has one analytics.* permission', () => {
+    expect(OPS.length).toBe(31);
     expect(OPS.filter((o) => !/^analytics\.[a-z_]+\.[a-z_]+$/.test(o.permission ?? ''))).toEqual([]);
   });
 
@@ -59,7 +59,7 @@ describe('X3 response DTOs are closed: a mapper that adds a field fails the cont
 
 describe('X1 privilege separation is declared per operation (finance / lab manager / schedule manager cannot reach what they must not)', () => {
   it('collections: #4 and #30 need analytics.collections.read; no other report needs it', () => {
-    expect(OPS.filter((o) => o.permission === 'analytics.collections.read').map((o) => o.id).sort()).toEqual(['getCollectionsFilterOptions', 'getCollectionsReport']);
+    expect(OPS.filter((o) => o.permission === 'analytics.collections.read' && o.id !== 'getMisReportPage').map((o) => o.id).sort()).toEqual(['getCollectionsFilterOptions', 'getCollectionsReport']);
   });
   it('referral: only #8 needs analytics.referral_report.read; exports need analytics.data.export (4 ops); schedules need analytics.schedule.manage (5 ops)', () => {
     expect(OPS.filter((o) => o.permission === 'analytics.referral_report.read').map((o) => o.id)).toEqual(['getReferralIncentiveReport']);

@@ -6,7 +6,7 @@ import type { CentreLite } from './types';
 
 export async function listCentres(): Promise<CentreLite[] | null> {
   try {
-    const r = await serverFetch<{ data: CentreLite[] }>('/v1/identity/centres?is_active=true&limit=200');
+    const r = await serverFetch<{ data: CentreLite[] }>('/v1/identity/centres?is_active=true' /* LD-446: listCentres has no limit */);
     return r.data.map((c) => ({ centre_id: c.centre_id, name: c.name }));
   } catch {
     return null;

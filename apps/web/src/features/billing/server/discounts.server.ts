@@ -61,7 +61,7 @@ export async function listSlabParties(): Promise<SlabParty[]> {
     soft(data(serverFetch<Page<Row>>(`/v1/billing/credit-parties?limit=${LIMIT}`))),
     soft(data(serverFetch<Page<Row>>(`/v1/partners/admin/partners?limit=${LIMIT}`))),
     soft(data(serverFetch<Page<Row>>(`/v1/catalog/doctors?is_active=true&limit=${LIMIT}`))),
-    soft(data(serverFetch<Page<Row>>(`/v1/identity/centres?limit=${LIMIT}`))),
+    soft(data(serverFetch<Page<Row>>('/v1/identity/centres' /* LD-446: listCentres has no limit */))),
   ]);
   const map = (kind: SlabPartyKind, rows: Row[]) => rows.filter((r) => r.id ?? r.centre_id).map((r) => ({ kind, id: (r.id ?? r.centre_id) as string, name: r.name ?? r.display_name ?? '—' }));
   return [...map('credit_party', credit), ...map('partner', partners), ...map('doctor', doctors), ...map('franchise', centres.filter((c) => (c.kind ?? c.centre_kind) === 'franchise'))];

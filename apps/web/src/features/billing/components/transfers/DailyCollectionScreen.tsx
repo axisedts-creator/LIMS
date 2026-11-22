@@ -39,9 +39,11 @@ export interface DailyCollectionScreenProps {
   sessions?: readonly CollectionSession[] | null | undefined;
   /** T0D-FIX-11 (LD-455 rule 3): the summary read failed; the section shows the kit inline error with the reference, never an empty table. */
   summaryError?: { requestId?: string | undefined } | undefined;
+  /** T0D-FIX-11 review (LD-455 rule 3): the cash-sessions read failed with something other than a 403; inline error with the reference, figures show "—". */
+  sessionsError?: { requestId?: string | undefined } | undefined;
 }
 
-export function DailyCollectionScreen({ summary, centres, centreId, day, particulars, permissions, sessions = [], summaryError }: DailyCollectionScreenProps) {
+export function DailyCollectionScreen({ summary, centres, centreId, day, particulars, permissions, sessions = [], summaryError, sessionsError }: DailyCollectionScreenProps) {
   const router = useRouter();
   const pathname = usePathname();
   const toast = useToast();
@@ -52,6 +54,7 @@ export function DailyCollectionScreen({ summary, centres, centreId, day, particu
   const [pending, setPending] = useState(false);
   const inFlight = useRef(false);
   const key = useRef(newKey());
+  const noSessions = sessions === null || !!sessionsError;
   const mine = (sessions ?? []).filter((x) => x.centre_id === centreId);
   const previous = mine.reduce((sum, x) => sum + (x.previous_outstanding_cash_paisa ?? 0), 0);
   const deposited = mine.reduce((sum, x) => sum + (x.deposit_paisa ?? 0), 0);
@@ -109,11 +112,13 @@ export function DailyCollectionScreen({ summary, centres, centreId, day, particu
       )}
       {summary ? <p className="lims-inline"><span>{D('total')}</span><strong>{formatNpr(summary.total_paisa)}</strong></p> : null}
       <div className="lims-inline">
-        <p className="lims-inline"><span>{D('previous_outstanding')}</span><strong>{sessions === null ? '—' : formatNpr(previous)}</strong></p>
-        <p className="lims-inline"><span>{D('deposited')}</span><strong>{sessions === null ? '—' : formatNpr(deposited)}</strong></p>
-        <p className="lims-inline"><span>{D('carried_forward')}</span><strong>{sessions === null || summaryError ? '—' : formatNpr(carried)}</strong></p>
+        <p className="lims-inline"><span>{D('previous_outstanding')}</span><strong>{noSessions ? '—' : formatNpr(previous)}</strong></p>
+        <p className="lims-inline"><span>{D('deposited')}</span><strong>{noSessions ? '—' : formatNpr(deposited)}</strong></p>
+        <p className="lims-inline"><span>{D('carried_forward')}</span><strong>{noSessions || summaryError ? '—' : formatNpr(carried)}</strong></p>
       </div>
-      {sessions === null ? <p className="lims-description">{D('sessions_unavailable')}</p> : null}
+      {sessionsError ? (
+        <ErrorState title={D('load_failed')}{...(sessionsError.requestId ? { requestId: sessionsError.requestId } : {})} />
+      ) : sessions === null ? <p className="lims-description">{D('sessions_unavailable')}</p> : null}
       <div className="lims-inline">
         <TextField label={D('deposit')} name="deposit" inputMode="decimal" maxLength={17} value={deposit} isDisabled={!!blocked} onChange={(v) => { setDeposit(v); setError(undefined); }} {...(error ? { error } : {})} />
         {blocked ? <GatedButton variant="primary" label={D('save')} blocked={blocked} onPress={() => undefined} /> : <Button variant="primary" isLoading={pending} onPress={() => void save()}>{D('save')}</Button>}

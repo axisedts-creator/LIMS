@@ -20,25 +20,34 @@ function refOf(e: unknown): { requestId?: string } {
 
 async function collection(sp: Record<string, string | string[] | undefined>, permissions: readonly string[]) {
   if (!permissions.includes('billing.account.read')) return null;
-  const [{ centres }, particulars] = await Promise.all([listAccountParties(), listAccountParticulars()]);
+  const day = typeof sp['day'] === 'string' && ISO_DATE_RE.test(sp['day']) ? sp['day'] : new Date(Date.now() + 345 * 60_000).toISOString().slice(0, 10);
+  // T0D-FIX-11 review: a failed parties/particulars read is the collection section's inline error with the reference, not error.tsx
+  const accounts = await Promise.all([listAccountParties(), listAccountParticulars()]).catch((e: unknown) => ({ err: refOf(e) }));
+  if ('err' in accounts) return { summary: null, summaryError: accounts.err, centres: [], centreId: '', day, particulars: [], sessions: [] };
+  const [{ centres }, particulars] = accounts;
   const asked = typeof sp['centre_id'] === 'string' && UUID_RE.test(sp['centre_id']) ? sp['centre_id'] : undefined;
   const centreId = asked ?? centres[0]?.id ?? '';
-  const day = typeof sp['day'] === 'string' && ISO_DATE_RE.test(sp['day']) ? sp['day'] : new Date(Date.now() + 345 * 60_000).toISOString().slice(0, 10);
   // T0D-FINCTRL-1 (LD-321): the cash sessions of that centre and day carry Previous Outstanding Cash and Deposit (getDailyCash needs
   // billing.cash_report.read; a refused read passes null and the figures show "—", never invented 0.00 — review fix).
   const [summary, sessions] = centreId
-    ? await Promise.all([getDailyCollectionSummary(centreId, day).then((r) => ({ r }), (e: unknown) => ({ r: null, err: refOf(e) })), getDailyCash({ date: day, centreId }).then((r) => r.sessions ?? [], () => null)])
-    : [{ r: null }, []];
-  // T0D-FIX-11: a failed summary read is the section's inline error with the reference, not an empty summary table
-  return { summary: summary.r, ...('err' in summary ? { summaryError: summary.err } : {}), centres, centreId, day, particulars, sessions };
+    ? await Promise.all([getDailyCollectionSummary(centreId, day).then((r) => ({ r }), (e: unknown) => ({ r: null, err: refOf(e) })), getDailyCash({ date: day, centreId }).then((r) => ({ s: r.sessions ?? [] }), (e: unknown) => (e instanceof ApiError && e.status === 403 ? { s: null } : { s: null, err: refOf(e) }))])
+    : [{ r: null }, { s: [] }];
+  // T0D-FIX-11: a failed summary read is the section's inline error with the reference, not an empty summary table;
+  // review: only a 403 on the sessions read is the "needs billing.cash_report.read" line, any other failure is an inline error with the reference
+  return { summary: summary.r, ...('err' in summary ? { summaryError: summary.err } : {}), ...('err' in sessions ? { sessionsError: sessions.err } : {}), centres, centreId, day, particulars, sessions: sessions.s };
 }
 
 export default async function DailyCashPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const [session, sp] = await Promise.all([getShellSession(), searchParams]);
   const permissions = session?.actor.permissions ?? [];
   const d = typeof sp['date'] === 'string' && ISO_DATE_RE.test(sp['date']) ? sp['date'] : undefined;
-  const [report, mine, daily] = await Promise.all([getDailyCash({ ...(d ? { date: d } : {}) }).catch((e: unknown) => ({ failed: refOf(e) })), getMyCashSession(), collection(sp, permissions)]);
+  const [report, mine, daily] = await Promise.all([
+    getDailyCash({ ...(d ? { date: d } : {}) }).catch((e: unknown) => ({ failed: refOf(e) })),
+    getMyCashSession().catch((e: unknown) => ({ failed: refOf(e) })), // T0D-FIX-11 review: a non-404 failure is inline with the reference, not error.tsx
+    collection(sp, permissions),
+  ]);
   if ('failed' in report) return <LoadError title={t('nav.billing.daily_cash')} {...report.failed} />;
+  if (mine && 'failed' in mine) return <LoadError title={t('nav.billing.daily_cash')} {...mine.failed} />;
   return (
     <>
       <DailyCashView report={report} session={mine} permissions={permissions} />

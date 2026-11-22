@@ -12,7 +12,7 @@ export function ReferralState({ kind }: { kind: 'mfa' | 'disabled' }) {
         // ponytail: no C2 step-up route is known (same as ExportDialog); reload lets the session guard redirect to it
         <Banner tone="warning" title="Verify with your authenticator app to open this report." action={{ label: 'Verify now', onPress: () => window.location.reload() }} />
       ) : (
-        <EmptyState title="This report is not enabled for your lab." />
+        <EmptyState title="This report is switched off for your lab." /> /* T0D-FIX-11 (LD-455): exact founder wording */
       )}
     </>
   );

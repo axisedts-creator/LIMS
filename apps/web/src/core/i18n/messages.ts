@@ -394,6 +394,7 @@ const en: Record<string, string> = {
   'billing.daily_summary.previous_outstanding': 'Previous Outstanding Cash',
   'billing.daily_summary.deposited': 'Deposit',
   'billing.daily_summary.carried_forward': 'Carried Forward',
+  'billing.daily_summary.load_failed': 'The collection summary could not be loaded. Try again; if it keeps happening, tell your administrator.',
   'billing.daily_summary.sessions_unavailable': 'Previous Outstanding Cash, Deposit and Carried Forward are not available: you need the billing.cash_report.read permission.',
   'billing.discounts.reason.user_id_pending': 'Adding or editing is paused: the user id this screen has does not match the id the discount API expects (change request T0D-FINCTRL-1).',
   // T0D-FINCTRL-1 (LD-321): ledger Hold status and fiscal year filter on the account entries.

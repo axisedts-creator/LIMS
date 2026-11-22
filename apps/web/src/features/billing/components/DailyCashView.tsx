@@ -73,10 +73,13 @@ export function DailyCashView({ report, session, permissions }: { report: DailyC
         <StatTile label="Variance" value={varianceText({ amount_paisa: variance, currency: 'NPR' })} />
       </StatTileRow>
       <ChartCard title="Net by payment method" isEmpty={methods.length === 0}>
-        <BarChart title="Net by payment method" valueFormat="money" categories={methods.map(humanize)} series={[{ id: 'net', label: 'Net', values: methods.map(netOf) }]} />
+        <BarChart title="Net by payment method" valueFormat="money" formatValue={formatNpr} categories={methods.map(humanize)} series={[{ id: 'net', label: 'Net', values: methods.map(netOf) }]} />
       </ChartCard>
       {session && session.status === 'open' ? <MyShift session={session} /> : null}
-      <DataTable caption="Collections by staff and method" columns={collections} rows={lines} getRowId={(l) => (isTotal(l) ? 'total' : `${l.collected_by.membership_id}-${l.method_code}`)} emptyState={{ title: 'No collections for this date.' }} />
+      {/* T0D-FIX-11: the collections table gets its visible card title, like Sessions below */}
+      <Card title="Collections by staff and method">
+        <DataTable caption="Collections by staff and method" columns={collections} rows={lines} getRowId={(l) => (isTotal(l) ? 'total' : `${l.collected_by.membership_id}-${l.method_code}`)} emptyState={{ title: 'No collections for this date.' }} />
+      </Card>
       <Card title="Sessions">
         <DataTable caption="Cash sessions" columns={sessions} rows={report.sessions} getRowId={(s) => s.id} emptyState={{ title: 'No cash sessions for this date.' }} />
       </Card>

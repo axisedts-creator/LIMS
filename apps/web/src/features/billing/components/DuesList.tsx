@@ -67,7 +67,7 @@ export function DuesList({ dues, centres = [] }: { dues: readonly DueRow[]; cent
       </StatTileRow>
       <ChartCard title="Dues by age" isEmpty={canAge && rows.length === 0}>
         {canAge ? (
-          <BarChart title="Dues by age" valueFormat="money" categories={BUCKETS.map((b) => b.label)} series={[{ id: 'due', label: 'Amount', values: aged }]} />
+          <BarChart title="Dues by age" valueFormat="money" formatValue={formatNpr} categories={BUCKETS.map((b) => b.label)} series={[{ id: 'due', label: 'Amount', values: aged }]} />
         ) : (
           <div className="lims-state">
             <p className="lims-state-title">Not available yet</p>

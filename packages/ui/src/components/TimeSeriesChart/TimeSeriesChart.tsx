@@ -111,7 +111,8 @@ export function TimeSeriesChart({ title, series, referenceBand, unit, height = 2
         </p>
       ) : null}
       <div className="lims-visually-hidden">
-        <table>
+        {/* T0D-FIX-11 (LD-455): the kit table class, so the data table is never a raw table with centred headers */}
+        <table className="lims-table">
           <caption>{title}</caption>
           <thead>
             <tr>

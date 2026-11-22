@@ -10,6 +10,8 @@ export interface BarChartProps {
   valueFormat?: 'integer' | 'money';
   /** T0D-UIDASH-2 (LD-436 "Billed per day"): the category drawn in accent (the current day); its bars carry data-current="true". */
   currentIndex?: number;
+  /** T0D-FIX-11 (LD-455): the screen's own money formatter (e.g. "NPR 1,234.00"); wins over valueFormat for ticks and the data table. */
+  formatValue?: (v: number) => string;
   'data-testid'?: string;
 }
 
@@ -21,9 +23,9 @@ const fin = (n: number | undefined): n is number => typeof n === 'number' && Num
 const f1 = (n: number) => (Math.round(n * 10) / 10).toString();
 const INT = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 });
 
-export function BarChart({ title, categories, series, valueFormat, currentIndex, ...rest }: BarChartProps) {
+export function BarChart({ title, categories, series, valueFormat, currentIndex, formatValue, ...rest }: BarChartProps) {
   const id = useId();
-  const fmt = (v: number) => (valueFormat === 'money' ? `Rs. ${formatPaisa(v)}` : valueFormat === 'integer' ? INT.format(v) : String(v));
+  const fmt = (v: number) => formatValue ? formatValue(v) : (valueFormat === 'money' ? `Rs. ${formatPaisa(v)}` : valueFormat === 'integer' ? INT.format(v) : String(v));
   const vals = series.flatMap((s) => s.values.slice(0, categories.length)).filter(fin);
   let hi = Math.max(0, ...vals);
   const lo = Math.min(0, ...vals);
@@ -83,7 +85,8 @@ export function BarChart({ title, categories, series, valueFormat, currentIndex,
         </ul>
       ) : null}
       <div className="lims-visually-hidden">
-        <table>
+        {/* T0D-FIX-11 (LD-455): the kit table class, so the data table is never a raw table with centred headers */}
+        <table className="lims-table">
           <caption>{title}</caption>
           <thead>
             <tr>

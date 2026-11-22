@@ -258,7 +258,7 @@ exports[`RS-C8 key-screen snapshots + axe > Dashboard: populated (pipeline, need
 </li>
 </ul>
 <div class="lims-visually-hidden">
-<table>
+<table class="lims-table">
 <caption>Billed per day</caption>
 <thead>
 <tr>
@@ -303,7 +303,7 @@ exports[`RS-C8 key-screen snapshots + axe > Dashboard: populated (pipeline, need
 </li>
 </ul>
 <div class="lims-visually-hidden">
-<table>
+<table class="lims-table">
 <caption>Tests by department</caption>
 <thead>
 <tr>
@@ -743,7 +743,7 @@ exports[`RS-C8 key-screen snapshots + axe > Income report 1`] = `
 </li>
 </ul>
 <div class="lims-visually-hidden">
-<table>
+<table class="lims-table">
 <caption>Net sales per day</caption>
 <thead>
 <tr>
@@ -792,7 +792,7 @@ exports[`RS-C8 key-screen snapshots + axe > Income report 1`] = `
 </li>
 </ul>
 <div class="lims-visually-hidden">
-<table>
+<table class="lims-table">
 <caption>Net sales by department</caption>
 <thead>
 <tr>
@@ -1191,7 +1191,7 @@ exports[`RS-C8 key-screen snapshots + axe > Pending tests report 1`] = `
 </li>
 </ul>
 <div class="lims-visually-hidden">
-<table>
+<table class="lims-table">
 <caption>Pending tests by department</caption>
 <thead>
 <tr>
@@ -1504,7 +1504,7 @@ exports[`RS-C8 key-screen snapshots + axe > Report hub (tabs) 1`] = `
 </li>
 </ul>
 <div class="lims-visually-hidden">
-<table>
+<table class="lims-table">
 <caption>Net sales per day</caption>
 <thead>
 <tr>
@@ -1553,7 +1553,7 @@ exports[`RS-C8 key-screen snapshots + axe > Report hub (tabs) 1`] = `
 </li>
 </ul>
 <div class="lims-visually-hidden">
-<table>
+<table class="lims-table">
 <caption>Net sales by department</caption>
 <thead>
 <tr>

@@ -2,10 +2,12 @@ import 'server-only';
 // AN-T19: server side of the report hub / report pages / Collections page. Order: permission -> whitelisted query -> API reads -> plain-JSON view model.
 // Secondary reads (filter options, the income / department income pair) failing never break the page.
 // T0D-UIREPORT-2 (LD-353 rule 6): 501 operation_pending = NotAvailable, any 5xx = ErrorState in the page; both keep the title (loadOr). 403/404 still throw.
+import type { ReactNode } from 'react';
 import { notFound } from 'next/navigation';
 import { ApiError } from '@/core/api/server-fetch';
 import { t } from '@/core/i18n/messages';
-import { loadOr } from '@/core/shell/NotAvailable';
+import { LoadError } from '@/core/shell/LoadError';
+import { loadOr as loadOrThrow } from '@/core/shell/NotAvailable';
 import { ReferralState } from '../components/ReferralState';
 import { ReportView } from '../components/ReportView';
 import { MIS_REPORTS, misHref } from '../report-codes';
@@ -13,6 +15,16 @@ import { buildPage, tabsFor } from './report-views';
 import { REFERRAL_DEF, REPORT_DEFS, getCollectionsFilterOptions, getFilterOptions, getPendingSummary, getReport, referralQuery, reportQuery, requirePermission, type Json } from './reports.server';
 
 type SP = Record<string, string | string[] | undefined>;
+
+/** T0D-FIX-11 (LD-455 rule 3): on these screens every failed api read (4xx included) is the kit inline error with the reference under the title. */
+async function loadOr(title: string, columns: readonly string[] | undefined, render: () => Promise<ReactNode> | ReactNode): Promise<ReactNode> {
+  try {
+    return await loadOrThrow(title, columns, render);
+  } catch (e) {
+    if (!(e instanceof ApiError)) throw e;
+    return <LoadError title={title} {...(e.problem.request_id ? { requestId: e.problem.request_id } : {})} />;
+  }
+}
 const pdfEnabled = () => process.env['LIMS_ANALYTICS_PDF_ENABLED'] === 'true'; // LD-83: PDF export stays disabled until the flag is on
 
 /** Page titles known before the read (the same names the view model builds), so a failed read keeps them. */
@@ -61,7 +73,7 @@ export async function referralPage(sp: SP) {
     } catch (e) {
       if (e instanceof ApiError && e.status === 403 && e.problem.code === 'auth.mfa_required') return <ReferralState kind="mfa" />;
       if (e instanceof ApiError && e.status === 403 && e.problem.code === 'common.feature_disabled') return <ReferralState kind="disabled" />;
-      throw e;
+      throw e; // any other failure: the inline error with the reference (loadOr above)
     }
   });
 }

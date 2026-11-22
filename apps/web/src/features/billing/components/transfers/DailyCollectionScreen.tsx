@@ -8,6 +8,7 @@ import { useRef, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { Button } from '@lims/ui/components/Button';
 import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
+import { ErrorState } from '@lims/ui/components/ErrorState';
 import { FilterBar } from '@lims/ui/components/FilterBar';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { Select } from '@lims/ui/components/Select';
@@ -36,9 +37,11 @@ export interface DailyCollectionScreenProps {
   permissions: readonly string[];
   /** Cash sessions of the day (optional: existing callers pass none, the figures then show 0.00; null = the read was refused, figures show "—"). */
   sessions?: readonly CollectionSession[] | null | undefined;
+  /** T0D-FIX-11 (LD-455 rule 3): the summary read failed; the section shows the kit inline error with the reference, never an empty table. */
+  summaryError?: { requestId?: string | undefined } | undefined;
 }
 
-export function DailyCollectionScreen({ summary, centres, centreId, day, particulars, permissions, sessions = [] }: DailyCollectionScreenProps) {
+export function DailyCollectionScreen({ summary, centres, centreId, day, particulars, permissions, sessions = [], summaryError }: DailyCollectionScreenProps) {
   const router = useRouter();
   const pathname = usePathname();
   const toast = useToast();
@@ -99,12 +102,16 @@ export function DailyCollectionScreen({ summary, centres, centreId, day, particu
         </div>
         <Button variant="primary" onPress={search}>{D('search')}</Button>
       </FilterBar>
-      <DataTable caption={D('title')} density="compact" columns={columns} rows={summary?.rows ?? []} getRowId={(r) => r.payment_mode} emptyState={{ title: D('empty') }} />
+      {summaryError ? (
+        <ErrorState title={D('load_failed')}{...(summaryError.requestId ? { requestId: summaryError.requestId } : {})} />
+      ) : (
+        <DataTable caption={D('title')} density="compact" columns={columns} rows={summary?.rows ?? []} getRowId={(r) => r.payment_mode} emptyState={{ title: D('empty') }} />
+      )}
       {summary ? <p className="lims-inline"><span>{D('total')}</span><strong>{formatNpr(summary.total_paisa)}</strong></p> : null}
       <div className="lims-inline">
         <p className="lims-inline"><span>{D('previous_outstanding')}</span><strong>{sessions === null ? '—' : formatNpr(previous)}</strong></p>
         <p className="lims-inline"><span>{D('deposited')}</span><strong>{sessions === null ? '—' : formatNpr(deposited)}</strong></p>
-        <p className="lims-inline"><span>{D('carried_forward')}</span><strong>{sessions === null ? '—' : formatNpr(carried)}</strong></p>
+        <p className="lims-inline"><span>{D('carried_forward')}</span><strong>{sessions === null || summaryError ? '—' : formatNpr(carried)}</strong></p>
       </div>
       {sessions === null ? <p className="lims-description">{D('sessions_unavailable')}</p> : null}
       <div className="lims-inline">

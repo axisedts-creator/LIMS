@@ -1,0 +1,9 @@
+# T0D-FIX-11 impl (writer)
+Files (10): kit BarChart.tsx (opt-in `formatValue`, hidden data table class lims-table), kit TimeSeriesChart.tsx (hidden data table class lims-table); billing dues/page, daily-cash/page, DuesList, DailyCashView, transfers/DailyCollectionScreen; lab status-board/page; analytics server/report-page, components/ReferralState.
+[CONV] Kit edit (C0-0D, same chunk C0) answers the tester's gap: the "Rs." and the raw centred tables came from the chart data tables. BarChart's 'money' default stays "Rs." (dashboard tests pin it, not this task's screens); dues and daily cash pass `formatValue={formatNpr}` (billing's existing formatter).
+[CONV] Failed reads use core/shell LoadError (kit ErrorState + reference + Retry, title kept). Only ApiError is caught; other errors still reach error.tsx. Daily cash summary failure: `summaryError` prop shows ErrorState in that section, carried-forward shows "—".
+[CONV] analytics report-page wraps loadOr so 4xx (not only 5xx) is inline on hub, report tabs, collections, referral; feature_disabled stays the calm EmptyState "This report is switched off for your lab.".
+[CONV] Daily cash: the collections table sits in a Card titled "Collections by staff and method" (the test reads the visible text; DataTable caption is aria-label only).
+Also: core/i18n/messages.ts key billing.daily_summary.load_failed (acct2 no-literal rule); rs-c8.screens snapshot regenerated (hidden chart table class only). fix11 27/27 green.
+OPEN (tester/lead): 6 existing tests contradict done_when 1/3/4 — see notes/T0D-FIX-11-dispute.md. Pre-existing reds untouched: an-t18.states x2, an-t18.page "Tests by department".
+OPEN: packages/ui suite has pre-existing unrelated reds (fonts/flutter assets, density row 40 vs 28 px, no-raw-style scan); not touched here.

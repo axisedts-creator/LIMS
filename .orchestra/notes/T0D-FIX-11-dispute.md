@@ -1,0 +1,6 @@
+# T0D-FIX-11 dispute (writer): existing tests that contradict the founder order of 2026-11-22 22:06 NPT (LD-455). Writer may not edit tests; tester/lead to retire or re-pin (precedent LD-447).
+1. an-t20.referral.test.tsx:56-59 asserts "This report is not enabled for your lab." — done_when 3 requires "This report is switched off for your lab." (fix11.referral asserts the new text and forbids the old one).
+2. an-t20.referral.test.tsx "any other 403 (auth.forbidden) rejects so error.tsx handles it" — done_when 3/4 require the inline error with the reference (fix11.referral tests 403 auth.forbidden inline).
+3. lab-t27.page.test.tsx:64-68 "board read refused (403) → empty board" — done_when 4: a failed read is never an empty board (fix11.statusboard).
+4. uidash1.billing.test.tsx:200 and bl-t20.screens.test.tsx:252 `getByText('NPR 630.00')` (single match) — done_when 1 puts the aging chart in NPR, so one due row now prints NPR 630.00 in the Due cell AND the chart (tick + hidden data table). Re-pin with getAllByText or scope to the data table.
+5. rs-c8.static.test.ts byte-baseline lists report-page.tsx (this task must change it for done_when 4); it was already red on mis-page.tsx and analytics.mis.total before this task.

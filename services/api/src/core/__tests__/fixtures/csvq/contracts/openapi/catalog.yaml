@@ -1,0 +1,58 @@
+# T0D-FIX-1 item 1 fixture: array query parameters in style form with explode false (comma separated) and with the default explode.
+# Test-only spec, not a real contract. Public ops so no security handlers are needed.
+openapi: 3.0.3
+info: { title: fixture catalog, version: 1.0.0 }
+paths:
+  /v1/catalog/things:
+    get:
+      operationId: listThings
+      security: []
+      x-public: "fixture"
+      x-idempotency: none
+      x-rate-limit-tier: general
+      parameters:
+        - name: status
+          in: query
+          required: false
+          style: form
+          explode: false
+          schema:
+            type: array
+            maxItems: 3
+            items: { type: string, maxLength: 20, enum: [pending_enrolment, active, revoked] }
+        - name: code
+          in: query
+          required: false
+          style: form
+          explode: false
+          schema:
+            type: array
+            items: { type: string, maxLength: 5 }
+        - name: n
+          in: query
+          required: false
+          style: form
+          explode: false
+          schema:
+            type: array
+            items: { type: integer, minimum: 1, maximum: 9 }
+        - name: tag
+          in: query
+          required: false
+          schema:
+            type: array
+            items: { type: string, maxLength: 10 }
+        - name: limit
+          in: query
+          required: false
+          schema: { type: integer, minimum: 1, maximum: 200, default: 50 }
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  query: { type: object, additionalProperties: true }

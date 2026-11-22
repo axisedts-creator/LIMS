@@ -134,10 +134,10 @@ export function ConfirmWrite({ title, body, confirm, onClose, onDone, act, check
 export type Col<R> = ColumnDef<R>;
 /** The kit DataTable (compact, cut off cells titled) with the LD-336 empty and failed states. The wrapper carries `sales-empty-state` while the
  * body shows the EmptyState, so the empty table can be told apart from a loaded one without reading the text. */
-export function SalesTable<R>({ caption, columns, rows, getRowId, empty, failed, nextCursor }: {
+export function SalesTable<R>({ caption, columns, rows: given, getRowId, empty, failed, nextCursor }: {
   caption: string;
   columns: readonly Col<R>[];
-  rows: readonly R[];
+  rows: readonly R[] | undefined;
   getRowId: (r: R) => string;
   empty: { title: string; body: string };
   /** The list read failed: the header row stays and the ErrorState with Retry sits in the body. */
@@ -145,6 +145,7 @@ export function SalesTable<R>({ caption, columns, rows, getRowId, empty, failed,
   nextCursor?: string | undefined;
 }) {
   const url = useUrl();
+  const rows = given ?? []; // LD-446: an undefined list renders the empty state, not a TypeError in DataTable
   // a trailing space ends every cell so a row reads as words ("1 Synthetic Regional Head Yes"), also for copy and screen readers; text cells keep their title
   const spaced = columns.map((c) => ({ ...c, cell: (r: R) => { const v = c.cell(r); return typeof v === 'string' || typeof v === 'number' ? `${v} ` : <>{v}{' '}</>; } }));
   return (

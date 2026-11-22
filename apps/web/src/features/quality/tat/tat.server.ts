@@ -41,7 +41,7 @@ const options = (path: string) =>
     .catch((): FilterOption[] => []);
 /** Department / centre filter options (C3 listDepartments, C2 listCentres; 04-UI-UX §2.10). A failing picker only empties its filter, never the page. */
 export const getTatFilterOptions = async () => {
-  const [departments, centres] = await Promise.all([options('/v1/catalog/departments?limit=200'), options('/v1/identity/centres?limit=200')]);
+  const [departments, centres] = await Promise.all([options('/v1/catalog/departments?limit=200'), options('/v1/identity/centres') /* LD-446: no limit */]);
   return { departments, centres };
 };
 

@@ -113,7 +113,7 @@ type UserRow = { membership_id?: string; id?: string; display_name?: string };
 type CreditPartyRow = { id: string; name: string; credit_limit_paisa?: number; address?: string; contact_person?: string; phone?: string; email?: string; pan?: string; created_at?: string };
 const centreId = (c: CentreRow) => (c.centre_id ?? c.id) as string;
 
-export const listCentres = () => soft(data(serverFetch<Page<CentreRow>>('/v1/identity/centres?limit=200')));
+export const listCentres = () => soft(data(serverFetch<Page<CentreRow>>('/v1/identity/centres' /* LD-446: listCentres has no limit */)));
 export const listMembers = (): Promise<Named[]> =>
   soft(data(serverFetch<Page<UserRow>>('/v1/identity/users?status=active&limit=200')).then((r) => r.filter((u) => u.membership_id ?? u.id).map((u) => ({ id: (u.membership_id ?? u.id) as string, name: u.display_name ?? '—' }))));
 

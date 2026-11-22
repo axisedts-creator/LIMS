@@ -40,7 +40,8 @@ export async function resolveCentre(requested: string | undefined): Promise<stri
 
 // ---- W6 console (operate) ----
 export const listQueues = async (centreId: string) => rows(await serverFetch<{ data?: Queue[] }>(`${E}/queues?centre_id=${id(centreId)}&is_active=true`));
-export const listCounters = async (centreId: string) => rows(await serverFetch<{ data?: QueueCounter[] }>(`${E}/queue-counters?centre_id=${id(centreId)}&is_active=true`));
+// LD-446 (CR DEPLOY-AXIS-012 6a): listCounters declares only centre_id; active-only is filtered here in the BFF.
+export const listCounters = async (centreId: string) => rows(await serverFetch<{ data?: QueueCounter[] }>(`${E}/queue-counters?centre_id=${id(centreId)}`)).filter((c) => c.is_active !== false);
 export const listTokens = async (centreId: string) => rows(await serverFetch<{ data?: QueueToken[] }>(`${E}/queue-tokens?centre_id=${id(centreId)}`));
 export const issueToken = (body: { queue_id: string; priority: 'normal' | 'priority' }, key: string) => serverFetch<QueueToken>(`${E}/queue-tokens`, json('POST', body, idem(key)));
 /** 204 (nobody waiting) → null. */

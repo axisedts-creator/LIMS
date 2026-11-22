@@ -393,6 +393,9 @@ div.lims-row-placeholder { min-height: 32px; border-bottom: 1px solid var(--lims
 .lims-step-count { color: var(--lims-neutral-900); font-size: var(--lims-font-size-lg-size); font-weight: var(--lims-font-weight-semibold); font-variant-numeric: tabular-nums; }
 .lims-step-note { font-size: var(--lims-font-size-xs-size); font-weight: var(--lims-font-weight-medium); background: transparent; }
 .lims-step-note[data-tone='danger'] { color: var(--lims-tone-danger-fg); }
+.lims-chart-svg .lims-series-0, .lims-chart-legend .lims-series-0 { color: var(--lims-accent); }
+/* LD-446 (CR DEPLOY-AXIS-012): rule above = the first series takes the first chart colour (accent), not the inherited near-black text colour.
+   [CONV] no chart palette token exists yet; series 0 = --lims-accent. Lower specificity than the :has/data-current pair below. */
 .lims-chart-svg:has([data-current='true']) .lims-chart-bar { color: var(--lims-neutral-300); }
 .lims-chart-svg .lims-chart-bar[data-current='true'] { color: var(--lims-accent); }
 .lims-pager { align-items: center; }

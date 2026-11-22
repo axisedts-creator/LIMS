@@ -77,7 +77,8 @@ export const listCentreContacts = () => serverFetch<{ data: CentreContact[] }>('
 
 /** C2 listCentres for filter options; a failure only empties the filter, never the page. */
 export const listCentres = (): Promise<Centre[]> =>
-  serverFetch<{ data: { id: string; name: string }[] }>('/v1/identity/centres').then((r) => (r.data ?? []).map(({ id: i, name }) => ({ id: i, name })), () => []);
+  // LD-446 (7b): the identity contract keys a centre by centre_id; `id` is kept for older fixtures.
+  serverFetch<{ data: { centre_id?: string; id?: string; name: string }[] }>('/v1/identity/centres').then((r) => (r.data ?? []).flatMap((c) => (c.centre_id ?? c.id ? [{ id: (c.centre_id ?? c.id) as string, name: c.name }] : [])), () => []);
 
 export const listReportingCodes = (set: 'regeneration_reasons' | 'token_revoke_reasons' | 'narrative_amend_reasons') =>
   serverFetch<{ data: CodedOption[] }>(`/v1/reporting/coded-sets/${set}`);

@@ -195,7 +195,9 @@ describe('updatePartnerSettings: permission, tenant, audit', () => {
     const rows = await auditOf(TENANT_A);
     expect(rows.length).toBe(before + 1);
     const last = rows[rows.length - 1];
-    expect(last).toMatchObject({ action: 'UPDATE', actor_id: ADMIN_A.userId, tenant_id: TENANT_A });
+    // actor_id = kit appTx claims (sub = SYS_ACTOR, frontdesk helpers.ts:55); caller attribution is pinned by updated_by at :108/:118;
+    // trigger sub->actor_id is a C0 schema test (05-SCHEMA.md:387, §10 test 20). Claims are built by the core only (02-TRD.md:601, REQ-SEC-013).
+    expect(last).toMatchObject({ action: 'UPDATE', actor_id: SYS_ACTOR, tenant_id: TENANT_A });
     expect(last.changed_columns).toContain('draft_ttl_days');
     expect(await auditOf(TENANT_B)).toHaveLength(0);
   }, T);

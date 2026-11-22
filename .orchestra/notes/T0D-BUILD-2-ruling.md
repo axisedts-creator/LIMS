@@ -8,3 +8,7 @@ TESTS_WRONG — the test asserts something the spec does not require (say precis
    classify a real handler as a stub. getPartnerSettings is already excluded at line 117; optionally also add it to IMPLEMENTED and drop the
    line-117/111 pending special case, since BUILD-2 replaces the LD-446 501 (only if contract/fix2.settings-pending.test.ts is retired in the same change).
 Tester applies both edits; no implementation change required by this ruling. Writer's code is untested on PG17 (no Docker): tester must run the suite before merge.
+
+
+## LEAD ITEM (LD-451, 2026-11-22 15:14 NPT)
+The block is the environment: Docker Desktop is stopped, so the PG17 test cannot start. No code or test change. After the founder starts Docker and the reset is applied: writer and debugger change nothing, run verify.cmd, fix a source only if a real assertion fails; tester files stay with the tester; reviewer edits nothing.

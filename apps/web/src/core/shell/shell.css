@@ -309,11 +309,17 @@ a.lims-menuitem { display: block; color: inherit; text-decoration: none; }
 /* T0D-UIDASH-2 (LD-436 Today mock): pipeline card, then Needs you (5) beside Money (7), then the two charts (7 beside 5). Tokens only. */
 .lims-dash { display: flex; flex-direction: column; gap: var(--lims-space-4); }
 .lims-dash-row { display: grid; grid-template-columns: 5fr 7fr; gap: var(--lims-space-4); align-items: stretch; }
-.lims-dash-charts { grid-template-columns: 7fr 5fr; }
+.lims-dash-charts { grid-template-columns: 7fr 5fr; align-items: stretch; }
+/* T0D-DASHCARDS-1 (LD-447, founder 2026-11-22 "more attractive"): equal heights per row, a lone card takes the full row, Money is a 2 x 2 block of large
+   tabular values, an empty chart frame keeps the chart height with its message centred; skeleton in the same grid. Tokens only (AA from the token pairs). */
+.lims-dash-row-single { grid-template-columns: 1fr; }
+.lims-dash-row > *, .lims-dash-charts > * { height: 100%; }
 @media (max-width: 64rem) { .lims-dash-row, .lims-dash-charts { grid-template-columns: 1fr; } }
-.lims-dash-money { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: 0.0625rem; background: var(--lims-neutral-200); }
-.lims-dash-money > .lims-stat { border: 0; border-radius: 0; }
-.lims-dash-money .lims-stat-value { font-weight: var(--lims-font-weight-semibold); }
+.lims-dash-money { display: grid; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); gap: 0.0625rem; background: var(--lims-neutral-200); border-radius: var(--lims-radius-sm); overflow: hidden; }
+.lims-dash-money > .lims-stat { border: 0; border-radius: 0; padding: var(--lims-space-3) var(--lims-space-4); }
+.lims-dash-money .lims-stat-value { font-size: var(--lims-font-size-2xl-size); font-weight: var(--lims-font-weight-semibold); font-variant-numeric: tabular-nums; text-align: end; }
+.lims-dash-charts .lims-chart-empty { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: var(--lims-space-2); min-height: 12rem; margin: 0; color: var(--lims-neutral-700); text-align: center; }
+.lims-dash-skeleton .lims-skeleton-row { min-height: var(--lims-space-6); }
 .lims-dash-ratio { display: flex; flex-direction: column; gap: var(--lims-space-2); margin-top: var(--lims-space-3); }
 .lims-dash-ratio-label { display: flex; justify-content: space-between; color: var(--lims-neutral-700); font-size: var(--lims-font-size-xs-size); font-weight: var(--lims-font-weight-medium); font-variant-numeric: tabular-nums; }
 .lims-progress { appearance: none; width: 100%; height: var(--lims-space-2); border: 0; border-radius: var(--lims-radius-full); background: var(--lims-neutral-100); overflow: hidden; }

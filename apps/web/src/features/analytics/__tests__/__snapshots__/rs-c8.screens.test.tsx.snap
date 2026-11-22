@@ -18,7 +18,7 @@ exports[`RS-C8 key-screen snapshots + axe > Dashboard: populated (pipeline, need
 </template>
 <div class="lims-field" data-rac="">
 <span class="lims-label" id="ID">Period</span>
-<button id="ID" class="lims-input lims-select-trigger" data-rac="" type="button" tabindex="0" data-aria-id="true" aria-labelledby="ID" aria-haspopup="listbox" aria-expanded="false">
+<button id="ID" class="lims-input lims-select-trigger lims-btn-secondary" data-rac="" type="button" tabindex="0" data-aria-id="true" aria-labelledby="ID" aria-haspopup="listbox" aria-expanded="false">
 <span id="ID" class="aria-id" data-rac="">Custom</span>
 <svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
 <path d="M6 9l6 6 6-6">
@@ -238,7 +238,43 @@ exports[`RS-C8 key-screen snapshots + axe > Dashboard: populated (pipeline, need
 <div class="lims-chart-period">1 day</div>
 </header>
 <div class="lims-chart-frame">
-<span class="lims-na">Not available yet</span>
+<figure class="lims-chart">
+<figcaption id="ID" class="lims-chart-title">Billed per day</figcaption>
+<svg role="img" aria-labelledby="ID" viewBox="0 0 600 240" width="100%" height="240" class="lims-chart-svg">
+<line class="lims-chart-axis" x1="56" y1="204" x2="588" y2="204">
+</line>
+<text class="lims-chart-tick" x="52" y="12" text-anchor="end">Rs. 2,25,000.00</text>
+<g>
+<rect class="lims-chart-bar lims-series-0 lims-pattern-solid" x="109.2" y="12" width="425.6" height="192" fill="currentColor" data-current="true">
+</rect>
+<text class="lims-chart-tick" x="322" y="228" text-anchor="middle">15/01/2026</text>
+</g>
+</svg>
+<ul class="lims-chart-legend">
+<li class="lims-series-0 lims-pattern-solid">
+<span class="lims-chart-swatch" aria-hidden="true">
+</span>
+<span>Net sales</span>
+</li>
+</ul>
+<div class="lims-visually-hidden">
+<table>
+<caption>Billed per day</caption>
+<thead>
+<tr>
+<th scope="col">Category</th>
+<th scope="col">Net sales</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<th scope="row">15/01/2026</th>
+<td>Rs. 2,25,000.00</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
 </div>
 </section>
 <section class="lims-chart-card" aria-labelledby="ID">
@@ -247,7 +283,43 @@ exports[`RS-C8 key-screen snapshots + axe > Dashboard: populated (pipeline, need
 <div class="lims-chart-period">15 Jan 2026</div>
 </header>
 <div class="lims-chart-frame">
-<p class="lims-chart-empty">Not available yet</p>
+<figure class="lims-chart">
+<figcaption id="ID" class="lims-chart-title">Tests by department</figcaption>
+<svg role="img" aria-labelledby="ID" viewBox="0 0 600 240" width="100%" height="240" class="lims-chart-svg">
+<line class="lims-chart-axis" x1="56" y1="204" x2="588" y2="204">
+</line>
+<text class="lims-chart-tick" x="52" y="12" text-anchor="end">Rs. 9,000.00</text>
+<g>
+<rect class="lims-chart-bar lims-series-0 lims-pattern-solid" x="109.2" y="12" width="425.6" height="192" fill="currentColor">
+</rect>
+<text class="lims-chart-tick" x="322" y="228" text-anchor="middle">Synthetic Biochemistry</text>
+</g>
+</svg>
+<ul class="lims-chart-legend">
+<li class="lims-series-0 lims-pattern-solid">
+<span class="lims-chart-swatch" aria-hidden="true">
+</span>
+<span>Net sales</span>
+</li>
+</ul>
+<div class="lims-visually-hidden">
+<table>
+<caption>Tests by department</caption>
+<thead>
+<tr>
+<th scope="col">Category</th>
+<th scope="col">Net sales</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<th scope="row">Synthetic Biochemistry</th>
+<td>Rs. 9,000.00</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
 </div>
 </section>
 </div>
@@ -274,7 +346,7 @@ exports[`RS-C8 key-screen snapshots + axe > Dashboard: role without money tiles 
 </template>
 <div class="lims-field" data-rac="">
 <span class="lims-label" id="ID">Period</span>
-<button id="ID" class="lims-input lims-select-trigger" data-rac="" type="button" tabindex="0" data-aria-id="true" aria-labelledby="ID" aria-haspopup="listbox" aria-expanded="false">
+<button id="ID" class="lims-input lims-select-trigger lims-btn-secondary" data-rac="" type="button" tabindex="0" data-aria-id="true" aria-labelledby="ID" aria-haspopup="listbox" aria-expanded="false">
 <span id="ID" class="aria-id" data-rac="">Custom</span>
 <svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
 <path d="M6 9l6 6 6-6">
@@ -380,7 +452,7 @@ exports[`RS-C8 key-screen snapshots + axe > Dashboard: role without money tiles 
 </ol>
 </div>
 </div>
-<div class="lims-dash-row">
+<div class="lims-dash-row lims-dash-row-single">
 <div class="lims-card">
 <div class="lims-card-head">
 <h2 class="lims-card-title">Needs you</h2>

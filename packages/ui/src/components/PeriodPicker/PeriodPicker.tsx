@@ -50,9 +50,11 @@ export interface PeriodPickerProps extends FieldBase {
   onChange: (v: PeriodValue) => void;
   /** Tenant primary calendar; resolution of presets to dates is the server's (period.label_ad / label_bs). */
   calendar: 'AD' | 'BS';
+  /** T0D-DASHCARDS-1 (UIX-6): button role of the preset trigger when the picker sits in a page header. */
+  triggerVariant?: 'secondary' | 'ghost';
 }
 
-export function PeriodPicker({ label, name, description, error, isRequired, isDisabled, isReadOnly, value, presets, onChange, calendar: _calendar, ...rest }: PeriodPickerProps) {
+export function PeriodPicker({ label, name, description, error, isRequired, isDisabled, isReadOnly, value, presets, onChange, calendar: _calendar, triggerVariant, ...rest }: PeriodPickerProps) {
   const id = useId();
   const rangeError = periodError(value);
   const shown = error ?? rangeError;
@@ -84,6 +86,7 @@ export function PeriodPicker({ label, name, description, error, isRequired, isDi
         {...(isRequired ? { isRequired } : {})}
         {...(isDisabled ? { isDisabled } : {})}
         {...(isReadOnly ? { isReadOnly } : {})}
+        {...(triggerVariant ? { triggerVariant } : {})}
       />
       {value.preset === 'custom' ? (
         <div className="lims-period-custom">

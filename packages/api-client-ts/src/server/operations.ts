@@ -50498,6 +50498,20 @@ export interface Operations {
             delta_bp?: number;
             unit: "count" | "paisa" | "seconds";
           };
+          outstanding_paisa?: {
+            value: number;
+            previous?: number;
+            delta?: number;
+            delta_bp?: number;
+            unit: "count" | "paisa" | "seconds";
+          };
+          cash_in_drawer_paisa?: {
+            value: number;
+            previous?: number;
+            delta?: number;
+            delta_bp?: number;
+            unit: "count" | "paisa" | "seconds";
+          };
         };
         series: {
           days: {

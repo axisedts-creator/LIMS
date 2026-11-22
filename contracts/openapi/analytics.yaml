@@ -19,7 +19,7 @@ paths:
       tags:
         - analytics
       summary: "Get analytics dashboard (TRD §5 #1)"
-      description: Dashboard tiles, series and department top-10. The net_collected_paisa tile is present only when the caller holds analytics.collections.read (omitted, not 403).
+      description: Dashboard tiles, series and department top-10. The net_collected_paisa tile is present only when the caller holds analytics.collections.read (omitted, not 403). T0D-DASHCARDS-1 (LD-447) snapshot money tiles, independent of the period - outstanding_paisa (total outstanding of all parties, the sum of outstanding_paisa of listAccountSummaries) is present only when the caller holds billing.account.read; cash_in_drawer_paisa (expected cash of today's open cash sessions at the caller's centres, as getDailyCash) only when the caller holds billing.cash_report.read; each is omitted, not 403, otherwise.
       security:
         - bearerJwt: []
       x-permission: analytics.dashboard.read
@@ -4416,6 +4416,10 @@ components:
             pending_tests:
               $ref: "#/components/schemas/Tile"
             pending_overdue:
+              $ref: "#/components/schemas/Tile"
+            outstanding_paisa:
+              $ref: "#/components/schemas/Tile"
+            cash_in_drawer_paisa:
               $ref: "#/components/schemas/Tile"
         series:
           type: object

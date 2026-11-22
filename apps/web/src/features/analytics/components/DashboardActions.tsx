@@ -28,8 +28,8 @@ export function AutoRefresh() {
   return null;
 }
 
-/** `pageId` = shortcut scope of Alt+R (dashboard by default; report pages pass their own). */
-export function RefreshButton({ pageId = 'staff.analytics.dashboard' }: { pageId?: string } = {}) {
+/** `pageId` = shortcut scope of Alt+R (dashboard by default; report pages pass their own); null = no shortcut (a second button on the page, T0D-DASHCARDS-1 chart cards). */
+export function RefreshButton({ pageId = 'staff.analytics.dashboard' }: { pageId?: string | null } = {}) {
   const toast = useToast();
   const [busy, setBusy] = useState(false);
   const [until, setUntil] = useState<string>();
@@ -68,7 +68,7 @@ export function RefreshButton({ pageId = 'staff.analytics.dashboard' }: { pageId
 
   const run = useRef(press);
   run.current = press;
-  useEffect(() => shortcuts.register(pageId, { key: 'Alt+R', description: 'Refresh', run: () => void run.current() }), [pageId]);
+  useEffect(() => (pageId ? shortcuts.register(pageId, { key: 'Alt+R', description: 'Refresh', run: () => void run.current() }) : undefined), [pageId]);
 
   return (
     <>
@@ -94,7 +94,7 @@ export function DashboardPeriod({ from, to, query }: { from: string; to: string;
     const r = v.preset === 'custom' ? (iso(v.from) && iso(v.to) && !periodError(v) ? { from: v.from, to: v.to } : undefined) : presetRange(v.preset, today);
     if (r) router.push(`/analytics?business_date_from=${r.from}&business_date_to=${addDays(r.to, 1)}${query ? `&${query}` : ''}`);
   };
-  return <PeriodPicker label="Period" name="period" value={value} presets={PRESETS} calendar="BS" onChange={onChange} />;
+  return <PeriodPicker label="Period" name="period" value={value} presets={PRESETS} calendar="BS" triggerVariant="secondary" onChange={onChange} />;
 }
 
 /** `query` = already-whitelisted non-period params (centre/branch), "a=b&c=d" or "". */

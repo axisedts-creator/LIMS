@@ -7,6 +7,7 @@
 import type { ReactNode } from 'react';
 import { ActionList, type ActionListItem } from '@lims/ui/components/ActionList';
 import { Banner } from '@lims/ui/components/Banner';
+import { BarChart } from '@lims/ui/components/BarChart';
 import { Card } from '@lims/ui/components/Card';
 import { ChartCard } from '@lims/ui/components/ChartCard';
 import { EmptyState } from '@lims/ui/components/EmptyState';
@@ -27,6 +28,8 @@ export const bsLabel = (s: string) => (/\bB\.S\.\s*$/.test(s) ? s.trim() : s.tri
 const NUM = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 });
 const RS = new Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const WHEN = new Intl.DateTimeFormat('en-GB', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Kathmandu' });
+const DMY = new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Kathmandu' });
+const dmy = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}`; // business date YYYY-MM-DD -> DD/MM/YYYY
 const money = (paisa: number) => `Rs. ${RS.format(paisa / 100)}`;
 const fmt = (t: Tile) => (t.unit === 'paisa' ? money(t.value) : NUM.format(t.value));
 const npr = (paisa: number) => <MoneyText value={{ amountPaisa: paisa, currency: 'NPR' }} />;
@@ -97,18 +100,32 @@ export function DashboardView({ dto, query, readOnly = false }: { dto: Dashboard
   ].filter((n) => count(n.id) > 0).map((n) => ({ ...n, count: count(n.id) }));
 
   // Money (s4/s6): only when the API sent money (it applies the money permissions). Billed = invoiced_paisa, Collected = net_collected_paisa.
-  // Outstanding and Cash in drawer have no field in the dashboard contract: "Not available yet".
+  // T0D-DASHCARDS-1 (LD-447): Outstanding = outstanding_paisa, Cash in drawer = cash_in_drawer_paisa (snapshots, no delta); an omitted tile stays "Not available yet".
   const billed = tile('invoiced_paisa');
   const collected = tile('net_collected_paisa');
-  const canMoney = ['net_sales_paisa', 'invoiced_paisa', 'credit_notes_paisa', 'net_collected_paisa'].some((k) => tile(k));
+  const canMoney = ['net_sales_paisa', 'invoiced_paisa', 'credit_notes_paisa', 'net_collected_paisa', 'outstanding_paisa', 'cash_in_drawer_paisa'].some((k) => tile(k));
   const cell = (label: string, t: Tile | undefined) => {
     const d = t ? delta(t, caption) : undefined;
     return <StatTile key={label} label={label} value={t ? npr(t.value) : NA} {...(d ? { delta: d } : {})} />;
   };
   const pct = billed && collected ? (billed.value > 0 ? Math.round((collected.value * 100) / billed.value) : 0) : undefined;
 
+  // T0D-DASHCARDS-1 (LD-447 done_when 3): the charts draw the series / department_top for a caller the API sends net sales to (LD-353 leak rule otherwise).
+  // Empty: "No data yet" while fresh; "Data is being prepared" + last update + the existing refresh while the read model is stale (getAnalyticsFreshness).
   const days = dto.series.days;
+  const depts = dto.department_top;
+  const canSales = !!tile('net_sales_paisa');
   const block = (children: ReactNode) => <p className="lims-chart-empty">{children}</p>;
+  const preparing = stale.length > 0;
+  // the kit frame always draws its chart (empty: axis only); fresh = ChartCard's own "No data yet", stale = why + the refresh
+  const chart = (title: string, categories: string[], values: number[], currentIndex?: number) => (
+    <>
+      <BarChart title={title} valueFormat="money" categories={categories} series={[{ id: 'net_sales', label: 'Net sales', values }]} {...(currentIndex === undefined ? {} : { currentIndex })} />
+      {values.length === 0 && preparing
+        ? block(<>Data is being prepared.{oldest ? ` Updated ${DMY.format(Date.parse(oldest))}.` : ''}{readOnly ? null : <> <RefreshButton pageId={null} /></>}</>)
+        : null}
+    </>
+  );
 
   return (
     <>
@@ -145,7 +162,7 @@ export function DashboardView({ dto, query, readOnly = false }: { dto: Dashboard
         <Card title="Where the samples are" caption={waiting ? 'The most waiting is in testing' : 'Nothing is waiting'}>
           <StatusStepper steps={steps} currentId={waiting ? 'testing' : ''} {...(waiting ? { mostWaitingId: 'testing' } : {})} />
         </Card>
-        <div className="lims-dash-row">
+        <div className={canMoney ? 'lims-dash-row' : 'lims-dash-row lims-dash-row-single'}>
           <Card title="Needs you" caption={`${needs.length} ${needs.length === 1 ? 'thing' : 'things'} waiting`}>
             {needs.length > 0 ? <ActionList items={needs} label="Needs you" /> : <p className="lims-card-note">Nothing needs you right now.</p>}
           </Card>
@@ -154,8 +171,8 @@ export function DashboardView({ dto, query, readOnly = false }: { dto: Dashboard
               <div className="lims-dash-money">
                 {cell('Billed', billed)}
                 {cell('Collected', collected)}
-                <StatTile label="Outstanding" value={NA} />
-                <StatTile label="Cash in drawer" value={NA} />
+                {cell('Outstanding', tile('outstanding_paisa'))}
+                {cell('Cash in drawer', tile('cash_in_drawer_paisa'))}
               </div>
               {pct !== undefined ? (
                 <div className="lims-dash-ratio">
@@ -169,16 +186,14 @@ export function DashboardView({ dto, query, readOnly = false }: { dto: Dashboard
             </Card>
           ) : null}
         </div>
-        {/* LD-353 rule 10: both frames ALWAYS draw; neither carries money data, so no amount or department name leaks. */}
+        {/* LD-353 rule 10: both frames ALWAYS draw. T0D-DASHCARDS-1 (LD-447) supersedes the T0D-UIDASH-2 ruling: the bars are net sales (series.net_sales_paisa,
+            department_top.net_paisa), the legend says so; the contract has no invoiced per day nor test count per department (notes/T0D-DASHCARDS-1-left.md). */}
         <div className="lims-dash-charts">
-          {/* RULING T0D-UIDASH-2 (items 1-3, 6): the contract has no invoiced per day (series carries net_sales_paisa, which is not "Billed"),
-              so the mock title stays and the frame says "Not available yet"; no money is drawn here. */}
-          <ChartCard title="Billed per day" period={days.length === 1 ? '1 day' : `Last ${days.length} days`}>
-            {NA}
+          <ChartCard title="Billed per day" period={days.length === 1 ? '1 day' : `Last ${days.length} days`} isEmpty={canSales && days.length === 0 && !preparing}>
+            {canSales ? chart('Billed per day', days.map((d) => dmy(d.business_date)), days.map((d) => d.net_sales_paisa), days.length - 1) : NA}
           </ChartCard>
-          {/* the contract has no test count per department (department_top is net sales money): not invented */}
-          <ChartCard title="Tests by department" period={period.label_ad}>
-            {block('Not available yet')}
+          <ChartCard title="Tests by department" period={period.label_ad} isEmpty={canSales && depts.length === 0 && !preparing}>
+            {canSales ? chart('Tests by department', depts.map((r) => r.label), depts.map((r) => r.net_paisa)) : block('Not available yet')}
           </ChartCard>
         </div>
       </div>

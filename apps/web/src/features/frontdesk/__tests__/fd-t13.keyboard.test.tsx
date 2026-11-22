@@ -138,7 +138,7 @@ describe('§3.5 shortcuts', () => {
     await user.keyboard('TSH');
     await screen.findByRole('option', { name: /Thyroid/ }, { timeout: T });
     await user.keyboard('{Enter}');
-    const table = await screen.findByRole('table', { name: /tests|selected/i });
+    const table = await screen.findByRole('grid', { name: /tests|selected/i });
     const row = () => within(table).getByRole('row', { name: /CBC/ });
     act(() => row().focus());
     await user.keyboard('u');

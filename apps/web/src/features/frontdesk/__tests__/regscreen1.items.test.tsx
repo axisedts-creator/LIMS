@@ -47,7 +47,7 @@ describe('layout in the DOM: three columns', () => {
     await u.click(await screen.findByRole('option', { name: /Complete blood count/ }, { timeout: T }));
     const box = document.querySelector('.lims-reg-tests-list') as HTMLElement;
     expect(box, '.lims-reg-tests-list').toBeTruthy();
-    expect(within(box).getByRole('table', { name: /selected tests/i })).toBeTruthy();
+    expect(within(box).getByRole('grid', { name: /selected tests/i })).toBeTruthy();
     expect(document.querySelector('[data-reg-column="tests"]')!.contains(box)).toBe(true);
   });
 });

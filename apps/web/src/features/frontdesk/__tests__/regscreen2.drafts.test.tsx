@@ -36,7 +36,7 @@ async function patientAndCbc(u: User) {
 }
 const saveDraft = async (u: User) => { await u.click(screen.getByRole('button', { name: /^save as draft/i })); await waitFor(() => expect(of('POST', DRAFTS)).toHaveLength(1), { timeout: T }); };
 const openDrafts = async (u: User) => { await u.click(screen.getByRole('button', { name: /^drafts/i })); return dialog(); };
-const cart = () => screen.getByRole('table', { name: /selected tests/i });
+const cart = () => screen.getByRole('grid', { name: /selected tests/i });
 const seedDraft = (payload: string, id = U(950)) => reg2.drafts.push({ id, centre_id: CENTRE, payload, created_at: '2026-11-17T04:15:00.000Z', updated_at: '2026-11-17T04:15:00.000Z', expires_at: '2026-12-01T04:15:00.000Z' });
 
 describe('Save as draft', () => {
@@ -156,7 +156,7 @@ describe('Drafts list', () => {
     const d = await openDrafts(u);
     await u.click(await within(d).findByRole('button', { name: /^open/i }, { timeout: T }));
     expect((await within(d).findAllByText(/no longer available|expired|not found/i, undefined, { timeout: T })).length).toBeGreaterThan(0);
-    expect(screen.queryByRole('table', { name: /selected tests/i })?.querySelectorAll('tbody tr').length ?? 0).toBe(0);
+    expect(screen.queryByRole('grid', { name: /selected tests/i })?.querySelectorAll('tbody tr').length ?? 0).toBe(0);
   });
 
   it('an unusable payload (wrong shapes, prototype pollution attempt) is refused with a message; the form stays blank and nothing is registered', async () => {

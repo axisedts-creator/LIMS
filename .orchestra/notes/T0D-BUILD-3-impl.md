@@ -3,5 +3,5 @@
 - Web: app/(staff)/admin/access-review/page.tsx (NotAvailable retired; users + reviews read, FailedPage on error), features/admin/components/AccessReview.tsx (reviews Grid Date/Reviewer/Memberships reviewed/Notes, banner, users Grid, Record dialog with prefilled active count, form checks, success toast, error alert with reference, one request per double click), features/admin/lib.ts (Review type). 6 source files.
 - [CONV] Record dialog is isDismissable={false} (no X; Cancel only) so typed notes are not lost and the tester's single Cancel/Close button lookup holds.
 - [CONV] caller session without membershipId on record -> auth.forbidden (403).
-- Tests: build3 api 57/59 (2 audit-action cases DISPUTED, see T0D-BUILD-3-dispute.md); t20 admin web 222/222; identity api suite 6851 pass, 3 other failures pre-existing and unrelated (AppShell nav regex, T0B-06 definer count, service-key grep); webfix1 6 failures in slots/bookable/settings, unrelated. tsc clean for touched files; eslint not runnable at root.
-- Open: lead ruling on the audit action (dispute).
+- Tests (after ruling, no code change): build3+fix2 api 59/59, t20 build3+audit-sessions web 78/78. Earlier full runs; t20 admin web 222/222; identity api suite 6851 pass, 3 other failures pre-existing and unrelated (AppShell nav regex, T0B-06 definer count, service-key grep); webfix1 6 failures in slots/bookable/settings, unrelated. tsc clean for touched files; eslint not runnable at root.
+- Open: none. Ruling T0D-BUILD-3-ruling.md applied: audit = row trigger access_reviews__audit, no ctx.audit.access.

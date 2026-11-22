@@ -6,6 +6,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@lims/ui/components/Button';
 import { Card } from '@lims/ui/components/Card';
+import type { ColumnDef } from '@lims/ui/components/DataTable';
+import { DescriptionList } from '@lims/ui/components/DescriptionList';
 import { Dialog } from '@lims/ui/components/Dialog';
 import { FilterBar } from '@lims/ui/components/FilterBar';
 import { Grid } from '@lims/ui/components/Grid';
@@ -76,42 +78,37 @@ export function WorklistPage({ departmentId, permissions }: { departmentId: stri
       {load.s !== 'loading' ? (
         <Grid columns={2}>
         <div>
-        <ListTable caption="Worklist" cols={canManage ? 11 : 10} empty="No pending tests for this department."
+        {/* T0D-UIX-3 (LD-442): kit DataTable columns config */}
+        <ListTable caption="Worklist" getRowId={(r) => r.order_test_id} empty="No pending tests for this department."
           fail={load.s === 'fail' ? load.r : undefined} onRetry={retry}
-          head={<>
-            {canManage ? <th scope="col"><span className="lims-visually-hidden">Select</span></th> : null}
-            <th scope="col">Barcode</th><th scope="col">Reg no</th><th scope="col">Patient</th><th scope="col">Test</th><th scope="col">Priority</th>
-            <th scope="col">Status</th><th scope="col">Received</th><th scope="col">Age since received</th><th scope="col">TAT target</th><th scope="col">Result entry</th>
-          </>}
-          rows={rows.map((r) => (
-              <tr key={r.order_test_id}>
-                {canManage ? <td><input type="checkbox" aria-label={`Select ${r.barcode ?? r.registration_no} ${r.test_code}`} checked={selected.has(r.order_test_id)} onChange={() => toggle(r.order_test_id)} /></td> : null}
-                <td>{r.barcode ?? '—'}</td>
-                <td>{r.registration_no}</td>
-                <td>{r.patient_display.full_name} <span className="lims-muted">{r.patient_display.age_sex}</span></td>
-                <td>{r.test_code}</td>
-                <td>{r.priority === 'urgent' ? '★ Urgent' : ''}</td>
-                <td>{statusLabel(r.status)}</td>
-                <td>{utc(r.received_at)}</td>
-                <td>{r.received_at ? hhmm((now - Date.parse(r.received_at)) / 1000) : '—'}</td>
-                <td>—</td>{/* the worklist DTO carries no TAT target (#19 does) */}
-                <td>
-                  <Button ref={(el) => { if (el) rowBtn.current.set(r.order_test_id, el); else rowBtn.current.delete(r.order_test_id); }} variant="ghost" size="sm" onPress={() => setChosen(r)}>
-                    {`Enter results ${r.barcode ?? r.registration_no} ${r.test_code}`}
-                  </Button>
-                </td>
-              </tr>
-            ))} />
+          columns={[
+            ...(canManage ? [{ id: 'select', header: 'Select', cell: (r: WorklistItem) => <input type="checkbox" aria-label={`Select ${r.barcode ?? r.registration_no} ${r.test_code}`} checked={selected.has(r.order_test_id)} onChange={() => toggle(r.order_test_id)} /> }] : []),
+            { id: 'barcode', header: 'Barcode', isRowHeader: true, cell: (r) => r.barcode ?? '—' },
+            { id: 'reg', header: 'Reg no', cell: (r) => r.registration_no },
+            { id: 'patient', header: 'Patient', cell: (r) => <>{r.patient_display.full_name} <span className="lims-muted">{r.patient_display.age_sex}</span></> },
+            { id: 'test', header: 'Test', cell: (r) => r.test_code },
+            { id: 'priority', header: 'Priority', cell: (r) => (r.priority === 'urgent' ? '★ Urgent' : '') },
+            { id: 'status', header: 'Status', cell: (r) => statusLabel(r.status) },
+            { id: 'received', header: 'Received', cell: (r) => utc(r.received_at) },
+            { id: 'age', header: 'Age since received', numeric: true, cell: (r) => (r.received_at ? hhmm((now - Date.parse(r.received_at)) / 1000) : '—') },
+            { id: 'tat', header: 'TAT target', cell: () => '—' }, // the worklist DTO carries no TAT target (#19 does)
+            { id: 'entry', header: 'Result entry', cell: (r) => (
+              <Button ref={(el) => { if (el) rowBtn.current.set(r.order_test_id, el); else rowBtn.current.delete(r.order_test_id); }} variant="ghost" size="sm" onPress={() => setChosen(r)}>
+                {`Enter results ${r.barcode ?? r.registration_no} ${r.test_code}`}
+              </Button>
+            ) },
+          ] satisfies ColumnDef<WorklistItem>[]}
+          rows={rows} />
         </div>
         <aside aria-label="Result entry" ref={panel} onKeyDown={(e) => { if (e.key === 'Escape') { e.stopPropagation(); closePanel(); } }}>
           <Card title="Result entry">
             {chosen ? (
               <>
-                <dl>
-                  <dt>Reg no</dt><dd>{chosen.registration_no}</dd>
-                  <dt>Patient</dt><dd>{chosen.patient_display.full_name} <span className="lims-muted">{chosen.patient_display.age_sex}</span></dd>
-                  <dt>Test</dt><dd>{chosen.test_code}</dd>
-                </dl>
+                <DescriptionList items={[
+                  { term: 'Reg no', value: chosen.registration_no },
+                  { term: 'Patient', value: <>{chosen.patient_display.full_name} <span className="lims-muted">{chosen.patient_display.age_sex}</span></> },
+                  { term: 'Test', value: chosen.test_code },
+                ]} />
                 <p>{chosen.result_counts.resulted} of {chosen.result_counts.total} resulted</p>
                 <Link href={`/lab/orders/${chosen.order_id}/results`}>Open result entry</Link>
                 <Button variant="ghost" onPress={closePanel}>Close panel</Button>

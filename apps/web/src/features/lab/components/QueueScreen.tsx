@@ -13,8 +13,7 @@ import { Button } from '@lims/ui/components/Button';
 import { Checkbox } from '@lims/ui/components/Checkbox';
 import { ConfirmDialog } from '@lims/ui/components/ConfirmDialog';
 import { Dialog } from '@lims/ui/components/Dialog';
-import { EmptyRow, PlaceholderRows } from '@lims/ui/components/DataTable';
-import { EmptyState } from '@lims/ui/components/EmptyState';
+import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
 import { FilterBar } from '@lims/ui/components/FilterBar';
 import { FlagBadge, type ResultFlag } from '@lims/ui/components/FlagBadge';
 import { PageHeader } from '@lims/ui/components/PageHeader';
@@ -28,7 +27,7 @@ import type { ResultSignoff } from '../server/config.types';
 import { getResultSignoffsAction, listCodedSetAction } from '../server/config.actions';
 import type { AckFlag, CodedOption, GridResult, QueueItem, QueueResult, ResultBulkRow, VerifyItem } from '../server/types';
 import { FAILED, call, newKey, utc } from './shared';
-import { hhmm, useNow } from './consoleParts';
+import { domAttrs, hhmm, useNow } from './consoleParts';
 import { ReturnDialog } from './grid/ResultDialogs';
 import { actionError } from './grid/resultModel';
 
@@ -49,8 +48,6 @@ const AGE_UNKNOWN = 'Age unknown — reference range and critical check not appl
 const MFA = 'Approval needs a second check. Verify your identity, then the approval is sent again.';
 const NOT_YET = 'This part of the system is being built. It appears here once it is switched on.';
 const FLAG_LABEL: Record<AckFlag, string> = { delta: 'delta', critical: 'critical', unit_mismatch: 'unit mismatch', instrument_flag: 'instrument flag' };
-const HEADERS = ['Priority', 'Registration no', 'Patient', 'Analyte count', 'Flags', 'Waiting time'];
-const RESULT_HEADERS = ['Analyte', 'Value', 'Unit', 'Reference range', 'Flag', 'Previous value', 'Change', 'Comment', 'Sign-off'];
 const COPY = {
   verify: { menu: 'lab.nav.verification', empty: 'Nothing waiting for verification.', verb: 'Verify', key: 'v', perm: 'lab.result.verify', done: 'Verification outcome', denied: 'You do not have permission to verify results.' },
   approve: { menu: 'lab.nav.approval', empty: 'Nothing waiting for approval.', verb: 'Approve', key: 'a', perm: 'lab.result.approve', done: 'Approval outcome', denied: 'You do not have permission to approve results.' },
@@ -280,42 +277,74 @@ export function QueueScreen({ mode, items, permissions, onStepUp, currentUserId,
     if (next) [...(e.currentTarget.closest('table')?.querySelectorAll<HTMLInputElement>('[data-queue-tick]') ?? [])].find((x) => x.dataset.queueTick === next.no)?.focus();
   };
 
+  // T0D-UIX-3 (LD-442): the queue and the results are kit DataTables (header kept when empty, numbers end aligned).
+  // The queue item stays ONE focusable button (data-console-item for SplitConsole j / k); its row carries the selection and the dimming (domAttrs onRow).
+  type Item = Reg['items'][number];
+  const queueCols: ColumnDef<Reg>[] = [
+    { id: 'priority', header: 'Priority', cell: (g) => g.items[0]!.priority },
+    { id: 'reg', header: 'Registration no', isRowHeader: true, cell: (g) => {
+      const dim = regMine(g);
+      return (
+        <>
+          <input type="checkbox" aria-label={`Select ${g.no}`} data-queue-tick={g.no} checked={tickable(g) && ticked.has(g.no)} disabled={!tickable(g)} {...(!tickable(g) ? { title: !canAct ? c.denied : dim ? MINE : 'Flagged: open it and review each result' } : {})} onChange={(e) => toggleTick(g.no, e.target.checked)} onKeyDown={(e) => onRowKey(e, g)} />{' '}
+          <Button variant="ghost" size="sm" ref={domAttrs({ 'data-console-item': g.no })} onPress={() => setSelNo(g.no)}>
+            <span ref={domAttrs({ 'aria-selected': String(selNo === g.no), 'data-selected': selNo === g.no ? 'true' : undefined, 'aria-disabled': dim ? 'true' : undefined, style: dim ? 'opacity: 0.55' : undefined }, true)}>{g.no}</span>
+          </Button>
+        </>
+      );
+    } },
+    { id: 'patient', header: 'Patient', cell: (g) => g.items[0]!.patient_display.full_name },
+    { id: 'count', header: 'Analyte count', numeric: true, cell: (g) => String(g.items.length) },
+    { id: 'flags', header: 'Flags', cell: (g) => {
+      const next = g.items[0]!.result.next_step;
+      return (
+        <>
+          {[...new Set(g.items.map((i) => i.result.flag).filter((f): f is string => !!f && f !== 'N'))].map((f) => <FlagBadge key={f} flag={f as ResultFlag} />)}
+          {next && NEXT[next] ? <span>{NEXT[next]}</span> : null}
+          {regMine(g) ? <div>{MINE}</div> : null}
+        </>
+      );
+    } },
+    { id: 'wait', header: 'Waiting time', numeric: true, cell: (g) => { const w = waitMs(g); return <span suppressHydrationWarning>{w === undefined ? DASH : hhmm(w)}</span>; } },
+  ];
+  const resultCols: ColumnDef<Item>[] = [
+    { id: 'analyte', header: 'Analyte', isRowHeader: true, cell: (i) => i.result.analyte_code },
+    { id: 'value', header: 'Value', numeric: true, cell: (i) => i.result.value_numeric ?? i.result.value_text ?? DASH },
+    { id: 'unit', header: 'Unit', cell: (i) => i.result.unit_code ?? DASH },
+    { id: 'range', header: 'Reference range', cell: (i) => range(i.result) },
+    { id: 'flag', header: 'Flag', cell: (i) => {
+      const r = i.result;
+      const need = mode === 'verify' ? neededFlags(r) : [];
+      return (
+        <>
+          {r.flag ? <FlagBadge flag={r.flag as ResultFlag} /> : null}
+          {canAct ? need.map((f) => (
+            <Checkbox key={f} label={`Acknowledge ${FLAG_LABEL[f]}`} isSelected={acks[r.id]?.includes(f) ?? false} onChange={(on) => toggleAck(r.id, f, on)} />
+          )) : null}
+        </>
+      );
+    } },
+    { id: 'prev', header: 'Previous value', numeric: true, cell: (i) => i.result.delta?.prev_value ?? DASH },
+    { id: 'change', header: 'Change', numeric: true, cell: (i) => change(i.result.delta) },
+    { id: 'comment', header: 'Comment', cell: (i) => i.result.comment_text ?? DASH },
+    { id: 'signoff', header: 'Sign-off', cell: (i) => {
+      const r = i.result;
+      return (
+        <>
+          {r.signoff_count !== undefined && r.signoff_required !== undefined ? (
+            <SignoffCell listId={`${uid}-${r.id}`} count={r.signoff_count} required={r.signoff_required} next={r.next_step} chain={chains[r.id]}
+              open={openChip === r.id} onToggle={() => setOpenChip((o) => (o === r.id ? null : r.id))} />
+          ) : DASH}
+          {mine(r) ? <div>{MINE}</div> : null}
+          <PendingSyncBadge id={r.id} />
+        </>
+      );
+    } },
+  ];
+
   const list = (
-    <div className="lims-data-table"><div className="lims-table-scroll">
-      <table className="lims-table" aria-label={`${title} queue`}>
-        <thead><tr>{HEADERS.map((h) => <th key={h} scope="col">{h}</th>)}</tr></thead>
-        <tbody>
-          {regs.length === 0 ? (
-            <EmptyRow colSpan={HEADERS.length}>{pending ? <EmptyState title="Not available yet" body={NOT_YET} /> : <EmptyState title={c.empty} />}</EmptyRow>
-          ) : null}
-          {regs.map((g) => {
-            const first = g.items[0]!;
-            const dim = regMine(g);
-            const w = waitMs(g);
-            const next = first.result.next_step;
-            return (
-              <tr key={g.no} className="lims-row" aria-selected={selNo === g.no} {...(selNo === g.no ? { 'data-selected': 'true' } : {})}
-                {...(dim ? { 'aria-disabled': true, style: { opacity: 0.55 } } : {})}>
-                <td>{first.priority}</td>
-                <td>
-                  <input type="checkbox" aria-label={`Select ${g.no}`} data-queue-tick={g.no} checked={tickable(g) && ticked.has(g.no)} disabled={!tickable(g)} {...(!tickable(g) ? { title: !canAct ? c.denied : dim ? MINE : 'Flagged: open it and review each result' } : {})} onChange={(e) => toggleTick(g.no, e.target.checked)} onKeyDown={(e) => onRowKey(e, g)} />{' '}
-                  <button type="button" className="lims-link" data-console-item={g.no} onClick={() => setSelNo(g.no)}>{g.no}</button>
-                </td>
-                <td title={first.patient_display.full_name}>{first.patient_display.full_name}</td>
-                <td className="lims-num">{String(g.items.length)}</td>
-                <td>
-                  {[...new Set(g.items.map((i) => i.result.flag).filter((f): f is string => !!f && f !== 'N'))].map((f) => <FlagBadge key={f} flag={f as ResultFlag} />)}
-                  {next && NEXT[next] ? <span>{NEXT[next]}</span> : null}
-                  {dim ? <div>{MINE}</div> : null}
-                </td>
-                <td className="lims-num" suppressHydrationWarning>{w === undefined ? DASH : hhmm(w)}</td>
-              </tr>
-            );
-          })}
-        </tbody>
-        {regs.length === 0 ? <PlaceholderRows colSpan={HEADERS.length} /> : null}
-      </table>
-    </div></div>
+    <DataTable caption={`${title} queue`} columns={queueCols} rows={regs} getRowId={(g) => g.no} cellTitle
+      emptyState={pending ? { title: 'Not available yet', body: NOT_YET } : { title: c.empty }} />
   );
 
   const detail = sel ? (
@@ -325,42 +354,7 @@ export function QueueScreen({ mode, items, permissions, onStepUp, currentUserId,
       <p className="lims-console-strip">
         {[sel.items[0]!.patient_display.age_sex, sel.items[0]!.patient_display.patient_code, sel.no, sel.items[0]!.priority].join(' · ')}
       </p>
-      <div className="lims-data-table"><div className="lims-table-scroll">
-        <table className="lims-table" aria-label="Results">
-          <thead><tr>{RESULT_HEADERS.map((h) => <th key={h} scope="col">{h}</th>)}</tr></thead>
-          <tbody>
-            {sel.items.map((i) => {
-              const r = i.result;
-              const need = mode === 'verify' ? neededFlags(r) : [];
-              return (
-                <tr key={r.id}>
-                  <td>{r.analyte_code}</td>
-                  <td className="lims-num">{r.value_numeric ?? r.value_text ?? DASH}</td>
-                  <td>{r.unit_code ?? DASH}</td>
-                  <td>{range(r)}</td>
-                  <td>
-                    {r.flag ? <FlagBadge flag={r.flag as ResultFlag} /> : null}
-                    {canAct ? need.map((f) => (
-                      <Checkbox key={f} label={`Acknowledge ${FLAG_LABEL[f]}`} isSelected={acks[r.id]?.includes(f) ?? false} onChange={(on) => toggleAck(r.id, f, on)} />
-                    )) : null}
-                  </td>
-                  <td className="lims-num">{r.delta?.prev_value ?? DASH}</td>
-                  <td className="lims-num">{change(r.delta)}</td>
-                  <td title={r.comment_text}>{r.comment_text ?? DASH}</td>
-                  <td>
-                    {r.signoff_count !== undefined && r.signoff_required !== undefined ? (
-                      <SignoffCell listId={`${uid}-${r.id}`} count={r.signoff_count} required={r.signoff_required} next={r.next_step} chain={chains[r.id]}
-                        open={openChip === r.id} onToggle={() => setOpenChip((o) => (o === r.id ? null : r.id))} />
-                    ) : DASH}
-                    {mine(r) ? <div>{MINE}</div> : null}
-                    <PendingSyncBadge id={r.id} />
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div></div>
+      <DataTable caption="Results" columns={resultCols} rows={sel.items} getRowId={(i) => i.result.id} cellTitle emptyState={{ title: 'No results.' }} />
       <p data-console-audit="">{auditLine(sel, chains)}</p>
     </>
   ) : <p>{pending ? NOT_YET : regs.length ? 'Select a registration to see its results here.' : c.empty}</p>;
@@ -375,7 +369,7 @@ export function QueueScreen({ mode, items, permissions, onStepUp, currentUserId,
       </Button>
       <Button isDisabled={!canAct || !sel || regMine(sel) || busy} onPress={() => void openReturn()}>Return for repeat (R)</Button>
       {/* No hold operation exists for a queued result (gap in the notes): shown, disabled, with the reason */}
-      <button type="button" className="lims-btn lims-btn-secondary lims-btn-md" disabled title="Hold is not available yet">Hold (H)</button>
+      <Button isDisabled ref={domAttrs({ title: 'Hold is not available yet' })}>Hold (H)</Button>
     </>
   );
 
@@ -441,7 +435,8 @@ function SignoffCell({ listId, count, required, next, chain, open, onToggle }: {
   const rows = Array.isArray(chain) ? chain : [];
   return (
     <div>
-      <button type="button" className="lims-chip" aria-expanded={open} {...(open ? { 'aria-controls': listId } : {})} onClick={onToggle}>{`Signed ${count} of ${required}`}</button>
+      {/* T0D-UIX-3 (LD-442): kit Button; aria-expanded / aria-controls through domAttrs */}
+      <Button variant="ghost" size="sm" ref={domAttrs({ 'aria-expanded': String(open), 'aria-controls': open ? listId : undefined })} onPress={onToggle}>{`Signed ${count} of ${required}`}</Button>
       {next && NEXT[next] ? <> <span>{NEXT[next]}</span></> : null}
       {open ? (
         chain === 'error' ? <p id={listId}>Could not load who signed.</p>

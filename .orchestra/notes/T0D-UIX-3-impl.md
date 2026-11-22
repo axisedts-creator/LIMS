@@ -1,0 +1,6 @@
+# T0D-UIX-3 impl (writer)
+- 21 files under apps/web/src/features/lab/components: shared.tsx (ListTable now wraps kit DataTable with columns), CollectDispatch, CriticalValueList, IngestExceptionList/Detail, QueueScreen, ReceiveScreen, StatusBoard, consoleParts, grid/ResultPanels, pending/PendingPage, qc/QcResultsPage, settings/{DeltaRules,QcHolds,ReasonCodes,VerificationPolicy}Tab, specimens/SpecimenDetail, worklists/{DepartmentIndex,WorklistPage}, worksheets/{WorksheetList,WorksheetPrint}Page. No CSS, test, route, permission or API change.
+- [CONV] Every DataTable has one isRowHeader column (react-aria throws without one). ListTable maps fail states: 403/404/501 go to emptyState, anything else to error. rows undefined means isLoading.
+- [CONV] StatusBoard aria-pressed toggles: kit Button plus a ref that sets the aria attributes (the kit Button forwards no aria-*). PendingPage uses the kit Switch (role=switch).
+- Tests: uix3 10/11 pass. Lab configs green: c5-t18, c5-t20, c5-t23, c5-t33, lab-t10, lab-t11, lab-t29, uiscan1, uiguard1. Still red, all pinned old markup: see T0D-UIX-3-dispute.md. tsc: no lab errors.
+- Open: the dispute items (tests need role grid; the Tab-into-cell keyboard decision). The rs-c5 .snap file shows a line-ending-only diff; it needs a `git checkout` (the writer may not edit it).

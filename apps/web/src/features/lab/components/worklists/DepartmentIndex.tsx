@@ -3,25 +3,23 @@
 // One link per active department to the existing /lab/worklists/{department_id}. The spec's per-department counts (open, urgent) have no operation in lab.yaml: listed as a gap in the task notes.
 // T0D-UILIST-1 (LD-353 template 1, rule 5): the departments are a table with its header row always drawn; an empty list is the EmptyState in the body.
 import Link from 'next/link';
+import type { ColumnDef } from '@lims/ui/components/DataTable';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import type { DepartmentRow } from '../../server/adminpages.server';
 import { t } from '@/core/i18n/messages';
 import { ListTable } from '../shared';
 
-const DEPARTMENT_COLUMNS = ['Department', 'Code'] as const;
+// T0D-UIX-3 (LD-442): kit DataTable columns
+const DEPARTMENT_COLUMNS: readonly ColumnDef<DepartmentRow>[] = [
+  { id: 'department', header: 'Department', isRowHeader: true, cell: (d) => <Link href={`/lab/worklists/${encodeURIComponent(d.id)}`}>{`${d.name} (${d.code})`}</Link> },
+  { id: 'code', header: 'Code', cell: (d) => d.code },
+];
 
 export function DepartmentIndex({ departments }: { departments: readonly DepartmentRow[] }) {
   return (
     <section aria-label="Worklists">
       <PageHeader title={t('lab.nav.worklists')} helpKey="lab.worklists" />
-      <ListTable caption="Departments" cols={2} empty="No active departments."
-        head={DEPARTMENT_COLUMNS.map((c) => <th key={c} scope="col">{c}</th>)}
-        rows={departments.map((d) => (
-          <tr key={d.id}>
-            <td><Link href={`/lab/worklists/${encodeURIComponent(d.id)}`}>{`${d.name} (${d.code})`}</Link></td>
-            <td>{d.code}</td>
-          </tr>
-        ))} />
+      <ListTable caption="Departments" columns={DEPARTMENT_COLUMNS} rows={departments} getRowId={(d) => d.id} empty="No active departments." />
     </section>
   );
 }

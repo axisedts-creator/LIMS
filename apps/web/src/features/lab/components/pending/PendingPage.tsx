@@ -5,6 +5,8 @@
 // a "Pending by department" ChartCard that shows NotAvailable (PendingItem carries no department and this screen does not read getPendingTestsSummary).
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ChartCard } from '@lims/ui/components/ChartCard';
+import type { ColumnDef } from '@lims/ui/components/DataTable';
+import { Switch } from '@lims/ui/components/Switch';
 import { FilterBar } from '@lims/ui/components/FilterBar';
 import { NotAvailable } from '@lims/ui/components/NotAvailable';
 import { PageHeader } from '@lims/ui/components/PageHeader';
@@ -35,7 +37,17 @@ export function PendingPage({ permissions: _permissions }: { permissions?: reado
 
   const rows = load.s === 'ok' ? load.rows : [];
   const hasRegistered = rows.some((r) => r.age_anchor === 'registered'), hasReceived = rows.some((r) => r.age_anchor === 'received');
-  const cols = 6 + (hasRegistered ? 1 : 0) + (hasReceived ? 1 : 0);
+  // T0D-UIX-3 (LD-442): kit DataTable columns; the age columns appear only when a row carries that start point
+  const columns: ColumnDef<PendingItem>[] = [
+    { id: 'reg', header: 'Reg no', isRowHeader: true, cell: (r) => r.registration_no },
+    { id: 'patient', header: 'Patient', cell: (r) => <>{r.patient_display.full_name} <span className="lims-muted">{r.patient_display.age_sex}</span></> },
+    { id: 'test', header: 'Test', cell: (r) => r.test_code },
+    { id: 'status', header: 'Status', cell: (r) => statusLabel(r.item_status) },
+    { id: 'priority', header: 'Priority', cell: (r) => (r.priority === 'urgent' ? '★ Urgent' : '') },
+    ...(hasRegistered ? [{ id: 'age_reg', header: 'Age since registered', numeric: true, cell: (r: PendingItem) => (r.age_anchor === 'registered' ? hhmm(r.age_seconds) : '—') }] : []),
+    ...(hasReceived ? [{ id: 'age_rec', header: 'Age since received', numeric: true, cell: (r: PendingItem) => (r.age_anchor === 'received' ? hhmm(r.age_seconds) : '—') }] : []),
+    { id: 'tat', header: 'TAT target', cell: (r) => <>{hhmm(r.tat_target_seconds)}{r.over_target ? <> <span className="lims-badge lims-tone-danger">Over target</span></> : null}</> },
+  ];
 
   return (
     <section aria-label="Pending tests">
@@ -44,10 +56,8 @@ export function PendingPage({ permissions: _permissions }: { permissions?: reado
       {/* T0D-UILIST-1 (LD-353 rule 2): the one filter sits in the filter row */}
       {/* T0D-UIGUARD-1-LAB (LD-353 rule 2, LD-441): the kit FilterBar draws the same role=search row around the screen's own control */}
       <FilterBar>
-        {/* a button switch, not the bare checkbox */}
-        <button type="button" role="switch" aria-checked={overOnly} className="lims-btn lims-btn-ghost lims-btn-sm" onClick={() => setOverOnly((v) => !v)}>
-          Over target only
-        </button>
+        {/* T0D-UIX-3 (LD-442): the kit Switch, not a raw button or the bare checkbox */}
+        <Switch label="Over target only" isSelected={overOnly} onChange={setOverOnly} />
       </FilterBar>
       <StatTileRow>
         <StatTile label="Pending" value={` ${rows.length}`} />
@@ -59,26 +69,9 @@ export function PendingPage({ permissions: _permissions }: { permissions?: reado
         <p className="lims-muted">The pending count per department is not read on this screen yet.</p>
       </ChartCard>
       {/* T0D-UILIST-1 (LD-353 template 1, rules 5 and 6): the header row is always drawn; empty, failure and not-available sit in the table body */}
-      <ListTable caption="Pending tests" cols={cols} empty="Nothing pending."
-        head={<>
-          <th scope="col">Reg no</th><th scope="col">Patient</th><th scope="col">Test</th><th scope="col">Status</th><th scope="col">Priority</th>
-          {hasRegistered ? <th scope="col">Age since registered</th> : null}
-          {hasReceived ? <th scope="col">Age since received</th> : null}
-          <th scope="col">TAT target</th>
-        </>}
+      <ListTable caption="Pending tests" columns={columns} getRowId={(r) => r.order_test_id} empty="Nothing pending."
         fail={load.s === 'fail' ? load.r : undefined} onRetry={retry}
-        rows={load.s === 'ok' ? rows.map((r) => (
-          <tr key={r.order_test_id}>
-            <td>{r.registration_no}</td>
-            <td>{r.patient_display.full_name} <span className="lims-muted">{r.patient_display.age_sex}</span></td>
-            <td>{r.test_code}</td>
-            <td>{statusLabel(r.item_status)}</td>
-            <td>{r.priority === 'urgent' ? '★ Urgent' : ''}</td>
-            {hasRegistered ? <td>{r.age_anchor === 'registered' ? hhmm(r.age_seconds) : '—'}</td> : null}
-            {hasReceived ? <td>{r.age_anchor === 'received' ? hhmm(r.age_seconds) : '—'}</td> : null}
-            <td>{hhmm(r.tat_target_seconds)}{r.over_target ? <> <span className="lims-badge lims-tone-danger">Over target</span></> : null}</td>
-          </tr>
-        )) : undefined} />
+        rows={load.s === 'ok' ? rows : undefined} />
     </section>
   );
 }

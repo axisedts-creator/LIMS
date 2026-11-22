@@ -8,9 +8,9 @@ import { Banner } from '@lims/ui/components/Banner';
 import { BarcodeInput, useScanCapture, type OnScan } from '@lims/ui/components/BarcodeInput';
 import { Button } from '@lims/ui/components/Button';
 import { Checkbox } from '@lims/ui/components/Checkbox';
-import { EmptyRow, PlaceholderRows } from '@lims/ui/components/DataTable';
+import { DataTable } from '@lims/ui/components/DataTable';
+import { DescriptionList } from '@lims/ui/components/DescriptionList';
 import { Dialog } from '@lims/ui/components/Dialog';
-import { EmptyState } from '@lims/ui/components/EmptyState';
 import { FilterBar } from '@lims/ui/components/FilterBar';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { RadioGroup } from '@lims/ui/components/RadioGroup';
@@ -203,15 +203,13 @@ function Screen({ centres, rejectionReasons, recollectionDefault, permissions }:
       {current ? (
         <section aria-label="Current specimen">
           <p><strong>{current.barcode}</strong> <PendingSyncBadge id={current.id} /></p>
-          <dl>
-            <dt>Registration no</dt>
-            <dd>{current.registration_no}</dd>
-            <dt>Specimen</dt>
-            <dd>{current.container_code ? `${current.specimen_type_code} / ${current.container_code}` : current.specimen_type_code}</dd>
-            <dt>Tests</dt>
-            <dd>{current.tests.map((t) => t.test_code).join(', ')}{current.priority === 'urgent' ? ' ★ Urgent' : ''}</dd>
-            {current.collected_at ? <><dt>Collected</dt><dd>{day(current.collected_at)}</dd></> : null}
-          </dl>
+          {/* T0D-UIX-3 (LD-442): label and value pairs are the kit DescriptionList */}
+          <DescriptionList items={[
+            { term: 'Registration no', value: current.registration_no },
+            { term: 'Specimen', value: current.container_code ? `${current.specimen_type_code} / ${current.container_code}` : current.specimen_type_code },
+            { term: 'Tests', value: `${current.tests.map((t) => t.test_code).join(', ')}${current.priority === 'urgent' ? ' ★ Urgent' : ''}` },
+            ...(current.collected_at ? [{ term: 'Collected', value: day(current.collected_at) }] : []),
+          ]} />
           {current.collection_barcode_unverified ? <Banner tone="warning" title="Collection barcode was not verified on the phlebotomy app" /> : null}
           {!current.is_active ? <Banner tone="danger" title="Order cancelled — do not process" /> : null}
           {current.status === 'rejected' ? <Banner tone="warning" title={current.rejected_at ? `Rejected on ${day(current.rejected_at)}: ${reasonText(current.rejection_reason_code)}` : 'Rejected'} /> : null}
@@ -250,24 +248,13 @@ function Screen({ centres, rejectionReasons, recollectionDefault, permissions }:
             onChange={(v) => setLogTab(((v['outcome'] as readonly string[] | undefined)?.find((x) => x !== logTab) ?? 'all') as LogTab)}
             onReset={() => setLogTab('all')}
           />
-          <div className="lims-data-table"><div className="lims-table-scroll">
-            <table className="lims-table">
-              <caption className="lims-visually-hidden">Session log</caption>
-              <thead>
-                <tr><th scope="col">Barcode</th><th scope="col">Outcome</th></tr>
-              </thead>
-              <tbody>
-                {shown.length === 0 ? <EmptyRow colSpan={2}><EmptyState title={log.length ? 'No scans with this outcome' : 'Scan a label to start'} /></EmptyRow> : null}
-                {shown.map((e) => (
-                  <tr key={e.n}>
-                    <td>{e.barcode}</td>
-                    <td>{e.text}</td>
-                  </tr>
-                ))}
-              </tbody>
-              {shown.length === 0 ? <PlaceholderRows colSpan={2} /> : null}
-            </table>
-          </div></div>
+          {/* T0D-UIX-3 (LD-442): the session log is the kit DataTable */}
+          <DataTable caption="Session log" rows={shown} getRowId={(e) => String(e.n)}
+            emptyState={{ title: log.length ? 'No scans with this outcome' : 'Scan a label to start' }}
+            columns={[
+              { id: 'barcode', header: 'Barcode', isRowHeader: true, cell: (e) => e.barcode },
+              { id: 'outcome', header: 'Outcome', cell: (e) => e.text },
+            ]} />
           </div>
         </div>
       </div>

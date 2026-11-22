@@ -54,14 +54,14 @@ describe('every 07-SECURITY §5 test ID has an owning test file that exists and 
   });
 });
 
-describe('P1 "all 30 operations": each id-taking operation is named in a probe file', () => {
+describe('P1 "all 31 operations": each id-taking operation is named in a probe file', () => {
   const probeText = Object.values(OWNERS).flat().filter((f) => f.includes('probes')).map(src).join('\n');
   const idTaking = OPS.filter((o) => o.pathParams.length || o.query.some((q) => /_ids?$/.test(String(q))) || /_ids?"/.test(JSON.stringify(o.raw.requestBody ?? {})) || o.hasBody);
   it.each(idTaking.map((o) => [o.id] as const))('%s', (id) => {
     expect(probeText, id).toContain(id);
   });
-  it('the generated suites (actors, contract) iterate OPS, so all 30 operations are visited by P12 / X1 / X2 / X3 / P13', () => {
-    expect(OPS.length).toBe(30);
+  it('the generated suites (actors, contract) iterate OPS, so all 31 operations are visited by P12 / X1 / X2 / X3 / P13', () => {
+    expect(OPS.length).toBe(31);
     expect(src(join(P, 'actors.probe.test.ts'))).toContain('OPS.map');
   });
 });

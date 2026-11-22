@@ -93,8 +93,8 @@ describe('export request validation knows every new report (reportTable SPECS)',
 });
 
 describe('module wiring (LD-325): handlers == contract operations, no pending list, no new route', () => {
-  it('the contract still has its 30 operations and every one has a handler', () => {
-    expect(OPS).toHaveLength(30);
+  it('the contract has 31 operations (30 + getMisReportPage, T0D-BUILD-4) and every one has a handler', () => {
+    expect(OPS).toHaveLength(31);
     expect(Object.keys(handlers).sort()).toEqual(OPS.map((o) => o.id).sort());
   });
   it('no pendingOperations entry (the contract task added no operation; the handler task must not add one)', () => {

@@ -18,3 +18,8 @@ Run each: `pnpm --dir apps/web exec vitest run -c src/features/catalog/__tests__
 3. pricetools1 double click (compare Export CSV downloads twice; detail 409 save PUTs twice): handlers unchanged in the diff but the raw button became kit Button; likely regression of this diff, writer to restore the single-fire guard. Not confirmed at base (no base worktree).
 4. web-t31 logs "A table must have at least one Column with the isRowHeader prop set to true": a DataTable without an `isRowHeader` column (tests still pass, React recovers). Add `isRowHeader: true` to the first column.
 5. Not from this diff (unchanged): web-t33.server createDoctor, rs-c3.static, testimport1.source, web-t38.docs, emptytbl1 loading states.
+
+## Round 2 (review items 1-2, tests only)
+- pricetools1.compare / .bulk / .detail: compact assertion -> `lims-table-regular` (and not `lims-table-compact`); scroll-box and no-"Load more" assertions kept.
+- testfix1.pages (2 tests): "Import from Excel" now looked up as the one button after the grid in the list section, not in the message row; /catalog/imports navigation kept. Reason: kit EmptyState takes a single action, kit not editable (LD-442). New test stays in the row and header.
+- No snapshots touched, no vitest -u (LD-443).

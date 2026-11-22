@@ -166,12 +166,13 @@ describe('the comparison table', () => {
     const fbs = byCode('FBS');
     expect(fbs.slice(1, 5)).toEqual(['200.00', '150.00', expect.stringMatching(/^[-−]50\.00$/), expect.stringMatching(/^[-−]25\.00%$/)]);
   });
-  it('no cursor, no "Load more" button; the table scrolls inside its own box and is compact', async () => {
+  it('no cursor, no "Load more" button; the table scrolls inside its own box and is regular density', async () => {
     API.compare[''] = () => HttpResponse.json({ data: PAGE1, page: { limit: 50 } });
     await openLists(URLQ);
     expect(screen.queryByRole('button', { name: /^load more$/i })).toBeNull();
     expect(table().closest('[class*="lims-table-scroll"]')).toBeTruthy();
-    expect(table().className).toMatch(/lims-table-compact/);
+    expect(table().className).toMatch(/lims-table-regular/);
+    expect(table().className).not.toMatch(/lims-table-compact/);
   });
   it('identical versions: no request; the same pair empty result keeps the headers with a message', async () => {
     await openLists(`view=compare&a=${A}&b=${A}`);

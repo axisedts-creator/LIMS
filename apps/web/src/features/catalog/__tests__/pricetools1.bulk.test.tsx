@@ -346,9 +346,10 @@ describe('accessibility', () => {
     const r = await axe.run(document.body, { rules: { 'color-contrast': { enabled: false }, region: { enabled: false } } });
     expect(r.violations.map((v) => `${v.id}: ${v.nodes[0]?.html}`)).toEqual([]);
   });
-  it('the preview table is compact density and scrolls inside its own box', async () => {
+  it('the preview table is regular density and scrolls inside its own box', async () => {
     const d = await openPanel();
-    expect(preview(d).className).toMatch(/lims-table-compact/);
+    expect(preview(d).className).toMatch(/lims-table-regular/);
+    expect(preview(d).className).not.toMatch(/lims-table-compact/);
     expect(preview(d).closest('[class*="lims-table-scroll"]')).toBeTruthy();
   });
 });

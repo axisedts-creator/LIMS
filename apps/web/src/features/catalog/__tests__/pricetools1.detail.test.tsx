@@ -675,8 +675,11 @@ describe('keyboard and accessibility', () => {
     expect(reach(fileInput()) || fileInput().tabIndex >= -1).toBe(true);
     expect(tablesOf(sec(UP)).length).toBeGreaterThan(0);
   });
-  it('every price tool table is compact density (lims-table-compact)', async () => {
+  it('every price tool table is regular density (lims-table-regular, LD-442 / T0D-UIX-2 done_when 1)', async () => {
     await openDetail();
-    for (const t of [errTable(), tableOf(sec(HIST))]) expect(t.className).toMatch(/lims-table-compact/);
+    for (const t of [errTable(), tableOf(sec(HIST))]) {
+      expect(t.className).toMatch(/lims-table-regular/);
+      expect(t.className).not.toMatch(/lims-table-compact/);
+    }
   });
 });

@@ -185,13 +185,17 @@ describe('empty Complete Test List (done_when 4)', () => {
     const root = shown(await open('tests'));
     const t = tableOf(root);
     expectCreateTwice(root, t, /^new test$/i);
-    const imp = within(t).queryAllByRole('button', { name: /import from excel/i }).concat(within(t).queryAllByRole('link', { name: /import from excel/i }));
-    expect(imp.length, '"Import from Excel" inside the message row').toBeGreaterThanOrEqual(1);
-    expect(messageRow(t)!.contains(imp[0]!)).toBe(true);
+    // T0D-UIX-2 (LD-442): the kit EmptyState takes ONE action and the kit is not edited this round, so "Import from Excel"
+    // is a secondary Button directly after the grid, in the same list section, not inside the message row.
+    const imp = within(root).getAllByRole('button', { name: /import from excel/i });
+    expect(imp, '"Import from Excel" next to the grid').toHaveLength(1);
+    expect(t.contains(imp[0]!), 'not inside the grid').toBe(false);
+    expect(t.compareDocumentPosition(imp[0]!) & Node.DOCUMENT_POSITION_FOLLOWING, 'after the grid').toBeTruthy();
+    expect(within(root).queryAllByRole('link', { name: /import from excel/i })).toHaveLength(0);
   });
   it('Import from Excel opens the import screen (/catalog/imports)', async () => {
     const root = shown(await open('tests'));
-    const el = within(messageRow(tableOf(root))!).getByRole(within(messageRow(tableOf(root))!).queryByRole('link', { name: /import from excel/i }) ? 'link' : 'button', { name: /import from excel/i });
+    const el = within(root).getByRole('button', { name: /import from excel/i });
     let target = el instanceof HTMLAnchorElement ? el.getAttribute('href') : null;
     if (!target) {
       await userEvent.click(el);

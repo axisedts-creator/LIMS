@@ -1,0 +1,1 @@
+pnpm --dir services/api exec vitest run src/modules/payments/__tests__/contract/fix7.list-array-query.test.ts src/modules/payments/__tests__/contract/staff.http.test.ts src/modules/payments/__tests__/contract/staff.contract.test.ts src/modules/payments/__tests__/integration/refund.service.test.ts

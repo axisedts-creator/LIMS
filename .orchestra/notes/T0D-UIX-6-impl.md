@@ -6,3 +6,4 @@
 - Focus: 2px focus-ring (accent alias), offset 1px on every .lims-btn [CONV kit :where ring]; sidebar (.lims-shell-nav) keeps its 3px accent-pop ring so it stays visible on the dark rail.
 - [CONV] tint steps via color-mix: kit has no token between accent.subtle and accent (LD-444 "closest accent tint").
 - Open: danger secondary not done (kit has no variant); disabled look only on secondary (others keep kit opacity 0.6); real-browser pixels unverified.
+- Review fix 1: secondary/ghost/icon hover selectors now `:not([data-disabled], :disabled)`; native-disabled keeps neutral.100/500 on hover. Runs: uix6 131, uix1 63, uix5 100, ui kit 177 pass.

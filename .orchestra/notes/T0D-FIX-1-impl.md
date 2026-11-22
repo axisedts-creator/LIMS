@@ -5,5 +5,5 @@ lab/service/worklist.service.ts (now = new Date(c.now()), store still gets a Dat
 [CONV] split only `in: query`, `explode: false`, `type: array` params (local $ref resolved); empty elements kept so the schema rejects them; repeated + comma forms flattened.
 [CONV] default price = version of the owner_kind 'default' list in force at ctx.now (published, or superseded whose window holds now), same rule as getPriceListDetail current_version.
 [CONV] ChainCtx.now type left as () => Date (widening it breaks culture.service.ts, not owned); clockOf normalises at runtime.
-Checks: verify.cmd 84/84 pass; tsc clean. BLOCKED: existing catalog fakes reject the price SQL (30 tests), see T0D-FIX-1-dispute.md.
+Checks (after ruling, e41ed0d85): new tests + catalog integration/perf/unit = 3851 pass, 3 fail; tsc clean. BLOCKED: search statement budget 4 vs price on search (tests conflict), see T0D-FIX-1-dispute.md.
 Open: other explode:false handlers (instruments, payments, engagement, reporting display_status, inventory movement_kind) already received arrays via coerceTypes 'array'; not re-tested per handler. Ratchet sites: see T0D-FIX-1-left.md.

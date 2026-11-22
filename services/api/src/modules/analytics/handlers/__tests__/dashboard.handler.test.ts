@@ -46,8 +46,8 @@ describe('US-01.1 — default period = Today (Asia/Kathmandu); tiles M04 M12 M42
   it('the tile key set is exactly the contract set (collections tile included for a holder)', async () => {
     const { ctx } = await makeCtx14(OWNER_ALL09);
     const body = await dash(ctx);
-    // T0D-DASHCARDS-1 (LD-447): owner_viewer holds billing.cash_report.read (not billing.account.read) -> cash_in_drawer_paisa joins the set, outstanding_paisa does not
-    expect(Object.keys(body.tiles).sort()).toEqual([...TILE_KEYS, 'cash_in_drawer_paisa'].sort());
+    // T0D-DASHCARDS-1 (LD-447, review item 2): owner_viewer holds billing.cash_report.read (not billing.account.read); cash_in_drawer_paisa is not emitted (no source figure), outstanding_paisa needs account.read -> the set is unchanged
+    expect(Object.keys(body.tiles).sort()).toEqual([...TILE_KEYS].sort());
     expect(Object.keys(body).sort()).toEqual(['department_top', 'freshness', 'generated_at', 'period', 'report_code', 'scope', 'series', 'tiles'].sort());
   });
 

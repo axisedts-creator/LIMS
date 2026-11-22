@@ -2,8 +2,9 @@
 // In-memory world of AN-T14 (./helpers.t14.ts): handler + service + mapper are real, the fake tx answers `{ rows: [] }` for a statement it does not know, so a billing source read
 // that finds no rows must give a 0 tile (empty data = 200, never 500). Equality with the real sources on one fixture is in ../../__tests__/dashcards1.live.test.ts (PG17).
 // PINS the writer may dispute (say so in the ruling, do not bend them silently):
-//  - outstanding_paisa is present iff the caller holds billing.account.read; cash_in_drawer_paisa iff it holds billing.cash_report.read (the x-permission of getDailyCash);
-//    each is OMITTED (never 403, never a null / 0 placeholder) otherwise, and a missing source permission means the source is not even read (no statement names billing.*).
+//  - outstanding_paisa is present iff the caller holds billing.account.read; OMITTED (never 403, never a null / 0 placeholder) otherwise, and a missing source permission means the source is not even read.
+//  - REVIEW ITEM 2 (T0D-DASHCARDS-1-review.md): cash_in_drawer_paisa stays in the contract (optional, additive) but is NEVER emitted for now: an open session's billing.cash_sessions.expected is NULL
+//    (only closeCashSession writes it) and getDailyCash has no live expected, so no figure can equal the source; the web cell stays on "Not available yet" (done_when 2, notes/T0D-DASHCARDS-1-left.md).
 //  - a present tile is { value: integer paisa >= 0 as a safe integer, unit: 'paisa' } and the whole body stays valid against the DashboardDto schema. previous / delta are NOT pinned
 //    (they are snapshots like reports_pending; the schema decides).
 //  - the permission to see the dashboard is still asked first (analytics.dashboard.read): a caller with only a billing permission gets 403 and nothing is read.
@@ -56,15 +57,14 @@ describe('contract (additive only): contracts/openapi/analytics.yaml', () => {
 });
 
 describe('tiles present by the permission of their source (omitted, not 403)', () => {
-  it('a holder of both billing permissions: both tiles, unit paisa, safe integers, body contract-valid', async () => {
+  it('a holder of both billing permissions: outstanding (unit paisa, safe integer), cash in drawer omitted (no source figure), body contract-valid', async () => {
     const { ctx } = await makeCtx14(DASH_BOTH);
     const body = await dash(ctx);
-    for (const k of [OUT, CASH]) {
-      expect(body.tiles[k], k).toBeDefined();
-      expect(body.tiles[k].unit, k).toBe('paisa');
-      expect(Number.isSafeInteger(body.tiles[k].value), k).toBe(true);
-      expect(body.tiles[k].value, k).toBeGreaterThanOrEqual(0);
-    }
+    expect(body.tiles[OUT]).toBeDefined();
+    expect(body.tiles[OUT].unit).toBe('paisa');
+    expect(Number.isSafeInteger(body.tiles[OUT].value)).toBe(true);
+    expect(body.tiles[OUT].value).toBeGreaterThanOrEqual(0);
+    expect(CASH in body.tiles).toBe(false);
     expect(contractErrors('DashboardDto', body)).toEqual([]);
   });
 
@@ -77,12 +77,12 @@ describe('tiles present by the permission of their source (omitted, not 403)', (
     expect(contractErrors('DashboardDto', body)).toEqual([]);
   });
 
-  it('billing.cash_report.read only: cash in drawer present, outstanding omitted', async () => {
+  it('billing.cash_report.read only: both omitted (cash has no source figure yet, outstanding needs account.read)', async () => {
     const { ctx } = await makeCtx14(DASH_CASH);
     const body = await dash(ctx);
-    expect(body.tiles[CASH]).toMatchObject({ unit: 'paisa' });
+    expect(CASH in body.tiles).toBe(false);
     expect(OUT in body.tiles).toBe(false);
-    expect(JSON.stringify(body)).not.toContain(OUT);
+    expect(JSON.stringify(body)).not.toMatch(/outstanding|cash_in_drawer/);
     expect(contractErrors('DashboardDto', body)).toEqual([]);
   });
 
@@ -96,9 +96,9 @@ describe('tiles present by the permission of their source (omitted, not 403)', (
     expect(contractErrors('DashboardDto', body)).toEqual([]);
   });
 
-  it('the source is not read without its permission: account-only caller issues no statement over cash sessions, cash-only none over the account ledger / credit accounts', async () => {
-    const a = await makeCtx14(DASH_ACCT); await dash(a.ctx);
-    expect(w14.log.filter((l) => /cash_sessions/i.test(l.text)), 'account-only').toEqual([]);
+  it('the source is not read without its permission: nobody triggers a statement over cash sessions (tile not emitted), a cash-only caller none over the account ledger / credit accounts', async () => {
+    const a = await makeCtx14(DASH_BOTH); await dash(a.ctx);
+    expect(w14.log.filter((l) => /cash_sessions/i.test(l.text)), 'both-holder').toEqual([]);
     w14.log.length = 0;
     const c = await makeCtx14(DASH_CASH); await dash(c.ctx);
     expect(w14.log.filter((l) => /account_ledger_entries|credit_accounts/i.test(l.text)), 'cash-only').toEqual([]);
@@ -123,19 +123,18 @@ describe('tiles present by the permission of their source (omitted, not 403)', (
 });
 
 describe('empty data and bad input never 500', () => {
-  it('a tenant with no ledger and no cash session: both tiles are 0, 200, contract-valid', async () => {
+  it('a tenant with no ledger and no cash session: outstanding is 0, cash omitted, 200, contract-valid', async () => {
     const { ctx } = await makeCtx14(DASH_BOTH);
     const body = await dash(ctx, { business_date_from: '2030-01-01', business_date_to: '2030-01-08' });
     expect(body.tiles[OUT].value).toBe(0);
-    expect(body.tiles[CASH].value).toBe(0);
+    expect(CASH in body.tiles).toBe(false);
     expect(contractErrors('DashboardDto', body)).toEqual([]);
   });
 
-  it('the two tiles do not depend on the period (snapshots): Today and a 2-day window give the same figures', async () => {
+  it('outstanding does not depend on the period (snapshot): Today and a 2-day window give the same figure', async () => {
     const a = await dash((await makeCtx14(DASH_BOTH)).ctx);
     const b = await dash((await makeCtx14(DASH_BOTH)).ctx, WINDOW);
     expect(b.tiles[OUT]).toEqual(a.tiles[OUT]);
-    expect(b.tiles[CASH]).toEqual(a.tiles[CASH]);
   });
 
   it('bad input still answers a typed 4xx before any billing read: two period selectors → 400, nothing over billing.*', async () => {
@@ -146,16 +145,16 @@ describe('empty data and bad input never 500', () => {
 });
 
 describe('existing dashboard behaviour of the full-permission personas (tile key set)', () => {
-  it('ADMIN (tenant_admin: holds both source permissions) gets both tiles next to the 13 existing ones', async () => {
+  it('ADMIN (tenant_admin: holds both source permissions) gets outstanding next to the 13 existing ones, no cash tile', async () => {
     const body = await dash((await makeCtx14(ADMIN)).ctx);
     expect(OUT in body.tiles).toBe(true);
-    expect(CASH in body.tiles).toBe(true);
-    expect(Object.keys(body.tiles)).toHaveLength(15);
+    expect(CASH in body.tiles).toBe(false);
+    expect(Object.keys(body.tiles)).toHaveLength(14);
   });
 
-  it('OWNER_ALL09 (owner_viewer: cash_report.read, no account.read): cash in drawer yes, outstanding no', async () => {
+  it('OWNER_ALL09 (owner_viewer: cash_report.read, no account.read): neither new tile', async () => {
     const body = await dash((await makeCtx14(OWNER_ALL09)).ctx);
-    expect(CASH in body.tiles).toBe(true);
+    expect(CASH in body.tiles).toBe(false);
     expect(OUT in body.tiles).toBe(false);
   });
 });

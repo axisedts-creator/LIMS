@@ -1,6 +1,7 @@
 // T0D-DASHCARDS-1 (LD-447 ruling 2, CR DEPLOY-AXIS-012) done_when 2 + 5: ONE fixture on a real PG17 under RLS; each new dashboard tile equals its source, read through the real handlers.
 //   outstanding_paisa    == sum of outstanding_paisa over EVERY row of listAccountSummaries (all pages, raw figure, side ignored) of the caller's tenant
-//   cash_in_drawer_paisa == getDailyCash(business_date = today, centre_id = each centre of the caller) sessions with status 'open': sum of rows[method_code 'cash' (case-insensitive)].expected.amount_paisa
+//   cash_in_drawer_paisa: NOT emitted (review item 2): an open session has expected = NULL (only closeCashSession writes it; insertCashSession does not), so getDailyCash has no figure for it and the tile
+//   stays omitted even for a holder of billing.cash_report.read; the fixture inserts open sessions exactly as the app does (expected NULL, counted NULL).
 // Needs LIMS_TEST_APP_URL + LIMS_TEST_SUPER_URL (tests/analytics/T0D-DASHCARDS-1.pg.sh boots PG17 like tests/billing/T0D-BUILD-1.pg.sh). Synthetic data only.
 // PINS the writer may dispute (say so in the ruling): the two formulas above; the closed session of today and the open session of another tenant never count; a caller restricted to a centre
 // without sessions sees cash 0 while outstanding (party level, no centre) is unchanged; a caller without the permission of a source gets the tile OMITTED; the fixture is committed
@@ -53,7 +54,7 @@ async function openCashToday(tenant: string, centres: string[]): Promise<number>
   let total = 0;
   for (const centre of centres) {
     const b = ok(await fire('getDailyCash', req({ query: { business_date: DAY, centre_id: centre } }), { tenant }));
-    for (const s of b.sessions) if (s.status === 'open') for (const r of s.rows) if (String(r.method_code).toLowerCase() === 'cash') total += r.expected.amount_paisa;
+    for (const s of b.sessions) if (s.status === 'open') for (const r of s.rows ?? []) if (String(r.method_code).toLowerCase() === 'cash') total += r.expected?.amount_paisa ?? 0;
   }
   return total;
 }
@@ -61,16 +62,16 @@ async function session(tenant: string, centre: string, status: 'open' | 'closed'
   const p = await person(tenant); const id = uid();
   await superTx(async (tx) => {
     const [b] = (await tx.query('SELECT id FROM core.branches WHERE tenant_id = $1 LIMIT 1', [tenant])).rows;
-    const exp = JSON.stringify([{ method_code: 'cash', amount_paisa: cashPaisa }]);
+    const exp = JSON.stringify([{ method_code: 'cash', amount_paisa: cashPaisa }]);   // only a CLOSED session stores expected / counted (closeCashSession); an open one stays NULL
     await tx.query(
       `INSERT INTO billing.cash_sessions (id, tenant_id, branch_id, centre_id, membership_id, status, opened_at, closed_at, expected, counted, variance_paisa, created_by, updated_by)
        VALUES ($1,$2,$3,$4,$5,$6,'2026-11-17T04:00:00Z',$7::timestamptz,$8::jsonb,$9::jsonb,$10,$5,$5)`,
-      [id, tenant, b.id, centre, p.membershipId, status, status === 'closed' ? '2026-11-17T05:00:00Z' : null, exp, status === 'closed' ? exp : null, status === 'closed' ? 0 : null]);
+      [id, tenant, b.id, centre, p.membershipId, status, status === 'closed' ? '2026-11-17T05:00:00Z' : null, status === 'closed' ? exp : null, status === 'closed' ? exp : null, status === 'closed' ? 0 : null]);
   }, tenant);
 }
 
 describe('dashboard tiles equal their sources on one fixture (done_when 2)', () => {
-  it('outstanding_paisa = the sum of listAccountSummaries; cash_in_drawer_paisa = the open sessions of getDailyCash today; a closed session does not count', async () => {
+  it('outstanding_paisa = the sum of listAccountSummaries; cash_in_drawer_paisa is omitted (open sessions have no stored expected, getDailyCash gives none)', async () => {
     const w = await world('a'); const tg = tag();
     const party = uid();
     await seed('billing.credit_accounts', { tenant_id: TENANT_A, credit_party_id: party, party_code: `CP_${tg}`, party_display_name: `Synthetic Dash ${tg}`, credit_limit_paisa: 9_000_000, is_locked: false, lock_reason_code: null });
@@ -81,17 +82,17 @@ describe('dashboard tiles equal their sources on one fixture (done_when 2)', () 
     await session(TENANT_A, w.centre, 'closed', 777_700);                                       // closed: never in the drawer
     const wantOut = await sumSummaries(TENANT_A), wantCash = await openCashToday(TENANT_A, [w.centre]);
     expect(wantOut, 'fixture reaches the source').toBeGreaterThanOrEqual(465_600);
-    expect(wantCash, 'fixture reaches the source').toBeGreaterThanOrEqual(350_000);
+    expect(wantCash, 'getDailyCash has no expected figure for an open session').toBe(0);
     const body = await dashboard(TENANT_A, ALL);
     expect(body.tiles[OUT]).toMatchObject({ value: wantOut, unit: 'paisa' });
-    expect(body.tiles[CASH]).toMatchObject({ value: wantCash, unit: 'paisa' });
+    expect(CASH in body.tiles).toBe(false);
   }, T);
 
   it('omitted by permission on the real stack: account.read only → no cash tile; cash_report.read only → no outstanding tile; neither → none; never 403', async () => {
     const a = await dashboard(TENANT_A, ['billing.account.read']);
     expect(OUT in a.tiles).toBe(true); expect(CASH in a.tiles).toBe(false);
     const c = await dashboard(TENANT_A, ['billing.cash_report.read']);
-    expect(CASH in c.tiles).toBe(true); expect(OUT in c.tiles).toBe(false);
+    expect(CASH in c.tiles).toBe(false); expect(OUT in c.tiles).toBe(false);
     const n = await dashboard(TENANT_A, []);
     expect(OUT in n.tiles).toBe(false); expect(CASH in n.tiles).toBe(false);
   }, T);
@@ -103,20 +104,19 @@ describe('dashboard tiles equal their sources on one fixture (done_when 2)', () 
     const a = await dashboard(TENANT_A, ALL), b = await dashboard(TENANT_B, ALL);
     expect(a.tiles[OUT].value).toBe(await sumSummaries(TENANT_A));
     expect(b.tiles[OUT].value).toBe(await sumSummaries(TENANT_B));
-    expect(a.tiles[CASH].value).toBe(await openCashToday(TENANT_A, [wa.centre]));
-    expect(b.tiles[CASH].value).toBe(await openCashToday(TENANT_B, [wb.centre]));
-    expect(b.tiles[CASH].value).toBeGreaterThanOrEqual(31_337_000);
+    expect(CASH in a.tiles || CASH in b.tiles).toBe(false);
+    expect((await openCashToday(TENANT_A, [wa.centre])) + (await openCashToday(TENANT_B, [wb.centre]))).toBe(0);
     expect(JSON.stringify(a)).not.toContain('31337000');
     expect(a.tiles[OUT].value).not.toBe(b.tiles[OUT].value);
   }, T);
 
-  it('a caller restricted to a centre without sessions sees cash 0, outstanding unchanged (party level)', async () => {
+  it('a caller restricted to a centre without sessions: no cash tile either way, outstanding unchanged (party level)', async () => {
     const w = await world('a');
     await session(TENANT_A, w.centre, 'open', 55_000);
     const all = await dashboard(TENANT_A, ALL);
     const other = await dashboard(TENANT_A, ALL, [uid()]);
-    expect(all.tiles[CASH].value).toBeGreaterThanOrEqual(55_000);
-    expect(other.tiles[CASH].value).toBe(0);
+    expect(CASH in all.tiles).toBe(false);
+    expect(CASH in other.tiles).toBe(false);
     expect(other.tiles[OUT].value).toBe(all.tiles[OUT].value);
   }, T);
 
@@ -124,7 +124,8 @@ describe('dashboard tiles equal their sources on one fixture (done_when 2)', () 
     // tenant B before any fixture of this file is not guaranteed empty on a shared DB: the contract is "0 or the source figure, never an error"
     const b = await dashboard(TENANT_B, ALL);
     expect(b.tiles[OUT].value).toBe(await sumSummaries(TENANT_B));
-    expect(Number.isSafeInteger(b.tiles[OUT].value) && Number.isSafeInteger(b.tiles[CASH].value)).toBe(true);
+    expect(Number.isSafeInteger(b.tiles[OUT].value)).toBe(true);
+    expect(CASH in b.tiles).toBe(false);
   }, T);
 
   it('read only: the dashboard writes nothing in billing', async () => {

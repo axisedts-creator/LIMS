@@ -44,7 +44,7 @@ const withData = () => ({
   tiles: {
     patient_visits: tile(12), net_sales_paisa: tile(22500000, 'paisa'), invoiced_paisa: tile(23000000, 'paisa'), credit_notes_paisa: tile(500000, 'paisa'),
     net_collected_paisa: tile(21000000, 'paisa'), results_approved: tile(5), reports_pending: tile(3), pending_tests: tile(9), pending_overdue: tile(6), reports_ready_unreleased: tile(4),
-    outstanding_paisa: tile(12345678, 'paisa'), cash_in_drawer_paisa: tile(98765400, 'paisa'),
+    outstanding_paisa: tile(12345678, 'paisa'), // review item 2: the API does not emit cash_in_drawer_paisa for now (open session expected is NULL), so the realistic fixture has none
   } as Record<string, unknown>,
   series: { days: [{ business_date: '2026-01-14', net_sales_paisa: 20000000, patient_visits: 10, net_orders: 11 }, { business_date: '2026-01-15', net_sales_paisa: 22500000, patient_visits: 12, net_orders: 13 }] },
   department_top: [
@@ -77,13 +77,19 @@ const rows = (card: ParentNode) => new Map([...card.querySelectorAll('table tbod
 const bars = (card: ParentNode) => [...card.querySelectorAll('.lims-chart-bar')];
 
 describe('Money card: Outstanding and Cash in drawer carry the API figure (done_when 1)', () => {
-  it('both tiles present: MoneyText, thousands separators, two decimals', () => {
+  it('Outstanding present: MoneyText, thousands separators, two decimals; Cash in drawer (no API tile yet) says "Not available yet"', () => {
     const { container } = mount(withData());
     const card = cardOf(container, /^Money\b/);
     expect(norm(statOf(card, /^Outstanding$/)!.querySelector('.lims-money')?.textContent)).toBe('Rs. 1,23,456.78');
-    expect(norm(statOf(card, /^Cash in drawer/)!.querySelector('.lims-money')?.textContent)).toBe('Rs. 9,87,654.00');
     expect(norm(statOf(card, /^Outstanding$/)!.textContent)).not.toMatch(/not available/i);
-    expect(norm(statOf(card, /^Cash in drawer/)!.textContent)).not.toMatch(/not available/i);
+    expect(norm(statOf(card, /^Cash in drawer/)!.textContent)).toMatch(/not available yet/i);
+    expect(statOf(card, /^Cash in drawer/)!.querySelector('.lims-money')).toBeNull();
+  });
+
+  it('the optional cash_in_drawer_paisa field, should the API ever send it, is drawn through MoneyText', () => {
+    const d = withData(); d.tiles.cash_in_drawer_paisa = tile(98765400, 'paisa');
+    const card = cardOf(mount(d).container, /^Money\b/);
+    expect(norm(statOf(card, /^Cash in drawer/)!.querySelector('.lims-money')?.textContent)).toBe('Rs. 9,87,654.00');
   });
 
   it('the four cells keep their order: Billed, Collected, Outstanding, Cash in drawer', () => {
@@ -94,20 +100,20 @@ describe('Money card: Outstanding and Cash in drawer carry the API figure (done_
   });
 
   it('a real 0 is shown as Rs. 0.00 (not "Not available yet", not blank)', () => {
-    const d = withData(); d.tiles.outstanding_paisa = tile(0, 'paisa'); d.tiles.cash_in_drawer_paisa = tile(0, 'paisa');
+    const d = withData(); d.tiles.outstanding_paisa = tile(0, 'paisa');
     const { container } = mount(d);
     const card = cardOf(container, /^Money\b/);
     expect(norm(statOf(card, /^Outstanding$/)!.querySelector('.lims-money')?.textContent)).toBe('Rs. 0.00');
-    expect(norm(statOf(card, /^Cash in drawer/)!.querySelector('.lims-money')?.textContent)).toBe('Rs. 0.00');
   });
 
   it('a tile the API omitted (no source permission): that cell says "Not available yet", no amount, the other cell still shows', () => {
-    const d = withData(); delete d.tiles.cash_in_drawer_paisa;
+    const d = withData(); delete d.tiles.outstanding_paisa;
     const { container } = mount(d);
     const card = cardOf(container, /^Money\b/);
+    expect(norm(statOf(card, /^Outstanding$/)!.textContent)).toMatch(/not available yet/i);
+    expect(statOf(card, /^Outstanding$/)!.querySelector('.lims-money')).toBeNull();
     expect(norm(statOf(card, /^Cash in drawer/)!.textContent)).toMatch(/not available yet/i);
-    expect(statOf(card, /^Cash in drawer/)!.querySelector('.lims-money')).toBeNull();
-    expect(norm(statOf(card, /^Outstanding$/)!.querySelector('.lims-money')?.textContent)).toBe('Rs. 1,23,456.78');
+    expect(norm(statOf(card, /^Billed$/)!.querySelector('.lims-money')?.textContent)).toBe('Rs. 2,30,000.00');
   });
 
   it('only the new tiles present (no net money tile): the Money card still draws with the amounts', () => {

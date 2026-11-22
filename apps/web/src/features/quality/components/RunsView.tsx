@@ -1,7 +1,6 @@
 'use client';
 // 04-UI-UX §2.2 QC runs. LD-140: @lims/ui only. Sort is run time descending only (the API offers nothing else).
 import { useRouter } from 'next/navigation';
-import { BarChart } from '@lims/ui/components/BarChart';
 import { ChartCard } from '@lims/ui/components/ChartCard';
 import { StatTile, StatTileRow } from '@lims/ui/components/StatTile';
 import { t } from '@/core/i18n/messages';
@@ -12,7 +11,7 @@ import { PageHeader } from '@lims/ui/components/PageHeader';
 import { StatusChip } from '@lims/ui/components/StatusChip';
 import { MODE, NEEDS_ACTION, OUTCOME, RUN_STATUS, rulesText } from '../format';
 import type { RunSummary } from '../types';
-import { qs } from './Shared';
+import { ChartTable, qs } from './Shared';
 
 type Iso = DateTextProps['value'];
 const opts = (m: Record<string, { label: string }>) => Object.entries(m).map(([value, { label }]) => ({ value, label }));
@@ -70,12 +69,7 @@ export function RunsView({ rows, next, hasPrevious, sp, labels }: { rows: RunSum
       />
       {/* merge of T0D-UILIST-1: the chart sits below the runs table so the runs table stays the page's first table */}
       <ChartCard title="Runs by outcome" isEmpty={rows.length === 0}>
-        <BarChart
-          title="Runs by outcome"
-          valueFormat="integer"
-          categories={Object.values(OUTCOME).map((o) => o.label)}
-          series={[{ id: 'n', label: 'Runs', values: Object.keys(OUTCOME).map((k) => rows.filter((r) => r.outcome === k).length) }]}
-        />
+        <ChartTable title="Runs by outcome" label="Outcome" valueHeader="Runs" rows={Object.entries(OUTCOME).map(([k, o]) => ({ label: o.label, value: rows.filter((r) => r.outcome === k).length }))} />
       </ChartCard>
     </>
   );

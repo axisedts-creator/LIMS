@@ -9,7 +9,7 @@ import { GROUP_ICON, NavIcon } from './NavIcon';
 
 export type RailItem = {
   id: string; label: string; path: string; current: boolean; icon?: string; chord?: string; section?: string;
-  createPath?: string; createLabel?: string; badge?: number; viewOnly?: boolean;
+  createPath?: string; createLabel?: string; badge?: number | string; viewOnly?: boolean;
 };
 export type RailGroup = { id: string; label: string; items: RailItem[]; /** LD-340: a single entry shown as a plain link (the Dashboard), no accordion */ direct?: boolean };
 

@@ -2,6 +2,7 @@
 // C9 T-21 shared view pieces. LD-140: composed only from @lims/ui components; no colours, sizes or inline styles here.
 import { useRef } from 'react';
 import { Banner } from '@lims/ui/components/Banner';
+import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
 import { EmptyState } from '@lims/ui/components/EmptyState';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { clockHm, clockHms } from '../format';
@@ -20,6 +21,16 @@ export function QualityNotice({ kind, title, helpKey, message }: { kind: 'denied
       />
     </>
   );
+}
+
+/** T0D-BUILD-5 (LD-455, UIX-1): the data of a ChartCard as the kit DataTable (left aligned label column, right aligned count). Replaces the
+ *  kit BarChart, whose hidden raw <table> with centred headers the sweep flagged. One row per category; counts are never empty. */
+export function ChartTable({ title, label, valueHeader, rows }: { title: string; label: string; valueHeader: string; rows: readonly { label: string; value: number }[] }) {
+  const columns: ColumnDef<{ label: string; value: number }>[] = [
+    { id: 'label', header: label, isRowHeader: true, cell: (r) => r.label },
+    { id: 'value', header: valueHeader, numeric: true, cell: (r) => String(r.value) },
+  ];
+  return <DataTable columns={columns} rows={rows} getRowId={(r) => r.label} density="compact" stickyHeader={false} caption={title} emptyState={{ title: 'No data yet' }} />;
 }
 
 /** "Updated hh:mm:ss" next to the page title (04-UI-UX §1 Polling). */

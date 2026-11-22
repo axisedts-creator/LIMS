@@ -14,7 +14,9 @@ export async function getTatAlertBadge(): Promise<string | undefined> {
     const r = await serverFetch<{ data?: unknown[] }>(`/v1/quality/tat-alerts?${q.toString()}`);
     const n = Array.isArray(r?.data) ? r.data.length : 0;
     return n >= PAGE ? `${PAGE}+` : n > 0 ? String(n) : undefined;
-  } catch {
+  } catch (e) {
+    // LD-455 rule 3: a swallowed failure is still logged (no token, no body: only the error text).
+    console.warn('[quality] TAT nav badge unavailable:', e instanceof Error ? e.message : String(e));
     return undefined;
   }
 }

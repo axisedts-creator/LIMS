@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Badge } from '@lims/ui/components/Badge';
 import { Banner } from '@lims/ui/components/Banner';
-import { BarChart } from '@lims/ui/components/BarChart';
 import { ChartCard } from '@lims/ui/components/ChartCard';
 import { Checkbox } from '@lims/ui/components/Checkbox';
 import { StatTile, StatTileRow } from '@lims/ui/components/StatTile';
@@ -18,7 +17,7 @@ import { QC_STATUS } from '../format';
 import { pollStatusAction } from '../server/actions';
 import type { StatusRow } from '../types';
 import { usePolled } from './polling';
-import { ConnectionLost, UpdatedAt, qs } from './Shared';
+import { ChartTable, ConnectionLost, UpdatedAt, qs } from './Shared';
 
 type Iso = DateTextProps['value'];
 const STATUS_OPTIONS = (Object.keys(QC_STATUS) as (keyof typeof QC_STATUS)[]).map((s) => ({ value: s, label: QC_STATUS[s].label }));
@@ -106,9 +105,6 @@ export function StatusBoardView({ rows, generatedAt, sp, canManage }: { rows: St
         <StatTile label="Out of control" value={` ${out}`} />
         <StatTile label="QC overdue" value={` ${data.filter((r) => r.qc_overdue).length}`} />
       </StatTileRow>
-      <ChartCard title="Pairs by status" isEmpty={data.length === 0}>
-        <BarChart title="Pairs by status" valueFormat="integer" categories={STATUS_OPTIONS.map((o) => o.label)} series={[{ id: 'n', label: 'Pairs', values: STATUS_OPTIONS.map((o) => count(o.value)) }]} />
-      </ChartCard>
       <DataTable<StatusRow>
         columns={columns} rows={data} getRowId={(r) => r.plan_id} density="compact" caption="QC status by instrument and analyte"
         onRowAction={(r) => router.push(lj(r))}
@@ -118,6 +114,10 @@ export function StatusBoardView({ rows, generatedAt, sp, canManage }: { rows: St
           ...(canManage ? { action: { label: 'Set up QC', onPress: () => router.push('/quality/setup/materials') } } : {}),
         }}
       />
+      {/* T0D-BUILD-5: the chart data is now a kit DataTable, so the card sits below the rows table to keep that the page's first table (as in RunsView) */}
+      <ChartCard title="Pairs by status" isEmpty={data.length === 0}>
+        <ChartTable title="Pairs by status" label="Status" valueHeader="Pairs" rows={STATUS_OPTIONS.map((o) => ({ label: o.label, value: count(o.value) }))} />
+      </ChartCard>
     </>
   );
 }

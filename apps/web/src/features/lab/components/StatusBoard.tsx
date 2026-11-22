@@ -9,6 +9,7 @@ import { Badge } from '@lims/ui/components/Badge';
 import { BarChart } from '@lims/ui/components/BarChart';
 import { Button } from '@lims/ui/components/Button';
 import { ChartCard } from '@lims/ui/components/ChartCard';
+import { DatePicker, type IsoDate } from '@lims/ui/components/DatePicker';
 import { StatTileRow } from '@lims/ui/components/StatTile';
 import { t } from '@/core/i18n/messages';
 import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
@@ -147,8 +148,9 @@ function Board({ centres, initialRows, initialNextCursor, initialRange }: Status
       </StatTileRow>
       {/* T0D-UILIST-1 (LD-353 rule 2); T0D-UIGUARD-1-LAB (LD-441): the kit FilterBar draws the search landmark around the screen's own controls */}
       <FilterBar aria-label="Filters">
-        <label>From date <input type="date" className="lims-input" value={fromDay} onChange={(e) => changeDays(e.target.value, toDay)} aria-describedby={rangeErr ? 'board-range-err' : undefined} /></label>
-        <label>To date <input type="date" className="lims-input" value={toDay} onChange={(e) => changeDays(fromDay, e.target.value)} aria-describedby={rangeErr ? 'board-range-err' : undefined} /></label>
+        {/* T0D-FIX-4 (LD-446): the kit DatePicker (DD/MM/YYYY), not the native US-format picker; its value is the same YYYY-MM-DD day */}
+        <DatePicker label="From date" name="board_from" value={(fromDay || undefined) as IsoDate | undefined} onChange={(v) => changeDays(v ?? '', toDay)} />
+        <DatePicker label="To date" name="board_to" value={(toDay || undefined) as IsoDate | undefined} onChange={(v) => changeDays(fromDay, v ?? '')} />
         <label>Centre{' '}
           <select className="lims-input" value={centreId} onChange={(e) => chooseCentre(e.target.value)}>
             <option value="">All my centres</option>

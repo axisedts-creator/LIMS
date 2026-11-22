@@ -11,12 +11,15 @@ import { DataTable } from '@lims/ui/components/DataTable';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { FilterBar } from '@lims/ui/components/FilterBar';
 import { t } from '@/core/i18n/messages';
-import { formatNpr } from '../server/types';
+import { Switch } from '@lims/ui/components/Switch';
+// T0D-FIX-4 (LD-446): the invoice list's money formatter (NPR 1,800.00, lakh grouping), not a new one
+import { formatNpr } from '@/features/billing/components/format';
 import { PERM } from './shared';
 import { TestForm, type CategoryRef } from './TestForm';
 import './catalog.css';
 
-export interface TestsFilters { q: string; department_id: string; specimen_type_id: string; is_active: '' | 'true' | 'false' }
+/** T0D-FIX-4 (LD-446): with no Status filter the list is active only; retired='1' (the Show retired switch) adds the retired tests. */
+export interface TestsFilters { q: string; department_id: string; specimen_type_id: string; is_active: '' | 'true' | 'false'; retired?: '' | '1' }
 /** T0D-TESTMGMT-1 (LD-318, Complete Test List): short name, category and default price (paisa) added after the five pinned columns. */
 export interface TestRow { id: string; code: string; name: string; department: string; workflow_type: string; is_active: boolean; short_name?: string | undefined; category?: string | undefined; price_paisa?: number | undefined }
 type Ref = { id: string; name: string; is_active: boolean };
@@ -31,13 +34,16 @@ export function testsHref(f: TestsFilters, page = 1): string {
   if (f.department_id) p.set('department_id', f.department_id);
   if (f.specimen_type_id) p.set('specimen_type_id', f.specimen_type_id);
   if (f.is_active) p.set('is_active', f.is_active);
+  if (f.retired) p.set('retired', f.retired);
   if (page > 1) p.set('page', String(page));
   const s = p.toString();
   return s ? `/catalog/tests?${s}` : '/catalog/tests';
 }
 
-export function TestsList({ rows, filters, page, pages, filtered, departments, specimenTypes, categories = [], copyFrom, permissions = [], manage, openNew }: {
+export function TestsList({ rows, filters, page, pages, filtered, departments, specimenTypes, categories = [], copyFrom, permissions = [], manage, openNew, retiredCount = 0 }: {
   rows: readonly TestRow[];
+  /** T0D-FIX-4: retired tests in the whole filtered catalog (not the page). */
+  retiredCount?: number;
   filters: TestsFilters;
   page: number;
   pages: number;
@@ -84,6 +90,13 @@ export function TestsList({ rows, filters, page, pages, filtered, departments, s
         onReset={() => { setQ(''); router.push(testsHref({ q: '', department_id: '', specimen_type_id: '', is_active: '' })); }}
         resetLabel="Clear filters"
       />
+      {/* T0D-FIX-4 (LD-446, CR DEPLOY-AXIS-012 item 7c): retired (recoded) tests stay reachable behind the kit Switch */}
+      {filters.is_active ? null : (
+        <div className="lims-inline catalog-gap-2">
+          <Switch label="Show retired" isSelected={filters.retired === '1'} onChange={(on) => go({ retired: on ? '1' : '' })} />
+          <span className="lims-description">{retiredCount} retired</span>
+        </div>
+      )}
       {/* T0D-UIX-2 (LD-442): the kit DataTable (density regular, header kept when empty, price end aligned) */}
       <DataTable<TestRow>
         caption={t('catalog.tests.list_label')}
@@ -98,7 +111,7 @@ export function TestsList({ rows, filters, page, pages, filtered, departments, s
           { id: 'status', header: heads[4]!, cell: (r) => <Badge tone={r.is_active ? 'success' : 'neutral'}>{r.is_active ? t('catalog.tests.active') : t('catalog.tests.inactive')}</Badge> },
           { id: 'short_name', header: heads[5]!, cell: (r) => r.short_name ?? '' },
           { id: 'category', header: heads[6]!, cell: (r) => r.category ?? '' },
-          { id: 'price', header: heads[7]!, numeric: true, cell: (r) => (r.price_paisa !== undefined ? `NPR ${formatNpr(r.price_paisa)}` : '') },
+          { id: 'price', header: heads[7]!, numeric: true, cell: (r) => (r.price_paisa !== undefined ? formatNpr(r.price_paisa) : '') },
         ]}
         emptyState={filtered ? { title: t('catalog.tests.no_match') } : {
           title: t('catalog.tests.empty'),

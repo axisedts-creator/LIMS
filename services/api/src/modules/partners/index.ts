@@ -3,7 +3,7 @@
 // T01: every operationId of partners.yaml is a stub; each later task replaces its own entries in `implemented`.
 // Stub: LIMS_CORE_ENV=dev (and NODE_ENV != production) -> 501 with no body (never echoes request input); anything else -> common.internal (fail closed).
 import { join } from 'node:path';
-import { LimsError } from '../../core/errors.js';
+import { LimsError, pendingProblem } from '../../core/errors.js';
 import { loadSpec, operationIds, REPO_ROOT, type Handler, type ModuleManifest } from '../../core/module.js';
 import { loadPartnersConfig } from './config.js';
 import { addManifestLine } from './handlers/addManifestLine.js';
@@ -56,7 +56,15 @@ const stub = (operationId: string): Handler => async () => {
   throw new LimsError('common.internal', `partners ${operationId} not implemented`);
 };
 
+// T0D-FIX-2 (LD-446, CR DEPLOY-AXIS-012 item 8): unbuilt getPartnerSettings answers 501 operation_pending in every env, not the 500 stub.
+// A handler, not a pendingOperations entry: the sales/msgdesk/partyset pending tests pin PENDING_OPERATIONS empty.
+const getPartnerSettings: Handler = async (_req, ctx) => ({
+  status: 501, headers: { 'content-type': 'application/problem+json' },
+  body: pendingProblem('getPartnerSettings', '/v1/partners/admin/settings', ctx.requestId),
+});
+
 const implemented: Readonly<Record<string, Handler>> = {
+  getPartnerSettings, // T0D-FIX-2 (LD-446): 501 operation_pending until built
   ...ticketHandlers, // T0B-MSGDESK-1 (LD-321): the 10 ticket operations of T0C-MSGDESK-1 (were the T01 stub)
   getPartnerContext, // T03
   getPartnerDashboard, // T18 A2

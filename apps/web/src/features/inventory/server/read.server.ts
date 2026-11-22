@@ -46,7 +46,7 @@ export async function soft<T>(f: () => Promise<T>, fallback: T): Promise<T> {
 export const listItems = (f: { category?: string; isActive?: string; q?: string; cursor?: string; limit?: number }) =>
   serverFetch<Page<ItemSummary>>(`/v1/inventory/items${qs({ category: f.category, is_active: f.isActive, q: f.q, cursor: f.cursor, limit: f.limit ?? 50 })}`);
 export const getItem = (id: string) => serverFetch<Item>(`/v1/inventory/items/${uuid(id)}`);
-export const listCodedSet = (set: 'uom' | 'tax_codes' | 'wastage' | 'adjustment' | 'transfer_discrepancy' | 'calibration') => serverFetch<Page<CodedValue & { is_active?: boolean }>>(`/v1/inventory/coded-sets/${set}${qs({ limit: 200 })}`).then((r) => r.data.filter((c) => c.is_active !== false));
+export const listCodedSet = (set: 'uom' | 'tax_codes' | 'wastage' | 'adjustment' | 'transfer_discrepancy' | 'calibration') => serverFetch<Page<CodedValue & { is_active?: boolean }>>(`/v1/inventory/coded-sets/${set}` /* LD-446 6c: no limit */).then((r) => r.data.filter((c) => c.is_active !== false));
 
 export const listStores = () => serverFetch<Page<Store>>(`/v1/inventory/stores${qs({ limit: 200 })}`);
 export const getStore = (id: string) => serverFetch<Store>(`/v1/inventory/stores/${uuid(id)}`);
@@ -104,7 +104,7 @@ export const getSettings = () => serverFetch<Settings>('/v1/inventory/settings')
 
 /** Reason codes live in the shared `reasons` coded set, selected by reason_group (contract form; there is no /coded-sets/po_cancel). */
 export const listReasons = (group: 'po_cancel' | 'po_close' | typeof FACT_DISMISS_GROUP) =>
-  serverFetch<Page<CodedValue & { is_active?: boolean }>>(`/v1/inventory/coded-sets/reasons${qs({ reason_group: group, limit: 200 })}`).then((r) => r.data.filter((c) => c.is_active !== false));
+  serverFetch<Page<CodedValue & { is_active?: boolean }>>(`/v1/inventory/coded-sets/reasons${qs({ reason_group: group }) /* LD-446 6c: no limit */}`).then((r) => r.data.filter((c) => c.is_active !== false));
 
 // ---- T-24 consumption rules (S13) and waiting consumption (S15). Names (tests, analytes, analysers, items) are joined by the page from the C3/C7/C12 lists.
 export const listRules = (f: RuleFilters & { limit?: number } = {}) =>

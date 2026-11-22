@@ -49,6 +49,7 @@ export function ReportsWorklist({ reports, tab, permissions, centres, nextCursor
   const key = useRef(newKey());
   const searchBox = useRef<HTMLDivElement>(null);
   const byId = new Map(reports.map((r) => [r.id, r]));
+  const centreName = new Map(centres.map((c) => [c.id, c.name]));
 
   const goTab = (t: string) => {
     const p = new URLSearchParams(sp.toString());
@@ -111,7 +112,7 @@ export function ReportsWorklist({ reports, tab, permissions, centres, nextCursor
   const columns: ColumnDef<ReportSummary>[] = [
     { id: 'reg', header: 'Reg no', isRowHeader: true, cell: (r) => <a className="lims-link lims-mono" href={`/reporting/reports/${r.id}`}>{r.registration_no}</a> },
     { id: 'patient', header: 'Patient', cell: (r) => r.patient_display_name },
-    { id: 'centre', header: 'Centre', cell: (r) => r.centre_code ?? '—' },
+    { id: 'centre', header: 'Centre', cell: (r) => (r.centre_id && centreName.get(r.centre_id)) || r.centre_code || '—' }, // LD-446 7b: name from the centre list, code as fallback
     { id: 'family', header: 'Family', cell: (r) => (r.family === 'laboratory' ? 'Lab' : 'Narrative') },
     { id: 'items', header: 'Items', numeric: true, cell: (r) => `${r.items_ready}/${r.items_total}` },
     { id: 'status', header: 'Status', cell: (r) => (

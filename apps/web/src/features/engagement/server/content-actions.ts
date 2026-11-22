@@ -131,7 +131,7 @@ export async function searchProfilesAction(kind: unknown, q: unknown): Promise<P
       return (r?.data ?? []).slice(0, 20).map((u) => ({ id: u.membership_id, name: u.display_name }));
     }
     // ponytail: centres are few (one list call, filtered here); a server side filter when a tenant has hundreds
-    const r = await serverFetch<{ data?: { centre_id?: string; id?: string; name: string }[] }>('/v1/identity/centres?limit=200');
+    const r = await serverFetch<{ data?: { centre_id?: string; id?: string; name: string }[] }>('/v1/identity/centres' /* LD-446: no limit */);
     const needle = text.toLowerCase();
     return (r?.data ?? []).filter((c) => c.name.toLowerCase().includes(needle)).slice(0, 20).map((c) => ({ id: (c.centre_id ?? c.id)!, name: c.name }));
   } catch {

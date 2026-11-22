@@ -1,0 +1,8 @@
+APPROVE
+# T0D-FIX-2 review (reviewer) — diff 5292ed4b5..490843c0b
+- done_when 1: billing.yaml listPartyDiscountSlabs / listUserDiscountLimits / listDiscountAuthorities (and listDiscountReasons) use explicit `$ref _common.yaml#/components/parameters/Cursor|Limit`; no `*a1/*a2` left for params. Remaining `&a1/&a2` (line 11304+) are redefined schema anchors used after their definition: resolution unchanged. codegen:check clean (rerun by reviewer).
+- done_when 2: contract-parameters.test.ts checks every operation of every contracts/openapi/*.yaml (declared vs loaded via loadSpec + glue, name + location), fails listing differing ops. core/openapi.ts not edited; no -left note needed (loader not at fault).
+- done_when 3: getPartnerSettings and listAccessReviews/recordAccessReview return 501 problem+json via pendingProblem, same shape as core/openapi.ts LD-325 pending stub; runs inside the normal pipeline (auth, permission, tenant, idempotency unchanged). Instance = YAML route templates (/v1/partners/admin/settings, /v1/identity/access-reviews), verified verbatim. No request echo (tested with planted tokens).
+- done_when 4: fix2.list-limit.test.ts: limit=200 passes the API ajv for the 3 ops; bounds 0/201, unknown param, malformed cursor still 400.
+- No route, permission, RLS, event or error-code change; no PHI/secret; only owned paths (9 code/test files + notes). Stale-pin edits in boot.test.ts and audit-wire.operations.test.ts are justified by the behaviour change, not weakening.
+- Checks run: verify.cmd set, 6 files / 205 tests pass. Not rerun: wider DB-backed suites (writer notes pre-existing env failures).

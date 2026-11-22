@@ -195,11 +195,14 @@ function History({ broadcast, template, rows, failed }: { broadcast: Broadcast |
   );
 }
 
-export function Broadcasts({ rows, templates, me, permissions, status, failed, nextCursor, history }: {
-  rows: readonly Broadcast[]; templates: readonly BroadcastTemplate[]; me: string | undefined; permissions: readonly string[];
+export function Broadcasts({ rows: givenRows, templates: givenTemplates, me, permissions, status, failed, nextCursor, history }: {
+  rows: readonly Broadcast[] | undefined; templates: readonly BroadcastTemplate[] | undefined; me: string | undefined; permissions: readonly string[];
   status: string | undefined; failed?: string | undefined; nextCursor?: string | undefined;
   history?: { id: string; rows: readonly BroadcastRecipient[]; failed?: string | undefined } | undefined;
 }) {
+  // LD-446: an undefined list renders the empty state, not "reading 'map' of undefined"
+  const rows = givenRows ?? [];
+  const templates = givenTemplates ?? [];
   const toast = useToast();
   const url = useUrl();
   const once = useOnce();
@@ -236,7 +239,7 @@ export function Broadcasts({ rows, templates, me, permissions, status, failed, n
 
   const columns: Col<Broadcast>[] = [
     { id: 'template', header: t('engagement.msg.col.template'), isRowHeader: true, cell: (b) => name(b.template_id) },
-    { id: 'audience', header: t('engagement.msg.col.audience'), cell: (b) => b.audience_filter.party_kinds.map(kindText).join(', ') },
+    { id: 'audience', header: t('engagement.msg.col.audience'), cell: (b) => (b.audience_filter?.party_kinds ?? []).map(kindText).join(', ') },
     { id: 'recipients', header: t('engagement.msg.col.recipients'), align: 'end', cell: (b) => count(b.recipient_count) },
     { id: 'status', header: t('engagement.msg.col.status'), cell: (b) => <Chip code={b.status} label={t(`engagement.msg.status.${b.status}`)} /> },
     { id: 'requested_by', header: t('engagement.msg.col.requested_by'), cell: (b) => who(b.requested_by) },
@@ -272,7 +275,7 @@ export function Broadcasts({ rows, templates, me, permissions, status, failed, n
       <Alert text={notice} />
       <SalesTable caption={t('engagement.nav.msg_broadcasts')} columns={columns} rows={rows} getRowId={(b) => b.id} failed={failed} nextCursor={nextCursor}
         empty={{ title: t('engagement.msg.broadcasts_empty'), body: t('engagement.msg.broadcasts_empty_hint') }} />
-      {history ? <History broadcast={shown} template={shown ? byId.get(shown.template_id) : undefined} rows={history.rows} failed={history.failed} /> : null}
+      {history ? <History broadcast={shown} template={shown ? byId.get(shown.template_id) : undefined} rows={history.rows ?? []} failed={history.failed} /> : null}
       {building ? <AudienceBuilder templates={templates} onClose={() => setBuilding(false)} onDone={done} /> : null}
       {approving ? (
         <Confirm title={t('engagement.msg.approve_title')} confirm={t('engagement.msg.approve')} dismiss={t('engagement.msg.cancel')}

@@ -32,7 +32,7 @@ export const listPortalContent = () => all<PortalContent>('/v1/engagement/portal
 export async function listProfileImages(): Promise<ProfileImage[]> {
   const [images, centres] = await Promise.all([
     all<ProfileImage>('/v1/engagement/profile-images'),
-    serverFetch<{ data?: { centre_id?: string; id?: string; name: string }[] }>('/v1/identity/centres?limit=200').then((r) => r?.data ?? [], () => []),
+    serverFetch<{ data?: { centre_id?: string; id?: string; name: string }[] }>('/v1/identity/centres' /* LD-446: no limit */).then((r) => r?.data ?? [], () => []),
   ]);
   const names = new Map(centres.map((c) => [c.centre_id ?? c.id, c.name]));
   return images.map((i) => (i.profile_kind === 'centre' && names.has(i.profile_id) ? { ...i, profile_name: names.get(i.profile_id)! } : i));

@@ -1,49 +1,23 @@
-// T0D-FIX-2 (LD-446, CR DEPLOY-AXIS-012 item 8, done_when 3): identity listAccessReviews and recordAccessReview are unbuilt (the /admin/access-review page is a
-// static NotAvailable, LD-301). Their stubs threw common.internal "not implemented" (HTTP 500); they must answer 501 operation_pending like billing
-// listAccountSummaries. The fix may be a handler that returns/throws the pending problem (handlers/index.ts) or a pendingOperations entry; both are accepted.
+// T0D-FIX-2 (LD-446, CR DEPLOY-AXIS-012 item 8): identity listAccessReviews and recordAccessReview used to be unbuilt stubs answering 501 operation_pending.
+// T0D-BUILD-3 (LD-447) BUILT both on the existing identity.access_reviews table; their behaviour is pinned in build3.access-review.test.ts, so the
+// "answers 501" cases for them were retired here (the operations are no longer pending). Only the role pack stub check of this file remains.
 // The CR-C2-RM-001 role pack stubs (listRolePacks, applyRolePack) are not part of this task and still fail closed with common.internal.
 import { describe, expect, it } from 'vitest';
-import { isLimsError } from '../../../core/errors.js';
 import { handlers } from '../handlers/index.js';
 import { manifest } from '../index.js';
 
-const IDS = ['listAccessReviews', 'recordAccessReview'] as const;
-const PLANTED = 'PLANTED-TOKEN-5b2d';
 const noop = () => undefined;
-const req: any = { params: { id: PLANTED }, query: { q: PLANTED }, headers: { authorization: PLANTED }, body: { note: PLANTED } };
+const req: any = { params: { id: 'PLANTED-TOKEN-5b2d' }, query: {}, headers: {}, body: {} };
 const ctx: any = { requestId: '01900000-0000-7000-8000-000000000002', clientIp: '127.0.0.1', log: { info: noop, warn: noop, error: noop } };
 
-async function run(op: string): Promise<{ pending: boolean; text: string; body?: any }> {
-  const h = (handlers as Record<string, any>)[op];
-  const listed = (((manifest as { pendingOperations?: readonly string[] }).pendingOperations) ?? []).includes(op);
-  if (typeof h !== 'function') return { pending: listed, text: listed ? 'pendingOperations' : 'no handler and not pending' };
-  try {
-    const r = await h(req, { ...ctx, operationId: op });
-    return { pending: r?.status === 501 && r?.body?.code === 'operation_pending', text: JSON.stringify(r), body: r?.body };
-  } catch (e: any) {
-    return { pending: isLimsError(e, 'operation_pending'), text: `threw ${e?.code ?? e}` };
-  }
-}
-
-describe('T0D-FIX-2: identity access review stubs answer 501 operation_pending, not 500', () => {
-  it.each(IDS)('%s: operation_pending (not common.internal)', async (op) => {
-    const o = await run(op);
-    expect(o.pending, `${op}: ${o.text}`).toBe(true);
-  });
-
-  it.each(IDS)('%s: the pending answer never echoes request input and carries no stack or SQL', async (op) => {
-    const o = await run(op);
-    expect(o.text).not.toContain(PLANTED);
-    if (o.body) {
-      expect(JSON.stringify(o.body)).toContain(op);
-      expect(JSON.stringify(o.body)).not.toMatch(/\bat\s+\S+\s+\(|select\s.+from/i);
-    }
-  });
-
+describe('T0D-FIX-2 (after T0D-BUILD-3): role pack stubs stay fail closed; the built access review operations are not pending', () => {
   it('the role pack stubs keep failing closed with common.internal (out of scope here)', async () => {
     for (const op of ['listRolePacks']) {
       const e: any = await (handlers as Record<string, any>)[op](req, ctx).then(() => undefined, (x: unknown) => x);
       expect(e?.code, op).toBe('common.internal');
     }
+  });
+  it.each(['listAccessReviews', 'recordAccessReview'])('%s is not listed as pending any more', (op) => {
+    expect(((manifest as { pendingOperations?: readonly string[] }).pendingOperations) ?? []).not.toContain(op);
   });
 });

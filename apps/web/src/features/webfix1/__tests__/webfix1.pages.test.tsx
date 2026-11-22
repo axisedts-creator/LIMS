@@ -264,12 +264,8 @@ describe('(e) role packs and access review say "not available yet" and never cal
     expectNoErrorChrome();
     expect(called(/role-packs/)).toBe(false);
   });
-  it('access review: plain message, no call to listAccessReviews, no error reference', async () => {
-    await show('admin/access-review', ['identity.user.read', 'identity.user.manage']);
-    expect(text()).toMatch(NOT_AVAILABLE);
-    expectNoErrorChrome();
-    expect(called(/access-reviews/)).toBe(false);
-  });
+  // T0D-BUILD-3 (LD-447): the access review page is built now (reads listAccessReviews); its "not available yet" case was retired here and is
+  // replaced by t20.build3-access-review.test.tsx. The role pack case above and the permission gate case below stay.
   it('permission gates unchanged: role packs needs identity.role.manage, access review needs identity.user.read (denied, no API call)', async () => {
     await show('admin/roles/packs', ['identity.user.read']);
     expect(screen.getByTestId('permission-denied')).toBeTruthy();

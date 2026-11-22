@@ -1,10 +1,10 @@
 'use client';
 // SCR-01 Catalog home (04-UI-UX §4; 03-APP-FLOW §5). health === null = the load failed: tiles show "—", Reference + Retry.
-import { Fragment } from 'react';
 import { useRouter } from 'next/navigation';
 import { ActionList } from '@lims/ui/components/ActionList';
 import { Button } from '@lims/ui/components/Button';
 import { Card } from '@lims/ui/components/Card';
+import { DescriptionList } from '@lims/ui/components/DescriptionList';
 import { EmptyState } from '@lims/ui/components/EmptyState';
 import { ErrorState } from '@lims/ui/components/ErrorState';
 import { PageHeader } from '@lims/ui/components/PageHeader';
@@ -68,11 +68,8 @@ export function CatalogHome({ health, counts, revision, permissions, requestId }
           <ErrorState title="The catalog summary could not be loaded." {...(requestId ? { requestId } : {})} onRetry={() => router.refresh()} />
           {tests ? (
             <Card title="Needs attention">
-              <dl className="lims-dl">
-                {ATTENTION.map((a) => (
-                  <Fragment key={a.key}><dt>{a.label}</dt><dd>—</dd></Fragment>
-                ))}
-              </dl>
+              {/* T0D-UIX-2 (LD-442): the kit DescriptionList, no raw dl */}
+              <DescriptionList items={ATTENTION.map((a) => ({ term: a.label, value: '—' }))} />
             </Card>
           ) : null}
         </>

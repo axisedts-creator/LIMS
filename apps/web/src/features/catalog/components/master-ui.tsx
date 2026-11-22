@@ -6,9 +6,8 @@ import { useRouter } from 'next/navigation';
 import { Badge } from '@lims/ui/components/Badge';
 import { Banner } from '@lims/ui/components/Banner';
 import { Button } from '@lims/ui/components/Button';
-import { EmptyRow, PlaceholderRows } from '@lims/ui/components/DataTable';
+import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
 import { Drawer, DrawerSection } from '@lims/ui/components/Drawer';
-import { EmptyState } from '@lims/ui/components/EmptyState';
 import { FilterBar, type FilterDef, type FilterValue } from '@lims/ui/components/FilterBar';
 import { Form } from '@lims/ui/components/Form';
 import { useToast } from '@lims/ui/components/Toast';
@@ -94,7 +93,7 @@ const NUMBER = /^-?[\d,]+(\.\d+)?$/;
 const isNumberColumn = (vs: readonly ReactNode[]) => vs.length > 0 && vs.every((v) => (typeof v === 'string' || typeof v === 'number') && NUMBER.test(String(v).trim()));
 const cutOff = (v: ReactNode) => typeof v === 'string' && v.length > 32;
 
-/** Plain table (role=table; rows named by their content). `onEdit` undefined or `canEdit` false = no Edit button for the row. */
+/** Kit DataTable (role=grid; rows named by their content). `onEdit` undefined or `canEdit` false = no Edit button for the row. */
 export function MasterTable<R extends { id: string }>({ caption, cols, rows, empty, emptyAction, onEdit, canEdit = () => true, rowExtra, codeOf = (r) => (r as { code?: string }).code ?? '' }: {
   caption: string;
   /** Code shown (visually hidden) after the Edit button so each Edit has a unique name. */
@@ -111,47 +110,40 @@ export function MasterTable<R extends { id: string }>({ caption, cols, rows, emp
   const actions = rows.length > 0 && (!!onEdit || !!rowExtra);
   // T0D-UNSLOP-1 (LD-353 rules 3 and 5): an all-number column is right aligned (header too); a long text cell carries its full value as title.
   const vals = rows.map((r) => cols.map((c) => c.cell(r)));
-  const end = cols.map((_, i) => (isNumberColumn(vals.map((v) => v[i])) ? ' lims-align-end' : ''));
-  // T0D-UILIST-3, LD-353 rule 5: the table scrolls inside the kit box, never the page.
+  // LD-442 (T0D-UIX-2): the kit DataTable (density regular, header kept when empty, numbers end aligned with tabular figures).
+  const columns: ColumnDef<R>[] = cols.map((c, i) => ({
+    id: `c${i}`,
+    header: c.header,
+    cell: c.cell,
+    ...(i === 0 ? { isRowHeader: true } : {}),
+    ...(isNumberColumn(vals.map((v) => v[i])) ? { numeric: true } : {}),
+  }));
+  if (actions) {
+    columns.push({
+      id: 'actions',
+      header: 'Actions',
+      cell: (r) => (
+        <>
+          {rowExtra?.(r)}
+          {onEdit && canEdit(r) ? (
+            <Button size="sm" variant="ghost" onPress={() => onEdit(r)}>
+              Edit<VisuallyHidden> {codeOf(r)}</VisuallyHidden>
+            </Button>
+          ) : null}
+        </>
+      ),
+    });
+  }
   return (
-    <div className="lims-table-scroll">
-    <table className="lims-table lims-table-regular">
-      <caption className="lims-visually-hidden">{caption}</caption>
-      <thead>
-        <tr>
-          {cols.map((c, i) => (
-            <th key={c.header} scope="col" className={`lims-col${end[i]}`}>{c.header}</th>
-          ))}
-          {actions ? <th scope="col" className="lims-col-actions"><VisuallyHidden>Actions</VisuallyHidden></th> : null}
-        </tr>
-      </thead>
-      <tbody>
-        {rows.length === 0 ? (
-          // T0D-EMPTYTBL-1 (LD-310): message row (create action repeated) + four placeholder rows.
-          <EmptyRow colSpan={cols.length}><EmptyState title={empty} {...(emptyAction ? { action: emptyAction } : {})} /></EmptyRow>
-        ) : null}
-        {rows.map((r, ri) => (
-          <tr key={(r.id as string | undefined) ?? `global:${codeOf(r)}`/* global units/value sets carry no id (catalog.yaml) */} className="lims-row">
-            {cols.map((c, i) => {
-              const v = vals[ri]![i];
-              return <td key={c.header} className={`lims-cell${end[i]}`} {...(cutOff(v) ? { title: v as string } : {})}>{v}</td>;
-            })}
-            {actions ? (
-              <td className="lims-cell-actions">
-                {rowExtra?.(r)}
-                {onEdit && canEdit(r) ? (
-                  <Button size="sm" variant="ghost" onPress={() => onEdit(r)}>
-                    Edit<VisuallyHidden> {codeOf(r)}</VisuallyHidden>
-                  </Button>
-                ) : null}
-              </td>
-            ) : null}
-          </tr>
-        ))}
-      </tbody>
-      {rows.length === 0 ? <PlaceholderRows colSpan={cols.length} /> : null}
-    </table>
-    </div>
+    <DataTable
+      caption={caption}
+      density="regular"
+      columns={columns}
+      rows={rows}
+      getRowId={(r) => (r.id as string | undefined) ?? `global:${codeOf(r)}`/* global units/value sets carry no id (catalog.yaml) */}
+      emptyState={{ title: empty, ...(emptyAction ? { action: emptyAction } : {}) }}
+      cellTitle={vals.some((v) => v.some(cutOff))}
+    />
   );
 }
 

@@ -7,7 +7,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Badge } from '@lims/ui/components/Badge';
 import { Button } from '@lims/ui/components/Button';
-import { EmptyRow, PlaceholderRows } from '@lims/ui/components/DataTable';
+import { DataTable } from '@lims/ui/components/DataTable';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { FilterBar } from '@lims/ui/components/FilterBar';
 import { t } from '@/core/i18n/messages';
@@ -84,36 +84,29 @@ export function TestsList({ rows, filters, page, pages, filtered, departments, s
         onReset={() => { setQ(''); router.push(testsHref({ q: '', department_id: '', specimen_type_id: '', is_active: '' })); }}
         resetLabel="Clear filters"
       />
-      <table className="lims-table lims-table-regular">
-        <caption className="lims-visually-hidden">{t('catalog.tests.list_label')}</caption>
-        <thead>
-          <tr>{heads.map((h) => <th key={h} scope="col" className="lims-col">{h}</th>)}</tr>
-        </thead>
-        <tbody>
-          {rows.length === 0 ? (
-            // T0D-EMPTYTBL-1 (LD-310): message row + four placeholder rows.
-            <EmptyRow colSpan={heads.length}>
-              {filtered ? t('catalog.tests.no_match') : <>{t('catalog.tests.empty')} {newButton}{' '}
-                {/* T0D-TESTMGMT-FIX-1: starter workbook import, as on the catalog home */}
-                <Button variant="secondary" isDisabled={!manage} onPress={() => router.push('/catalog/imports')}>Import from Excel</Button></>}
-            </EmptyRow>
-          ) : (
-            rows.map((r) => (
-              <tr key={r.id} className="lims-row">
-                <td className="lims-cell"><a href={`/catalog/tests/${r.id}`}>{r.code}</a></td>
-                <td className="lims-cell">{r.name}</td>
-                <td className="lims-cell">{r.department}</td>
-                <td className="lims-cell">{r.workflow_type ? cap(r.workflow_type) : ''}</td>
-                <td className="lims-cell"><Badge tone={r.is_active ? 'success' : 'neutral'}>{r.is_active ? t('catalog.tests.active') : t('catalog.tests.inactive')}</Badge></td>
-                <td className="lims-cell">{r.short_name ?? ''}</td>
-                <td className="lims-cell">{r.category ?? ''}</td>
-                <td className="lims-cell">{r.price_paisa !== undefined ? `NPR ${formatNpr(r.price_paisa)}` : ''}</td>
-              </tr>
-            ))
-          )}
-        </tbody>
-        {rows.length === 0 ? <PlaceholderRows colSpan={heads.length} /> : null}
-      </table>
+      {/* T0D-UIX-2 (LD-442): the kit DataTable (density regular, header kept when empty, price end aligned) */}
+      <DataTable<TestRow>
+        caption={t('catalog.tests.list_label')}
+        density="regular"
+        rows={rows}
+        getRowId={(r) => r.id}
+        columns={[
+          { id: 'code', header: heads[0]!, isRowHeader: true, cell: (r) => <a href={`/catalog/tests/${r.id}`}>{r.code}</a> },
+          { id: 'name', header: heads[1]!, cell: (r) => r.name },
+          { id: 'department', header: heads[2]!, cell: (r) => r.department },
+          { id: 'workflow', header: heads[3]!, cell: (r) => (r.workflow_type ? cap(r.workflow_type) : '') },
+          { id: 'status', header: heads[4]!, cell: (r) => <Badge tone={r.is_active ? 'success' : 'neutral'}>{r.is_active ? t('catalog.tests.active') : t('catalog.tests.inactive')}</Badge> },
+          { id: 'short_name', header: heads[5]!, cell: (r) => r.short_name ?? '' },
+          { id: 'category', header: heads[6]!, cell: (r) => r.category ?? '' },
+          { id: 'price', header: heads[7]!, numeric: true, cell: (r) => (r.price_paisa !== undefined ? `NPR ${formatNpr(r.price_paisa)}` : '') },
+        ]}
+        emptyState={filtered ? { title: t('catalog.tests.no_match') } : {
+          title: t('catalog.tests.empty'),
+          ...(manage ? { action: { label: t('catalog.tests.new'), onPress: open } } : {}),
+        }}
+      />
+      {/* T0D-TESTMGMT-FIX-1: starter workbook import, as on the catalog home */}
+      {rows.length === 0 && !filtered ? <div><Button variant="secondary" isDisabled={!manage} onPress={() => router.push('/catalog/imports')}>Import from Excel</Button></div> : null}
       {pages > 1 ? (
         <nav aria-label={t('catalog.tests.pages')} className="lims-inline catalog-gap-2">
           {page > 1 ? <a href={testsHref(filters, page - 1)}>{t('catalog.tests.previous')}</a> : null}

@@ -5,7 +5,7 @@
 import { useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@lims/ui/components/Button';
-import { EmptyRow, PlaceholderRows } from '@lims/ui/components/DataTable';
+import { DataTable } from '@lims/ui/components/DataTable';
 import { Dialog } from '@lims/ui/components/Dialog';
 import { RadioGroup } from '@lims/ui/components/RadioGroup';
 import { Select } from '@lims/ui/components/Select';
@@ -135,24 +135,21 @@ export function BulkUpdateDialog({ versionId, rows, departments, onClose }: {
             {n > PREVIEW_MAX ? ` · ${k('bulk.showing')} ${n}` : ''}
           </p>
         ) : null}
-        <div className="lims-table-scroll">
-          <table className="lims-table lims-table-compact">
-            <caption>{k('bulk.preview')}</caption>
-            <thead><tr>{head.map((h, i) => <th key={h} scope="col" className={i ? 'lims-col lims-num' : 'lims-col'}>{h}</th>)}</tr></thead>
-            <tbody>
-              {n === 0 ? <EmptyRow colSpan={4}>{emptyText}</EmptyRow> : null}
-              {plan.changed.slice(0, PREVIEW_MAX).map((r) => (
-                <tr key={r.id} className="lims-row">
-                  <td className="lims-cell">{r.code}</td>
-                  <td className="lims-cell lims-num">{fmt2(r.paisa)}</td>
-                  <td className="lims-cell lims-num">{fmt2(r.next)}</td>
-                  <td className="lims-cell lims-num">{`${r.next > r.paisa ? '+' : ''}${fmt2(r.next - r.paisa)}`}</td>
-                </tr>
-              ))}
-            </tbody>
-            {n === 0 ? <PlaceholderRows colSpan={4} /> : null}
-          </table>
-        </div>
+        {/* T0D-UIX-2 (LD-442): kit DataTable; the caption stays visible above it */}
+        <p aria-hidden="true">{k('bulk.preview')}</p>
+        <DataTable<BulkRow & { next: number }>
+          caption={k('bulk.preview')}
+          density="compact"
+          rows={plan.changed.slice(0, PREVIEW_MAX)}
+          getRowId={(r) => r.id}
+          emptyState={{ title: emptyText }}
+          columns={[
+            { id: 'code', header: head[0]!, isRowHeader: true, cell: (r) => r.code },
+            { id: 'current', header: head[1]!, numeric: true, cell: (r) => fmt2(r.paisa) },
+            { id: 'next', header: head[2]!, numeric: true, cell: (r) => fmt2(r.next) },
+            { id: 'change', header: head[3]!, numeric: true, cell: (r) => `${r.next > r.paisa ? '+' : ''}${fmt2(r.next - r.paisa)}` },
+          ]}
+        />
         {fail ? <Alert text={fail} /> : null}
       </div>
     </Dialog>

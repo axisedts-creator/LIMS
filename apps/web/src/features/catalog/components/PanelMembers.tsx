@@ -7,6 +7,7 @@ import { Banner } from '@lims/ui/components/Banner';
 import { Card } from '@lims/ui/components/Card';
 import { Button } from '@lims/ui/components/Button';
 import { Combobox } from '@lims/ui/components/Combobox';
+import { DataTable } from '@lims/ui/components/DataTable';
 import { VisuallyHidden } from '@lims/ui/components/VisuallyHidden';
 import { resolvePreviewAction, searchOrderablesAction } from '../server/catalogActions';
 import type { OrderableSummary, PanelMember, ResolvedOrderables } from '../server/types';
@@ -54,40 +55,26 @@ export function MembersEditor({ members, info, onAdd, onRemove, canEdit, keepOne
           {full ? <p role="note">{`${MAX_MEMBERS} of ${MAX_MEMBERS} members. Remove one to add another.`}</p> : null}
         </div>
       ) : null}
-      <table className="lims-table lims-table-compact">
-        <caption className="lims-visually-hidden">{`Members (${members.length})`}</caption>
-        <thead>
-          <tr>
-            <th scope="col">Order</th>
-            <th scope="col">Kind</th>
-            <th scope="col">Orderable</th>
-            <th scope="col">Name</th>
-            <th scope="col">Status</th>
-            {canEdit ? <th scope="col"><VisuallyHidden>Actions</VisuallyHidden></th> : null}
-          </tr>
-        </thead>
-        <tbody>
-          {members.map((m, i) => {
-            const x = info.get(m.orderable_id);
-            return (
-              <tr key={m.orderable_id}>
-                <td>{i + 1}</td>
-                <td>{kindText(m.kind)}</td>
-                <td>{x?.code ?? '—'}</td>
-                <td>{x?.name ?? '—'}</td>
-                <td>{x ? statusText(x.is_active) : '—'}</td>
-                {canEdit ? (
-                  <td>
-                    <Button size="sm" variant="ghost" isDisabled={keepOne && members.length <= 1} onPress={() => onRemove(i)}>
-                      Remove<VisuallyHidden> {x?.code ?? `member ${i + 1}`}</VisuallyHidden>
-                    </Button>
-                  </td>
-                ) : null}
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+      {/* T0D-UIX-2 (LD-442): the kit DataTable, compact; order = row order */}
+      <DataTable<PanelMember>
+        caption={`Members (${members.length})`}
+        density="compact"
+        rows={members}
+        getRowId={(m) => m.orderable_id}
+        emptyState={{ title: 'No members.' }}
+        columns={[
+          { id: 'order', header: 'Order', numeric: true, cell: (m) => members.indexOf(m) + 1 },
+          { id: 'kind', header: 'Kind', cell: (m) => kindText(m.kind) },
+          { id: 'code', header: 'Orderable', isRowHeader: true, cell: (m) => info.get(m.orderable_id)?.code ?? '—' },
+          { id: 'name', header: 'Name', cell: (m) => info.get(m.orderable_id)?.name ?? '—' },
+          { id: 'status', header: 'Status', cell: (m) => { const x = info.get(m.orderable_id); return x ? statusText(x.is_active) : '—'; } },
+          ...(canEdit ? [{ id: 'actions', header: 'Actions', cell: (m: PanelMember) => { const i = members.indexOf(m); return (
+            <Button size="sm" variant="ghost" isDisabled={keepOne && members.length <= 1} onPress={() => onRemove(i)}>
+              Remove<VisuallyHidden> {info.get(m.orderable_id)?.code ?? `member ${i + 1}`}</VisuallyHidden>
+            </Button>
+          ); } }] : []),
+        ]}
+      />
     </div>
   );
 }

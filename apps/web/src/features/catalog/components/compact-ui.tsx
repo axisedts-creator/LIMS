@@ -6,6 +6,8 @@
 import { useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { Button } from '@lims/ui/components/Button';
 import { Card } from '@lims/ui/components/Card';
+import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
+import { DescriptionList } from '@lims/ui/components/DescriptionList';
 import './catalog.css';
 
 export interface Opt { value: string; label: string }
@@ -23,7 +25,7 @@ export function MiniSelect({ label, value, options, onChange, isRequired, isDisa
   const id = useId();
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
-  const button = useRef<HTMLButtonElement>(null);
+  const button = useRef<HTMLDivElement>(null);
   const current = options.find((o) => o.value === value);
   const show = () => { setActive(Math.max(0, options.findIndex((o) => o.value === value))); setOpen(true); };
   const pick = (o: Opt | undefined) => { if (o) onChange(o.value); setOpen(false); button.current?.focus(); };
@@ -46,9 +48,10 @@ export function MiniSelect({ label, value, options, onChange, isRequired, isDisa
   return (
     <div className="lims-field catalog-mini-select" onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setOpen(false); }}>
       <span id={`${id}-l`} className="lims-label">{label}{isRequired ? <span aria-hidden="true"> *</span> : null}</span>
-      <button
+      {/* LD-442 (T0D-UIX-2): APG select-only combobox on a focusable div (no raw button); disabled = aria-disabled, out of tab order, inert. */}
+      <div
         ref={button}
-        type="button"
+        tabIndex={isDisabled ? -1 : 0}
         role="combobox"
         className="lims-input lims-select-trigger"
         aria-labelledby={`${id}-l`}
@@ -57,12 +60,12 @@ export function MiniSelect({ label, value, options, onChange, isRequired, isDisa
         {...(open ? { 'aria-controls': `${id}-lb`, 'aria-activedescendant': `${id}-o${active}` } : {})}
         {...(isRequired ? { 'aria-required': true } : {})}
         {...(error ? { 'aria-invalid': true, 'aria-describedby': `${id}-e` } : {})}
-        disabled={isDisabled}
-        onClick={() => (open ? setOpen(false) : show())}
-        onKeyDown={onKey}
+        {...(isDisabled ? { 'aria-disabled': true } : {})}
+        onClick={() => { if (!isDisabled) (open ? setOpen(false) : show()); }}
+        onKeyDown={(e) => { if (!isDisabled) onKey(e); }}
       >
         {current?.label ?? placeholder}
-      </button>
+      </div>
       {open ? (
         <div id={`${id}-lb`} role="listbox" aria-labelledby={`${id}-l`} className="lims-listbox catalog-mini-listbox">
           {options.map((o, i) => (
@@ -107,28 +110,34 @@ export function GridSection({ title, columns, note, children }: { title: string;
 }
 
 export interface PreviewRow { name: string; value: string; unit: string; range: string }
+const PREVIEW_HEADER = [
+  { term: 'Patient', value: 'SAMPLE PATIENT (synthetic)' },
+  { term: 'Age / Sex', value: '35 Y / Female' },
+  { term: 'Sample', value: 'SAMPLE-0001' },
+  { term: 'Date', value: '01/01/2026' },
+] as const;
+const PREVIEW_COLS: readonly ColumnDef<PreviewRow>[] = [
+  { id: 'name', header: 'Test Name', cell: (r) => r.name, isRowHeader: true },
+  { id: 'value', header: 'Value', cell: (r) => r.value },
+  { id: 'unit', header: 'Unit', cell: (r) => r.unit },
+  { id: 'range', header: 'Reference Range', cell: (r) => r.range },
+];
 
 /** Report preview built from SAMPLE data only (never a real patient): patient header block + Test Name · Value · Unit · Reference Range. */
 export function ReportPreview({ title, rows }: { title?: string | undefined; rows: readonly PreviewRow[] }) {
+  const all: readonly PreviewRow[] = title ? [{ name: title, value: '', unit: '', range: '' }, ...rows] : rows;
   return (
     <Card title="Report preview" region>
-      <dl className="catalog-preview-header">
-        <div><dt>Patient</dt><dd>SAMPLE PATIENT (synthetic)</dd></div>
-        <div><dt>Age / Sex</dt><dd>35 Y / Female</dd></div>
-        <div><dt>Sample</dt><dd>SAMPLE-0001</dd></div>
-        <div><dt>Date</dt><dd>01/01/2026</dd></div>
-      </dl>
-      <table className="lims-table lims-table-compact">
-        <thead>
-          <tr>{['Test Name', 'Value', 'Unit', 'Reference Range'].map((h) => <th key={h} scope="col">{h}</th>)}</tr>
-        </thead>
-        <tbody>
-          {title ? <tr><td colSpan={4}><strong>{title}</strong></td></tr> : null}
-          {rows.map((r, i) => (
-            <tr key={i}><td>{r.name}</td><td>{r.value}</td><td>{r.unit}</td><td>{r.range}</td></tr>
-          ))}
-        </tbody>
-      </table>
+      {/* LD-442 (T0D-UIX-2): kit DescriptionList for the header pairs, kit DataTable for the rows; the test title is the first row. */}
+      <DescriptionList columns={2} items={PREVIEW_HEADER} />
+      <DataTable
+        caption="Report preview"
+        density="compact"
+        columns={PREVIEW_COLS}
+        rows={all}
+        getRowId={(r) => String(all.indexOf(r))}
+        emptyState={{ title: 'No parameters yet.' }}
+      />
     </Card>
   );
 }

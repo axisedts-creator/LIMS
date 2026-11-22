@@ -7,9 +7,8 @@ import { Banner } from '@lims/ui/components/Banner';
 import { Button } from '@lims/ui/components/Button';
 import { CodeField } from '@lims/ui/components/CodeField';
 import { Combobox } from '@lims/ui/components/Combobox';
-import { EmptyRow, PlaceholderRows } from '@lims/ui/components/DataTable';
+import { DataTable } from '@lims/ui/components/DataTable';
 import { DateTimePicker } from '@lims/ui/components/DateTimePicker';
-import { EmptyState } from '@lims/ui/components/EmptyState';
 import { FilterBar, type FilterValue } from '@lims/ui/components/FilterBar';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { RadioGroup } from '@lims/ui/components/RadioGroup';
@@ -71,68 +70,46 @@ export function TaxScreen({ rules, taxTypes, departments, orderables, permission
               onReset={() => setF({})}
             />
             {/* T0D-EMPTYTBL-2 (LD-310, LD-336): both tabs always draw their table; the empty message (and the create action for a manager) is the one body row. */}
-            <div className="lims-table-scroll">
-            <table className="lims-table lims-table-regular">
-                <caption className="lims-visually-hidden">Tax rules</caption>
-                <thead>
-                  <tr>
-                    {['Applies to', 'VAT', 'Other tax', 'HS code', 'Effective from', 'Effective to'].map((h) => <th key={h} scope="col" className="lims-col">{h}</th>)}
-                    {manage ? <th scope="col" className="lims-col-actions"><VisuallyHidden>Actions</VisuallyHidden></th> : null}
-                  </tr>
-                </thead>
-                <tbody>
-                  {rules.length === 0 ? (
-                    <EmptyRow colSpan={manage ? 7 : 6}><EmptyState title="No tax rules. Prices cannot be quoted until a tenant default rule exists." {...(manage ? { action: { label: 'New rule', onPress: () => setDialog('rule') } } : {})} /></EmptyRow>
-                  ) : shown.length === 0 ? (
-                    <EmptyRow colSpan={manage ? 7 : 6}><EmptyState title="No rules match the filters." /></EmptyRow>
-                  ) : null}
-                  {shown.map((r) => (
-                    <tr key={r.id} className="lims-row">
-                      <td className="lims-cell" title={appliesTo(r)}>{appliesTo(r)}</td>
-                      <td className="lims-cell">{r.vat_treatment === 'exempt' ? 'Exempt' : `Taxable ${pct(vatBp)}`}</td>
-                      <td className="lims-cell">{r.other_tax_code ? `${r.other_tax_code}${rateOf(r.other_tax_code)}` : '—'}</td>
-                      <td className="lims-cell">{r.hs_code ?? '—'}</td>
-                      <td className="lims-cell">{fmtDateTime(r.effective_from)}</td>
-                      <td className="lims-cell">{fmtDateTime(r.effective_to) || '—'}</td>
-                      {manage ? <td className="lims-cell-actions">{ended(r, now) ? null : <Button size="sm" variant="ghost" onPress={() => setDialog({ end: r })}>End rule<VisuallyHidden> {appliesTo(r)}</VisuallyHidden></Button>}</td> : null}
-                    </tr>
-                  ))}
-                </tbody>
-                {shown.length === 0 ? <PlaceholderRows colSpan={manage ? 7 : 6} /> : null}
-              </table>
-            </div>
+            {/* T0D-UIX-2 (LD-442): the kit DataTable (density regular, header kept when empty) */}
+            <DataTable<TaxRule>
+              caption="Tax rules"
+              density="regular"
+              cellTitle
+              rows={shown}
+              getRowId={(r) => r.id}
+              emptyState={rules.length === 0
+                ? { title: 'No tax rules. Prices cannot be quoted until a tenant default rule exists.', ...(manage ? { action: { label: 'New rule', onPress: () => setDialog('rule') } } : {}) }
+                : { title: 'No rules match the filters.' }}
+              columns={[
+                { id: 'applies', header: 'Applies to', isRowHeader: true, cell: appliesTo },
+                { id: 'vat', header: 'VAT', cell: (r) => (r.vat_treatment === 'exempt' ? 'Exempt' : `Taxable ${pct(vatBp)}`) },
+                { id: 'other', header: 'Other tax', cell: (r) => (r.other_tax_code ? `${r.other_tax_code}${rateOf(r.other_tax_code)}` : '—') },
+                { id: 'hs', header: 'HS code', cell: (r) => r.hs_code ?? '—' },
+                { id: 'from', header: 'Effective from', cell: (r) => fmtDateTime(r.effective_from) },
+                { id: 'to', header: 'Effective to', cell: (r) => fmtDateTime(r.effective_to) || '—' },
+                ...(manage ? [{ id: 'actions', header: 'Actions', cell: (r: TaxRule) => (ended(r, now) ? null : <Button size="sm" variant="ghost" onPress={() => setDialog({ end: r })}>End rule<VisuallyHidden> {appliesTo(r)}</VisuallyHidden></Button>) }] : []),
+              ]}
+            />
           </>
         ) : (
           <>
             {manage ? <Button variant="primary" onPress={() => setDialog('type')}>New tax type</Button> : null}
-            <div className="lims-table-scroll">
-            <table className="lims-table lims-table-regular">
-              <caption className="lims-visually-hidden">Tax types</caption>
-              <thead>
-                <tr>
-                  {['Code', 'Name', 'Rate', 'Effective from', 'Effective to', 'Scope'].map((h) => <th key={h} scope="col" className="lims-col">{h}</th>)}
-                  {manage ? <th scope="col" className="lims-col-actions"><VisuallyHidden>Actions</VisuallyHidden></th> : null}
-                </tr>
-              </thead>
-              <tbody>
-                {taxTypes.length === 0 ? (
-                  <EmptyRow colSpan={manage ? 7 : 6}><EmptyState title="No tax types." {...(manage ? { action: { label: 'New tax type', onPress: () => setDialog('type') } } : {})} /></EmptyRow>
-                ) : null}
-                {taxTypes.map((t) => (
-                  <tr key={t.id} className="lims-row">
-                    <td className="lims-cell">{t.code}</td>
-                    <td className="lims-cell">{t.display}</td>
-                    <td className="lims-cell">{t.rate_bp !== undefined ? pct(t.rate_bp) : NO_RATE}</td>
-                    <td className="lims-cell">{fmtDateTime(t.effective_from)}</td>
-                    <td className="lims-cell">{fmtDateTime(t.effective_to) || '—'}</td>
-                    <td className="lims-cell">{t.scope === 'global' ? 'System' : 'Lab'}</td>
-                    {manage ? <td className="lims-cell-actions">{t.scope === 'tenant' ? <Button size="sm" variant="ghost" onPress={() => setDialog({ edit: t })}>Edit<VisuallyHidden> {t.code}</VisuallyHidden></Button> : null}</td> : null}
-                  </tr>
-                ))}
-              </tbody>
-              {taxTypes.length === 0 ? <PlaceholderRows colSpan={manage ? 7 : 6} /> : null}
-            </table>
-            </div>
+            <DataTable<TaxType>
+              caption="Tax types"
+              density="regular"
+              rows={taxTypes}
+              getRowId={(x) => x.id}
+              emptyState={{ title: 'No tax types.', ...(manage ? { action: { label: 'New tax type', onPress: () => setDialog('type') } } : {}) }}
+              columns={[
+                { id: 'code', header: 'Code', isRowHeader: true, cell: (x) => x.code },
+                { id: 'name', header: 'Name', cell: (x) => x.display },
+                { id: 'rate', header: 'Rate', numeric: true, cell: (x) => (x.rate_bp !== undefined ? pct(x.rate_bp) : NO_RATE) },
+                { id: 'from', header: 'Effective from', cell: (x) => fmtDateTime(x.effective_from) },
+                { id: 'to', header: 'Effective to', cell: (x) => fmtDateTime(x.effective_to) || '—' },
+                { id: 'scope', header: 'Scope', cell: (x) => (x.scope === 'global' ? 'System' : 'Lab') },
+                ...(manage ? [{ id: 'actions', header: 'Actions', cell: (x: TaxType) => (x.scope === 'tenant' ? <Button size="sm" variant="ghost" onPress={() => setDialog({ edit: x })}>Edit<VisuallyHidden> {x.code}</VisuallyHidden></Button> : null) }] : []),
+              ]}
+            />
           </>
         )}
       </Tabs>

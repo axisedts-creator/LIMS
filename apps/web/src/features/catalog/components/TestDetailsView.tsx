@@ -8,6 +8,7 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@lims/ui/components/Button';
 import { Card } from '@lims/ui/components/Card';
+import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
 import { Dialog } from '@lims/ui/components/Dialog';
 import { useToast } from '@lims/ui/components/Toast';
 import { createAnalyteFullAction, otherAnalytesAction, testTagsAction, updateAnalyteFullAction, type OtherAnalyte } from '../server/testMgmtActions';
@@ -23,6 +24,15 @@ const VERSION_COPY = ['result_type', 'unit_code', 'decimals', 'method_id', 'valu
 /** The clinical definition of another test's parameter, without its formula (a formula names that test's parameters). */
 const copyVersion = (v: Rec) => Object.fromEntries(VERSION_COPY.filter((k) => v[k] !== undefined && v[k] !== null && v[k] !== '').map((k) => [k, v[k]]));
 const DUP = 'This code is already used in this test.';
+const TEST_COLS: readonly ColumnDef<DetailsTest>[] = [
+  { id: 'name', header: 'Test', cell: (t) => t.name, isRowHeader: true },
+  { id: 'code', header: 'Code', cell: (t) => t.code },
+];
+const PARAM_COLS: readonly ColumnDef<DetailsParam>[] = [
+  { id: 'name', header: 'Name', cell: (a) => a.name, isRowHeader: true },
+  { id: 'sub', header: 'Sub heading', cell: (a) => a.report_subheading ?? '' },
+  { id: 'code', header: 'Short name', cell: (a) => a.code },
+];
 
 export function TestDetailsView({ tests, selected, permissions }: { tests: readonly DetailsTest[]; selected?: { id: string; name: string; analytes: readonly DetailsParam[] } | undefined; permissions: readonly string[] }) {
   const router = useRouter();
@@ -111,21 +121,16 @@ export function TestDetailsView({ tests, selected, permissions }: { tests: reado
       <div className="catalog-pane">
       <Card title="Tests" region>
         <input type="search" className="lims-input" aria-label="Search tests" placeholder="Name, short name, code or tag" maxLength={100} value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} />
-        <table className="lims-table lims-table-compact">
-          <caption className="lims-visually-hidden">Tests</caption>
-          <thead><tr><th scope="col">Test</th><th scope="col">Code</th></tr></thead>
-          <tbody>
-            {paged.length === 0 ? <tr><td colSpan={2}>{tests.length === 0 ? 'No tests yet.' : 'No test matches the search.'}</td></tr> : null}
-            {paged.map((t) => (
-              <tr key={t.id} {...(t.id === selected?.id ? { 'aria-current': 'true' as const, className: 'catalog-row-chosen' } : {})}>
-                <td>
-                  <button type="button" className="catalog-pane-item" aria-current={t.id === selected?.id ? 'true' : undefined} onClick={() => router.push(`/catalog/tests?view=details&test=${t.id}`)}>{t.name}</button>
-                </td>
-                <td>{t.code}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        {/* LD-442 (T0D-UIX-2): kit DataTable; a click or Enter on a row opens that test (consoleSelection marks it aria-selected). */}
+        <DataTable
+          caption="Tests"
+          density="compact"
+          columns={TEST_COLS}
+          rows={paged}
+          getRowId={(t) => t.id}
+          emptyState={{ title: tests.length === 0 ? 'No tests yet.' : 'No test matches the search.' }}
+          consoleSelection={{ selectedId: selected?.id, onSelect: (id) => router.push(`/catalog/tests?view=details&test=${id}`) }}
+        />
         {pages > 1 ? (
           <div className="lims-inline catalog-gap-2">
             {cur > 1 ? <a href={`/catalog/tests?view=details`} onClick={(e) => { e.preventDefault(); setPage(cur - 1); }}>Previous</a> : null}
@@ -149,35 +154,29 @@ export function TestDetailsView({ tests, selected, permissions }: { tests: reado
         </div>
         {fail ? <FailBanner fail={fail} /> : null}
         {note ? <p role="alert" className="lims-error">{note}</p> : null}
-        <table className="lims-table lims-table-compact">
-          <caption className="lims-visually-hidden">{selected ? `Parameters of ${selected.name}` : 'Parameters'}</caption>
-          <thead>
-            <tr><th scope="col">Name</th><th scope="col">Sub heading</th><th scope="col">Short name</th></tr>
-          </thead>
-          <tbody>
-            {!selected ? <tr><td colSpan={3}>Select a test on the left to see its parameters.</td></tr> : null}
-            {selected && params.length === 0 ? <tr><td colSpan={3}>This test has no parameters yet.</td></tr> : null}
-            {params.map((a, i) => (
-              <tr
-                key={a.id}
-                tabIndex={0}
-                aria-selected={a.id === chosen}
-                className={a.id === chosen ? 'catalog-row-chosen' : undefined}
-                {...(manage ? { 'aria-keyshortcuts': 'Alt+ArrowUp Alt+ArrowDown' } : {})}
-                onClick={() => setChosen(a.id)}
-                onKeyDown={(e) => {
-                  if (e.target !== e.currentTarget) return;
-                  if (e.altKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) { e.preventDefault(); setChosen(a.id); void move(i, e.key === 'ArrowDown' ? 1 : -1); }
-                  else if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setChosen(a.id); }
-                }}
-              >
-                <td>{a.name}</td>
-                <td>{a.report_subheading ?? ''}</td>
-                <td>{a.code}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        {/* LD-442: kit DataTable; click / Enter chooses a row, Alt+ArrowUp / Alt+ArrowDown on a row moves it (caught before the grid's own arrows). */}
+        <div
+          onKeyDownCapture={(e) => {
+            if (!e.altKey || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) return;
+            const id = (e.target as HTMLElement).closest?.('[data-row-id]')?.getAttribute('data-row-id');
+            const i = params.findIndex((p) => p.id === id);
+            if (i < 0) return;
+            e.preventDefault();
+            e.stopPropagation();
+            setChosen(params[i]!.id);
+            void move(i, e.key === 'ArrowDown' ? 1 : -1);
+          }}
+        >
+          <DataTable
+            caption={selected ? `Parameters of ${selected.name}` : 'Parameters'}
+            density="compact"
+            columns={PARAM_COLS}
+            rows={params}
+            getRowId={(a) => a.id}
+            emptyState={{ title: !selected ? 'Select a test on the left to see its parameters.' : 'This test has no parameters yet.' }}
+            consoleSelection={{ selectedId: chosen, onSelect: setChosen }}
+          />
+        </div>
       </Card>
       </div>
 

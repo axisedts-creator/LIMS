@@ -1,9 +1,10 @@
 'use client';
 // SCR-15 Price simulator (04-UI-UX §4). The client sends only ids + priority + context ids (+ optional instant): never a price,
 // tenant or status (AB-10, REQ-SEC-046). Prices, surcharge and tax come back from the API; the disclaimer sits under the result.
-import { useRef, useState } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import { Button } from '@lims/ui/components/Button';
 import { Combobox } from '@lims/ui/components/Combobox';
+import { DataTable } from '@lims/ui/components/DataTable';
 import { DateTimePicker } from '@lims/ui/components/DateTimePicker';
 import { Form } from '@lims/ui/components/Form';
 import { PageHeader } from '@lims/ui/components/PageHeader';
@@ -26,6 +27,7 @@ const ERRORS: Record<string, string> = {
 };
 const pct = (bp: number) => `${bp / 100} %`;
 const isLine = (q: PriceQuoteResult): q is PriceQuoteLine => 'unit_price' in q;
+const line = (f: (q: PriceQuoteLine) => ReactNode) => (q: PriceQuoteResult) => (isLine(q) ? f(q) : '—');
 
 /** One optional context picker; picking sets the id, clearing the text clears it. */
 function Pick({ label, load, onChange }: { label: string; load: (q: string) => Promise<Opt[]>; onChange: (o: Opt | undefined) => void }) {
@@ -117,37 +119,26 @@ export function PriceSimulator({ permissions }: { permissions: readonly string[]
       </Form>
       {fail ? <FailBanner fail={fail} /> : null}
       {quotes ? (
-        <table className="lims-table lims-table-regular">
-          <caption className="lims-visually-hidden">Price result</caption>
-          <thead>
-            <tr>{['Orderable', 'Price list used', 'Source', 'Version', 'Unit price', 'Urgent surcharge', 'VAT', 'Other tax', 'HS code', 'Error'].map((h) => <th key={h} scope="col" className="lims-col">{h}</th>)}</tr>
-          </thead>
-          <tbody>
-            {quotes.map((q) => (
-              <tr key={q.orderable_id} className="lims-row">
-                <td className="lims-cell">{nameOf(q.orderable_id)}</td>
-                {isLine(q) ? (
-                  <>
-                    <td className="lims-cell">{lists[q.price_list_id] ?? '—'}</td>
-                    <td className="lims-cell">{SOURCE[q.source]}</td>
-                    <td className="lims-cell">{`v${q.price_list_version}`}</td>
-                    <td className="lims-cell">{npr(q.unit_price.amount_paisa)}</td>
-                    <td className="lims-cell">{q.urgent_surcharge ? npr(q.urgent_surcharge.amount_paisa) : '—'}</td>
-                    <td className="lims-cell">{q.tax.vat === 'exempt' ? 'Exempt' : `Taxable${q.tax.vat_rate_bp !== undefined ? ` ${pct(q.tax.vat_rate_bp)}` : ''}`}</td>
-                    <td className="lims-cell">{q.tax.other_tax_code ? `${q.tax.other_tax_code}${q.tax.other_tax_rate_bp !== undefined ? ` ${pct(q.tax.other_tax_rate_bp)}` : ''}` : '—'}</td>
-                    <td className="lims-cell">{q.tax.hs_code ?? '—'}</td>
-                    <td className="lims-cell">—</td>
-                  </>
-                ) : (
-                  <>
-                    <td className="lims-cell" colSpan={8}>—</td>
-                    <td className="lims-cell">{ERRORS[q.error_code] ?? 'This orderable could not be priced.'}</td>
-                  </>
-                )}
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        // T0D-UIX-2 (LD-442): kit DataTable; a failed line shows a dash in every price column and its error at the end
+        <DataTable<PriceQuoteResult>
+          caption="Price result"
+          density="regular"
+          rows={quotes}
+          getRowId={(q) => q.orderable_id}
+          emptyState={{ title: 'No price result.' }}
+          columns={[
+            { id: 'orderable', header: 'Orderable', isRowHeader: true, cell: (q) => nameOf(q.orderable_id) },
+            { id: 'list', header: 'Price list used', cell: line((q) => lists[q.price_list_id] ?? '—') },
+            { id: 'source', header: 'Source', cell: line((q) => SOURCE[q.source]) },
+            { id: 'version', header: 'Version', cell: line((q) => `v${q.price_list_version}`) },
+            { id: 'unit', header: 'Unit price', numeric: true, cell: line((q) => npr(q.unit_price.amount_paisa)) },
+            { id: 'urgent', header: 'Urgent surcharge', numeric: true, cell: line((q) => (q.urgent_surcharge ? npr(q.urgent_surcharge.amount_paisa) : '—')) },
+            { id: 'vat', header: 'VAT', cell: line((q) => (q.tax.vat === 'exempt' ? 'Exempt' : `Taxable${q.tax.vat_rate_bp !== undefined ? ` ${pct(q.tax.vat_rate_bp)}` : ''}`)) },
+            { id: 'other', header: 'Other tax', cell: line((q) => (q.tax.other_tax_code ? `${q.tax.other_tax_code}${q.tax.other_tax_rate_bp !== undefined ? ` ${pct(q.tax.other_tax_rate_bp)}` : ''}` : '—')) },
+            { id: 'hs', header: 'HS code', cell: line((q) => q.tax.hs_code ?? '—') },
+            { id: 'error', header: 'Error', cell: (q) => (isLine(q) ? '—' : ERRORS[q.error_code] ?? 'This orderable could not be priced.') },
+          ]}
+        />
       ) : (
         <p>Pick orderables and a context to see the price.</p>
       )}

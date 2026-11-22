@@ -4,9 +4,8 @@
 import { useState } from 'react';
 import { Button } from '@lims/ui/components/Button';
 import { Combobox } from '@lims/ui/components/Combobox';
-import { EmptyRow, PlaceholderRows } from '@lims/ui/components/DataTable';
+import { DataTable } from '@lims/ui/components/DataTable';
 import { DateTimePicker } from '@lims/ui/components/DateTimePicker';
-import { EmptyState } from '@lims/ui/components/EmptyState';
 import { FilterBar, type FilterValue } from '@lims/ui/components/FilterBar';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { RadioGroup } from '@lims/ui/components/RadioGroup';
@@ -61,41 +60,27 @@ export function SurchargeRulesScreen({ rules, departments, orderables, priceList
         onChange={setF}
         onReset={() => setF({})}
       />
-      <div className="lims-table-scroll">
-      {/* T0D-EMPTYTBL-2 (LD-310, LD-336): the table is always drawn; the empty message (and New rule for a manager) is its one body row. */}
-      <table className="lims-table lims-table-regular">
-          <caption className="lims-visually-hidden">Urgent surcharge rules</caption>
-          <thead>
-            <tr>
-              {['Applies to', 'Price list', 'Amount', 'Effective from', 'Effective to', 'Status'].map((h) => <th key={h} scope="col" className="lims-col">{h}</th>)}
-              {manage ? <th scope="col" className="lims-col-actions"><VisuallyHidden>Actions</VisuallyHidden></th> : null}
-            </tr>
-          </thead>
-          <tbody>
-            {rules.length === 0 ? (
-              <EmptyRow colSpan={manage ? 7 : 6}><EmptyState title="No urgent surcharge rules. Urgent tests are charged at the normal price." {...(open ? { action: { label: 'New rule', onPress: open } } : {})} /></EmptyRow>
-            ) : shown.length === 0 ? (
-              <EmptyRow colSpan={manage ? 7 : 6}><EmptyState title="No rules match the filters." /></EmptyRow>
-            ) : null}
-            {shown.map((r) => (
-              <tr key={r.id} className="lims-row">
-                <td className="lims-cell" title={appliesTo(r)}>{appliesTo(r)}</td>
-                <td className="lims-cell" title={list(r.price_list_id)}>{list(r.price_list_id)}</td>
-                <td className="lims-cell">{r.amount_kind === 'flat' && r.amount ? npr(r.amount.amount_paisa) : r.percent_bp !== undefined ? `${r.percent_bp / 100} %` : '—'}</td>
-                <td className="lims-cell">{fmtDateTime(r.effective_from)}</td>
-                <td className="lims-cell">{fmtDateTime(r.effective_to) || '—'}</td>
-                <td className="lims-cell">{statusOf(r, now)}</td>
-                {manage ? (
-                  <td className="lims-cell-actions">
-                    {statusOf(r, now) !== 'Ended' ? <Button size="sm" variant="ghost" onPress={() => setEnding(r)}>End rule<VisuallyHidden> {appliesTo(r)}</VisuallyHidden></Button> : null}
-                  </td>
-                ) : null}
-              </tr>
-            ))}
-          </tbody>
-          {shown.length === 0 ? <PlaceholderRows colSpan={manage ? 7 : 6} /> : null}
-        </table>
-      </div>
+      {/* T0D-EMPTYTBL-2 (LD-310, LD-336): the table is always drawn; the empty message (and New rule for a manager) is its one body row.
+          T0D-UIX-2 (LD-442): the kit DataTable (density regular, amount end aligned, long text cells carry a title). */}
+      <DataTable<SurchargeRule>
+        caption="Urgent surcharge rules"
+        density="regular"
+        cellTitle
+        rows={shown}
+        getRowId={(r) => r.id}
+        emptyState={rules.length === 0
+          ? { title: 'No urgent surcharge rules. Urgent tests are charged at the normal price.', ...(open ? { action: { label: 'New rule', onPress: open } } : {}) }
+          : { title: 'No rules match the filters.' }}
+        columns={[
+          { id: 'applies', header: 'Applies to', isRowHeader: true, cell: appliesTo },
+          { id: 'list', header: 'Price list', cell: (r) => list(r.price_list_id) },
+          { id: 'amount', header: 'Amount', numeric: true, cell: (r) => (r.amount_kind === 'flat' && r.amount ? npr(r.amount.amount_paisa) : r.percent_bp !== undefined ? `${r.percent_bp / 100} %` : '—') },
+          { id: 'from', header: 'Effective from', cell: (r) => fmtDateTime(r.effective_from) },
+          { id: 'to', header: 'Effective to', cell: (r) => fmtDateTime(r.effective_to) || '—' },
+          { id: 'status', header: 'Status', cell: (r) => statusOf(r, now) },
+          ...(manage ? [{ id: 'actions', header: 'Actions', cell: (r: SurchargeRule) => (statusOf(r, now) !== 'Ended' ? <Button size="sm" variant="ghost" onPress={() => setEnding(r)}>End rule<VisuallyHidden> {appliesTo(r)}</VisuallyHidden></Button> : null) }] : []),
+        ]}
+      />
       {creating ? <NewRuleDialog departments={departments} priceLists={priceLists} onClose={() => setCreating(false)} /> : null}
       {ending ? <EndRuleDialog rule={ending} onClose={() => setEnding(undefined)} /> : null}
     </section>

@@ -4,9 +4,8 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Badge } from '@lims/ui/components/Badge';
 import { Button } from '@lims/ui/components/Button';
-import { EmptyRow, PlaceholderRows } from '@lims/ui/components/DataTable';
+import { DataTable } from '@lims/ui/components/DataTable';
 import { useToast } from '@lims/ui/components/Toast';
-import { VisuallyHidden } from '@lims/ui/components/VisuallyHidden';
 import { updateAnalyteAction } from '../server/actions';
 import type { AnalyteRow } from '../server/types';
 import { FailBanner, PERM, type Fail } from './shared';
@@ -43,55 +42,43 @@ export function AnalytesTab({ testId, analytes, permissions }: { testId: string;
     <div className="lims-stack catalog-gap-3">
       {fail ? <FailBanner fail={fail} /> : null}
       {canManage ? <div><Button variant="primary" onPress={() => router.push(`${base}?analyte=new`)}>Add analyte</Button></div> : null}
-      <table className="lims-table" aria-label="Analytes">
-        <thead>
-          <tr>
-            {COLUMNS.map((c) => <th key={c} scope="col">{c}</th>)}
-            <th scope="col"><VisuallyHidden>Actions</VisuallyHidden></th>
-          </tr>
-        </thead>
-        <tbody>
-          {/* T0D-UIGUARD-1-CATALOG (LD-353 rule 5): the header row stays when there are no analytes; the message sits in the body */}
-          {rows.length === 0 ? <EmptyRow colSpan={COLUMNS.length + 1}>This test has no analytes yet.</EmptyRow> : null}
-          {rows.map((a, i) => (
-            <tr
-              key={a.id}
-              tabIndex={0}
-              aria-keyshortcuts={canManage ? 'Alt+ArrowUp Alt+ArrowDown' : undefined}
-              onKeyDown={(e) => {
-                if (e.target !== e.currentTarget) return;
-                if (e.altKey && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
-                  e.preventDefault();
-                  void move(i, e.key === 'ArrowDown' ? 1 : -1);
-                } else if (e.key === 'Enter') router.push(`${base}?analyte=${a.id}`);
-              }}
-            >
-              <td>{a.sort_order}</td>
-              <td>{a.report_subheading ?? ''}</td>
-              <td>{a.code}</td>
-              <td>{a.name}</td>
-              <td>{RESULT_LABEL[a.result_type] ?? a.result_type}</td>
-              <td>{a.unit_code ?? ''}</td>
-              <td>{a.decimals ?? ''}</td>
-              <td>{a.method_name ?? ''}</td>
-              <td>
-                {a.formula_expression ? (
-                  <>
-                    <span role="img" aria-label="Formula">ƒ</span> <code>{a.formula_expression}</code>
-                  </>
-                ) : null}
-              </td>
-              <td>
-                {a.range_set_version != null ? `v${a.range_set_version}` : HAS_RANGES.has(a.result_type) ? <Badge tone="warning">None</Badge> : '—'}
-              </td>
-              <td>{a.current_version_no != null ? `v${a.current_version_no}` : ''}</td>
-              <td>{a.has_draft ? <Badge tone="info">Draft</Badge> : null}</td>
-              <td><Button size="sm" onPress={() => router.push(`${base}?analyte=${a.id}`)}>Open</Button></td>
-            </tr>
-          ))}
-        </tbody>
-        {rows.length === 0 ? <PlaceholderRows colSpan={COLUMNS.length + 1} /> : null}
-      </table>
+      {/* T0D-UIX-2 (LD-442): the kit DataTable; Enter opens the row (onRowAction), Alt+ArrowUp / Alt+ArrowDown on a row reorders it */}
+      <div
+        {...(canManage ? { 'aria-keyshortcuts': 'Alt+ArrowUp Alt+ArrowDown' } : {})}
+        onKeyDownCapture={(e) => {
+          if (!e.altKey || (e.key !== 'ArrowDown' && e.key !== 'ArrowUp')) return;
+          const id = (e.target as HTMLElement).closest?.('[data-row-id]')?.getAttribute('data-row-id');
+          const i = rows.findIndex((r) => r.id === id);
+          if (i < 0) return;
+          e.preventDefault();
+          e.stopPropagation();
+          void move(i, e.key === 'ArrowDown' ? 1 : -1);
+        }}
+      >
+        <DataTable<AnalyteRow>
+          caption="Analytes"
+          density="regular"
+          rows={rows}
+          getRowId={(a) => a.id}
+          onRowAction={(a) => router.push(`${base}?analyte=${a.id}`)}
+          emptyState={{ title: 'This test has no analytes yet.' }}
+          columns={[
+            { id: 'order', header: COLUMNS[0], numeric: true, cell: (a) => a.sort_order },
+            { id: 'subheading', header: COLUMNS[1], cell: (a) => a.report_subheading ?? '' },
+            { id: 'code', header: COLUMNS[2], isRowHeader: true, cell: (a) => a.code },
+            { id: 'name', header: COLUMNS[3], cell: (a) => a.name },
+            { id: 'result_type', header: COLUMNS[4], cell: (a) => RESULT_LABEL[a.result_type] ?? a.result_type },
+            { id: 'unit', header: COLUMNS[5], cell: (a) => a.unit_code ?? '' },
+            { id: 'decimals', header: COLUMNS[6], numeric: true, cell: (a) => a.decimals ?? '' },
+            { id: 'method', header: COLUMNS[7], cell: (a) => a.method_name ?? '' },
+            { id: 'formula', header: COLUMNS[8], cell: (a) => (a.formula_expression ? <><span role="img" aria-label="Formula">ƒ</span> <code>{a.formula_expression}</code></> : null) },
+            { id: 'range_set', header: COLUMNS[9], cell: (a) => (a.range_set_version != null ? `v${a.range_set_version}` : HAS_RANGES.has(a.result_type) ? <Badge tone="warning">None</Badge> : '—') },
+            { id: 'version', header: COLUMNS[10], cell: (a) => (a.current_version_no != null ? `v${a.current_version_no}` : '') },
+            { id: 'draft', header: COLUMNS[11], cell: (a) => (a.has_draft ? <Badge tone="info">Draft</Badge> : null) },
+            { id: 'actions', header: 'Actions', cell: (a) => <Button size="sm" onPress={() => router.push(`${base}?analyte=${a.id}`)}>Open</Button> },
+          ]}
+        />
+      </div>
     </div>
   );
 }

@@ -7,6 +7,7 @@ import { Banner } from '@lims/ui/components/Banner';
 import { Card } from '@lims/ui/components/Card';
 import { Button } from '@lims/ui/components/Button';
 import { CodeField } from '@lims/ui/components/CodeField';
+import { DescriptionList } from '@lims/ui/components/DescriptionList';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { RadioGroup } from '@lims/ui/components/RadioGroup';
 import { Select } from '@lims/ui/components/Select';
@@ -93,13 +94,14 @@ export function PanelDetail({ panel, departments, orderables, permissions, tests
           <Switch label="Active" isSelected={active} onChange={setActive} />
         </SaveForm>
       ) : (
-        <dl className="lims-dl">
-          <dt>Code</dt><dd>{panel.code}</dd>
-          <dt>Name</dt><dd>{panel.name}</dd>
-          <dt>Kind</dt><dd>{kindLabel(panel.panel_kind)}</dd>
-          <dt>Sex restriction</dt><dd>{sexLabel(panel.sex_restriction)}</dd>
-          <dt>Department</dt><dd>{deptName ?? '—'}</dd>
-        </dl>
+        // T0D-UIX-2 (LD-442): the kit DescriptionList, no raw dl
+        <DescriptionList columns={2} items={[
+          { term: 'Code', value: panel.code },
+          { term: 'Name', value: panel.name },
+          { term: 'Kind', value: kindLabel(panel.panel_kind) },
+          { term: 'Sex restriction', value: sexLabel(panel.sex_restriction) },
+          { term: 'Department', value: deptName ?? '—' },
+        ]} />
       )}
       {/* T0D-UIGUARD-1-CATALOG (LD-436 R7): the Members section is a kit Card region with its title row, no raw h2 */}
       <Card title="Members" region>

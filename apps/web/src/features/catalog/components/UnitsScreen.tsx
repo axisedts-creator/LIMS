@@ -6,6 +6,7 @@ import { Badge } from '@lims/ui/components/Badge';
 import { Banner } from '@lims/ui/components/Banner';
 import { Button } from '@lims/ui/components/Button';
 import { CodeField } from '@lims/ui/components/CodeField';
+import { DataTable } from '@lims/ui/components/DataTable';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { Switch } from '@lims/ui/components/Switch';
 import { Tabs } from '@lims/ui/components/Tabs';
@@ -144,31 +145,21 @@ function ValueSetDialog({ item, onClose }: { item: ValueSet | undefined; onClose
       <TextField label="Display" name="display" maxLength={100} isRequired value={display} onChange={setDisplay} />
       <Switch label="Ordered" isSelected={ordered} onChange={setOrdered} />
       {gridError ? <div role="alert"><Banner tone="danger" title={gridError} /></div> : null}
-      <table role="grid" aria-label="Values" className="lims-table lims-table-compact">
-        <thead>
-          <tr role="row">
-            <th role="columnheader" scope="col">Code</th>
-            <th role="columnheader" scope="col">Display</th>
-            <th role="columnheader" scope="col">Order</th>
-            <th role="columnheader" scope="col">Active</th>
-            <th role="columnheader" scope="col"><VisuallyHidden>Actions</VisuallyHidden></th>
-          </tr>
-        </thead>
-        <tbody>
-          {values.map((v, i) => {
-            const locked = inUse && v.saved; // saved values of an in-use set: no re-order, no removal (hide via Active instead)
-            return (
-              <tr role="row" key={i}>
-                <td role="gridcell"><input className="lims-input" aria-label={`Value ${i + 1} code`} maxLength={16} value={v.code} readOnly={v.saved && !!item} onChange={(e) => set(i, { code: e.target.value.toUpperCase() })} /></td>
-                <td role="gridcell"><input className="lims-input" aria-label={`Value ${i + 1} display`} maxLength={40} value={v.display} onChange={(e) => set(i, { display: e.target.value })} /></td>
-                <td role="gridcell"><input className="lims-input" aria-label={`Value ${i + 1} order`} inputMode="numeric" maxLength={4} value={v.order} readOnly={locked} onChange={(e) => set(i, { order: e.target.value.replace(/\D/g, '') })} /></td>
-                <td role="gridcell"><input type="checkbox" aria-label={`Value ${i + 1} active`} checked={v.is_active} onChange={(e) => set(i, { is_active: e.target.checked })} /></td>
-                <td role="gridcell">{locked ? null : <Button size="sm" variant="ghost" onPress={() => setValues((vs) => vs.filter((_, j) => j !== i))}>Remove<VisuallyHidden> value {i + 1}</VisuallyHidden></Button>}</td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+      {/* T0D-UIX-2 (LD-442): the kit DataTable (compact); saved values of an in-use set: no re-order, no removal (hide via Active instead) */}
+      <DataTable<number>
+        caption="Values"
+        density="compact"
+        rows={values.map((_, i) => i)}
+        getRowId={(i) => String(i)}
+        emptyState={{ title: 'No values yet.' }}
+        columns={[
+          { id: 'code', header: 'Code', cell: (i) => <input className="lims-input" aria-label={`Value ${i + 1} code`} maxLength={16} value={values[i]!.code} readOnly={values[i]!.saved && !!item} onChange={(e) => set(i, { code: e.target.value.toUpperCase() })} /> },
+          { id: 'display', header: 'Display', cell: (i) => <input className="lims-input" aria-label={`Value ${i + 1} display`} maxLength={40} value={values[i]!.display} onChange={(e) => set(i, { display: e.target.value })} /> },
+          { id: 'order', header: 'Order', cell: (i) => <input className="lims-input" aria-label={`Value ${i + 1} order`} inputMode="numeric" maxLength={4} value={values[i]!.order} readOnly={inUse && values[i]!.saved} onChange={(e) => set(i, { order: e.target.value.replace(/\D/g, '') })} /> },
+          { id: 'active', header: 'Active', cell: (i) => <input type="checkbox" aria-label={`Value ${i + 1} active`} checked={values[i]!.is_active} onChange={(e) => set(i, { is_active: e.target.checked })} /> },
+          { id: 'actions', header: 'Actions', cell: (i) => (inUse && values[i]!.saved ? null : <Button size="sm" variant="ghost" onPress={() => setValues((vs) => vs.filter((_, j) => j !== i))}>Remove<VisuallyHidden> value {i + 1}</VisuallyHidden></Button>) },
+        ]}
+      />
       {values.length < 50 ? <Button size="sm" onPress={() => setValues((vs) => [...vs, { code: '', display: '', order: String(vs.length), is_active: true, saved: false }])}>Add value</Button> : null}
     </EditorDialog>
   );

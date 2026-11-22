@@ -7,6 +7,7 @@ import { useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@lims/ui/components/Button';
 import { Card } from '@lims/ui/components/Card';
+import { DescriptionList } from '@lims/ui/components/DescriptionList';
 import { Dialog } from '@lims/ui/components/Dialog';
 import { FileUpload, type FileUploadProps } from '@lims/ui/components/FileUpload';
 import { FilterBar } from '@lims/ui/components/FilterBar';
@@ -187,11 +188,8 @@ export function TestImportScreen({ history }: { history: readonly TestImportBatc
 
       <Card title="Validate" region>
         <div className="lims-stack">
-        <dl className="lims-inline catalog-gap-3">
-          {([['Tests', counts?.tests], ['Parameters', counts?.analytes], ['Ranges', counts?.ranges], ['Panels', counts?.panels], ['Errors', counts?.errors]] as const).map(([l, v]) => (
-            <div key={l}><dt>{l}</dt><dd>{v ?? 0}</dd></div>
-          ))}
-        </dl>
+        {/* T0D-UIX-2 (LD-442): the counts are the kit DescriptionList, no raw dl */}
+        <DescriptionList columns={3} items={([['Tests', counts?.tests], ['Parameters', counts?.analytes], ['Ranges', counts?.ranges], ['Panels', counts?.panels], ['Errors', counts?.errors]] as const).map(([l, v]) => ({ term: l, value: v ?? 0 }))} />
         {/* T0D-UIGUARD-1-CATALOG (LD-353 rule 2): the error filter is the kit FilterBar; the download sits after it */}
         <FilterBar
           filters={[{ id: 'error_filter', label: 'Filter errors', kind: 'text', maxLength: 100 }]}

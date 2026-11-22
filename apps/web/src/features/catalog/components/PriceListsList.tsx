@@ -6,8 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Badge } from '@lims/ui/components/Badge';
 import { Button } from '@lims/ui/components/Button';
 import { CodeField } from '@lims/ui/components/CodeField';
-import { EmptyRow, PlaceholderRows } from '@lims/ui/components/DataTable';
-import { EmptyState } from '@lims/ui/components/EmptyState';
+import { DataTable } from '@lims/ui/components/DataTable';
 import { FilterBar, type FilterValue } from '@lims/ui/components/FilterBar';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { RadioGroup } from '@lims/ui/components/RadioGroup';
@@ -54,36 +53,27 @@ export function PriceListsList({ priceLists, permissions }: { priceLists: readon
       />
       <>
           {priceLists.length === 1 && priceLists[0]!.owner_kind === 'default' ? <p>Only the default price list exists.</p> : null}
-          <div className="lims-table-scroll">
-          <table className="lims-table lims-table-regular">
-            <caption className="lims-visually-hidden">Price lists</caption>
-            <thead>
-              <tr>
-                {['Code', 'Name', 'Applies to', 'Assigned to', 'Current version', 'Scheduled', 'Draft', 'Status'].map((h) => <th key={h} scope="col" className="lims-col">{h}</th>)}
-              </tr>
-            </thead>
-            <tbody>
-              {priceLists.length === 0 ? (
-                <EmptyRow colSpan={8}><EmptyState title="No rate master yet — create the default price list first." {...(open ? { action: { label: 'New price list', onPress: open } } : {})} /></EmptyRow>
-              ) : shown.length === 0 ? (
-                <EmptyRow colSpan={8}><EmptyState title="No price lists match the filters." /></EmptyRow>
-              ) : null}
-              {shown.map((p) => (
-                <tr key={p.id} className="lims-row">
-                  <td className="lims-cell"><a className="lims-link" href={`/catalog/price-lists/${p.id}`}>{p.code}</a></td>
-                  <td className="lims-cell" title={p.name}>{p.name}</td>
-                  <td className="lims-cell">{OWNER_LABEL[p.owner_kind]}</td>
-                  <td className="lims-cell">{p.owner_kind === 'default' ? '—' : p.assignments.length}</td>
-                  <td className="lims-cell">{p.current_version ? `v${p.current_version.version_no} · ${fmtDateTime(p.current_version.effective_from)}` : '—'}</td>
-                  <td className="lims-cell">{p.scheduled_version ? <Badge tone="info">{`Scheduled v${p.scheduled_version.version_no}`}</Badge> : '—'}</td>
-                  <td className="lims-cell">{p.draft_version_id ? <Badge tone="warning">Draft</Badge> : '—'}</td>
-                  <td className="lims-cell"><StatusBadge active={p.is_active} /></td>
-                </tr>
-              ))}
-            </tbody>
-            {shown.length === 0 ? <PlaceholderRows colSpan={8} /> : null}
-          </table>
-          </div>
+          {/* T0D-UIX-2 (LD-442): the kit DataTable, header kept when empty. */}
+          <DataTable<PriceList>
+            caption="Price lists"
+            density="regular"
+            rows={shown}
+            getRowId={(p) => p.id}
+            cellTitle
+            emptyState={priceLists.length === 0
+              ? { title: 'No rate master yet — create the default price list first.', ...(open ? { action: { label: 'New price list', onPress: open } } : {}) }
+              : { title: 'No price lists match the filters.' }}
+            columns={[
+              { id: 'code', header: 'Code', isRowHeader: true, cell: (p) => <a className="lims-link" href={`/catalog/price-lists/${p.id}`}>{p.code}</a> },
+              { id: 'name', header: 'Name', cell: (p) => p.name },
+              { id: 'kind', header: 'Applies to', cell: (p) => OWNER_LABEL[p.owner_kind] },
+              { id: 'assigned', header: 'Assigned to', numeric: true, cell: (p) => (p.owner_kind === 'default' ? '—' : p.assignments.length) },
+              { id: 'current', header: 'Current version', cell: (p) => (p.current_version ? `v${p.current_version.version_no} · ${fmtDateTime(p.current_version.effective_from)}` : '—') },
+              { id: 'scheduled', header: 'Scheduled', cell: (p) => (p.scheduled_version ? <Badge tone="info">{`Scheduled v${p.scheduled_version.version_no}`}</Badge> : '—') },
+              { id: 'draft', header: 'Draft', cell: (p) => (p.draft_version_id ? <Badge tone="warning">Draft</Badge> : '—') },
+              { id: 'status', header: 'Status', cell: (p) => <StatusBadge active={p.is_active} /> },
+            ]}
+          />
       </>
       {creating ? <NewPriceListDialog onClose={() => setCreating(false)} /> : null}
     </section>

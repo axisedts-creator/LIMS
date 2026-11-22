@@ -10,7 +10,7 @@ import { Banner } from '@lims/ui/components/Banner';
 import { Button } from '@lims/ui/components/Button';
 import { Card } from '@lims/ui/components/Card';
 import { Combobox } from '@lims/ui/components/Combobox';
-import { EmptyRow, PlaceholderRows } from '@lims/ui/components/DataTable';
+import { DataTable } from '@lims/ui/components/DataTable';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { Switch } from '@lims/ui/components/Switch';
 import { TextField } from '@lims/ui/components/TextField';
@@ -137,26 +137,24 @@ export function PriceListDetail({ priceList, ownerLabels, permissions, history }
 
       <Card title="Versions" region>
         <p><a className="lims-link" href={compareHref}>{t('catalog.price_tools.compare_versions')}</a></p>
-        <table className="lims-table lims-table-regular">
-          <caption className="lims-visually-hidden">Versions</caption>
-          <thead>
-            <tr>{['Version', 'Status', 'Effective from', 'Effective to', 'Items', 'Source', 'Change reason', 'Published by'].map((h) => <th key={h} scope="col" className="lims-col">{h}</th>)}</tr>
-          </thead>
-          <tbody>
-            {priceList.versions.map((v) => (
-              <tr key={v.id} className="lims-row">
-                <td className="lims-cell"><a className="lims-link" href={`/catalog/price-lists/${priceList.id}/versions/${v.id}`}>{`v${v.version_no}`}</a></td>
-                <td className="lims-cell"><Badge tone={STATUS_TONE[v.status] ?? 'neutral'}>{STATUS_LABEL[v.status] ?? v.status}</Badge></td>
-                <td className="lims-cell">{fmtDateTime(v.effective_from) || '—'}</td>
-                <td className="lims-cell">{fmtDateTime(v.effective_to) || '—'}</td>
-                <td className="lims-cell">{v.item_count}</td>
-                <td className="lims-cell">{v.source_import_id ? 'Import' : 'Manual'}</td>
-                <td className="lims-cell">{v.change_reason ?? '—'}</td>
-                <td className="lims-cell">—</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        {/* T0D-UIX-2 (LD-442): kit DataTable */}
+        <DataTable<PriceListVersion>
+          caption="Versions"
+          density="regular"
+          rows={priceList.versions}
+          getRowId={(v) => v.id}
+          emptyState={{ title: 'No versions yet.' }}
+          columns={[
+            { id: 'version', header: 'Version', isRowHeader: true, cell: (v) => <a className="lims-link" href={`/catalog/price-lists/${priceList.id}/versions/${v.id}`}>{`v${v.version_no}`}</a> },
+            { id: 'status', header: 'Status', cell: (v) => <Badge tone={STATUS_TONE[v.status] ?? 'neutral'}>{STATUS_LABEL[v.status] ?? v.status}</Badge> },
+            { id: 'from', header: 'Effective from', cell: (v) => fmtDateTime(v.effective_from) || '—' },
+            { id: 'to', header: 'Effective to', cell: (v) => fmtDateTime(v.effective_to) || '—' },
+            { id: 'items', header: 'Items', numeric: true, cell: (v) => v.item_count },
+            { id: 'source', header: 'Source', cell: (v) => (v.source_import_id ? 'Import' : 'Manual') },
+            { id: 'reason', header: 'Change reason', cell: (v) => v.change_reason ?? '—' },
+            { id: 'by', header: 'Published by', cell: () => '—' },
+          ]}
+        />
       </Card>
 
       <UploadAndCheck priceList={priceList} manage={manage} tpl={tpl} sectionRef={uploadRef} />
@@ -206,7 +204,6 @@ function Assignments({ priceList, ownerLabels, manage, canCentres }: { priceList
     if (!p) return '—';
     return fmtDay(p[which]) || (which === 'effective_to' ? t('catalog.price_tools.assign.open_ended') : '—');
   };
-  const cols = manage ? 4 : 3;
   return (
     <Card title="Assignments" region>
       {fail?.code === 'catalog.code_duplicate' ? (
@@ -232,31 +229,20 @@ function Assignments({ priceList, ownerLabels, manage, canCentres }: { priceList
       ) : null}
       {manage && kind === 'centre' && !canCentres ? <p className="lims-description">Centres can be assigned with the permission identity.centre.read.</p> : null}
       {full ? <p role="note">{`${MAX_ASSIGNMENTS} of ${MAX_ASSIGNMENTS} assigned. Remove one to add another.`}</p> : null}
-      <div className="lims-table-scroll">
-        <table className="lims-table lims-table-compact">
-          <caption className="lims-visually-hidden">{`Assigned (${ids.length})`}</caption>
-          <thead>
-            <tr>
-              <th scope="col">Owner</th>
-              <th scope="col">{t('catalog.price_tools.assign.from')}</th>
-              <th scope="col">{t('catalog.price_tools.assign.to')}</th>
-              {manage ? <th scope="col"><VisuallyHidden>Actions</VisuallyHidden></th> : null}
-            </tr>
-          </thead>
-          <tbody>
-            {ids.length === 0 ? <EmptyRow colSpan={cols}>{t('catalog.price_tools.assign.empty')}</EmptyRow> : null}
-            {ids.map((id) => (
-              <tr key={id}>
-                <td>{labels[id] ?? id}</td>
-                <td>{day(id, 'effective_from')}</td>
-                <td>{day(id, 'effective_to')}</td>
-                {manage ? <td><Button size="sm" variant="ghost" onPress={() => setIds((x) => x.filter((y) => y !== id))}>Remove<VisuallyHidden> assignment</VisuallyHidden></Button></td> : null}
-              </tr>
-            ))}
-          </tbody>
-          {ids.length === 0 ? <PlaceholderRows colSpan={cols} /> : null}
-        </table>
-      </div>
+      {/* T0D-UIX-2 (LD-442): kit DataTable */}
+      <DataTable<string>
+        caption={`Assigned (${ids.length})`}
+        density="compact"
+        rows={ids}
+        getRowId={(id) => id}
+        emptyState={{ title: t('catalog.price_tools.assign.empty') }}
+        columns={[
+          { id: 'owner', header: 'Owner', isRowHeader: true, cell: (id) => labels[id] ?? id },
+          { id: 'from', header: t('catalog.price_tools.assign.from'), cell: (id) => day(id, 'effective_from') },
+          { id: 'to', header: t('catalog.price_tools.assign.to'), cell: (id) => day(id, 'effective_to') },
+          ...(manage ? [{ id: 'actions', header: 'Actions', cell: (id: string) => <Button size="sm" variant="ghost" onPress={() => setIds((x) => x.filter((y) => y !== id))}>Remove<VisuallyHidden> assignment</VisuallyHidden></Button> }] : []),
+        ]}
+      />
       {manage ? (
         <>
           {/* T0D-UIGUARD-1-CATALOG: the assignment period is a form row, not a filter row */}

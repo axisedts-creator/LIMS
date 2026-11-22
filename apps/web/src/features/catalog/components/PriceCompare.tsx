@@ -6,7 +6,7 @@
 import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@lims/ui/components/Button';
-import { EmptyRow, PlaceholderRows } from '@lims/ui/components/DataTable';
+import { DataTable } from '@lims/ui/components/DataTable';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { FilterBar } from '@lims/ui/components/FilterBar';
 import { t } from '@/core/i18n/messages';
@@ -114,25 +114,22 @@ export function PriceCompare({ lists, a, b, state, rows: first, next: firstNext,
       </div>
       {state !== 'ready' ? <p role="status">{message}</p> : null}
       {fail ? <div role="alert" className="lims-error"><p>{fail}</p></div> : null}
-      <div className="lims-table-scroll">
-        <table className="lims-table lims-table-compact">
-          <caption className="lims-visually-hidden">{k('caption')}</caption>
-          <thead><tr>{head.map((h, i) => <th key={h} scope="col" className={i ? 'lims-col lims-num' : 'lims-col'}>{h}</th>)}</tr></thead>
-          <tbody>
-            {rows.length === 0 ? <EmptyRow colSpan={5}>{message}</EmptyRow> : null}
-            {rows.map((r) => (
-              <tr key={r.orderable_id} className="lims-row">
-                <td className="lims-cell" title={r.test_name}><span>{r.test_code}</span> {r.test_name}</td>
-                <td className="lims-cell lims-num">{money(r.price_a_paisa)}</td>
-                <td className="lims-cell lims-num">{money(r.price_b_paisa)}</td>
-                <td className="lims-cell lims-num">{r.price_a_paisa === undefined || r.price_b_paisa === undefined ? DASH : money(r.difference_paisa)}</td>
-                <td className="lims-cell lims-num">{pct(r.percent_bp)}</td>
-              </tr>
-            ))}
-          </tbody>
-          {rows.length === 0 ? <PlaceholderRows colSpan={5} /> : null}
-        </table>
-      </div>
+      {/* T0D-UIX-2 (LD-442): kit DataTable; every loaded row is drawn (print) */}
+      <DataTable<PriceComparisonRow>
+        caption={k('caption')}
+        density="compact"
+        rows={rows}
+        getRowId={(r) => r.orderable_id}
+        virtualize={false}
+        emptyState={{ title: message }}
+        columns={[
+          { id: 'test', header: head[0]!, isRowHeader: true, cell: (r) => <span title={r.test_name}><span>{r.test_code}</span> {r.test_name}</span> },
+          { id: 'a', header: head[1]!, numeric: true, cell: (r) => money(r.price_a_paisa) },
+          { id: 'b', header: head[2]!, numeric: true, cell: (r) => money(r.price_b_paisa) },
+          { id: 'diff', header: head[3]!, numeric: true, cell: (r) => (r.price_a_paisa === undefined || r.price_b_paisa === undefined ? DASH : money(r.difference_paisa)) },
+          { id: 'pct', header: head[4]!, numeric: true, cell: (r) => pct(r.percent_bp) },
+        ]}
+      />
       {next ? <div><Button variant="ghost" isDisabled={busy} onPress={() => void loadMore()}>{k('load_more')}</Button></div> : null}
     </section>
   );

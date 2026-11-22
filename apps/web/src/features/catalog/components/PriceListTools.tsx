@@ -9,7 +9,8 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@lims/ui/components/Button';
 import { Card } from '@lims/ui/components/Card';
 import { Combobox } from '@lims/ui/components/Combobox';
-import { EmptyRow, PlaceholderRows } from '@lims/ui/components/DataTable';
+import { DataTable } from '@lims/ui/components/DataTable';
+import { DescriptionList } from '@lims/ui/components/DescriptionList';
 import { Dialog } from '@lims/ui/components/Dialog';
 import { FileUpload } from '@lims/ui/components/FileUpload';
 import { RadioGroup } from '@lims/ui/components/RadioGroup';
@@ -26,7 +27,8 @@ import { fmtDateTime, newKey, STATUS_LABEL } from './shared';
 const MAX_BYTES = 5 * 1024 * 1024; // dryRunPriceListImport: at most 5 MB (the server re-checks)
 const okFile = (f: File) => f.type === XLSX && /\.xlsx$/i.test(f.name) && f.size > 0 && f.size <= MAX_BYTES;
 const Alert = ({ text }: { text: string }) => <div role="alert" className="lims-error"><p>{text}</p></div>;
-const draftHref = (listId: string, versionId: string) => `/catalog/price-lists/${listId}/versions/${versionId}`;
+type ErrRow = PriceImportDryRun['errors'][number] & { i: number };
+const draftHref =(listId: string, versionId: string) => `/catalog/price-lists/${listId}/versions/${versionId}`;
 export const ROUNDING_OPTIONS = ROUNDINGS.map((value) => ({ value, label: t(`catalog.price_tools.rounding.${value}`) }));
 
 /** Download template (no list) and Export to Excel (this list's prices): one request at a time, a failure is an alert in the Upload and check section. */
@@ -167,27 +169,22 @@ export function UploadAndCheck({ priceList, manage, tpl, sectionRef }: {
           {fail.retry ? <div><Button size="sm" onPress={() => void send()}>{t('catalog.price_tools.upload.retry')}</Button></div> : null}
         </div>
       ) : null}
-      <dl className="lims-inline catalog-gap-3">
-        {counts.map(([l, v]) => <div key={l}><dt>{l}</dt><dd>{v ?? '—'}</dd></div>)}
-      </dl>
-      <div className="lims-table-scroll">
-        <table className="lims-table lims-table-compact">
-          <caption className="lims-visually-hidden">{t('catalog.price_tools.errors.caption')}</caption>
-          <thead><tr>{head.map((h) => <th key={h} scope="col" className="lims-col">{h}</th>)}</tr></thead>
-          <tbody>
-            {errors.length === 0 ? <EmptyRow colSpan={4}>{t(result ? 'catalog.price_tools.errors.none' : 'catalog.price_tools.errors.none_yet')}</EmptyRow> : null}
-            {errors.map((e, i) => (
-              <tr key={i} className="lims-row">
-                <td className="lims-cell lims-num">{e.row_no}</td>
-                <td className="lims-cell">{e.column}</td>
-                <td className="lims-cell">{e.code}</td>
-                <td className="lims-cell">{e.message}</td>
-              </tr>
-            ))}
-          </tbody>
-          {errors.length === 0 ? <PlaceholderRows colSpan={4} /> : null}
-        </table>
-      </div>
+      {/* T0D-UIX-2 (LD-442): kit DescriptionList for the counts, kit DataTable for the errors */}
+      <DescriptionList columns={3} items={counts.map(([l, v]) => ({ term: l, value: v ?? '—' }))} />
+      <DataTable<ErrRow>
+        caption={t('catalog.price_tools.errors.caption')}
+        density="compact"
+        rows={errors.map((e, i) => ({ ...e, i }))}
+        getRowId={(e) => String(e.i)}
+        virtualize={false}
+        emptyState={{ title: t(result ? 'catalog.price_tools.errors.none' : 'catalog.price_tools.errors.none_yet') }}
+        columns={[
+          { id: 'row', header: head[0]!, isRowHeader: true, numeric: true, cell: (e) => e.row_no },
+          { id: 'column', header: head[1]!, cell: (e) => e.column },
+          { id: 'code', header: head[2]!, cell: (e) => e.code },
+          { id: 'message', header: head[3]!, cell: (e) => e.message },
+        ]}
+      />
       <div className="lims-inline catalog-gap-2">
         <Button variant="primary" isDisabled={!canCommit} onPress={() => { setReason(''); setCommitFail(undefined); setOpen(true); }}>{t('catalog.price_tools.commit.button')}</Button>
         {batch && !clean ? <p className="lims-description">{t('catalog.price_tools.commit.fix_errors')}</p> : null}
@@ -221,26 +218,22 @@ export function ImportHistory({ priceListId, history }: { priceListId: string; h
     <Card title={t('catalog.price_tools.history.title')} region>
     <div className="lims-stack">
       {history === null ? <p className="lims-description">{t('catalog.price_tools.history.hidden')}</p> : (
-        <div className="lims-table-scroll">
-          <table className="lims-table lims-table-compact">
-            <caption className="lims-visually-hidden">{t('catalog.price_tools.history.title')}</caption>
-            <thead><tr>{head.map((h) => <th key={h} scope="col" className="lims-col">{h}</th>)}</tr></thead>
-            <tbody>
-              {history.length === 0 ? <EmptyRow colSpan={6}>{t('catalog.price_tools.history.empty')}</EmptyRow> : null}
-              {history.map((b) => (
-                <tr key={b.id} className="lims-row">
-                  <td className="lims-cell">{fmtDateTime(b.created_at) || '—'}</td>
-                  <td className="lims-cell" title={b.created_by}>{b.created_by.slice(0, 8)}</td>
-                  <td className="lims-cell">{BATCH_STATUS(b.status)}</td>
-                  <td className="lims-cell lims-num">{b.row_count}</td>
-                  <td className="lims-cell lims-num">{b.error_count}</td>
-                  <td className="lims-cell">{b.result_price_list_version_id ? <a className="lims-link" href={draftHref(priceListId, b.result_price_list_version_id)}>{t('catalog.price_tools.open_draft')}</a> : '—'}</td>
-                </tr>
-              ))}
-            </tbody>
-            {history.length === 0 ? <PlaceholderRows colSpan={6} /> : null}
-          </table>
-        </div>
+        // T0D-UIX-2 (LD-442): kit DataTable
+        <DataTable<PriceImportBatch>
+          caption={t('catalog.price_tools.history.title')}
+          density="compact"
+          rows={history}
+          getRowId={(b) => b.id}
+          emptyState={{ title: t('catalog.price_tools.history.empty') }}
+          columns={[
+            { id: 'time', header: head[0]!, isRowHeader: true, cell: (b) => fmtDateTime(b.created_at) || '—' },
+            { id: 'by', header: head[1]!, cell: (b) => <span title={b.created_by}>{b.created_by.slice(0, 8)}</span> },
+            { id: 'status', header: head[2]!, cell: (b) => BATCH_STATUS(b.status) },
+            { id: 'rows', header: head[3]!, numeric: true, cell: (b) => b.row_count },
+            { id: 'errors', header: head[4]!, numeric: true, cell: (b) => b.error_count },
+            { id: 'draft', header: head[5]!, cell: (b) => (b.result_price_list_version_id ? <a className="lims-link" href={draftHref(priceListId, b.result_price_list_version_id)}>{t('catalog.price_tools.open_draft')}</a> : '—') },
+          ]}
+        />
       )}
     </div>
     </Card>

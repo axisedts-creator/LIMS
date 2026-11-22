@@ -45,6 +45,7 @@ const FACTS: [string, Fact][] = [
   fact('party_billing', TA, '2026-11-17', A2, 1, { party_id: 'p3', party_name: 'Synthetic Party Three', billing_mode: 'credit', orders_registered: 2, gross_paisa: 50_000, discount_paisa: 0, net_paisa: 50_000, paid_paisa: 0, outstanding_paisa: 50_000 }),
   fact('two_level_commission', TA, '2026-11-17', A1, 2, { parent_party_id: 'pp1', parent_party_name: 'Synthetic Parent', party_id: 'p1', party_name: 'Synthetic Sub', level: 1, orders_registered: 5, net_billed_paisa: 500_000, commission_bp: 1_000, commission_paisa: 50_000 }),
   fact('two_level_commission', TA, '2026-11-17', A1, 1, { parent_party_id: 'pp1', parent_party_name: 'Synthetic Parent', party_id: 'p2', party_name: 'Synthetic Sub Two', level: 2, orders_registered: 3, net_billed_paisa: 300_000, commission_bp: 1_500, commission_paisa: 45_000 }),
+  fact('tds', TA, '2026-11-17', A1, 2, { party_id: 'p2', party_name: 'Synthetic Party Two', period_from: '2026-11-17', period_to: '2026-11-17', commission_payable_paisa: 30_000, tds_bp: 1_500, tds_withheld_paisa: 4_500, net_payable_paisa: 25_500 }), // ruling: 2 tds rows so limit 1 has a page 2
   fact('tds', TA, '2026-11-17', A1, 1, { party_id: 'p1', party_name: 'Synthetic Party One', period_from: '2026-11-17', period_to: '2026-11-17', commission_payable_paisa: 50_000, tds_bp: 1_500, tds_withheld_paisa: 7_500, net_payable_paisa: 42_500 }),
 ];
 

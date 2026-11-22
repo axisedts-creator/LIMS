@@ -3,5 +3,5 @@
 - Web: summary/page.tsx (URL filters checked by shape, 400 = no rows + warning, 501 NotAvailable kept), AccountSummaryScreen.tsx (FilterBar + 2 Switch, DataTable, page totals, First/Next links), server/accounts.server.ts summaryFilters + listAccountSummaryRows(50/page), core/i18n/messages.ts 11 keys; tests/security/authz-classification.json regenerated (49/49 security tests pass).
 - [CONV] order (party_name, party_kind, party_id); cursor keeps the party, not its name (fits 512 for long Devanagari names); a foreign/unknown cursor party = empty page.
 - [CONV] no access_log row: getAccountSummary and the neighbouring list reads write none. user_pocket not listed (notes/T0D-BUILD-1-left.md). Added a Debit/Credit column (side is in the row schema).
-- Ran: api guard/contract/authz6/probes 1231 pass; web build1 config 441 pass, 13 fail = acct1 summary block (notes/T0D-BUILD-1-dispute.md); tsc api+web clean on sources.
+- Ran (round 2, after ruling retired acct1 block): web build1 config 18 files / 441 pass, 0 errors (fixed unhandled "no isRowHeader column": isRowHeader on Name); api guard + pending 17 pass (round 1: 1231 pass); tsc web clean on task files (brand.ts asset types, partners tests pre-existing).
 - NOT run: summaries.test.ts (PG17) — Docker not running here. unit/boot.test.ts times out at 60 s on this machine (full bootstrap; baseline not measured).

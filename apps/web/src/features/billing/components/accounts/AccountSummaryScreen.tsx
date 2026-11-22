@@ -56,6 +56,7 @@ export function AccountSummaryScreen({ headers: h, rows, nextCursor, filters, fa
     {
       id: 'name',
       header: h[0]!,
+      isRowHeader: true,
       cell: (s) => <a className="lims-link" href={`/billing/accounts/ledger?${new URLSearchParams({ party_kind: s.party_kind, party_id: s.party_id }).toString()}`}>{s.party_name}</a>,
     },
     { id: 'kind', header: h[1]!, cell: (s) => kindText(s.party_kind) },

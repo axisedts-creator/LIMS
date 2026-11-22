@@ -1,0 +1,7 @@
+# T0D-BUILD-1 impl (writer)
+- API: billing/repository/accounts.repo.ts listSummaries (one CTE: parties UNION + grouped ledger sum, status <> 'held', same as `outstanding`); service/accounts.service.ts summaries (Checker, only() keys, q NUL refused, % _ \ escaped, cursor ['account_summaries','<kind>:<uuid>']); handlers/accounts.handlers.ts + handlers/index.ts guarded('billing.account.read'); index.ts pendingOperations line emptied.
+- Web: summary/page.tsx (URL filters checked by shape, 400 = no rows + warning, 501 NotAvailable kept), AccountSummaryScreen.tsx (FilterBar + 2 Switch, DataTable, page totals, First/Next links), server/accounts.server.ts summaryFilters + listAccountSummaryRows(50/page), core/i18n/messages.ts 11 keys; tests/security/authz-classification.json regenerated (49/49 security tests pass).
+- [CONV] order (party_name, party_kind, party_id); cursor keeps the party, not its name (fits 512 for long Devanagari names); a foreign/unknown cursor party = empty page.
+- [CONV] no access_log row: getAccountSummary and the neighbouring list reads write none. user_pocket not listed (notes/T0D-BUILD-1-left.md). Added a Debit/Credit column (side is in the row schema).
+- Ran: api guard/contract/authz6/probes 1231 pass; web build1 config 441 pass, 13 fail = acct1 summary block (notes/T0D-BUILD-1-dispute.md); tsc api+web clean on sources.
+- NOT run: summaries.test.ts (PG17) — Docker not running here. unit/boot.test.ts times out at 60 s on this machine (full bootstrap; baseline not measured).

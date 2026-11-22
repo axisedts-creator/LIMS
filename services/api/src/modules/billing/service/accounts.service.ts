@@ -449,8 +449,44 @@ export function createAccountsService(deps: AccountsDeps = {}) {
         outstanding_paisa: out.paisa, outstanding_side: out.side, is_blocked: party.isLocked,
       };
     },
+
+    /** T0D-BUILD-1 (LD-447, LD-358): every party as AccountSummaryRow, the same figures as `summary` (same balance sum, limit NULL = 0, is_blocked = is_locked). Read only. */
+    async summaries(ctx: BalanceCtx, rawQuery: unknown) {
+      const { tx, tenantId } = scope(ctx);
+      const q = isRec(rawQuery) ? rawQuery : {};
+      const c = new Checker(q);
+      c.only(['party_kind', 'q', 'blocked_only', 'outstanding_only', 'cursor', 'limit']);
+      const partyKind = c.oneOf('party_kind', PARTY_KINDS);
+      const text = c.text('q', 80, false, undefined, /\u0000/);
+      const blockedOnly = c.bool('blocked_only') === true;
+      const outstandingOnly = c.bool('outstanding_only') === true;
+      c.done();
+      const limit = limitOf(q['limit']);
+      const after = q['cursor'] === undefined ? undefined
+        : decode<string>(q['cursor'], 'account_summaries', (k) => typeof k === 'string' && SUMMARY_KEY.test(k));
+      const needle = text?.trim();
+      const rows = await repo.listSummaries(tx, {
+        tenantId, limit: limit + 1, blockedOnly, outstandingOnly,
+        ...(partyKind ? { partyKind } : {}),
+        ...(needle ? { like: `%${needle.replace(/[\\%_]/g, '\\$&')}%` } : {}),                      // % _ \ are literal characters
+        ...(after ? { after: { kind: after.slice(0, after.indexOf(':')), id: after.slice(after.indexOf(':') + 1) } } : {}),
+      });
+      const data = rows.slice(0, limit);
+      const last = data[data.length - 1];
+      return {
+        data: data.map((r) => {
+          const out = sided(BigInt(r['balance']));
+          return {
+            party_kind: r['party_kind'], party_id: r['party_id'], credit_limit_paisa: r['credit_limit_paisa'] == null ? 0 : toPaisa(r['credit_limit_paisa']),
+            outstanding_paisa: out.paisa, outstanding_side: out.side, is_blocked: r['is_locked'] === true, party_name: r['party_name'],
+          };
+        }),
+        page: { limit, ...(rows.length > limit && last ? { next_cursor: encode('account_summaries', `${last['party_kind']}:${last['party_id']}`) } : {}) },
+      };
+    },
   };
 }
+const SUMMARY_KEY = /^(credit_party|franchise|user_pocket|laboratory):[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 export type AccountsService = ReturnType<typeof createAccountsService>;
 
 /** done_when 4: 'ACC-' + receipt_seq padded to 6 digits (more digits once the tenant passes 999999). */

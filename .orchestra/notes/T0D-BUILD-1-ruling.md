@@ -7,3 +7,7 @@ Reasons:
 4. done_when (4) "existing billing web tests stay green" cannot mean keeping a test that pins a layout the same task orders replaced.
 
 What to change (tester, not writer): in acct1.screens.test.tsx delete SUMMARY_COLUMNS (:121) and the Account Summary describe block (:567 up to the masters describe at :696), or rewrite it to the build1 contract (row shape of AccountSummaryRow incl. party_name, columns name/kind/credit limit/outstanding/blocked). Do not duplicate build1 coverage; deleting with a one-line comment pointing to build1.accountsummaries.test.tsx is sufficient. Implementation stays as is for this point.
+
+
+## LEAD ITEM (LD-451, 2026-11-22 15:14 NPT)
+The block is the environment: Docker Desktop is stopped, so the PG17 test cannot start. No code or test change. After the founder starts Docker and the reset is applied: writer and debugger change nothing, run verify.cmd, fix a source only if a real assertion fails; tester files stay with the tester; reviewer edits nothing.

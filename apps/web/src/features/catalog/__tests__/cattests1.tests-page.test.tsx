@@ -216,13 +216,13 @@ describe('page header, table headers, empty state', () => {
   it('with rows: same headers; each row = code link to /catalog/tests/{id}, name, department, workflow type, Active/Inactive text', async () => {
     await show();
     expect(headers().slice(0, 5)).toEqual(['Code', 'Name', 'Department', 'Workflow type', 'Status']);
-    expect(codes()).toEqual(['CBC', 'GLU', 'HB', 'HBA1C', 'TSH']); // default status All: the inactive test is listed too
+    expect(codes()).toEqual(['CBC', 'GLU', 'HB', 'TSH']); // T0D-FIX-4 (LD-446): default = active tests only; retired HBA1C sits behind the Show retired switch (fix4.tests-default.test.tsx)
     const hb = bodyRows().find((r) => r.cells[0]!.textContent!.trim() === 'HB')!;
     expect(within(hb).getByRole('link', { name: 'HB' }).getAttribute('href')).toBe(`/catalog/tests/${ID(101)}`);
     expect(hb.textContent).toMatch(/Hemoglobin/);
     expect(hb.textContent).toMatch(/Hematology|HAEM/);
     expect(hb.textContent).toMatch(/Active/);
-    expect(bodyRows().find((r) => r.cells[0]!.textContent!.trim() === 'HBA1C')!.textContent).toMatch(/Inactive/);
+    expect(bodyRows().some((r) => r.cells[0]!.textContent!.trim() === 'HBA1C')).toBe(false); // T0D-FIX-4: retired, not listed by default
     await noAxeViolations();
   });
 });
@@ -365,7 +365,7 @@ describe('search and filters: state in the address bar, the request changes', ()
     expect(codes()).toEqual(['CBC', 'GLU', 'HB', 'TSH']);
     cleanup();
     await show('');
-    expect(codes()).toHaveLength(5);
+    expect(codes()).toHaveLength(4); // T0D-FIX-4 (LD-446): default = active only (was 5)
   });
 
   it('Department filter -> address has department_id -> request carries it -> only that department', async () => {
@@ -374,7 +374,7 @@ describe('search and filters: state in the address bar, the request changes', ()
     expect(target.searchParams.get('department_id')).toBe(BIOC.id);
     await reshow(target);
     expect(listCalls.at(-1)!.searchParams.get('department_id')).toBe(BIOC.id);
-    expect(codes()).toEqual(['GLU', 'HBA1C', 'TSH']);
+    expect(codes()).toEqual(['GLU', 'TSH']); // T0D-FIX-4: retired HBA1C hidden by default
     expect((screen.getByLabelText(/^department/i) as HTMLElement).textContent + (screen.getByLabelText(/^department/i) as HTMLInputElement).value).toMatch(/biochemistry/i);
   });
 
@@ -383,7 +383,7 @@ describe('search and filters: state in the address bar, the request changes', ()
     const target = await addressAfter(() => choose(null, /^specimen/i, /edta whole blood/i));
     expect(target.searchParams.get('specimen_type_id')).toBe(EDTA.id);
     await reshow(target);
-    expect(codes()).toEqual(['CBC', 'HB', 'HBA1C']);
+    expect(codes()).toEqual(['CBC', 'HB']); // T0D-FIX-4: retired HBA1C hidden by default
     expect(listCalls.every((u) => !u.searchParams.has('specimen_type_id'))).toBe(true);
     expect(rejected).toEqual([]);
   });
@@ -395,7 +395,7 @@ describe('search and filters: state in the address bar, the request changes', ()
     expect(target.searchParams.get('q')).toBe('hb');
     await reshow(target);
     expect((screen.getByLabelText(/search/i) as HTMLInputElement).value).toBe('hb'); // restored from the address bar
-    expect(codes()).toEqual(['HB', 'HBA1C']);
+    expect(codes()).toEqual(['HB']); // T0D-FIX-4: retired HBA1C hidden by default
     expect(listCalls.every((u) => !u.searchParams.has('q'))).toBe(true);
     expect(rejected).toEqual([]);
   });

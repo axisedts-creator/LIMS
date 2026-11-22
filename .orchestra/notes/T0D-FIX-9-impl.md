@@ -4,4 +4,4 @@
 - Web: inventory `read.server.ts` listCodedSet maps wastage|adjustment|transfer_discrepancy|calibration to /coded-sets/reasons?reason_group=; new softOr() keeps the request id; inventory home checklist step and wastage page show "Reference: <id>" on failure. [CONV]
 - Web: reporting ActionResult carries requestId; PrintStationery preview failure shows "Reference: <id>".
 - Checks: fix9 verify.cmd green (api 49, web 18); api tsc clean; web tsc clean outside pre-existing test-file errors; finctrl1 379/379, rs-c6 60/60.
-- Open: t23 harness mocks the old coded-set paths -> 9 t23 failures (see T0D-FIX-9-dispute.md). Pre-existing, unrelated: printcfg1 signatories/invoice (10+), t20.alerts 1, api inventory boot.test 1, billing api handler tests (fakes lack IdentityPort). Leftovers: T0D-FIX-9-left.md.
+- After rulings 1+2 (eeca98507): fix9 api 49/49, fix9 web 18/18, t23 229/230 (only t23.stock "In transit", not FIX-9, see -left.md). Pre-existing, unrelated: printcfg1 signatories/invoice (10+), t20.alerts 1, api inventory boot.test 1, billing api handler tests (fakes lack IdentityPort). Leftovers: T0D-FIX-9-left.md.

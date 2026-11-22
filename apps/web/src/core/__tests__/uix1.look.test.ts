@@ -237,17 +237,16 @@ describe('(1) BUTTONS (LD-442 DONE WHEN 1)', () => {
     expect(weight(m[k].get('font-weight'))).toBe(500);
   });
   it.each(['default', 'secondary', 'primary', 'danger'])('%s: padding 0 12px', (k) => expectPad(m[k], 0, 12, 0, 12));
-  it('default and secondary: white fill, 1px neutral.300 border, neutral.700 text', () => {
-    for (const k of ['default', 'secondary']) {
-      expect(col(m[k], 'background-color')).toBe('var(--lims-neutral-0)');
-      expectBorder(m[k], 1, 'neutral-300');
-      expect(col(m[k], 'color')).toBe('var(--lims-neutral-700)');
-    }
+  // T0D-UIX-6 (LD-444) replaces the secondary colours (accent tint, asserted in uix6.buttons.test.ts); the bare .lims-btn keeps the neutral look.
+  it('default (bare .lims-btn): white fill, 1px neutral.300 border, neutral.700 text', () => {
+    expect(col(m.default, 'background-color')).toBe('var(--lims-neutral-0)');
+    expectBorder(m.default, 1, 'neutral-300');
+    expect(col(m.default, 'color')).toBe('var(--lims-neutral-700)');
   });
-  it('primary: accent fill, white text, no border', () => {
+  // T0D-UIX-6 (LD-444 / done_when 1) replaces "no border" with a 1px accent border; the border itself is asserted in uix6.buttons.test.ts.
+  it('primary: accent fill, white text', () => {
     expect(col(m.primary, 'background-color')).toBe('var(--lims-accent)');
     expect(['var(--lims-accent-fg)', 'var(--lims-neutral-0)']).toContain(col(m.primary, 'color'));
-    expectNoBorder(m.primary);
   });
   it('ghost: transparent fill, accent text, no border, padding 0 8px', () => {
     expect(['transparent', 'none']).toContain(col(m.ghost, 'background-color'));

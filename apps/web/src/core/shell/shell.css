@@ -330,11 +330,22 @@ a.lims-menuitem { display: block; color: inherit; text-decoration: none; }
    hairline neutral.200, row line neutral.100, secondary border neutral.300, text neutral.900/700/600, primary accent. 8px = radius-sm. */
 /* (1) buttons: 30 high, radius 8, base size, weight 500; the sidebar close button keeps its own look (:where keeps the variants able to win) */
 .lims-shell .lims-btn:where(:not(.lims-rail-close)) { box-sizing: border-box; height: 30px; min-height: 30px; padding: 0 var(--lims-space-3); border: 1px solid var(--lims-neutral-300); border-radius: var(--lims-radius-sm); background: var(--lims-neutral-0); color: var(--lims-neutral-700); font-size: var(--lims-font-size-base-size); font-weight: var(--lims-font-weight-medium); }
-.lims-shell .lims-btn-primary { border: 0; background: var(--lims-accent); color: var(--lims-accent-fg); }
+/* T0D-UIX-6 (LD-444, founder 2026-11-22 11:07 NPT "colourful on every screen"): colour by role. Primary solid accent with a 1px accent border (hover
+   accent.hover comes from the kit); secondary an accent tint (the kit has no tint step between accent.subtle and accent, so border and hover are
+   color-mix of the two tokens); ghost accent text; danger solid; icons accent; link-buttons never underlined; one 2px focus ring, 1px offset. */
+.lims-shell .lims-btn-primary { border: 1px solid var(--lims-accent); background: var(--lims-accent); color: var(--lims-accent-fg); }
+.lims-shell .lims-btn-secondary { border: 1px solid color-mix(in srgb, var(--lims-accent) 30%, var(--lims-accent-subtle)); background: var(--lims-accent-subtle); color: var(--lims-accent); }
+.lims-shell .lims-btn-secondary:hover:not([data-disabled], :disabled), .lims-shell .lims-btn-secondary[data-hovered]:not([data-disabled], :disabled) { background: color-mix(in srgb, var(--lims-accent) 15%, var(--lims-accent-subtle)); color: var(--lims-accent); }
+.lims-shell .lims-btn-secondary:disabled, .lims-shell .lims-btn-secondary[data-disabled] { border-color: var(--lims-neutral-200); background: var(--lims-neutral-100); color: var(--lims-neutral-500); }
 .lims-shell .lims-btn-danger { border: 0; background: var(--lims-tone-danger-fg); color: var(--lims-neutral-0); }
 .lims-shell .lims-btn-ghost { padding: 0 var(--lims-space-2); border: 0; background: transparent; color: var(--lims-accent); }
+.lims-shell .lims-btn-ghost:hover:not([data-disabled], :disabled), .lims-shell .lims-btn-ghost[data-hovered]:not([data-disabled], :disabled) { background: var(--lims-accent-subtle); color: var(--lims-accent); }
+.lims-shell a.lims-btn, .lims-shell a.lims-btn-primary, .lims-shell a.lims-btn:hover, .lims-shell a.lims-btn-primary:hover, .lims-shell a.lims-btn:focus-visible, .lims-shell a.lims-btn-primary:focus-visible, .lims-shell a.lims-btn:visited, .lims-shell a.lims-btn-primary:visited { text-decoration: none; }
+.lims-shell .lims-btn:focus-visible, .lims-shell .lims-btn[data-focus-visible] { outline: 2px solid var(--lims-focus-ring); outline-offset: 1px; }
+.lims-shell-nav .lims-btn:focus-visible, .lims-shell-nav .lims-btn[data-focus-visible] { outline: 3px solid var(--lims-accent-pop); outline-offset: 2px; }
 .lims-shell .lims-btn-sm { height: 24px; min-height: 24px; padding: 0 var(--lims-space-2); }
-.lims-shell .lims-icon-btn { justify-content: center; width: 30px; min-width: 30px; padding: 0; border: 1px solid var(--lims-neutral-200); background: var(--lims-neutral-0); color: var(--lims-neutral-700); }
+.lims-shell .lims-icon-btn { justify-content: center; width: 30px; min-width: 30px; padding: 0; border: 1px solid var(--lims-neutral-200); background: var(--lims-neutral-0); color: var(--lims-accent); }
+.lims-shell .lims-btn.lims-icon-btn:hover:not([data-disabled], :disabled), .lims-shell .lims-btn.lims-icon-btn[data-hovered]:not([data-disabled], :disabled) { background: var(--lims-accent-subtle); color: var(--lims-accent); }
 /* (2) form controls: 30 high, 0 8px, 1px neutral.200, radius 8, white, neutral.700, base size; multi-line text and the sidebar field excluded */
 .lims-shell .lims-input:where(:not(textarea, .lims-rte-surface, .lims-rail-search)) { box-sizing: border-box; height: 30px; min-height: 30px; padding: 0 var(--lims-space-2); border: 1px solid var(--lims-neutral-200); border-radius: var(--lims-radius-sm); background: var(--lims-neutral-0); color: var(--lims-neutral-700); font-size: var(--lims-font-size-base-size); }
 .lims-shell .lims-input:disabled, .lims-shell .lims-input[data-disabled] { background: var(--lims-neutral-100); }
@@ -344,7 +355,7 @@ a.lims-menuitem { display: block; color: inherit; text-decoration: none; }
 /* the calendar button sits inside the date input at its right edge, no box of its own */
 .lims-shell .lims-date-field .lims-input-group { position: relative; }
 .lims-shell .lims-date-field .lims-input { padding-inline-end: var(--lims-space-8); }
-.lims-shell .lims-date-field .lims-input-group > .lims-icon-btn { position: absolute; right: var(--lims-space-1); top: 50%; transform: translateY(-50%); width: 24px; min-width: 24px; height: 24px; min-height: 24px; border: 0; background: transparent; color: var(--lims-neutral-600); }
+.lims-shell .lims-date-field .lims-input-group > .lims-icon-btn { position: absolute; right: var(--lims-space-1); top: 50%; transform: translateY(-50%); width: 24px; min-width: 24px; height: 24px; min-height: 24px; border: 0; background: transparent; color: var(--lims-accent); }
 /* (3) filter bar: one row, labels above controls, bottoms aligned */
 .lims-shell .lims-filter-bar { display: flex; align-items: flex-end; gap: var(--lims-space-2); }
 .lims-shell .lims-date-range .lims-inline { display: flex; align-items: flex-end; gap: var(--lims-space-2); }

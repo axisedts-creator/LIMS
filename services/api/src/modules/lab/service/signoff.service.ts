@@ -10,6 +10,7 @@
 // No SQL here: every statement is in store/signoff.store.ts and filters tenant_id = $1 (ctx.tenantId) next to RLS.
 // [CONV] audit action of a refused sign-off = 'lab_result.view' (the only lab result code of audit.g_cs_access_actions) with detail { operation, code }; a dedicated code needs a CR.
 // [CONV] a legacy `verified` row with signoff_count 0 (written before the counters) counts as one sign-off (its verifier).
+import { toDate } from '../../../core/clock.js'; // T0D-FIX-6 (LD-448): toDate(ctx.now()) is an ISO string in the pipeline, a Date in unit fakes
 import { LimsError } from '../../../core/errors.js';
 import { isUuid } from '../repository/base.repo.js';
 import { createLabEvents } from '../events/publish.js';
@@ -97,7 +98,7 @@ async function snapshot(ctx: SignCtx): Promise<{ displayName: string; roleCode: 
 export async function recordSignoff(ctx: SignCtx, so: SignoffStore, row: SignRow, p: Plan, action: 'verify' | 'approve', single: boolean) {
   const snap = await snapshot(ctx);
   if (action === 'approve' && p.st.policy.requirePathologist && !snap.isPathologist) await refuse(ctx, row, 'lab.pathologist_required', 'approve', single);
-  const signedAt = ctx.now().toISOString();
+  const signedAt = toDate(ctx.now()).toISOString();
   const r = await so.append(ctx.tx, ctx.tenantId, { resultId: row.resultId, resultVersion: row.currentVersionNo, action, signerUserId: ctx.actor.id, ...snap, signedAt, level: p.required });
   return { ...r, signedAt, isPathologist: snap.isPathologist };
 }

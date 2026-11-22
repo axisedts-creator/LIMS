@@ -1,0 +1,1 @@
+pnpm --dir services/api exec vitest run src/modules/payments/__tests__/unit/fix5.wiring.test.ts src/modules/payments/__tests__/unit/fix5.config-message.test.ts src/modules/payments/__tests__/unit/fix5.deploy-env.test.ts && pnpm --dir apps/web run build:nav && pnpm --dir apps/web exec vitest run -c src/features/payments/__tests__/vitest.fix5.config.ts

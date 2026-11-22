@@ -3,6 +3,7 @@
 // LD-25 (2026-11-07, A33-2 downtime mode) T-07: collect/dispatch/receive/store/discard accept entry_mode 'live' (default) | 'downtime_backentry'; a back-entry carries
 // occurred_at (<= now, >= now - 72 h) + downtime_ref (1..32), stores occurred_at as the action's own timestamp and transition time, keeps created_at = server time, is audited,
 // and needs the same permission as the live action. A live write carries neither field.
+import { toDate } from '../../../core/clock.js'; // T0D-FIX-6 (LD-448): toDate(ctx.now()) is an ISO string in the pipeline, a Date in unit fakes
 import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';
 import { LimsError, type FieldError } from '../../../core/errors.js';
 import { DEFAULT_BARCODE_PATTERN, renderBarcode } from '../domain/barcode.js';
@@ -40,7 +41,7 @@ export async function allocateBarcode(ctx: LabCtx): Promise<string> {
   const numbering = settings?.numbering ?? {};
   try {
     const seq = await allocateBarcodeSeq({ tx: ctx.tx, tenantId: ctx.tenantId, actorId: ctx.actor.id });
-    return renderBarcode(numbering.barcodePattern ?? DEFAULT_BARCODE_PATTERN, { seq, prefix: numbering.barcodePrefix, now: ctx.now() });
+    return renderBarcode(numbering.barcodePattern ?? DEFAULT_BARCODE_PATTERN, { seq, prefix: numbering.barcodePrefix, now: toDate(ctx.now()) });
   } catch (e) {   // T-31 (02-TRD §11, alert LabBarcodeAllocationFailure): reason = the error code only, never the barcode or pattern
     labMetrics.barcodeAllocFailure(ctx, e instanceof LimsError ? e.code : 'internal');
     throw e;
@@ -262,7 +263,7 @@ async function single(hctx: unknown, kind: Exclude<Kind, 'dispatch'>, params: un
   await role(c, KINDS[kind].permission);
   const id = uuidParam(params, 'specimen_id');
   const version = expectedVersion(headers);
-  const a = parseAction(kind, body, c.now());
+  const a = parseAction(kind, body, toDate(c.now()));
   const row = await getSpecimenWithOrder(repoCtx(c), id);
   if (!row || !visible(await scopeOf(c), row)) throw new LimsError('common.not_found');   // P-01 / P-02 first (T-32): a foreign specimen is 404 whatever centre the body names
   const centre = a.processingCentreId ? await resolveCentre(c, a.processingCentreId) : undefined;
@@ -281,7 +282,7 @@ async function bulk(hctx: unknown, kind: 'collect' | 'dispatch' | 'receive', bod
   const c = specimenCtx(hctx);
   await role(c, KINDS[kind].permission);
   const b = strict(body, [...KINDS[kind].keys, ...ENTRY_KEYS, 'items']);
-  const a = parseAction(kind, b, c.now(), ['items'], false);
+  const a = parseAction(kind, b, toDate(c.now()), ['items'], false);
   const raw = b['items'];
   if (!Array.isArray(raw) || raw.length < 1 || raw.length > BULK_MAX) throw bad('/items');
   const items = raw.map((it, i) => {
@@ -462,7 +463,7 @@ export async function rejectSpecimen(hctx: unknown, params: unknown, headers: un
   const row = await writable(c, id);
   await assertActiveReason(c, reason);
   const rc = repoCtx(c);
-  const at = c.now().toISOString();
+  const at = toDate(c.now()).toISOString();
   const comment = b['comment'] === '' ? undefined : (b['comment'] as string | undefined);
 
   const tests = await listOrderTestsOfSpecimen(rc, id);
@@ -490,7 +491,7 @@ export async function requestRecollection(hctx: unknown, params: unknown, header
   const version = expectedVersion(headers);
   strict(body, []);                                                                                               // body is `{}`
   const row = await writable(c, id);
-  const at = c.now().toISOString();
+  const at = toDate(c.now()).toISOString();
   const s12 = await step(c, row, version, 'recollection_ordered', { recollection_ordered_at: at }, at);           // only from `rejected`; one recollection per specimen
   const fresh = await openRecollection(c, s12.updated, at);
   await emitStatus(c, s12.updated, 'rejected', 'recollection_ordered', at);                                       // no second lab.specimen.rejected.v1 (D-6)
@@ -521,7 +522,7 @@ export async function createAliquots(hctx: unknown, params: unknown, headers: un
   });
   const row = await writable(c, id);
   const rc = repoCtx(c);
-  const at = c.now().toISOString();
+  const at = toDate(c.now()).toISOString();
   const s5 = await step(c, row, version, 'aliquoted', {}, at);                                                    // only from `received`; a racing request fails here (row lock + version)
   const ok = new Set(await listAliquotableTestIds(rc, id, [...seen]));                                            // 08 A13 P-1: tests of the parent with a not-approved, not-cancelled result
   const missing: string[] = [];
@@ -575,7 +576,7 @@ export async function applyHomeCollectionSynced(ctx: HomeCollectionCtx, env: Hom
     const deviceMs = Date.parse(col.collected_at_device);
     const collectedMs = Number.isFinite(deviceMs) ? Math.min(deviceMs, syncedMs) : syncedMs;
     const collectedAt = new Date(collectedMs).toISOString();
-    const inTransitAt = new Date(Math.max(ctx.now().getTime(), collectedMs)).toISOString();   // S3 never precedes S2
+    const inTransitAt = new Date(Math.max(toDate(ctx.now()).getTime(), collectedMs)).toISOString();   // S3 never precedes S2
     const s2 = await step(c, row, Number(row['version']), 'collected', {
       collected_at: collectedAt, collected_at_device: Number.isFinite(deviceMs) ? new Date(deviceMs).toISOString() : null, collected_by_membership_id: member ?? null,
       collected_via_visit_id: visitId, collection_barcode_unverified: col.barcode_verified !== true,

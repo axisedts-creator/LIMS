@@ -7,6 +7,7 @@
 // [CONV] an AST row found with source = instrument and a LATER stored instrument_result_time is kept and the record closes ignored / duplicate; a missing incoming time counts as not older.
 // [CONV] M19 omits isolate_seq outside 1..99 (the DTO range) — an out-of-range number is still visible through match_reason isolate_seq_out_of_range.
 import { LimsError, type FieldError } from '../../../core/errors.js';
+import { toDate } from '../../../core/clock.js';
 import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';
 import { nextCultureStatus, type CultureStatus } from '../domain/culture.state.js';
 import { parseAstValue, type AstMethod } from '../domain/ast-value.js';
@@ -31,7 +32,7 @@ export interface RecordCtx {
 const CODE = /^[a-z0-9_]{2,64}$/;
 const SEQ_MAX = 99;
 const METRIC = 'lims_micro_instrument_records_total';
-const nowOf = (c: RecordCtx): Date => new Date(typeof c.now === 'function' ? c.now() : Date.now());
+const clockOf = (c: RecordCtx): Date => (typeof c.now === 'function' ? toDate(c.now()) : new Date());   // T0D-FIX-6 (LD-448): ISO string or Date
 const text = (v: unknown, p: string, min: number, max: number): string => (typeof v === 'string' && v.length >= min && v.length <= max ? v : bad(p));
 const optText = (v: unknown, p: string, max: number): string | null => (v === undefined || v === null ? null : text(v, p, 1, max));
 
@@ -152,7 +153,7 @@ async function findIsolate(tx: any, tenantId: string, culture: Obj, seq: number 
 }
 
 async function applyOrganism(c: RecordCtx, tenantId: string, userId: string, rec: Obj, culture: Obj, seq: number | null, organism: string, force: boolean): Promise<Eval> {
-  const at = nowOf(c);
+  const at = clockOf(c);
   const f = await findIsolate(c.tx, tenantId, culture, seq);
   if (f.reason) return { status: 'pending_match', reason: f.reason };
   let iso = f.iso;

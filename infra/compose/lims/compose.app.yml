@@ -23,6 +23,8 @@ x-core-env: &core-env
   LIMS_CORE_METRICS_PORT: "9464"
   LIMS_CORE_STORAGE_KEY_FILE: /run/secrets/lims/core_storage_service_key
   LIMS_PAYMENTS_KEK_FILE: /run/secrets/lims/payments_kek
+  # LD-449 (c): ONE shared value for web, api and worker (the payments boot check wants them equal); uat for the demo tenant, never production without the founder.
+  LIMS_PAYMENTS_GATEWAY_ENV: &payments-gateway-env uat
   LIMS_REPORTING_OTP_HMAC_KEY_FILE: /run/secrets/lims/reporting_otp_hmac_key
   LIMS_INSTRUMENTS_CONFIG_SIGNING_KEY_FILE: >-
     /run/secrets/lims/instruments_config_signing_key
@@ -96,7 +98,7 @@ x-web: &web
   environment:
     LIMS_WEB_API_BASE_URL: http://api:8080
     LIMS_WEB_BFF_KEY_FILE: /run/secrets/bff/staff_web
-    LIMS_PAYMENTS_GATEWAY_ENV: uat  # operator decision 2026-11-22: exactly uat for the demo, never production on this host (the /payments/settings page throws without it)
+    LIMS_PAYMENTS_GATEWAY_ENV: *payments-gateway-env  # same value as api and worker (x-core-env, LD-449 c)
   volumes:
     - /run/lims/secrets/web/bff_key_staff_web:/run/secrets/bff/staff_web:ro
   networks:

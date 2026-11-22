@@ -1,12 +1,11 @@
 // Payments ModuleManifest (02-TRD §3.1, 02-CONVENTIONS §2.2). Autoloaded from modules/payments/index.ts.
-// Boot checks (TRD §9.3): config is validated at import, so a bad LIMS_PAYMENTS_* set stops the process before it serves.
-// Handlers and port methods not yet built are placeholders; the tasks that implement them replace them.
+// Boot checks (TRD §9.3): config is validated at import (handlers/index.ts), so a bad LIMS_PAYMENTS_* set stops the process before it serves.
+// T0D-FIX-5 (LD-447): handlers/index.ts wires the real handlers; operations not built yet stay placeholders (notes/T0D-FIX-5-left.md).
 import type { ModuleManifest } from '../../core/module.js';
-import { loadPaymentsConfig } from './config.js';
-import { handlers } from './handlers/index.js';
+import { config, handlers } from './handlers/index.js';
 import { paymentProviderPort } from './ports/PaymentProviderPort.impl.js';
 
-export const config = loadPaymentsConfig();
+export { config };
 
 // CR-C15-004: paymentCallback resolver. The placeholder resolves nothing, so every callback token is refused (fail closed, auth.unauthenticated)
 // until PG-T09 ships the DEFINER-backed lookup.

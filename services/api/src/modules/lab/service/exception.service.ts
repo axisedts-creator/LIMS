@@ -2,6 +2,7 @@
 // PRD AC-04.5, AC-14.3, AC-14.5; 07-SECURITY P-01/P-03/P-07, REQ-SEC-024/096/098; CR-C7-011). Runs in the request transaction (ctx.tx).
 // Tenant and actor come from ctx only; every store call is (ctx.tx, ctx.tenantId, ...). A foreign-tenant id is reported as not found (P-01).
 // Reapply / assign run the T-22 pipeline (ingest.service.ts) under the exception's own result key; a technical failure propagates (the request rolls back).
+import { toDate } from '../../../core/clock.js'; // T0D-FIX-6 (LD-448): toDate(ctx.now()) is an ISO string in the pipeline, a Date in unit fakes
 import { LimsError, type FieldError } from '../../../core/errors.js';
 import type { RepoCtx } from '../repository/base.repo.js';
 import { discardIngestExceptionRow, getIngestExceptionRow, isActiveExceptionDiscardReason, listIngestExceptionRows } from '../repository/ingest.repo.js';
@@ -135,7 +136,7 @@ export async function discardIngestException(ctx: ExceptionCtx, id: string, a: {
   const row = await lockOpen(ctx, id);
   if (!(await ctx.store.isActiveDiscardReason(ctx.tx, ctx.tenantId, a.reasonCode))) throw invalid('/reason_code', 'reason_code is not an active discard reason');
   await ctx.store.discardException(ctx.tx, ctx.tenantId, {
-    id, reasonCode: a.reasonCode, ...(a.comment === undefined ? {} : { comment: a.comment }), resolverMembershipId: membership(ctx), occurredAt: ctx.now().toISOString(),
+    id, reasonCode: a.reasonCode, ...(a.comment === undefined ? {} : { comment: a.comment }), resolverMembershipId: membership(ctx), occurredAt: toDate(ctx.now()).toISOString(),
   });
   return (await ctx.store.getExceptionRow(ctx.tx, ctx.tenantId, id)) ?? row;
 }

@@ -1,6 +1,7 @@
 // FD-T12: order flags raised by the frontdesk consumers (02-TRD §3.1, §8.2; 08 A13 D-6, A2.12). Everything runs in ctx.tx (the job tx); no transaction, no connection of its own.
 // The flag is the unit of work: a flag is inserted-if-absent (the partial unique indexes make a redelivery, and the rejected + status_changed pair, one row - D-6);
 // the recollection SMS is a best-effort side effect that never fails or rolls back the flag (TRD §6.4).
+import { toDate } from '../../../core/clock.js'; // T0D-FIX-6 (LD-448): ctx.now() is an ISO string in the pipeline, a Date in unit fakes
 import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';
 import { LimsError } from '../../../core/errors.js';
 import { createCoreRepo } from '../../../core/core-repo/index.js';
@@ -121,7 +122,7 @@ export async function resolveOrderFlag(hctx: unknown, params: unknown, headers: 
   if (f['status'] !== 'open') throw new LimsError('common.immutable_record');
   if (Number(f['version']) !== version) throw new LimsError('common.version_conflict');
   const row = await resolveOrderFlagRow(c.tx, c.tenantId, f['id'], version,
-    { resolutionCode: code, ...(typeof note === 'string' ? { note } : {}), at: c.now(), by: c.actor.membershipId ?? c.actor.id });
+    { resolutionCode: code, ...(typeof note === 'string' ? { note } : {}), at: toDate(c.now()), by: c.actor.membershipId ?? c.actor.id });
   if (!row) throw new LimsError('common.version_conflict');
   return { status: 200, body: await flagDto(c, row) };
 }

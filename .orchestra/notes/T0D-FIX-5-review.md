@@ -1,0 +1,6 @@
+APPROVE
+
+Re-review of `git diff 121f2a97a..HEAD` (T0D-FIX-5) after review round 1 (a210f33f8). Ran: fix5 API set 135/135 green; fix5 web set 13/13 green.
+Item 1 resolved: fix5.wiring.test.ts (2c) now drives resolveReconciliationFinding (200, one access row payment_intent.resolve / reconciliation_finding / allowed with resolution_code only, note never logged, UPDATE tenant_id = caller, permission asserted before any statement, no If-Match -> common.precondition_required, stale -> common.version_conflict, other tenant -> common.not_found, none log) and createStaticQrReconciliation (201, tenant on INSERT, no access row (D-112 row trigger), no port call, difference without note / empty body -> common.validation_failed) through manifest.handlers. x-permission payments.intent.resolve matches contracts/openapi/payments.yaml:1756 and :1954.
+Item 2 resolved: LD-449 (b) service-name gap recorded in notes/T0D-FIX-5-left.md.
+Still noted, not blocking (outside this diff): payments integration suites (merchant/reconciliation/staticqr service-direct ctx without IdentityPort) and unit/manifest.test.ts (core PHASE_STUBS) fail; the diff touches no services or core. Idempotency-Key refusal is core stage 6, not re-tested here.

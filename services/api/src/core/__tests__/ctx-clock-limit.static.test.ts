@@ -56,6 +56,16 @@ export function limitOffenders(file: string, text: string): string[] {
   return found;
 }
 
+// The 80 sites of 2026-11-22 (T0D-FIX-1-left.md). T0D-FIX-6 (LD-448) may only lower them; the live baseline file is checked against this copy.
+const ORIGINAL_BASELINE: Record<string, number> = {
+  'anatomic/service/case.service.ts': 1, 'anatomic/service/changes.service.ts': 2, 'anatomic/service/gross.service.ts': 3, 'anatomic/service/material.service.ts': 6,
+  'anatomic/service/molecular.service.ts': 2, 'anatomic/service/report.service.ts': 2, 'anatomic/service/synoptic.service.ts': 2, 'catalog/ports/CatalogPort.impl.ts': 1,
+  'frontdesk/service/discount.service.ts': 1, 'frontdesk/service/order.service.ts': 3, 'frontdesk/service/parity.service.ts': 2, 'frontdesk/service/patient.service.ts': 1,
+  'frontdesk/service/registration.service.ts': 3, 'homecollection/snapshot.service.ts': 2, 'identity/service/auth.service.ts': 6, 'identity/service/user.service.ts': 4,
+  'lab/service/critical.service.ts': 3, 'lab/service/exception.service.ts': 1, 'lab/service/ingest.service.ts': 1, 'lab/service/label.service.ts': 1, 'lab/service/order.service.ts': 1,
+  'lab/service/qc.service.ts': 2, 'lab/service/result.service.ts': 6, 'lab/service/signoff.service.ts': 1, 'lab/service/specimen.service.ts': 4, 'lab/store/labStore.ts': 1,
+  'lab/store/results.store.ts': 1, 'micro/service/culture.service.ts': 3, 'micro/service/instrument-record.service.ts': 1, 'micro/service/isolate.service.ts': 1, 'micro/service/report.service.ts': 5,
+};
 const files = sources(MODULES);
 const BASELINE = fileURLToPath(new URL('./fixtures/ctx-clock-baseline.json', import.meta.url));
 const CLOCK_SCOPE = [/^micro\/service\/chain\.service\.ts$/, /^smartreport\/handlers\/summaries\.ts$/, /^reporting\/handlers\/reports-read\.handlers\.ts$/, /^inventory\/handlers\/alerts/,
@@ -93,6 +103,25 @@ describe('source scan of services/api/src/modules (item 6)', () => {
     const base: Record<string, number> = JSON.parse(readFileSync(BASELINE, 'utf8'));
     const worse = Object.entries(cur).filter(([f, n]) => n > (base[f] ?? 0)).map(([f, n]) => `${f}: ${n} > baseline ${base[f] ?? 0}`);
     expect(worse, `new ctx.now() Date uses:\n${worse.join('\n')}`).toEqual([]);
+  });
+
+  // T0D-FIX-6 (LD-448): the ratchet becomes strict. lab, frontdesk and micro (patient and sample flow, then culture) must be EMPTY. The other modules (identity, homecollection,
+  // catalog, anatomic) may keep leftovers only while they sit in the baseline: it may only shrink and must match the real count (no stale entry, no slack).
+  const PRIORITY = /^(lab|frontdesk|micro)\//;
+  it('T0D-FIX-6: no clock offender in lab, frontdesk and micro (strict)', () => {
+    const bad = files.filter((f) => PRIORITY.test(rel(f))).flatMap((f) => clockOffenders(rel(f), readFileSync(f, 'utf8')));
+    expect(bad, `offenders:\n${bad.join('\n')}`).toEqual([]);
+  });
+  it('T0D-FIX-6: the baseline only shrinks (no new file, no count above the 80 sites of 2026-11-22) and holds no lab, frontdesk or micro entry', () => {
+    const base: Record<string, number> = JSON.parse(readFileSync(BASELINE, 'utf8'));
+    const grew = Object.entries(base).filter(([f, n]) => n > (ORIGINAL_BASELINE[f] ?? 0)).map(([f, n]) => `${f}: ${n} > ${ORIGINAL_BASELINE[f] ?? 0}`);
+    expect(grew).toEqual([]);
+    expect(Object.keys(base).filter((f) => PRIORITY.test(f))).toEqual([]);
+  });
+  it('T0D-FIX-6: the baseline matches the tree exactly (a fixed file is removed from it, a count has no slack)', () => {
+    const cur: Record<string, number> = {};
+    for (const f of files.filter((x) => !inScope(rel(x)))) { const n = clockOffenders(rel(f), readFileSync(f, 'utf8')).length; if (n) cur[rel(f)] = n; }
+    expect(cur).toEqual(JSON.parse(readFileSync(BASELINE, 'utf8')));
   });
 
   it('item 6b: no handler keeps the pattern `limit` accepted only as a numeric string', () => {

@@ -1,6 +1,7 @@
 // T-10: #14 printSpecimenLabels (label data + the ONLY label_print_count / last_label_printed_at / access-log `specimen_label.print` point) and
 // #14a requestOrderLabelPrint (readiness only: writes nothing — 08 A13 D-4, no key, no counter, no access log). 02-TRD §4.6, §5.1 rows 14/14a.
 // Runs in the caller's transaction (ctx.tx): a failure after counting rolls count + audit back. Tenant/actor from ctx only (REQ-SEC-024).
+import { toDate } from '../../../core/clock.js'; // T0D-FIX-6 (LD-448): toDate(ctx.now()) is an ISO string in the pipeline, a Date in unit fakes
 import { LimsError } from '../../../core/errors.js';
 import { getLabSettings } from '../repository/labSettings.repo.js';
 import { getOrder } from '../repository/orders.repo.js';
@@ -110,7 +111,7 @@ export async function printSpecimenLabels(hctx: unknown, body: unknown): Promise
 
   // counter + access log: only here, once per printed specimen (not per copy); ids sorted so concurrent prints lock rows in one order
   const printed = labels.map((l) => l['specimen_id'] as string).sort();
-  const written = new Set(await bumpLabelPrint(rc, printed, c.now().toISOString()));
+  const written = new Set(await bumpLabelPrint(rc, printed, toDate(c.now()).toISOString()));
   const byId = new Map(active.map((r) => [r['id'] as string, r]));
   for (const id of printed) {
     if (!written.has(id)) throw new LimsError('common.internal');

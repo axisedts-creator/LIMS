@@ -16,7 +16,7 @@ import * as cultureRepo from '../repository/cultures.repo.js';
 import * as repo from '../repository/reports.repo.js';
 import * as sets from '../repository/codedsets.repo.js';
 import { cultureDetail, memberNames, testLookup } from './chain.service.js';
-import { bad, code, conflict, guarded, isObj, needVersion, nowOf, str, strictKeys, uuid, WORK, type WriteCtx } from './culture.service.js';
+import { bad, code, conflict, guarded, isObj, needVersion, clockOf, str, strictKeys, uuid, WORK, type WriteCtx } from './culture.service.js';
 
 type Row = Record<string, any>;
 type Lab = { getOrderResults(c: unknown, i: Row): Promise<Row>; submitModuleResult(c: unknown, i: Row): Promise<Row> };
@@ -85,7 +85,7 @@ export async function submitCultureReport(c: WriteCtx, input: { params: unknown;
       const e = err(path, hasValue ? 'Standard and version required' : 'Value and category required');
       errs.push(e); if (hasValue) standardOnly.add(e);
     }
-    if (outcomeCode === 'no_growth' && earlyReason === null && row['final_due_at'] != null && nowOf(c).getTime() < new Date(row['final_due_at']).getTime()) {
+    if (outcomeCode === 'no_growth' && earlyReason === null && row['final_due_at'] != null && clockOf(c).getTime() < new Date(row['final_due_at']).getTime()) {
       const settings = await cfg.getSettings(tx, { tenantId });
       if (settings?.['early_final_requires_reason'] !== false) errs.push(err('/early_final_reason', 'Reason required for a final before the due time', 'common.field_required'));   // AC-10.3
     }
@@ -121,7 +121,7 @@ export async function submitCultureReport(c: WriteCtx, input: { params: unknown;
   }
 
   const versionNo = Number(row['current_report_version_no']) + 1;
-  const now = nowOf(c);
+  const now = clockOf(c);
   const out = await lab.submitModuleResult(c, {
     orderItemId: row['order_item_id'], kind: snap.submission_kind, reportPhase: phase, payloadRef: { module: 'micro', entityId: cultureId, versionNo },
     summaryText: snap.culture_summary_text, flag: snap.flag, isCritical: snap.is_critical, submittedAt: now.toISOString(), idempotencyKey: `micro:${cultureId}:${versionNo}`,
@@ -173,7 +173,7 @@ export async function reopenCulture(c: WriteCtx, input: { params: unknown; ifMat
   const cultureId = row['id'] as string;
   await guarded(async () => {
     if (!await cultureRepo.reopenCulture(tx, { tenantId, id: cultureId, expectedVersion: expected, userId, reasonCode, reasonText })) conflict();
-    await cultureRepo.insertTransition(tx, { id: uuidv7(), tenantId, centreId: row['centre_id'], cultureId, from: 'final_submitted', to: 'amending', reason: reasonCode, occurredAt: nowOf(c).toISOString(), userId });
+    await cultureRepo.insertTransition(tx, { id: uuidv7(), tenantId, centreId: row['centre_id'], cultureId, from: 'final_submitted', to: 'amending', reason: reasonCode, occurredAt: clockOf(c).toISOString(), userId });
   });
   const fresh = (await cultureRepo.reloadCulture(tx, { tenantId, id: cultureId }))!;
   return { body: await cultureDetail(c, tx, tenantId, fresh), version: Number(fresh['version']) };
@@ -200,9 +200,9 @@ export async function cancelCulture(c: WriteCtx, input: { params: unknown; ifMat
   const cultureId = row['id'] as string;
   await guarded(async () => {
     if (!await cultureRepo.cancelCulture(tx, { tenantId, id: cultureId, expectedVersion: expected, userId, reasonCode, comment })) conflict();
-    await cultureRepo.insertTransition(tx, { id: uuidv7(), tenantId, centreId: row['centre_id'], cultureId, from: status, to: 'cancelled', reason: reasonCode, occurredAt: nowOf(c).toISOString(), userId });
+    await cultureRepo.insertTransition(tx, { id: uuidv7(), tenantId, centreId: row['centre_id'], cultureId, from: status, to: 'cancelled', reason: reasonCode, occurredAt: clockOf(c).toISOString(), userId });
     await cultureRepo.releaseOpenRecords(tx, { tenantId, cultureId, userId });
   });
   const fresh = (await cultureRepo.reloadCulture(tx, { tenantId, id: cultureId }))!;
-  return { body: dto.cultureSummaryDto(fresh, await testLookup(c)(fresh['test_id']), nowOf(c)), version: Number(fresh['version']) };
+  return { body: dto.cultureSummaryDto(fresh, await testLookup(c)(fresh['test_id']), clockOf(c)), version: Number(fresh['version']) };
 }

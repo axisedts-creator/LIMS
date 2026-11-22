@@ -2,6 +2,7 @@
 // Prices come from CatalogPort, taxes/totals/fingerprints from BillingCommandPort.computeQuote (08 R18: C4 owns no tax table). Unknown request keys are ignored (never trusted, never echoed).
 // Ctx shape is ASSUMED as in patient.service (+ ports.CatalogPort/BillingCommandPort/NotificationPort, ctx.events, ctx.core.centre). Layout: shared parsing + pricing, then `create` (F9), then `quote` (F8, read-only, last).
 // F9 is ONE request tx (ctx.tx) and opens no transaction statement of its own: the core pipeline commits, or undoes everything (rows, counters, billing events, events) when anything throws.
+import { toDate } from '../../../core/clock.js'; // T0D-FIX-6 (LD-448): ctx.now() is an ISO string in the pipeline, a Date in unit fakes
 import type { BillingCommandPortV1, ComputedLine, DiscountInput, IssuedInvoiceRef, PricedLineInput, QuoteResult } from '../../../../../../contracts/ports/BillingCommandPort.js';
 import type { RequestContext } from '../../../../../../contracts/ports/common.js';
 import type { CatalogPortV1, ResolvedOrderables } from '../../../../../../contracts/ports/CatalogPort.js';
@@ -143,7 +144,7 @@ async function checkPoints(c: QuoteCtx, patientId: string | undefined, points: n
 }
 async function tenantToday(c: QuoteCtx): Promise<string> {
   const tz = ((await c.ports.IdentityPort.getTenantSettings(c, { keys: ['timezone'] })) ?? {}).timezone;
-  return todayIn(typeof tz === 'string' ? tz : TZ, c.now());
+  return todayIn(typeof tz === 'string' ? tz : TZ, toDate(c.now()));
 }
 
 // T0B-REGAPI-2: CreateRegistrationRequest properties (contract) + the LD-25 back-entry keys; anything else is 400 (a client never sets coupon_amount_paisa).
@@ -241,7 +242,7 @@ export interface Priced {
 /** Shared by F8 and F9 (§2.2 steps 2-6, re-run inside the F9 tx so the fingerprint compares against live prices). Read-only. */
 export async function priceDraft(c: QuoteCtx, d: Draft, settings: any): Promise<Priced> {
   const { CatalogPort: catalog, BillingCommandPort: billing } = c.ports;
-  const at = c.now().toISOString();
+  const at = toDate(c.now()).toISOString();
   const limits = {
     selfLimitBp: Number(settings?.discount_self_limit_bp ?? 0), selfLimitPaisa: Number(settings?.discount_self_limit_paisa ?? 0),
     absoluteMaxBp: Number(settings?.discount_absolute_max_bp ?? 10000),   // missing row = schema defaults: every discount needs approval (05-SCHEMA §3)
@@ -379,7 +380,7 @@ function createCtx(c: unknown): CreateCtx {
 }
 
 /** Ports type `now()` as an ISO string (RequestContext); the handler ctx carries a Date. Prototype-delegating copy keeps tx/tenant/actor/ports. */
-const portCtx = (c: CreateCtx): RequestContext => Object.assign(Object.create(c), { now: () => c.now().toISOString() }); // VERIFY-GREEN-3 (LD-268): return type only
+const portCtx = (c: CreateCtx): RequestContext => Object.assign(Object.create(c), { now: () => toDate(c.now()).toISOString() }); // VERIFY-GREEN-3 (LD-268): return type only
 /** VERIFY-GREEN-3 (LD-268): type-only view of the handler ctx as RequestContext; same object, nothing copied. NB the handler ctx `now()` returns a Date (see notes/VERIFY-GREEN-3.md). */
 const asRc = (c: QuoteCtx): RequestContext => c as unknown as RequestContext;
 
@@ -464,7 +465,7 @@ async function createInTx(hctx: unknown, body: unknown, pre?: Pre): Promise<Resu
   const c = createCtx(hctx);
   const { IdentityPort: identity, CatalogPort: catalog, BillingCommandPort: billing, NotificationPort: notify } = c.ports;
   await identity.assertRole(c, { permission: P.registrationCreate });
-  const r = parseCreate(body, c.now());
+  const r = parseCreate(body, toDate(c.now()));
   const d = r.draft;
   if (d.billingMode === 'cash') await identity.assertRole(c, { permission: INVOICE_ISSUE, centreId: d.centreId });     // checked before any write
 
@@ -531,11 +532,11 @@ async function createInTx(hctx: unknown, body: unknown, pre?: Pre): Promise<Resu
   // 5. order: registration_no counter (per branch) first, invoice counter (inside billing) last: short lock window
   const tenant = (await identity.getTenantSettings(c, { keys: ['numbering', 'timezone', 'branding', 'channels'] })) ?? {};
   const tz = typeof tenant.timezone === 'string' ? tenant.timezone : TZ;
-  const today = todayIn(tz, c.now());
+  const today = todayIn(tz, toDate(c.now()));
   const pattern = tenant.numbering?.registrationNoPattern;
   if (typeof pattern !== 'string') throw new LimsError('common.internal');
   const birth = dateOnly(patient['birth_on']);
-  const registeredAt = c.now();
+  const registeredAt = toDate(c.now());
   let branchId: string;
   let orderId: string;
   let order: Record<string, any>;
@@ -738,6 +739,6 @@ export async function quote(hctx: unknown, body: unknown): Promise<Result> {
     totals: totalsDto(q.totals),
     discount_evaluation: { within_limit: verdict === 'within_limit', approval_required: verdict === 'approval_required', limit_percent_bp: limits.selfLimitBp, limit_paisa: limits.selfLimitPaisa },
     catalog_revision: resolved.catalogRevision, quote_fingerprint: q.fingerprint, base_fingerprint: q.baseFingerprint,
-    ...(creditStatus ? { credit_status: { state: creditStatus } } : {}), fiscal_year_bs: fiscalYearOf(c.now(), tz),
+    ...(creditStatus ? { credit_status: { state: creditStatus } } : {}), fiscal_year_bs: fiscalYearOf(toDate(c.now()), tz),
   } };
 }

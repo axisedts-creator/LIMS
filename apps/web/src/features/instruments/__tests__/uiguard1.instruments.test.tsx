@@ -21,7 +21,7 @@ describe('T0D-UIGUARD-1-INSTRUMENTS rule 5: ReprocessDialog outcome table with n
   it('keeps the header row (Barcode, Code, Outcome) and says in the body that no records were produced', async () => {
     const { OutcomeTable } = await import('../components/ReprocessDialog');
     render(<OutcomeTable records={[]} />);
-    const table = screen.getByRole('table');
+    const table = screen.getByRole('grid');
     expect(within(table).getAllByRole('columnheader').map((h) => h.textContent)).toEqual(['Barcode', 'Code', 'Outcome']);
     expect(within(table).getByText(/no records were produced/i)).toBeTruthy();
   });
@@ -29,7 +29,7 @@ describe('T0D-UIGUARD-1-INSTRUMENTS rule 5: ReprocessDialog outcome table with n
   it('with records it still draws one body row per record under the same header', async () => {
     const { OutcomeTable } = await import('../components/ReprocessDialog');
     render(<OutcomeTable records={[{ id: 'r1', sample_barcode: 'SYN-0001', instrument_analyte_code: 'GLU', port_outcome: null, port_reason_code: null } as never]} />);
-    const table = screen.getByRole('table');
+    const table = screen.getByRole('grid');
     expect(within(table).getAllByRole('columnheader')).toHaveLength(3);
     expect(within(table).getByText('SYN-0001')).toBeTruthy();
     expect(within(table).queryByText(/no records were produced/i)).toBeNull();

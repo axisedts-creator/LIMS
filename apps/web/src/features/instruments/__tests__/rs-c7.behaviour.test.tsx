@@ -145,7 +145,7 @@ describe('A1 SCR-05 instruments: table with header row (LD-353 template 1 LIST, 
     const InstrumentsList = await loadList();
     wrap(<InstrumentsList {...listProps()} />);
     const region = screen.getByRole('region', { name: 'Instruments' });
-    const roles = ['button', 'option', 'radio', 'menuitem', 'tab', 'combobox'];
+    const roles = ['button', 'option', 'radio', 'menuitem', 'tab', 'combobox', 'columnheader'];
     const ctl = roles.flatMap((r) => within(region).queryAllByRole(r, { name: /last message/i }))[0];
     expect(ctl, 'a sort control whose name mentions "last message" (button / option / radio / menu item)').toBeTruthy();
     await userEvent.click(ctl!);
@@ -177,20 +177,25 @@ describe('A1 SCR-05 instruments: table with header row (LD-353 template 1 LIST, 
     expect(document.body.textContent).toContain('<img src=x onerror=alert(1)>');
   });
 
-  it('keyboard only: Tab reaches each row link and its unmapped link in order; Enter on a card link is a link activation (no script handler)', async () => {
+  // T0D-UIX-4 ruling (spec C7 04-UI-UX.md:196 SCR-05 "tables use the kit keyboard model"): the kit DataTable grid is entered with Tab, then roving focus (arrows) reaches the cell links.
+  it('keyboard only: Tab enters the Instruments grid, arrows reach the row link and its unmapped link; Enter on a row link is a native link activation (no script handler)', async () => {
     const InstrumentsList = await loadList();
     wrap(<InstrumentsList {...listProps({ instruments: [ROWS[0]!, ROWS[1]!] })} />);
     const user = userEvent.setup();
-    const seen: string[] = [];
-    for (let i = 0; i < 60 && seen.length < 4; i++) {
-      await user.tab();
-      const el = document.activeElement as HTMLElement;
-      if (el.tagName === 'A' && el.getAttribute('href')!.startsWith('/instruments/instruments/')) seen.push(el.getAttribute('href')!);
-    }
-    expect(seen).toEqual([`/instruments/instruments/${INST}`, `/instruments/instruments/${INST}/mappings`, `/instruments/instruments/${id(0xe02)}`, `/instruments/instruments/${id(0xe02)}/mappings`]);
-    const first = screen.getAllByRole('link').find((l) => l.getAttribute('href') === `/instruments/instruments/${INST}`)!;
+    const grid = screen.getByRole('grid', { name: 'Instruments' });
+    for (let i = 0; i < 60 && !grid.contains(document.activeElement); i++) await user.tab();
+    expect(grid.contains(document.activeElement), 'Tab moves focus into the grid named Instruments').toBe(true);
+    const row = `/instruments/instruments/${INST}`;
+    const hrefOf = () => (document.activeElement as HTMLElement).getAttribute('href');
+    const press = async (key: string, href: string, max: number) => {
+      for (let i = 0; i < max && hrefOf() !== href; i++) await user.keyboard(key);
+      return hrefOf() === href;
+    };
+    await user.keyboard('{ArrowRight}'); // row focus -> the name cell link of the first row
+    expect(await press('{ArrowDown}', row, 10), 'the SIM-CHEM-1 row link is reachable by arrow keys').toBe(true);
+    expect(await press('{ArrowRight}', `${row}/mappings`, 30), 'its "3 unmapped" link is reachable by arrow keys').toBe(true);
+    const first = screen.getAllByRole('link').find((l) => l.getAttribute('href') === row)!;
     expect(first.getAttribute('role')).toBeNull();
-    expect(first.getAttribute('tabindex')).toBeNull();
   });
 
   it('axe (serious/critical): populated, empty, with the create dialog open', async () => {

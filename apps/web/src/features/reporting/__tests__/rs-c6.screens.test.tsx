@@ -177,7 +177,7 @@ describe('RS-C6 delivery screens', () => {
     wrap(<L deliveries={[delivery(), delivery({ id: '01a1a98a-ac40-7000-8000-000000000052', status: 'delivered', attempt_no: 1 })] as never} permissions={ADMIN} />);
     expect(screen.getAllByText('98••••••12').length).toBe(2);
     expect(screen.getAllByRole('button', { name: /resend/i }).length).toBe(1);
-    expect(within(screen.getByRole('table')).getAllByText(/^(Failed|Delivered)$/).length).toBe(2);
+    expect(within(screen.getByRole('grid')).getAllByText(/^(Failed|Delivered)$/).length).toBe(2);
     await noSeriousAxe();
   });
 });

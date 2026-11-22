@@ -1,8 +1,9 @@
-TESTS_WRONG — misReportPage.handler.test.ts:155-161 ("each served page writes its own entry (page 2 too)") cannot pass for the tds case with the current fixture; the fixture, not the requirement, is wrong.
+TESTS_WRONG — registry.static.test.ts:97 and probes/coverage.probe.test.ts:64 pin 30 analytics operations; the task contract now has 31 (30 + getMisReportPage), so the pins are stale counts, not requirements.
 Reasons:
-1. spec/program/02-CONVENTIONS.md:357 — "end of data | `page.next_cursor` omitted". A one-row result at limit 1 is the last page, so no cursor is allowed.
-2. The test file's own pins agree: line 8 ("next_cursor? (absent or null on the last page)") and fakeRun line 73 (cursor only when `after + limit < rows.length`).
-3. FACTS (lines 38-49) holds exactly ONE tds row (line 48) on 2026-11-17, so `expect(p1.next_cursor).toBeTruthy()` (line 158) fails for tds; two_level_commission has 2 rows and passes.
-4. The requirement under test (one referral_report.view entry per served page, A39/LD-342, brief item (1)) is valid and must stay for BOTH money codes; do not drop the tds case.
-CHANGE (tester): add a second synthetic tds fact for tenant TA, day 2026-11-17, centre A1, ord 2 (e.g. party p2 'Synthetic Party Two', commission_payable_paisa 30_000, tds_bp 1_500, tds_withheld_paisa 4_500, net_payable_paisa 25_500). Then re-check every expectation that counts or sums tds rows (row counts, totals) and update only those numbers to match the new fixture.
+1. spec/chunks/C8-analytics-mis/06-IMPLEMENTATION-PLAN.md:11 and 02-TRD.md:901 say "all 30 operations" = every operation of analytics.yaml mapped/probed; the requirement is "all", the number was the count at that time.
+2. LD-447 (binding for this task, task brief item (1)) adds exactly ONE additive GET getMisReportPage; contracts/openapi/analytics.yaml now has 31 operationId entries (getMisReportPage at line 3911).
+3. The tester already moved the same pin 30 -> 31 in boot.test.ts:84-85,246 and probes/contract.probe.test.ts:21-22 (notes/T0D-BUILD-4-tests.md "count only"); these two were missed.
+CHANGE (tester), count only, keep every other assertion:
+- registry.static.test.ts:96-97: title "30 operations" -> "31 operations (30 + getMisReportPage, T0D-BUILD-4)"; `toHaveLength(30)` -> `toHaveLength(31)`. Keep the handlers == OPS equality and the no-pendingOperations test unchanged.
+- coverage.probe.test.ts describe title ("P1 \"all 30 operations\"") and lines 63-64: "all 30 operations" -> "all 31 operations"; `toBe(30)` -> `toBe(31)`. Keep the OPS.map check.
 The implementation needs no change for this point.

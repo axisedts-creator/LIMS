@@ -11,3 +11,7 @@ The implementation needs no change for this point.
 
 ## LEAD ITEM (LD-452, 2026-11-22 15:26 NPT)
 (1) Boot test timeout: the TESTER raises the per-test cap of AN-T01 boot to 300000 (same as vitest.config) and changes nothing else; writer and debugger do not edit it. (2) REVIEWER: check the regenerated tests/security/authz-classification.json against main (no operation became unguarded; the one unguarded entry is a known public operation) and prove by tests that the per-code checks of getMisReportPage hold (money codes: auth.forbidden without analytics.referral_report.read, auth.mfa_required without aal2, a code the caller may not export is refused like its export). Not proven by a test = CHANGES. Reviewer edits nothing.
+
+
+## LEAD ITEM (LD-453, 2026-11-22 15:39 NPT)
+Tester-only work: regenerate tests/security/authz-classification.json with node tests/security/classify-authz.mjs, diff against main and list every changed entry (nothing may become unguarded); raise the AN-T01 boot test cap to 300000; nothing else. Writer and debugger never edit tests/ or __tests__ (Enforce reverts it, that is what blocked this task). Reviewer edits nothing.

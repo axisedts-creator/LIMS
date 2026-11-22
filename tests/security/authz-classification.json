@@ -1,7 +1,7 @@
 {
   "counts": {
-    "guarded-exact": 931,
-    "guarded-other": 31,
+    "guarded-exact": 1001,
+    "guarded-other": 16,
     "identity-session-flow": 6,
     "inconclusive": 60,
     "platform": 34,
@@ -10,8 +10,8 @@
     "scheme-device": 9,
     "scheme-patient-pre-auth": 3,
     "scheme-portal": 9,
-    "stub": 28,
-    "unguarded": 47
+    "stub": 21,
+    "unguarded": 0
   },
   "operations": {
     "acceptCashTransfer": {
@@ -35,8 +35,8 @@
       "x_permission": "homecollection.sync.upload"
     },
     "acknowledgeInventoryAlert": {
-      "class": "stub",
-      "reason": "no handler definition found; registered through the module stub (common.internal or 501)",
+      "class": "guarded-exact",
+      "permission": "inventory.stock.manage",
       "x_permission": "inventory.stock.manage"
     },
     "acknowledgeQcRun": {
@@ -478,8 +478,8 @@
       "x_permission": "payments.refund.approve"
     },
     "confirmOutsourcedReport": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "reporting.outsourced.attach",
       "x_permission": "reporting.outsourced.attach"
     },
     "confirmPreRegisteredOrder": {
@@ -648,8 +648,8 @@
       "x_permission": "identity.centre.manage"
     },
     "createCentreContact": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "reporting.settings.manage",
       "x_permission": "reporting.settings.manage"
     },
     "createCommentCode": {
@@ -854,9 +854,8 @@
       "x_permission": "partners.ticket.manage"
     },
     "createNarrativeTemplate": {
-      "class": "guarded-other",
-      "permission": "reporting.narrative.sign",
-      "reason": "asserts reporting.narrative.sign but x-permission is reporting.template.manage",
+      "class": "guarded-exact",
+      "permission": "reporting.template.manage",
       "x_permission": "reporting.template.manage"
     },
     "createNonCompliancePenalty": {
@@ -1006,9 +1005,8 @@
       "x_permission": "engagement.reminder.manage"
     },
     "createReportPrint": {
-      "class": "guarded-other",
-      "permission": "reporting.report.bulk_download,reporting.report.release",
-      "reason": "asserts reporting.report.bulk_download,reporting.report.release but x-permission is reporting.report.print",
+      "class": "guarded-exact",
+      "permission": "reporting.report.print",
       "x_permission": "reporting.report.print"
     },
     "createReportSchedule": {
@@ -1017,8 +1015,8 @@
       "x_permission": "analytics.schedule.manage"
     },
     "createReportTemplate": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "reporting.template.manage",
       "x_permission": "reporting.template.manage"
     },
     "createRole": {
@@ -1509,8 +1507,8 @@
       "x_permission": "reporting.portal.download"
     },
     "downloadOutsourcedReport": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "reporting.outsourced.attach",
       "x_permission": "reporting.outsourced.attach"
     },
     "downloadPartnerReport": {
@@ -1534,14 +1532,13 @@
       "x_permission": "catalog.price_list.manage"
     },
     "downloadReportPrintPdf": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "reporting.report.print",
       "x_permission": "reporting.report.print"
     },
     "downloadReportVersionPdf": {
-      "class": "guarded-other",
-      "permission": "lab.specimen.read,reporting.report.release",
-      "reason": "asserts lab.specimen.read,reporting.report.release but x-permission is reporting.report.read",
+      "class": "guarded-exact",
+      "permission": "reporting.report.read",
       "x_permission": "reporting.report.read"
     },
     "dryRunPriceListImport": {
@@ -1895,8 +1892,8 @@
       "x_permission": "platform.dead_letter.manage"
     },
     "getDelivery": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "reporting.delivery.read",
       "x_permission": "reporting.delivery.read"
     },
     "getDeliveryReport": {
@@ -2025,8 +2022,8 @@
       "x_permission": "inventory.item.read"
     },
     "getInventorySettings": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "inventory.item.read",
       "x_permission": "inventory.item.read"
     },
     "getInventoryStore": {
@@ -2084,6 +2081,11 @@
       "permission": "micro.culture.read",
       "x_permission": "micro.culture.read"
     },
+    "getMisReportPage": {
+      "class": "guarded-exact",
+      "permission": "analytics.dashboard.read",
+      "x_permission": "analytics.dashboard.read"
+    },
     "getMyAccount": {
       "class": "guarded-exact",
       "permission": "engagement.self.read",
@@ -2125,15 +2127,13 @@
       "x_permission": "reporting.portal.view"
     },
     "getNarrativeImageContent": {
-      "class": "guarded-other",
-      "permission": "reporting.narrative.write",
-      "reason": "asserts reporting.narrative.write but x-permission is reporting.report.read",
+      "class": "guarded-exact",
+      "permission": "reporting.report.read",
       "x_permission": "reporting.report.read"
     },
     "getNarrativeReport": {
-      "class": "guarded-other",
-      "permission": "reporting.narrative.sign",
-      "reason": "asserts reporting.narrative.sign but x-permission is reporting.narrative.write",
+      "class": "guarded-exact",
+      "permission": "reporting.narrative.write",
       "x_permission": "reporting.narrative.write"
     },
     "getOrder": {
@@ -2172,8 +2172,8 @@
       "x_permission": "partners.order.read"
     },
     "getPartnerSettings": {
-      "class": "stub",
-      "reason": "no handler definition found; registered through the module stub (common.internal or 501)",
+      "class": "guarded-exact",
+      "permission": "partners.partner.read",
       "x_permission": "partners.partner.read"
     },
     "getPartnerStatement": {
@@ -2337,13 +2337,13 @@
       "x_permission": "billing.invoice.read"
     },
     "getReport": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "reporting.report.read",
       "x_permission": "reporting.report.read"
     },
     "getReportPrint": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "reporting.report.print",
       "x_permission": "reporting.report.print"
     },
     "getReportRun": {
@@ -2357,18 +2357,18 @@
       "x_permission": "analytics.schedule.manage"
     },
     "getReportTemplate": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "reporting.template.manage",
       "x_permission": "reporting.template.manage"
     },
     "getReportVersion": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "reporting.report.read",
       "x_permission": "reporting.report.read"
     },
     "getReportingSettings": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "reporting.settings.manage",
       "x_permission": "reporting.settings.manage"
     },
     "getResult": {
@@ -2637,8 +2637,8 @@
       "x_permission": "audit.log.read"
     },
     "listAccessReviews": {
-      "class": "stub",
-      "reason": "no handler definition found; registered through the module stub (common.internal or 501)",
+      "class": "guarded-exact",
+      "permission": "identity.user.read",
       "x_permission": "identity.user.read"
     },
     "listAccountGroups": {
@@ -2657,8 +2657,8 @@
       "x_permission": "billing.account.read"
     },
     "listAccountSummaries": {
-      "class": "stub",
-      "reason": "no handler definition found; registered through the module stub (common.internal or 501)",
+      "class": "guarded-exact",
+      "permission": "billing.account.read",
       "x_permission": "billing.account.read"
     },
     "listAdminNotices": {
@@ -2712,8 +2712,8 @@
       "x_permission": "anatomic.case.read"
     },
     "listAnatomicBlocks": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "anatomic.case.read",
       "x_permission": "anatomic.case.read"
     },
     "listAnatomicCases": {
@@ -2852,8 +2852,8 @@
       "x_permission": "billing.invoice.read"
     },
     "listCentreContacts": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "reporting.settings.manage",
       "x_permission": "reporting.settings.manage"
     },
     "listCentres": {
@@ -2862,8 +2862,8 @@
       "x_permission": "identity.centre.read"
     },
     "listChannelAccounts": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "reporting.channel.manage",
       "x_permission": "reporting.channel.manage"
     },
     "listCommentCodes": {
@@ -2942,8 +2942,8 @@
       "x_permission": "catalog.price_list.read"
     },
     "listCriticalAlerts": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "reporting.report.read",
       "x_permission": "reporting.report.read"
     },
     "listCriticalLimitSets": {
@@ -2977,8 +2977,8 @@
       "x_permission": "platform.dead_letter.manage"
     },
     "listDeliveries": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "reporting.delivery.read",
       "x_permission": "reporting.delivery.read"
     },
     "listDeltaCheckRules": {
@@ -3167,13 +3167,13 @@
       "x_permission": "instruments.instrument.read"
     },
     "listInventoryAlerts": {
-      "class": "stub",
-      "reason": "no handler definition found; registered through the module stub (common.internal or 501)",
+      "class": "guarded-exact",
+      "permission": "inventory.item.read",
       "x_permission": "inventory.item.read"
     },
     "listInventoryCodedSet": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "inventory.item.read",
       "x_permission": "inventory.item.read"
     },
     "listInventoryItems": {
@@ -3237,8 +3237,8 @@
       "x_permission": "instruments.message.read"
     },
     "listMessageTemplates": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "reporting.message_template.manage",
       "x_permission": "reporting.message_template.manage"
     },
     "listMethods": {
@@ -3327,15 +3327,13 @@
       "x_permission": "reporting.portal.view"
     },
     "listNarrativeReports": {
-      "class": "guarded-other",
-      "permission": "reporting.narrative.sign",
-      "reason": "asserts reporting.narrative.sign but x-permission is reporting.narrative.write",
+      "class": "guarded-exact",
+      "permission": "reporting.narrative.write",
       "x_permission": "reporting.narrative.write"
     },
     "listNarrativeTemplates": {
-      "class": "guarded-other",
-      "permission": "reporting.narrative.sign",
-      "reason": "asserts reporting.narrative.sign but x-permission is reporting.narrative.write",
+      "class": "guarded-exact",
+      "permission": "reporting.narrative.write",
       "x_permission": "reporting.narrative.write"
     },
     "listNonComplianceEvents": {
@@ -3374,13 +3372,13 @@
       "x_permission": "frontdesk.order.read"
     },
     "listOutsourcedItems": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "reporting.outsourced.attach",
       "x_permission": "reporting.outsourced.attach"
     },
     "listOutsourcedReports": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "reporting.outsourced.attach",
       "x_permission": "reporting.outsourced.attach"
     },
     "listOwnIrdAnnexes": {
@@ -3555,8 +3553,8 @@
       "x_permission": "engagement.content.read"
     },
     "listPortalLinks": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "reporting.delivery.read",
       "x_permission": "reporting.delivery.read"
     },
     "listPossibleDuplicatePatients": {
@@ -3580,9 +3578,8 @@
       "x_permission": "catalog.price_list.read"
     },
     "listPrintProfiles": {
-      "class": "guarded-other",
-      "permission": "billing.settings.manage",
-      "reason": "asserts billing.settings.manage but x-permission is reporting.settings.manage",
+      "class": "guarded-exact",
+      "permission": "reporting.settings.manage",
       "x_permission": "reporting.settings.manage"
     },
     "listProfileImages": {
@@ -3691,18 +3688,18 @@
       "x_permission": "analytics.schedule.manage"
     },
     "listReportTemplates": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "reporting.template.manage",
       "x_permission": "reporting.template.manage"
     },
     "listReportingCodes": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "reporting.report.read",
       "x_permission": "reporting.report.read"
     },
     "listReports": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "reporting.report.read",
       "x_permission": "reporting.report.read"
     },
     "listRepresentativeClients": {
@@ -3746,9 +3743,8 @@
       "x_permission": "identity.session.revoke"
     },
     "listSignatoryProfiles": {
-      "class": "guarded-other",
-      "permission": "billing.settings.manage",
-      "reason": "asserts billing.settings.manage but x-permission is reporting.settings.manage",
+      "class": "guarded-exact",
+      "permission": "reporting.settings.manage",
       "x_permission": "reporting.settings.manage"
     },
     "listSlotBlackouts": {
@@ -4013,8 +4009,8 @@
       "x_permission": "anatomic.case.work"
     },
     "markAnatomicSlidesReady": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "anatomic.case.work",
       "x_permission": "anatomic.case.work"
     },
     "markManifestLineNotReceived": {
@@ -4098,9 +4094,8 @@
       "x_permission": "inventory.item.read"
     },
     "previewPrintProfile": {
-      "class": "guarded-other",
-      "permission": "billing.settings.manage",
-      "reason": "asserts billing.settings.manage but x-permission is reporting.settings.manage",
+      "class": "guarded-exact",
+      "permission": "reporting.settings.manage",
       "x_permission": "reporting.settings.manage"
     },
     "previewReferenceRange": {
@@ -4114,8 +4109,8 @@
       "x_permission": "frontdesk.registration.create"
     },
     "previewReportTemplate": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "reporting.template.manage",
       "x_permission": "reporting.template.manage"
     },
     "previewSmartLibraryVersion": {
@@ -4174,8 +4169,8 @@
       "x_permission": "catalog.reference_range.publish"
     },
     "publishReportTemplate": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "reporting.template.manage",
       "x_permission": "reporting.template.manage"
     },
     "pullChanges": {
@@ -4204,8 +4199,8 @@
       "x_permission": "inventory.master.manage"
     },
     "putInventoryTenantCode": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "inventory.master.manage",
       "x_permission": "inventory.master.manage"
     },
     "putMerchantAccount": {
@@ -4334,13 +4329,13 @@
       "x_permission": "payments.intent.resolve"
     },
     "recordAccessReview": {
-      "class": "stub",
-      "reason": "no handler definition found; registered through the module stub (common.internal or 501)",
+      "class": "guarded-exact",
+      "permission": "identity.user.manage",
       "x_permission": "identity.user.manage"
     },
     "recordAnatomicMovements": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "anatomic.case.work",
       "x_permission": "anatomic.case.work"
     },
     "recordAstResults": {
@@ -4464,8 +4459,8 @@
       "x_permission": "lab.qc_hold.release"
     },
     "releaseReportVersion": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "reporting.report.release",
       "x_permission": "reporting.report.release"
     },
     "rematchInstrumentRecord": {
@@ -4565,8 +4560,8 @@
       "x_permission": "smartreport.template.manage"
     },
     "replaceStaffAssignments": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "reporting.settings.manage",
       "x_permission": "reporting.settings.manage"
     },
     "replaceTestSpecimenRequirements": {
@@ -4815,8 +4810,8 @@
       "x_permission": "billing.settings.manage"
     },
     "retryDelivery": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "reporting.delivery.resend",
       "x_permission": "reporting.delivery.resend"
     },
     "retryManifestLineConversion": {
@@ -4825,8 +4820,8 @@
       "x_permission": "partners.manifest.receive"
     },
     "retryRenderReportVersion": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "reporting.report.render",
       "x_permission": "reporting.report.render"
     },
     "returnResult": {
@@ -4897,8 +4892,8 @@
       "x_permission": "platform.staff.manage"
     },
     "revokePortalLink": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "reporting.token.revoke",
       "x_permission": "reporting.token.revoke"
     },
     "revokeQueueDisplay": {
@@ -4907,8 +4902,8 @@
       "x_permission": "engagement.queue.manage"
     },
     "revokeReportQrToken": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "reporting.token.revoke",
       "x_permission": "reporting.token.revoke"
     },
     "revokeSession": {
@@ -4932,8 +4927,8 @@
       "x_permission": "identity.session.revoke"
     },
     "rotateChannelCallbackToken": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "reporting.channel.manage",
       "x_permission": "reporting.channel.manage"
     },
     "saveAnatomicGross": {
@@ -4957,9 +4952,8 @@
       "x_permission": "anatomic.case.work"
     },
     "saveNarrativeDraft": {
-      "class": "guarded-other",
-      "permission": "reporting.narrative.sign",
-      "reason": "asserts reporting.narrative.sign but x-permission is reporting.narrative.write",
+      "class": "guarded-exact",
+      "permission": "reporting.narrative.write",
       "x_permission": "reporting.narrative.write"
     },
     "scheduleHomeVisit": {
@@ -5013,9 +5007,8 @@
       "x_permission": "frontdesk.patient.read"
     },
     "searchReports": {
-      "class": "guarded-other",
-      "permission": "lab.specimen.read,reporting.report.release",
-      "reason": "asserts lab.specimen.read,reporting.report.release but x-permission is reporting.report.read",
+      "class": "guarded-exact",
+      "permission": "reporting.report.read",
       "x_permission": "reporting.report.read"
     },
     "searchUsers": {
@@ -5024,8 +5017,8 @@
       "x_permission": "identity.user.read"
     },
     "sendReportDelivery": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "reporting.delivery.resend",
       "x_permission": "reporting.delivery.resend"
     },
     "setFeatureFlagAsPlatform": {
@@ -5365,8 +5358,8 @@
       "x_permission": "identity.centre.manage"
     },
     "updateCentreContact": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "reporting.settings.manage",
       "x_permission": "reporting.settings.manage"
     },
     "updateCollectorFlags": {
@@ -5500,8 +5493,8 @@
       "x_permission": "inventory.master.manage"
     },
     "updateInventorySettings": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "inventory.master.manage",
       "x_permission": "inventory.master.manage"
     },
     "updateInventoryStore": {
@@ -5561,9 +5554,8 @@
       "x_permission": "engagement.self.manage"
     },
     "updateNarrativeTemplate": {
-      "class": "guarded-other",
-      "permission": "reporting.narrative.sign",
-      "reason": "asserts reporting.narrative.sign but x-permission is reporting.template.manage",
+      "class": "guarded-exact",
+      "permission": "reporting.template.manage",
       "x_permission": "reporting.template.manage"
     },
     "updateNonCompliancePenalty": {
@@ -5587,8 +5579,8 @@
       "x_permission": "partners.referrer.manage"
     },
     "updatePartnerSettings": {
-      "class": "stub",
-      "reason": "no handler definition found; registered through the module stub (common.internal or 501)",
+      "class": "guarded-exact",
+      "permission": "partners.partner.manage",
       "x_permission": "partners.partner.manage"
     },
     "updatePartyDiscountSlab": {
@@ -5638,13 +5630,13 @@
       "x_permission": "analytics.schedule.manage"
     },
     "updateReportTemplateDraft": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "reporting.template.manage",
       "x_permission": "reporting.template.manage"
     },
     "updateReportingSettings": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "reporting.settings.manage",
       "x_permission": "reporting.settings.manage"
     },
     "updateRole": {
@@ -5748,8 +5740,8 @@
       "x_permission": "reporting.narrative.write"
     },
     "uploadOutsourcedReport": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "reporting.outsourced.attach",
       "x_permission": "reporting.outsourced.attach"
     },
     "uploadTrf": {
@@ -5778,8 +5770,8 @@
       "x_permission": "engagement.bookable_item.manage"
     },
     "upsertChannelAccount": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "reporting.channel.manage",
       "x_permission": "reporting.channel.manage"
     },
     "upsertInstrumentCodeMaps": {
@@ -5793,8 +5785,8 @@
       "x_permission": "lab.config.manage"
     },
     "upsertMessageTemplateText": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "reporting.message_template.manage",
       "x_permission": "reporting.message_template.manage"
     },
     "upsertMicroCode": {
@@ -5808,9 +5800,8 @@
       "x_permission": "catalog.price_list.manage"
     },
     "upsertPrintProfile": {
-      "class": "guarded-other",
-      "permission": "billing.settings.manage",
-      "reason": "asserts billing.settings.manage but x-permission is reporting.settings.manage",
+      "class": "guarded-exact",
+      "permission": "reporting.settings.manage",
       "x_permission": "reporting.settings.manage"
     },
     "upsertQualityCode": {
@@ -5819,14 +5810,13 @@
       "x_permission": "quality.config.manage"
     },
     "upsertReferrerPreference": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "reporting.settings.manage",
       "x_permission": "reporting.settings.manage"
     },
     "upsertSignatoryProfile": {
-      "class": "guarded-other",
-      "permission": "billing.settings.manage",
-      "reason": "asserts billing.settings.manage but x-permission is reporting.settings.manage",
+      "class": "guarded-exact",
+      "permission": "reporting.settings.manage",
       "x_permission": "reporting.settings.manage"
     },
     "upsertVerificationPolicy": {
@@ -5921,8 +5911,8 @@
       "x_permission": "partners.manifest.submit"
     },
     "withdrawOutsourcedReport": {
-      "class": "unguarded",
-      "reason": "no IdentityPort.assertRole reachable from the handler through same-module calls",
+      "class": "guarded-exact",
+      "permission": "reporting.outsourced.attach",
       "x_permission": "reporting.outsourced.attach"
     },
     "writeOffExpiredStock": {
@@ -5931,5 +5921,5 @@
       "x_permission": "inventory.stock.manage"
     }
   },
-  "total": 1177
+  "total": 1178
 }

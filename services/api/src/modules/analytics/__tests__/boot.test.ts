@@ -245,7 +245,7 @@ describe('AN-T01 boot against the real repo (default modulesDir, real analytics.
     }
     expect(n).toBe(31);
     expect(unmounted).toEqual([]);
-  }, 60_000);
+  }, 300_000);
 
   it('fails closed: operations without required query/body answer 401 auth.* without credentials (never 200/501/500); non-spec path is 404', async () => {
     const app = await boot();
@@ -264,5 +264,5 @@ describe('AN-T01 boot against the real repo (default modulesDir, real analytics.
       expect(JSON.parse(r.body).code).toMatch(/^auth\./);
     }
     expect((await app.inject({ method: 'GET', url: '/v1/analytics/not-in-spec' })).statusCode).toBe(404);
-  }, 60_000);
+  }, 300_000);
 });

@@ -13,10 +13,16 @@ import { TextField } from '@lims/ui/components/TextField';
 import { useToast } from '@lims/ui/components/Toast';
 import { saveSettingsAction } from '../server/actions';
 import type { Settings } from '../server/types';
-import { Notice, errorText } from './common';
+import { errorText } from './common';
 
 type NumKey = 'max_lines_per_manifest' | 'draft_ttl_days' | 'pickup_max_days_ahead' | 'report_download_daily_cap_per_user';
-const MODES = [{ value: 'on_receipt', label: 'When the lab receives the samples' }, { value: 'on_submit', label: 'As soon as the partner submits' }] as const;
+/** T0D-BUILD-2 (LD-447): save codes of updatePartnerSettings in plain words (this screen only; other codes go through errorText) */
+const SAVE_ERRORS: Record<string, string> = {
+  'partners.setting_out_of_range': 'A value is outside the allowed range. Check the limits shown under each field.',
+  'common.precondition_required': 'The page is out of date. Reload the page and try again.',
+  'common.validation_failed': 'Some values are invalid. Check the fields and try again.',
+};
+const MODES =[{ value: 'on_receipt', label: 'When the lab receives the samples' }, { value: 'on_submit', label: 'As soon as the partner submits' }] as const;
 
 export function PartnerSettings({ initial, etag, canManage }: { initial: Settings; etag: string; canManage: boolean }) {
   const router = useRouter();
@@ -26,7 +32,6 @@ export function PartnerSettings({ initial, etag, canManage }: { initial: Setting
   const [nums, setNums] = useState<Record<NumKey, number | undefined>>({
     max_lines_per_manifest: initial.max_lines_per_manifest, draft_ttl_days: initial.draft_ttl_days, pickup_max_days_ahead: initial.pickup_max_days_ahead, report_download_daily_cap_per_user: initial.report_download_daily_cap_per_user,
   });
-  const [notice, setNotice] = useState<string>();
   const [busy, setBusy] = useState(false);
   const [dirty, setDirty] = useState(false);
   const set = <K extends keyof Settings>(k: K) => (v: Settings[K]) => { setS((o) => ({ ...o, [k]: v })); setDirty(true); };
@@ -35,10 +40,10 @@ export function PartnerSettings({ initial, etag, canManage }: { initial: Setting
 
   const save = async () => {
     setBusy(true);
-    setNotice(undefined);
     try {
       const r = await saveSettingsAction({ ...s, ...(nums as Record<NumKey, number>) }, etag);
-      if (r.ok) { setDirty(false); toast.show({ tone: 'success', title: 'Settings saved.' }); router.refresh(); } else setNotice(errorText(r.code, r.status));
+      // T0D-BUILD-2 (LD-447): a failed save is an error toast; the edit stays on screen
+      if (r.ok) { setDirty(false); toast.show({ tone: 'success', title: 'Settings saved.' }); router.refresh(); } else toast.show({ tone: 'danger', title: SAVE_ERRORS[r.code] ?? errorText(r.code, r.status) });
     } finally {
       setBusy(false);
     }
@@ -63,7 +68,6 @@ export function PartnerSettings({ initial, etag, canManage }: { initial: Setting
   return (
     <section aria-label="Partner settings">
       <PageHeader title={t('partners.nav.settings')} helpKey="partners.settings" />
-      {notice ? <Notice text={notice} /> : null}
       {/* T0D-UISETTINGS-1 (LD-353 template 4): one section, so no tabs; read only shows the values without the Save bar. */}
       {canManage ? (
         <SettingsForm onSave={save} saveLabel="Save settings" isSaving={busy} isDirty={dirty}>{fields}</SettingsForm>

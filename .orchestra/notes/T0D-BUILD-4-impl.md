@@ -4,4 +4,4 @@
 - [CONV] lint-openapi OPEN_OBJECT_ALLOWLIST + getMisReportPage rows[] (keys vary per code) and totals (map key -> integer).
 - Web: mis-page.tsx reads the op (dates, comma lists, limit 50, base64url cursor <= 200 only; 403 mfa/disabled = A39 gate, old referral probe removed); MisReportView: rows, totals row, tiles from totals, Next/Previous, DD/MM/YYYY, NPR via billing formatNpr; i18n analytics.mis.total + empty copy.
 - Green: handler 92/92, boot/probes, codegen build4+misreports1+c8 315/315, web build4 29/29, misreports1 141/141, uireport2.mis 7/7, authz-classification 19/19.
-- Open: dispute.md (2 count pins 30 -> 31). Pre-existing reds untouched: no-commission (report-codes.ts), *.live tests (need DB). Left: notes/T0D-BUILD-4-left.md (payment mode).
+- After ruling (tester moved 2 pins 30 -> 31): authz-classification.json regen had not been committed; regenerated + committed now. Re-run green: api 366/366 (incl. registry.static + coverage.probe), codegen 315/315, web 29+141+7, authz-classification 19/19. Pre-existing reds untouched: no-commission (report-codes.ts), *.live tests (need DB). Left: notes/T0D-BUILD-4-left.md (payment mode).

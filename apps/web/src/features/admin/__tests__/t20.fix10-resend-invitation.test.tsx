@@ -135,7 +135,7 @@ describe('/admin/users — Resend invitation row action', () => {
     await user.click(within(await dlg()).getByRole('button', { name: /^resend$/i }));
     await waitFor(() => expect(pageText()).toContain(REF));
     expect(pageText()).not.toMatch(/Invitation sent\./);
-    expect(pageText()).not.toMatch(/Error:|at \w+ \(|stack/);
+    expect(pageText()).not.toMatch(/\bat \w+ \(|\.[jt]sx?:\d+|stack/i);
     expect(callsTo('POST', RESEND)).toHaveLength(1);
   });
 

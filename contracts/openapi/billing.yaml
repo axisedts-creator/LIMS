@@ -6562,10 +6562,8 @@ paths:
           required: false
           schema:
             type: boolean
-        - &a1
-          $ref: _common.yaml#/components/parameters/Cursor
-        - &a2
-          $ref: _common.yaml#/components/parameters/Limit
+        - $ref: _common.yaml#/components/parameters/Cursor
+        - $ref: _common.yaml#/components/parameters/Limit
       responses:
         "200":
           description: Success.
@@ -6800,8 +6798,8 @@ paths:
           required: false
           schema:
             type: boolean
-        - *a1
-        - *a2
+        - $ref: _common.yaml#/components/parameters/Cursor
+        - $ref: _common.yaml#/components/parameters/Limit
       responses:
         "200":
           description: Success.
@@ -7181,8 +7179,8 @@ paths:
           required: false
           schema:
             type: boolean
-        - *a1
-        - *a2
+        - $ref: _common.yaml#/components/parameters/Cursor
+        - $ref: _common.yaml#/components/parameters/Limit
       responses:
         "200":
           description: Success.
@@ -7327,8 +7325,8 @@ paths:
           required: false
           schema:
             type: boolean
-        - *a1
-        - *a2
+        - $ref: _common.yaml#/components/parameters/Cursor
+        - $ref: _common.yaml#/components/parameters/Limit
       responses:
         "200":
           description: Success.

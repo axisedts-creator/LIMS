@@ -106,11 +106,15 @@ describe('T01 handler map (68 operationIds of partners.yaml)', () => {
   });
 
   it('binds every operationId of partners.yaml to a function, and nothing else (AC-0D-1.2)', () => {
-    expect(Object.keys(manifest.handlers).filter((id) => !NEW_LD321.includes(id)).sort()).toEqual([...OPS].sort());
-    for (const op of OPS) expect(typeof manifest.handlers[op], op).toBe('function');
+    // T0D-FIX-2 (LD-446): getPartnerSettings may be bound by a handler or listed in pendingOperations (core mounts its 501), never both missing.
+    const pend = [...(((manifest as { pendingOperations?: readonly string[] }).pendingOperations) ?? [])];
+    const bound = new Set([...Object.keys(manifest.handlers), ...pend.filter((id) => id === 'getPartnerSettings')]);
+    expect([...bound].filter((id) => !NEW_LD321.includes(id)).sort()).toEqual([...OPS].sort());
+    for (const op of OPS) expect(typeof manifest.handlers[op] === 'function' || pend.includes(op), op).toBe(true);
   });
 
-  const stubs = OPS.filter((op) => !IMPLEMENTED.includes(op));
+  // T0D-FIX-2 (LD-446): getPartnerSettings answers 501 operation_pending in every environment (pinned in contract/fix2.settings-pending.test.ts), so it is not a T01 scaffold stub any more.
+  const stubs = OPS.filter((op) => !IMPLEMENTED.includes(op) && op !== 'getPartnerSettings');
   const withEnv = async (env: string) => {
     vi.resetModules();
     vi.stubEnv('LIMS_CORE_ENV', env);

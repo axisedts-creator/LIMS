@@ -14,8 +14,7 @@ import { readIdentitySpec } from './audit-view.helpers.js';
 const KNOWN_STUBS: Record<string, string> = {
   listRolePacks: 'CR-C2-RM-001 (LD-150) operation; RM-T05 / LD-158 registers a fail-closed stub only, the real handler is a later task',
   applyRolePack: 'CR-C2-RM-001 (LD-150) operation; RM-T05 / LD-158 registers a fail-closed stub only, the real applyRolePack is not part of RM-T05',
-  listAccessReviews: 'access-review screens have no handler task yet; stays fail-closed (common.internal) until one is planned',
-  recordAccessReview: 'access-review screens have no handler task yet; stays fail-closed (common.internal) until one is planned',
+  // listAccessReviews / recordAccessReview: T0D-FIX-2 (LD-446) made them answer 501 operation_pending (pinned in fix2.access-review-pending.test.ts); they are no longer common.internal stubs.
 };
 const FOUR = { listAuditEntries, getAuditEntry, listAccessLogEntries, listAuthEvents } as const;
 
@@ -49,7 +48,7 @@ describe('identity operation wiring (T0C-AUDIT-WIRE-1)', () => {
     expect((handlers as Record<string, unknown>)[op]).toBe((FOUR as Record<string, unknown>)[op]);
   });
 
-  it('exactly the four known stubs are stubs today (RS-13 leaves only these)', async () => {
+  it('exactly the two role pack stubs are common.internal stubs today (RS-13 left four; T0D-FIX-2 made the two access review ones 501 operation_pending)', async () => {
     const stubs: string[] = [];
     for (const op of ids) if (await isStub(op)) stubs.push(op);
     expect(stubs.sort()).toEqual(Object.keys(KNOWN_STUBS).sort());

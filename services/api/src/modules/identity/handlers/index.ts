@@ -2,7 +2,7 @@
 // core fails boot on a missing or extra key (AC-0D-1.2). Every stub throws common.internal (fail closed) until its task
 // replaces it with handlers/<operationId>.ts. [CONV] same one-list stub pattern as modules/lab/handlers/index.ts.
 import type { Handler } from '../../../core/module.js';
-import { LimsError } from '../../../core/errors.js';
+import { LimsError, pendingProblem } from '../../../core/errors.js';
 import { applyRolePack } from './applyRolePack.js';
 import { createRole } from './createRole.js';
 import { deactivateRole } from './deactivateRole.js';
@@ -149,7 +149,14 @@ const notImplemented = (operationId: string): Handler => async () => {
   throw new LimsError('common.internal', `identity ${operationId} not implemented`);
 };
 
+// T0D-FIX-2 (LD-446, CR DEPLOY-AXIS-012 item 8): the unbuilt access review operations answer 501 operation_pending, not 500.
+const pending = (operationId: IdentityOperationId): Handler => async (_req, ctx) => ({
+  status: 501, headers: { 'content-type': 'application/problem+json' },
+  body: pendingProblem(operationId, '/v1/identity/access-reviews', ctx.requestId),
+});
+
 const implemented: Partial<Record<IdentityOperationId, Handler>> = {
+  listAccessReviews: pending('listAccessReviews'), recordAccessReview: pending('recordAccessReview'),   // T0D-FIX-2 (LD-446)
   listPermissions, listRoles, createRole, getRole, updateRole, deactivateRole, applyRolePack,   // T14 (applyRolePack: guarded stub, SEC-AUTHZ-4)
   listBranches, createBranch, updateBranch, deactivateBranch, reactivateBranch,                  // T15
   listCentres, createCentre, updateCentre, deactivateCentre, reactivateCentre,                    // T15

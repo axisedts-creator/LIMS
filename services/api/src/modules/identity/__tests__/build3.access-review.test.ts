@@ -19,7 +19,6 @@ import { manifest } from '../index.js';
 
 const ROOT = join(import.meta.dirname, '..', '..', '..', '..', '..', '..');
 const spec: any = parse(readFileSync(join(ROOT, 'contracts', 'openapi', 'identity.yaml'), 'utf8'));
-const SEED_ACTIONS = new Set([...readFileSync(join(ROOT, 'db', 'seeds', '003_audit__g_cs_access_actions.sql'), 'utf8').matchAll(/'([a-z_]+\.[a-z_]+)'/g)].map((m) => m[1]!));
 const opMeta = (id: string): any => { for (const p of Object.values<any>(spec.paths)) for (const m of Object.values<any>(p)) if (m?.operationId === id) return m; };
 const H = handlers as Record<string, (req: any, ctx: any) => Promise<{ status: number; body?: any }>>;
 
@@ -54,7 +53,7 @@ function splitTop(s: string): string[] {
 }
 const pgError = (code: string, message: string) => Object.assign(new Error(message), { code });
 
-function makeEnv(seed: Row[] = [], o: { grants?: string[]; failAudit?: boolean } = {}) {
+function makeEnv(seed: Row[] = [], o: { grants?: string[]; failInsert?: boolean } = {}) {
   const store: Row[] = seed.map((r) => ({ ...r }));
   const stmts: Array<{ text: string; values: readonly unknown[]; verb: string; tenantPredicate: boolean }> = [];
   const accessCalls: Row[] = [];
@@ -70,7 +69,10 @@ function makeEnv(seed: Row[] = [], o: { grants?: string[]; failAudit?: boolean }
       stmts.push(stmt);
       const mentions = /identity\.access_reviews/i.test(text);
       if (mentions && (verb === 'update' || verb === 'delete')) throw pgError('42501', 'access_reviews is append-only (RLS select + insert only)');
-      if (mentions && verb === 'insert') return insert(text, values);
+      if (mentions && verb === 'insert') {
+        if (o.failInsert) throw pgError('XX000', 'audit trigger failed (app.tg_row_audit)'); // the row-audit trigger runs inside the INSERT
+        return insert(text, values);
+      }
       if (mentions && (verb === 'select' || verb === 'with')) return select(text, values);
       return { rows: [], rowCount: 0 };
     },
@@ -123,7 +125,6 @@ function makeEnv(seed: Row[] = [], o: { grants?: string[]; failAudit?: boolean }
   }
   const audit = {
     async access(entry: Row) {
-      if (o.failAudit) throw pgError('XX000', 'access log write failed');
       accessCalls.push({ ...entry });
     },
   };
@@ -403,15 +404,16 @@ describe('recordAccessReview', () => {
   });
 
   describe('audit (LD-189): an entry is written, never with the notes text', () => {
-    it('one access/audit entry for the review: outcome allowed, subject = the new review, action from the seeded access-action list, no notes anywhere', async () => {
+    // Ruling T0D-BUILD-3-ruling.md: the audit entry is the row-audit trigger access_reviews__audit (app.tg_row_audit(), migration 20261105001300:958) firing on the
+    // INSERT inside the audited transaction; 02-TRD.md:506-525 gives recordAccessReview no ctx.audit.access call, so none is made.
+    it('the review is audited by the table trigger: INSERT on ctx.tx (the audited transaction), no ctx.audit.access call, no notes text in access calls or logs', async () => {
       const env = makeEnv();
       const r = await record(env, { memberships_reviewed: 9, notes: NOTES });
-      expect(env.accessCalls).toHaveLength(1);
-      const a = env.accessCalls[0]!;
-      expect(a['outcome']).toBe('allowed');
-      expect(SEED_ACTIONS.has(a['action']), `action ${a['action']} must be in db/seeds/003_audit__g_cs_access_actions.sql (P-3); if none fits, write notes/T0D-BUILD-3-left.md and a CR`).toBe(true);
-      expect(a['entityId']).toBe(wire(r.body).access_review_id);
-      expect(JSON.stringify(a)).not.toContain(NOTES);
+      expect(r.status).toBe(201);
+      expect(env.accessCalls).toHaveLength(0);
+      expect(env.writes().map((s) => s.verb)).toEqual(['insert']);
+      expect(env.store).toHaveLength(1);
+      expect(JSON.stringify(env.accessCalls)).not.toContain(NOTES);
       expect(JSON.stringify(env.logCalls)).not.toContain(NOTES);
     });
     it('the notes text is a bound parameter, never part of any SQL text (injection)', async () => {
@@ -422,10 +424,12 @@ describe('recordAccessReview', () => {
       expect(env.stmts.some((s) => s.values.includes(evil))).toBe(true);
       expect(env.store[0]!['notes']).toBe(evil);
     });
-    it('the audit write fails: the handler rejects (never a 2xx without its audit entry)', async () => {
-      const env = makeEnv([], { failAudit: true });
+    it('the audit trigger fails on the INSERT (statement throws): the handler rejects, no 2xx, nothing stored', async () => {
+      const env = makeEnv([], { failInsert: true });
       const e = await rejects(record(env, { memberships_reviewed: 2, notes: NOTES }));
       expect(e, 'must reject').toBeTruthy();
+      expect(e.statusCode === undefined || e.statusCode >= 400).toBe(true);
+      expect(env.store).toEqual([]);
       expect(JSON.stringify(e, Object.getOwnPropertyNames(e))).not.toContain(NOTES);
     });
     it('the log lines of a successful record carry no notes text', async () => {

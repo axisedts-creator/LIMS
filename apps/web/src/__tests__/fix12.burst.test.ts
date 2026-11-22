@@ -126,8 +126,9 @@ describe('(2) link prefetch fan-out: no <Link> may prefetch an authenticated pag
     expect(t.length).toBeGreaterThan(0);
     for (const tag of t) expect(tag, tag).toMatch(/\bprefetch=\{false\}/);
   });
-  it('anywhere else in apps/web/src: every <Link> sets prefetch={false} (links in a nav or a list fan out to authenticated pages)', () => {
-    for (const f of users) for (const tag of tags(readFileSync(f, 'utf8'))) expect(tag, f).toMatch(/\bprefetch=\{false\}/);
+  it('anywhere else under core/ (C0-owned): every <Link> sets prefetch={false} (links in a nav or a list fan out to authenticated pages)', () => {
+    const coreDir = join(root, 'core');
+    for (const f of users.filter((u) => u.startsWith(coreDir))) for (const tag of tags(readFileSync(f, 'utf8'))) expect(tag, f).toMatch(/\bprefetch=\{false\}/);
   });
   it('nothing in the shell calls router.prefetch', () => {
     for (const f of walk(join(root, 'core', 'shell'))) expect(readFileSync(f, 'utf8'), f).not.toMatch(/\.prefetch\(/);

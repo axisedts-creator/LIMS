@@ -137,6 +137,11 @@ export function makeCatalogDb(seed: { state?: Record<string, { rootId: string; r
           return { rows: hit ? [{ event_id: hit.eventId }] : [] };
         }
         if (/app\.enqueue_job/i.test(t)) { local.jobs.push({ text, values }); return { rows: [{ enqueue_job: null }] }; }
+        // T0D-FIX-1 (ruling): defaultPrices statement (catalog.price_list_items). These fakes model no price tables = no default price -> no rows.
+        if (/catalog\.price_list_items/i.test(t) && /^SELECT/i.test(t)) {
+          if (!values.includes(tenantId)) throw new Error('fake: price statement must bind the tenant id');
+          return { rows: [] };
+        }
         throw new Error(`fake: unsupported SQL: ${t.slice(0, 160)}`);
       },
       savepoint: async <T>(fn: (t: unknown) => Promise<T>) => fn(facade),

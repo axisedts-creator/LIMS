@@ -202,7 +202,8 @@ const reportsReadRaw: Readonly<Record<string, Handler>> = Object.freeze({
     const now = Date.parse(String((hctx as any).now?.() ?? new Date().toISOString()));
     const since = stamp(q, 'since') ?? new Date(now - DAY_MS).toISOString();
     if (Date.parse(since) < now - 7 * DAY_MS) throw invalid('/since');
-    const lim = q['limit'] === undefined ? 50 : typeof q['limit'] === 'string' && /^\d{1,3}$/.test(q['limit']) ? Number(q['limit']) : NaN;
+    // T0D-FIX-1 item 5 (LD-446, night25 host fix): the validator injects limit as a number; a numeric string is also accepted.
+    const lim = q['limit'] === undefined ? 50 : typeof q['limit'] === 'number' ? q['limit'] : typeof q['limit'] === 'string' && /^\d{1,3}$/.test(q['limit']) ? Number(q['limit']) : NaN;
     if (!Number.isInteger(lim) || lim < 1 || lim > 200) throw invalid('/limit');
     let after: { k: string; i: string } | undefined;
     if (q['cursor'] !== undefined) {

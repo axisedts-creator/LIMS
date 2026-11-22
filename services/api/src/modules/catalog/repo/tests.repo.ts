@@ -22,6 +22,25 @@ export async function upsertStageTargets(tx: Tx, rows: ReadonlyArray<{ id: strin
   );
 }
 
+/**
+ * T0D-FIX-1 item 5 (LD-446, CR DEPLOY-AXIS-012 item 10, night25 host fix): unit price of each orderable in the version of the tenant's DEFAULT price list
+ * in force at `now` (published, or superseded whose window still holds now; same rule as getPriceListDetail current_version). One statement per page.
+ */
+export async function defaultPrices(tx: Tx, tenantId: string, orderableIds: readonly string[], now: string): Promise<Map<string, number>> {
+  if (!orderableIds.length) return new Map();
+  const { rows } = await tx.query(
+    `SELECT DISTINCT ON (i.orderable_id) i.orderable_id, i.unit_price_paisa
+       FROM catalog.price_list_items i
+       JOIN catalog.price_list_versions v ON v.tenant_id = i.tenant_id AND v.id = i.price_list_version_id
+       JOIN catalog.price_lists l ON l.tenant_id = v.tenant_id AND l.id = v.price_list_id
+      WHERE i.tenant_id = $1 AND v.tenant_id = $1 AND l.tenant_id = $1 AND l.owner_kind = 'default' AND v.status IN ('published', 'superseded')
+        AND v.effective_from <= $3::timestamptz AND (v.effective_to IS NULL OR $3::timestamptz < v.effective_to) AND i.orderable_id = ANY($2::uuid[])
+      ORDER BY i.orderable_id, v.effective_from DESC`,
+    [tenantId, orderableIds, now],
+  );
+  return new Map(rows.map((r) => [r.orderable_id as string, Number(r.unit_price_paisa)]));
+}
+
 export interface FindOpts {
   ids?: readonly string[];                          // id = ANY(...)
   anyOf?: { col: string; values: readonly string[] };   // <col> = ANY(...); col is a fixed constant of the caller (T-12)

@@ -48,7 +48,7 @@ describe.each([[1, 5_000], [10, 50_000]])('searchOrderables at %ix (%i orderable
         if (q === 'C00012') expect(r.data[0]?.code).toBe('C00012');
       }
     }
-    expect(Math.max(...stmtCounts), `statement counts ${[...stmtCounts]}`).toBeLessThanOrEqual(4);
+    expect(Math.max(...stmtCounts), `statement counts ${[...stmtCounts]}`).toBeLessThanOrEqual(5);
     expect(Math.max(...stmtCounts) - Math.min(...stmtCounts)).toBeLessThanOrEqual(1);   // constant: independent of q and of result size
     if (factor === 1) expect(p95(total), `total p95 ${p95(total).toFixed(1)} ms`).toBeLessThanOrEqual(150);
     expect(p95(service), `service-only p95 ${p95(service).toFixed(1)} ms`).toBeLessThanOrEqual(150);

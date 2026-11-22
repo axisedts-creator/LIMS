@@ -126,7 +126,9 @@ export const listSmartSummaries: Handler = async (req, ctx) => {
   const to = isoParam(q.built_at_to, 'built_at_to');
   if (q.has_critical !== undefined && q.has_critical !== 'true' && q.has_critical !== 'false') throw invalidField('has_critical');
   if (q.sort !== undefined && q.sort !== 'built_at' && q.sort !== '-built_at') throw invalidField('sort');
-  const raw = q.limit === undefined ? 50 : typeof q.limit === 'string' && /^[0-9]{1,4}$/.test(q.limit) ? Number(q.limit) : NaN;
+  // T0D-FIX-1 item 4 (LD-446, CR DEPLOY-AXIS-012 item 5): the validator injects limit as the number 50; a numeric string is also accepted.
+  const lim: unknown = q.limit;
+  const raw = lim === undefined ? 50 : typeof lim === 'number' ? lim : typeof lim === 'string' && /^[0-9]{1,4}$/.test(lim) ? Number(lim) : NaN;
   if (!Number.isInteger(raw) || raw < 1 || raw > 200) throw invalidField('limit');
   const after = q.cursor === undefined ? undefined : typeof q.cursor === 'string' ? decodeCursor(q.cursor) : (() => { throw new LimsError('common.invalid_cursor'); })();
   const desc = q.sort === '-built_at';

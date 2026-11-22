@@ -466,7 +466,7 @@ export function makeTestsDb(seed: TestsSeed = {}) {
       startedAt: STARTED_AT,
       operation: { module: 'catalog', operationId: 'fake', context: 'tenant' },
       async query(text: string, values: unknown[] = []): Promise<{ rows: any[] }> {
-        if (!TABLE_RE.test(text)) return mtx.facade.query(text, values);
+        if (!TABLE_RE.test(text)) return mtx.facade.query(text, values);   // T0D-FIX-1: the price statement (catalog.price_list_items) is answered (no rows) by the base fake in catalogDb.ts
         await tick();
         base.stmts.push({ txId: mtx.id, tenantId, text, values });
         const f = failures.find((x) => x.match.test(text));

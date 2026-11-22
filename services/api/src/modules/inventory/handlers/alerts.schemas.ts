@@ -6,7 +6,13 @@ import type { PageQuery } from './masters.schemas.js';
 
 const STATUSES = ['open', 'acknowledged', 'resolved'];
 export const ALERT_KINDS = ['below_reorder', 'expiry_soon', 'expired_on_hand', 'open_stability_exceeded', 'negative_stock', 'unresolved_consumption', 'expired_lot_in_use', 'balance_drift', 'reconciliation_gap'];
-const statusCsv: Rule = (v) => typeof v === 'string' && v.length <= 40 && v.split(',').length <= 3 && v.split(',').every((s) => STATUSES.includes(s));
+// T0D-FIX-1 item 2 (LD-446): the core pipeline splits the csv, so `status` arrives as an array; a csv string is still accepted.
+const statusList = (v: unknown): string[] | undefined =>
+  typeof v === 'string' ? (v.length <= 40 ? v.split(',') : undefined) : Array.isArray(v) ? v : undefined;
+const statusCsv: Rule = (v) => {
+  const l = statusList(v);
+  return !!l && l.length >= 1 && l.length <= 3 && l.every((s) => typeof s === 'string' && STATUSES.includes(s));
+};
 
 export interface AlertListQuery extends PageQuery { status: string[]; alert_kind?: string; store_id?: string }
 export function parseAlertList(query: unknown): AlertListQuery {
@@ -14,7 +20,7 @@ export function parseAlertList(query: unknown): AlertListQuery {
   return {
     limit: o['limit'] ?? 50,
     ...(o['cursor'] === undefined ? {} : { cursor: o['cursor'] }),
-    status: o['status'] === undefined ? ['open', 'acknowledged'] : [...new Set((o['status'] as string).split(','))],
+    status: o['status'] === undefined ? ['open', 'acknowledged'] : [...new Set(statusList(o['status'])!)],
     ...(o['alert_kind'] === undefined ? {} : { alert_kind: o['alert_kind'] }),
     ...(o['store_id'] === undefined ? {} : { store_id: o['store_id'] }),
   };

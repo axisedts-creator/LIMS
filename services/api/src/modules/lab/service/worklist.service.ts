@@ -21,7 +21,7 @@ interface Store {
   listQueueRows(tx: unknown, tenantId: string, a: Obj): Promise<Obj[]>;
 }
 interface Ctx {
-  tenantId: string; tx: object; actor: { id: string }; now(): Date; store: Store; audit: { access(e: Obj): Promise<void> };
+  tenantId: string; tx: object; actor: { id: string }; now(): Date | string; store: Store; audit: { access(e: Obj): Promise<void> };
   ports: {
     IdentityPort: { assertRole(c: unknown, r: { permission: string }): Promise<unknown>; getActor(c: unknown): Promise<{ centreScope?: { all?: boolean; centreIds?: readonly string[] } }> };
     FrontdeskPort?: { getPatientDemographicsBatch(c: unknown, i: { patientIds: string[]; purpose: string }): Promise<readonly Obj[]> };
@@ -214,7 +214,9 @@ export async function listPendingItems(hctx: unknown, query: unknown): Promise<R
   const departmentId = uuidQ(q, 'department_id'), centreId = uuidQ(q, 'centre_id'), priority = priorityQ(q);
   const after = decode(q['cursor'], 'ordered_at');
   const s = await scopeOf(c as never);
-  const now = c.now();
+  // T0D-FIX-1 item 5 (LD-446, night25 host fix): ctx.now() is an ISO string in the pipeline; a Date also works. The store gets a Date.
+  const now = new Date(c.now());
+  if (Number.isNaN(now.getTime())) throw new LimsError('common.internal');
   const raw = await c.store.listPendingRows(c.tx, c.tenantId, omit({ departmentId, priority, statuses, centreId, overTarget, now, scopeCentreIds: scopeIds(s), limit: limit + 1, after }));
   const { rows, page } = paged(raw, c, s, limit, 'ordered_at', (r) => String(iso(r['ordered_at'])));
   const names = await patientDisplays(c, rows);

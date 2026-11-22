@@ -273,6 +273,36 @@ export function withoutPendingBearer(spec: any, pending: readonly string[]): any
   return { ...spec, paths };
 }
 
+/** Local `#/...` ref -> target (loadSpec makes every ref local). */
+function deref(spec: any, v: any): any {
+  for (let i = 0; i < 10 && typeof v?.$ref === 'string' && v.$ref.startsWith('#/'); i++) {
+    v = v.$ref.slice(2).split('/').reduce((o: any, k: string) => o?.[k.replaceAll('~1', '/').replaceAll('~0', '~')], spec);
+  }
+  return v;
+}
+
+/**
+ * T0D-FIX-1 item 1 (LD-446, CR DEPLOY-AXIS-012 item 2): names of the `in: query`, `explode: false` array parameters of one
+ * operation (path-level and operation-level). Only these are split at commas; a default-explode array keeps a comma as data.
+ */
+export function csvQueryParams(spec: any, operationId: string): string[] {
+  const f = findOp(spec, operationId);
+  if (!f) return [];
+  const all = [...(spec?.paths?.[f.path]?.parameters ?? []), ...(f.op?.parameters ?? [])].map((p) => deref(spec, p));
+  return all
+    .filter((p) => p?.in === 'query' && p.explode === false && deref(spec, p.schema)?.type === 'array' && typeof p.name === 'string')
+    .map((p) => p.name as string);
+}
+
+/** Split once at commas, before validation; repeated parameters are flattened. Empty elements are kept so validation rejects them. */
+export function splitCsvQuery(query: Record<string, unknown>, names: readonly string[]): void {
+  for (const n of names) {
+    const v = query[n];
+    if (typeof v === 'string') query[n] = v.split(',');
+    else if (Array.isArray(v)) query[n] = v.flatMap((x) => (typeof x === 'string' ? x.split(',') : [x]));
+  }
+}
+
 /** Mount one spec. A missing handler throws in operationResolver, so register (and boot) fails (SP-8 O3). */
 export async function mountSpec(
   app: FastifyInstance,
@@ -287,7 +317,15 @@ export async function mountSpec(
   if (!auth.verifier && usesScheme(spec, 'bearerJwt')) throw new Error(`module ${name}: bearerJwt operations need LIMS_CORE_JWT_* config`);
   await app.register(async (scope) => {
     // route config.module labels the stage-13 log line and metrics (observability/logging.ts).
-    scope.addHook('onRoute', (route) => { route.config = { ...(route.config as object), module: name }; });
+    scope.addHook('onRoute', (route) => {
+      route.config = { ...(route.config as object), module: name };
+      const names = csvQueryParams(spec, (route.schema as any)?.operationId);
+      if (!names.length) return;
+      // preValidation runs before the querystring schema, so enum / maxLength / maxItems apply per split element.
+      const split = async (req: FastifyRequest) => { if (req.query && typeof req.query === 'object') splitCsvQuery(req.query as Record<string, unknown>, names); };
+      const existing = route.preValidation;
+      route.preValidation = [split, ...(existing ? (Array.isArray(existing) ? existing : [existing]) : [])] as any;
+    });
     await scope.register(openapiGlue, {
       specification: spec,
       securityHandlers: securityHandlers(auth),

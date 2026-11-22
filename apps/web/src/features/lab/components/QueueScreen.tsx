@@ -269,12 +269,17 @@ export function QueueScreen({ mode, items, permissions, onStepUp, currentUserId,
   };
 
   // 04-UI-UX §3.8 "Bulk select (Space, Shift+↓)": Shift+ArrowDown ticks this and the next tickable registration and moves focus to its box (j/k stay with SplitConsole)
-  const onRowKey = (e: KeyboardEvent<HTMLInputElement>, g: Reg) => {
-    if (e.key !== 'ArrowDown' || !e.shiftKey || !tickable(g)) return;
-    e.preventDefault();
+  // T0D-UIX-3: the kit grid (react-aria) takes Space and the arrow keys in its cells, so the box keys are read in the CAPTURE phase above the grid.
+  const onTickKey = (e: KeyboardEvent<HTMLDivElement>) => {
+    const box = e.target instanceof HTMLInputElement ? e.target : null;
+    const g = box?.dataset.queueTick ? regs.find((r) => r.no === box.dataset.queueTick) : undefined;
+    if (!box || !g || !tickable(g)) return;
+    if (e.key === ' ') { e.preventDefault(); e.stopPropagation(); toggleTick(g.no, !ticked.has(g.no)); return; }
+    if (e.key !== 'ArrowDown' || !e.shiftKey) return;
+    e.preventDefault(); e.stopPropagation();
     const next = regs.slice(regs.indexOf(g) + 1).find(tickable);
     setTicked((p) => new Set([...p, g.no, ...(next ? [next.no] : [])]));
-    if (next) [...(e.currentTarget.closest('table')?.querySelectorAll<HTMLInputElement>('[data-queue-tick]') ?? [])].find((x) => x.dataset.queueTick === next.no)?.focus();
+    if (next) [...e.currentTarget.querySelectorAll<HTMLInputElement>('[data-queue-tick]')].find((x) => x.dataset.queueTick === next.no)?.focus();
   };
 
   // T0D-UIX-3 (LD-442): the queue and the results are kit DataTables (header kept when empty, numbers end aligned).
@@ -284,9 +289,10 @@ export function QueueScreen({ mode, items, permissions, onStepUp, currentUserId,
     { id: 'priority', header: 'Priority', cell: (g) => g.items[0]!.priority },
     { id: 'reg', header: 'Registration no', isRowHeader: true, cell: (g) => {
       const dim = regMine(g);
+      // onFocus stops at the box: otherwise the grid row takes the focus back from it (T0D-UIX-3)
       return (
         <>
-          <input type="checkbox" aria-label={`Select ${g.no}`} data-queue-tick={g.no} checked={tickable(g) && ticked.has(g.no)} disabled={!tickable(g)} {...(!tickable(g) ? { title: !canAct ? c.denied : dim ? MINE : 'Flagged: open it and review each result' } : {})} onChange={(e) => toggleTick(g.no, e.target.checked)} onKeyDown={(e) => onRowKey(e, g)} />{' '}
+          <input type="checkbox" aria-label={`Select ${g.no}`} data-queue-tick={g.no} checked={tickable(g) && ticked.has(g.no)} disabled={!tickable(g)} {...(!tickable(g) ? { title: !canAct ? c.denied : dim ? MINE : 'Flagged: open it and review each result' } : {})} onChange={(e) => toggleTick(g.no, e.target.checked)} onFocus={(e) => e.stopPropagation()} />{' '}
           <Button variant="ghost" size="sm" ref={domAttrs({ 'data-console-item': g.no })} onPress={() => setSelNo(g.no)}>
             <span ref={domAttrs({ 'aria-selected': String(selNo === g.no), 'data-selected': selNo === g.no ? 'true' : undefined, 'aria-disabled': dim ? 'true' : undefined, style: dim ? 'opacity: 0.55' : undefined }, true)}>{g.no}</span>
           </Button>
@@ -390,7 +396,7 @@ export function QueueScreen({ mode, items, permissions, onStepUp, currentUserId,
       ) : banner === 'error' ? (
         <div role="alert"><Banner tone="danger" title={FAILED} /></div>
       ) : null}
-      <div onKeyDown={onKey}>
+      <div onKeyDown={onKey} onKeyDownCapture={onTickKey}>
         <SplitConsole list={list} detail={detail} actions={actions} listLabel={`${title} queue`} detailLabel="Registration" />
       </div>
       <ConfirmDialog title={`${c.verb} all unflagged`} isOpen={confirmAll} confirmLabel="Confirm" onCancel={() => setConfirmAll(false)}

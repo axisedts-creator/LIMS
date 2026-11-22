@@ -4,23 +4,16 @@ import { toDashboardDto, toFreshnessDto } from '../mappers/reports.dto.js';
 import { allFreshness, dashboard, refreshFamilies, requestRefresh } from '../service/dashboard.service.js';
 import { authorise, holds, periodAndScope, queryOf } from './reportRequest.js';
 
-type Settings = { ports: { IdentityPort: { getTenantSettings?(ctx: unknown, i: { keys: string[] }): Promise<Record<string, unknown>> } } };
-/** the timezone getDailyCash uses for "today" (tenant setting, default Asia/Kathmandu like billing's DEFAULT_TZ). */
-async function tenantTimezone(c: unknown): Promise<string> {
-  const s = await (c as Settings).ports.IdentityPort.getTenantSettings?.(c, { keys: ['timezone'] });
-  return typeof s?.timezone === 'string' ? s.timezone : 'Asia/Kathmandu';
-}
-
 export const getAnalyticsDashboard: Handler = async (req, ctx) => {
   const c = await authorise(ctx, 'analytics.dashboard.read');
   const q = queryOf(req);
   const { period, scope, generatedAt } = await periodAndScope(c, q);
   const withCollections = await holds(c, 'analytics.collections.read'); // X1: tile omitted (not 403) without it; the family is not even read
-  // T0D-DASHCARDS-1 (LD-447): outstanding_paisa needs billing.account.read (listAccountSummaries), cash_in_drawer_paisa billing.cash_report.read (getDailyCash); omitted, not 403
+  // T0D-DASHCARDS-1 (LD-447): outstanding_paisa needs billing.account.read (listAccountSummaries); omitted, not 403.
+  // cash_in_drawer_paisa is never emitted: an open session's expected is not stored and getDailyCash has no live figure (notes/T0D-DASHCARDS-1-left.md item 6)
   const withOutstanding = await holds(c, 'billing.account.read');
-  const cashTimezone = (await holds(c, 'billing.cash_report.read')) ? await tenantTimezone(c) : undefined;
   const filtered = [q.centre_id, q.branch_id].some((v) => Array.isArray(v) && v.length > 0);
-  const out = await dashboard(c as never, { period, scope, filtered, withCollections, withOutstanding, cashTimezone });
+  const out = await dashboard(c as never, { period, scope, filtered, withCollections, withOutstanding });
   return { status: 200, body: toDashboardDto({ period, scope, generatedAt }, out) };
 };
 

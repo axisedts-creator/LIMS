@@ -35,9 +35,9 @@ export const getMisReportPage: Handler = async (req, ctx) => {
   const range = checkMisRange({ from: q.business_date_from, to: q.business_date_to }, ['business_date_from', 'business_date_to']);
   const filters: Record<string, unknown> = {};
   for (const k of FILTER_KEYS) if (q[k] !== undefined) filters[k] = q[k];
-  // T0D-FIX-8 / LD-455: the contract's schema default (min_repeat_count=2) reaches every request; a report that does not list it drops it, whatever its value.
-  const takesRepeat = (MIS_ALL_DEFS[code]!.params as readonly string[]).includes('min_repeat_count');
-  if (takesRepeat && q.min_repeat_count !== undefined) filters.min_repeat_count = checkInt(q.min_repeat_count, 'min_repeat_count', 2, 1000, 2);
+  // T0D-FIX-8 (LD-455): the contract default min_repeat_count=2 reaches every request; a report that does not list it drops it (any value) before checkMisFilters.
+  const takesMinRepeat = (MIS_ALL_DEFS[code]!.params as readonly string[]).includes('min_repeat_count');
+  if (takesMinRepeat && q.min_repeat_count !== undefined) filters.min_repeat_count = checkInt(q.min_repeat_count, 'min_repeat_count', 2, 1000, 2);
   checkMisFilters(code, filters, 'query');
   const limit = checkInt(q.limit, 'limit', 1, 200, 50);
   if (q.cursor !== undefined && (typeof q.cursor !== 'string' || q.cursor.length > 512)) throw new LimsError('common.invalid_cursor');

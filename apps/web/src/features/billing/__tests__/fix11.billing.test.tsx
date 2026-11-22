@@ -139,6 +139,64 @@ describe('done_when 4: a failed call shows the kit inline error with the referen
     oneInlineError(container);
   });
 
+  // Review round 1 (T0D-FIX-11-review.md items 1 and 2): every other read on /billing/daily-cash fails inline with the reference too.
+  const SESSIONS_FALSE_HINT = 'you need the billing.cash_report.read permission';
+  const emptySummary = { rows: [], total_paisa: 0 } as never;
+
+  it.each([[400, 'common.validation_failed'], [500, 'common.internal']])('daily cash: the cash-sessions read fails with %i: ONE inline error with the reference, not the "you need the permission" line', async (status, code) => {
+    h.perms = ['billing.cash_report.read', 'billing.account.read'];
+    const p = await cashPage();
+    // the page-level report read has no centreId; the sessions read of the collection section has one
+    p.getDailyCash.mockImplementation((async (q?: { centreId?: string }) => { if (q?.centreId) throw fail(status, code); return cash(); }) as never);
+    p.summary.mockResolvedValue(emptySummary);
+    const { container } = await p.render();
+    expect(norm(container.textContent), 'the cash report itself is still on screen').toContain('Collections by staff and method');
+    oneInlineError(container);
+    expect(norm(container.textContent), 'a 400/500 is not a missing permission').not.toContain(SESSIONS_FALSE_HINT);
+  });
+
+  it('daily cash: a 403 on the cash-sessions read stays the honest permission line, not an inline error', async () => {
+    h.perms = ['billing.cash_report.read', 'billing.account.read'];
+    const p = await cashPage();
+    p.getDailyCash.mockImplementation((async (q?: { centreId?: string }) => { if (q?.centreId) throw fail(403, 'auth.forbidden'); return cash(); }) as never);
+    p.summary.mockResolvedValue(emptySummary);
+    const { container } = await p.render();
+    expect(norm(container.textContent)).toContain(SESSIONS_FALSE_HINT);
+    expect(container.querySelectorAll('.lims-state.lims-tone-danger')).toHaveLength(0);
+  });
+
+  it.each([[400, 'common.validation_failed'], [500, 'common.internal']])('daily cash: getMyCashSession fails with %i: inline error with the reference, no error page', async (status, code) => {
+    h.perms = ['billing.cash_report.read'];
+    const p = await cashPage();
+    p.getDailyCash.mockResolvedValue(cash() as never);
+    const read = await import('@/features/billing/server/read.server');
+    vi.mocked(read.getMyCashSession).mockRejectedValue(fail(status, code));
+    const { container } = await p.render(); // a rejection here would be the page-level error.tsx
+    oneInlineError(container);
+  });
+
+  it.each([[400, 'common.validation_failed'], [500, 'common.internal']])('daily cash: listAccountParticulars fails with %i: the report stays, the collection section shows ONE inline error', async (status, code) => {
+    h.perms = ['billing.cash_report.read', 'billing.account.read'];
+    const p = await cashPage();
+    p.getDailyCash.mockResolvedValue(cash() as never);
+    const acc = await import('@/features/billing/server/accounts.server');
+    vi.mocked(acc.listAccountParticulars).mockRejectedValue(fail(status, code));
+    const { container } = await p.render();
+    expect(norm(container.textContent), 'the cash report itself is still on screen').toContain('Collections by staff and method');
+    oneInlineError(container);
+  });
+
+  it.each([[400, 'common.validation_failed'], [500, 'common.internal']])('daily cash: listAccountParties fails with %i: the report stays, the collection section shows ONE inline error', async (status, code) => {
+    h.perms = ['billing.cash_report.read', 'billing.account.read'];
+    const p = await cashPage();
+    p.getDailyCash.mockResolvedValue(cash() as never);
+    const acc = await import('@/features/billing/server/accounts.server');
+    vi.mocked(acc.listAccountParties).mockRejectedValue(fail(status, code));
+    const { container } = await p.render();
+    expect(norm(container.textContent), 'the cash report itself is still on screen').toContain('Collections by staff and method');
+    oneInlineError(container);
+  });
+
   it('x-permission first: without billing.account.read the collection summary is never read', async () => {
     h.perms = ['billing.cash_report.read'];
     const p = await cashPage();

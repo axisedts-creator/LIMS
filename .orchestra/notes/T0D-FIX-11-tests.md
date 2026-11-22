@@ -11,4 +11,6 @@ GAP FOR THE LEAD (RESOLVED by the writer's kit BarChart edit; kept for history) 
 (packages/ui/src/components/BarChart/BarChart.tsx): fmt() writes `Rs. ${formatPaisa(v)}` for valueFormat="money" and its hidden data table is a plain <table>.
 All five swept screens draw a BarChart. DuesList and StatusBoard already use DataTable. Needed: a ruling to edit the kit BarChart (money as "NPR 1,234.00", data table = kit table class
 lims-table), or the writer keeps those tests red and records the gap in notes/T0D-FIX-11-left.md. Other kit/web tests asserting "Rs." may need the same ruling.
+REVIEW ROUND 1 (review.md items 1+2, tests only): fix11.billing.test.tsx gained 9 daily-cash tests: sessions read 400/500 = one inline error + no "you need the billing.cash_report.read permission" line;
+sessions 403 keeps that line (no inline error, passes now); getMyCashSession, listAccountParticulars, listAccountParties 400/500 = inline error, no error page. 8 fail now (source not fixed yet), 13 pass. Writer fixes page.tsx.
 Not tested: Retry button on the new inline errors; poll (30 s) failures of the status board; tenant scoping (server side, no handler touched).

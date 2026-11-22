@@ -1,7 +1,8 @@
 'use client';
-// AD-15 Access review (US-G1): every active membership with roles/centres/MFA; review banner (warning when > 90 days or none);
-// [Record review completed] with the count auto-filled. Deliberately no export control on this screen.
-import { useState } from 'react';
+// AD-15 Access review (US-G1; T0D-BUILD-3, LD-447): review banner (warning when > 90 days or none); history of reviews (listAccessReviews, newest
+// first as the API answers); [Record review completed] (recordAccessReview) with the count of ACTIVE memberships prefilled; the membership table.
+// The reviewer and tenant are the server's (from the session), never sent. Deliberately no export control on this screen.
+import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Banner } from '@lims/ui/components/Banner';
 import { Button } from '@lims/ui/components/Button';
@@ -11,28 +12,40 @@ import { useToast } from '@lims/ui/components/Toast';
 import { recordAccessReview } from '../actions';
 import { Grid, Time } from '../Grid';
 import { Alert, Field } from '../ui';
-import { DAY_MS, STATUS_LABEL, copyFor, fmt, rolesText, type UserSummary } from '../lib';
+import { DAY_MS, STATUS_LABEL, copyFor, fmt, rolesText, shortId, type Review, type UserSummary } from '../lib';
 
-export interface Review { access_review_id: string; reviewed_by_membership_id: string; memberships_reviewed: number; reviewed_at: string; notes?: string }
+const COUNT_MAX = 100_000;   // AccessReviewCreateRequest.memberships_reviewed maximum
+const NOTES_MAX = 2000;
 
-export function AccessReview({ users, last, canRecord, now }: { users: UserSummary[]; last: Review | null; canRecord: boolean; now: number }) {
+export function AccessReview({ users, reviews, canRecord, now }: { users: UserSummary[]; reviews: Review[]; canRecord: boolean; now: number }) {
   const router = useRouter();
   const toast = useToast();
   const [open, setOpen] = useState(false);
+  const [count, setCount] = useState('');
   const [notes, setNotes] = useState('');
-  const [error, setError] = useState<string>();
-  const [fail, setFail] = useState<string | null>(null);
+  const [errors, setErrors] = useState<{ count?: string; notes?: string }>({});
+  const [fail, setFail] = useState<{ text: string; requestId?: string | undefined } | null>(null);
   const [busy, setBusy] = useState(false);
-  const by = last ? users.find((u) => u.membership_id === last.reviewed_by_membership_id)?.display_name ?? 'an administrator' : '';
+  const sending = useRef(false);   // a double click sends ONE request (state updates land too late)
+  const nameOf = (m: string) => users.find((u) => u.membership_id === m)?.display_name ?? shortId(m);
+  const last = reviews[0] ?? null;
   const due = !last || now - Date.parse(last.reviewed_at) > 90 * DAY_MS;
+  const start = () => { setFail(null); setErrors({}); setCount(String(users.length)); setNotes(''); setOpen(true); };
   const submit = async () => {
-    if (busy) return;
-    if (notes.length > 2000) { setError('Use 2000 characters or fewer'); return; }
-    setError(undefined);
+    if (sending.current) return;
+    const e: { count?: string; notes?: string } = {};
+    const n = /^\d+$/.test(count.trim()) ? Number(count.trim()) : NaN;
+    if (!(n >= 0 && n <= COUNT_MAX)) e.count = `Enter a whole number from 0 to ${COUNT_MAX}.`;
+    if (notes.length > NOTES_MAX) e.notes = `Use ${NOTES_MAX} characters or fewer.`;
+    setErrors(e);
+    if (e.count || e.notes) return;
+    sending.current = true;
     setBusy(true);
-    const r = await recordAccessReview(users.length, notes.trim() || undefined);
+    setFail(null);
+    const r = await recordAccessReview(n, notes.trim() || undefined);
+    sending.current = false;
     setBusy(false);
-    if (!r.ok) { setFail(copyFor(r.code)); return; }
+    if (!r.ok) { setFail({ text: `Could not record the review. ${copyFor(r.code)}`, requestId: r.requestId }); return; }
     setOpen(false);
     toast.show({ tone: 'success', title: 'Access review recorded.' });
     router.refresh();
@@ -40,28 +53,35 @@ export function AccessReview({ users, last, canRecord, now }: { users: UserSumma
   return (
     <main className="lims-page">
       <PageHeader title="Access review" helpKey="admin.access-review"
-        {...(canRecord ? { actions: <Button variant="primary" onPress={() => { setFail(null); setOpen(true); }}>Record review completed</Button> } : {})} />
+        {...(canRecord ? { actions: <Button onPress={start} variant="primary">Record review completed</Button> } : {})} />
       {due ? (
         <div role="alert">
-          <Banner tone="warning" title={last ? `Last review: ${fmt(last.reviewed_at)} by ${by}` : 'No access review has been recorded yet.'}>
+          <Banner tone="warning" title={last ? `Last review: ${fmt(last.reviewed_at)} by ${nameOf(last.reviewed_by_membership_id)}` : 'No access review has been recorded yet.'}>
             <p>Review every user&apos;s roles and centre access at least every 90 days.</p>
           </Banner>
         </div>
       ) : (
-        <Banner tone="info" title={`Last review: ${fmt(last!.reviewed_at)} by ${by}`} />
+        <Banner tone="info" title={`Last review: ${fmt(last!.reviewed_at)} by ${nameOf(last!.reviewed_by_membership_id)}`} />
       )}
-      <Grid label="Access review" columns={['User', 'Roles', 'Centres', 'MFA', 'Last login', 'Status']}
+      <Grid label="Access reviews" columns={['Date', 'Reviewer', 'Memberships reviewed', 'Notes']} empty="No access reviews recorded yet."
+        rows={reviews.map((r) => ({
+          key: r.access_review_id,
+          cells: [<Time key="t" iso={r.reviewed_at} label={fmt(r.reviewed_at)} />, nameOf(r.reviewed_by_membership_id), String(r.memberships_reviewed), r.notes ?? '—'],
+        }))} />
+      <Grid label="Active users" columns={['User', 'Roles', 'Centres', 'MFA', 'Last login', 'Status']} empty="No active users."
         rows={users.map((u) => ({
           key: u.membership_id,
           cells: [u.display_name, rolesText(u.roles), u.all_centres ? 'All centres' : String(u.centre_count), u.mfa_enrolled ? 'On' : 'Off',
             <Time key="t" iso={u.last_login_at} label={fmt(u.last_login_at)} />, `${STATUS_LABEL[u.status] ?? u.status}${u.is_locked ? ' · Locked' : ''}`],
         }))} />
       {open ? (
-        <Dialog title="Record review completed" isOpen onClose={() => setOpen(false)}
-          footer={<><Button variant="ghost" onPress={() => setOpen(false)}>Cancel</Button><Button variant="primary" onPress={() => void submit()} isLoading={busy}>Record review</Button></>}>
-          {fail ? <Alert text={fail} /> : null}
-          <p>Users reviewed: {users.length}.</p>
-          <Field label="Notes" multiline value={notes} onChange={setNotes} error={error} hint="Up to 2000 characters." />
+        // [CONV] not dismissable: typed notes are not lost to an outside click; Cancel is the one way out (no second close control)
+        <Dialog title="Record review completed" isOpen isDismissable={false} onClose={() => setOpen(false)}
+          footer={<><Button onPress={() => setOpen(false)} variant="ghost">Cancel</Button><Button onPress={() => void submit()} isLoading={busy} variant="primary">Record review</Button></>}>
+          {fail ? <Alert text={fail.text} requestId={fail.requestId} /> : null}
+          <Field label="Memberships reviewed" type="number" inputMode="numeric" value={count} onChange={setCount} error={errors.count}
+            hint={`Active memberships now: ${users.length}.`} required />
+          <Field label="Notes" multiline value={notes} onChange={setNotes} error={errors.notes} hint={`Up to ${NOTES_MAX} characters.`} />
         </Dialog>
       ) : null}
     </main>

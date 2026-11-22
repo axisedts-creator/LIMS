@@ -4,6 +4,7 @@
 // Order everywhere: load (404) -> IdentityPort.assertRole(case centre) -> actor/state guard -> If-Match -> body (all errors together) -> reads that need ids -> writes. The case row lock of
 // getCase({forUpdate:true}) serialises the writers of one case until the request transaction ends. Nothing submitted (reason text, addendum text) is echoed in an error or logged (REQ-SEC-098).
 import { LimsError, type FieldError } from '../../../core/errors.js';
+import { toDate } from '../../../core/clock.js'; // T0D-FIX-6 (LD-448)
 import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';
 import { buildContent, summarise } from '../domain/report-content.js';
 import { getAddendum, insertAddendum, listAddenda, updateAddendum } from '../repository/addenda.repo.js';
@@ -110,7 +111,7 @@ export async function discardChange(hctx: unknown, params: unknown, headers: unk
   const draft = await getOpenDraft(c.tx, { tenantId: c.tenantId, caseId: cs['id'] });
   if (!draft || draft['kind'] === 'initial') throw new LimsError('anatomic.case_invalid_transition'); // an initial draft is not a change
   if (Number(draft['version']) !== version) throw new LimsError('common.version_conflict');
-  const done = await updateReportDraft(c.tx, { tenantId: c.tenantId, id: draft['id'], expectedVersion: version, actorId: c.actor.id, patch: { status: 'discarded', discarded_at: c.now().toISOString() } });
+  const done = await updateReportDraft(c.tx, { tenantId: c.tenantId, id: draft['id'], expectedVersion: version, actorId: c.actor.id, patch: { status: 'discarded', discarded_at: toDate(c.now()).toISOString() } });
   if (!done) throw new LimsError('common.version_conflict');
   return { status: 204 };
 }
@@ -289,7 +290,7 @@ export async function signAddendum(hctx: unknown, params: unknown, headers: unkn
 
   // content (in memory): the addenda of this scope incl. this one, and the ancillary of their stain orders
   const n = Number(cs['current_version_no'] ?? 0) + 1;
-  const now = c.now(), signedAt = now.toISOString();
+  const now = toDate(c.now()), signedAt = now.toISOString();
   const signedBy = c.actor.membershipId;
   const mine = (await listAddenda(c.tx, { tenantId: c.tenantId, caseId: cs['id'] }))
     .filter((x) => x['id'] !== a['id'] && x['status'] === 'signed' && (addonId ? x['addon_case_item_id'] === addonId : x['addon_case_item_id'] == null));

@@ -7,6 +7,7 @@ import type {
 } from '../../../../../../contracts/ports/CatalogPort.js';
 import type { DecimalString, RequestContext, Uuidv7 } from '../../../../../../contracts/ports/common.js';
 import { LimsError } from '../../../core/errors.js';
+import { toDate } from '../../../core/clock.js'; // T0D-FIX-6 (LD-448)
 import type { CatalogCache } from '../cache/catalogCache.js';
 import { expandToTestIds, type PanelGraph } from '../domain/panelGraph.js';
 import { isTaxCode, isTaxTypeUsable, localMidnight, taxTypeVersionAt } from '../domain/tax.js';
@@ -43,7 +44,7 @@ const STAFF = ['user', 'system'];                                // actor types 
 const staffOnly = (ctx: any) => { if (!STAFF.includes(ctx?.actor?.type)) throw new LimsError('auth.forbidden'); };
 const upper = (s: string) => s.replace(/[a-z]/g, (c) => c.toUpperCase());   // ASCII only: no Unicode case-fold forgeries (ı -> I)
 const MAX_HOPS = 10;                                             // merged-referrer chain bound (a cycle can never loop)
-const nowOf = (ctx: Ctx): string => { const n = ctx.now(); return typeof n === 'string' ? n : n.toISOString(); };
+const nowOf = (ctx: Ctx): string => toDate(ctx.now()).toISOString();
 const asOfOf = (ctx: Ctx, v: unknown) => instant(v ?? nowOf(ctx), 'asOf');
 
 function deepFreeze<T>(v: T): T {

@@ -1,6 +1,7 @@
 // Patients F1-F6 (02-TRD §5.1; PRD US-FD-01.1-6, US-FD-02.1-5; 07-SECURITY REQ-SEC-005/024/095). One transaction = ctx.tx (RLS on); access-log rows
 // commit with the action. The core pipeline already schema-validates; every check here is repeated defensively (fail closed, never echo request values).
 // Ctx shape is ASSUMED (spec names no frontdesk ctx): tenantId, tx, requestId, now(), centreId, actor, audit.access, ports.IdentityPort{assertRole,getActor,getTenantSettings}.
+import { toDate } from '../../../core/clock.js'; // T0D-FIX-6 (LD-448): ctx.now() is an ISO string in the pipeline, a Date in unit fakes
 import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';
 import { LimsError, type FieldError } from '../../../core/errors.js';
 import { estimatedBirthOn, isDuplicateSuspect, isIsoCountry, isNpPostalCode, normaliseName } from '../domain/patient.js';
@@ -94,7 +95,7 @@ async function role(c: PatientCtx, permission: string): Promise<void> { await c.
 async function tenantInfo(c: PatientCtx): Promise<{ today: string; tz: string; numbering: Obj }> {
   const s = (await c.ports.IdentityPort.getTenantSettings(c, { keys: ['numbering', 'timezone'] })) ?? {};
   const tz = typeof s.timezone === 'string' ? s.timezone : 'Asia/Kathmandu';
-  return { today: todayIn(tz, c.now()), tz, numbering: isObj(s.numbering) ? s.numbering : {} };
+  return { today: todayIn(tz, toDate(c.now())), tz, numbering: isObj(s.numbering) ? s.numbering : {} };
 }
 const canSeePii = async (c: PatientCtx): Promise<boolean> => (await c.ports.IdentityPort.getActor(c)).permissions.includes(P.registrationCreate);
 const consentOf = async (c: PatientCtx, patientId: string) => (await listConsentsByPatient(c.tx, c.tenantId, patientId))[0];
@@ -293,7 +294,7 @@ export async function createPatient(hctx: unknown, body: unknown): Promise<Resul
     id: uuidv7(), patient_code: formatNumber(pattern, { seq }), full_name: fullName, name_search: nameSearch, sex: b['sex'], ...demo, ...opt, ...parity,
     source: 'front_desk', registered_centre_id: centreId, duplicate_override_reason_code: overrideCode,
   }));
-  const consent = await insertConsent(c.tx, c.tenantId, { id: uuidv7(), patient_id: row.id, ...consents, source: 'front_desk', captured_at: c.now() });
+  const consent = await insertConsent(c.tx, c.tenantId, { id: uuidv7(), patient_id: row.id, ...consents, source: 'front_desk', captured_at: toDate(c.now()) });
   return { status: 201, body: patientDto(row, consent, today, true) };
 }
 
@@ -360,7 +361,7 @@ export async function recordPatientConsent(hctx: unknown, params: unknown, body:
   const p = await loadPatient(c, isObj(params) ? params['patient_id'] : undefined);
   if (p['anonymised_at'] != null) throw new LimsError('common.not_found');
   await checkConsents(c, k);
-  const row = await insertConsent(c.tx, c.tenantId, { id: uuidv7(), patient_id: p['id'], ...k, source: 'front_desk', captured_at: c.now() });
+  const row = await insertConsent(c.tx, c.tenantId, { id: uuidv7(), patient_id: p['id'], ...k, source: 'front_desk', captured_at: toDate(c.now()) });
   await c.audit.access({ action: 'consent.change', entityType: 'patient', entityId: p['id'], outcome: 'allowed' });
   const who = await c.ports.IdentityPort.getActor(c);
   return { status: 201, body: consentRecordDto(row, { membershipId: c.actor.membershipId ?? c.actor.id, displayName: who.displayName }) };
@@ -389,7 +390,7 @@ export async function listPatientOrders(hctx: unknown, params: unknown, query: u
 
 // ---- F7 anonymisePatient (FD-T15; 03-APP-FLOW §2.18, 08 A13 D-27 a/b, P-12 c, CR-C4-007, REQ-SEC-139) ----
 const BUCKET = 'frontdesk-trf' as const;
-const portClock = <T extends { now(): Date }>(c: T): T => Object.assign(Object.create(c), { now: () => c.now().toISOString() });
+const portClock = <T extends { now(): Date }>(c: T): T => Object.assign(Object.create(c), { now: () => toDate(c.now()).toISOString() });
 interface LabLike { getOrderItemProcessingState?: (c: unknown, i: { orderId: string }) => Promise<readonly { orderItemId: string; processingStatus: ItemProcessingStatus }[]> }
 
 /** An order blocks while it is pre_registered, or registered/in_progress and not (derived) completed. LabPort is only needed for the latter and fails CLOSED. */
@@ -428,14 +429,14 @@ export async function anonymisePatient(hctx: unknown, params: unknown, headers: 
   const ry = Number(((await c.ports.IdentityPort.getTenantSettings(c, { keys: ['retentionYears'] })) ?? {}).retentionYears);
   const until = new Date((await lastOrderAt(c.tx, c.tenantId, cur['id'])) ?? cur['created_at']);   // no order at all: the patient row's age
   until.setUTCFullYear(until.getUTCFullYear() + (Number.isInteger(ry) && ry > 0 ? ry : 5));
-  if (!(until < c.now())) throw new LimsError('frontdesk.retention_not_elapsed');
+  if (!(until < toDate(c.now()))) throw new LimsError('frontdesk.retention_not_elapsed');
 
   // the UPDATE goes first: it serialises concurrent calls, so the loser (version moved) leaves no consent row, no TRF change, no storage delete.
-  const row = await anonymisePatientRow(c.tx, c.tenantId, cur['id'], version, { at: c.now(), by: c.actor.id, reasonCode: b['reason_code'] });
+  const row = await anonymisePatientRow(c.tx, c.tenantId, cur['id'], version, { at: toDate(c.now()), by: c.actor.id, reasonCode: b['reason_code'] });
   if (!row) throw new LimsError('common.version_conflict');
   const prev = await consentOf(c, row['id']);
   const consent = await insertConsent(c.tx, c.tenantId, { id: uuidv7(), patient_id: row['id'], processing: false, sms: false, whatsapp: false, email: false, share_with_referrer: false,
-    consent_text_version: prev?.consent_text_version ?? (await getSettings(c.tx, c.tenantId))?.consent_text_version ?? 'none', source: 'anonymisation', captured_at: c.now() });
+    consent_text_version: prev?.consent_text_version ?? (await getSettings(c.tx, c.tenantId))?.consent_text_version ?? 'none', source: 'anonymisation', captured_at: toDate(c.now()) });
   const trfs = await deactivateTrfByPatient(c.tx, c.tenantId, row['id']);   // metadata rows stay, inactive
   // A13 D-27a compensating control: column names only, never values.
   await c.audit.access({ action: 'patient.anonymise', entityType: 'patient', entityId: row['id'], outcome: 'allowed',

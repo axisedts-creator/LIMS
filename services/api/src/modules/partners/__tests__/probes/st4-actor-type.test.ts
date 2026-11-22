@@ -60,12 +60,9 @@ describe('ST4 / AB6: staff (/admin) operations refuse partner, device, portal an
 });
 
 describe('ST4 spec gap: operations with no owning task', () => {
-  it.each(UNOWNED_STUBS)('%s is still a stub and fails closed (never 2xx) until a task owns it; then remove it from UNOWNED_STUBS and it joins the matrices above', async (operationId) => {
-    const o = ALL.find((x) => x.operationId === operationId)!;
-    const k = recCtx('user');
-    const r = await settle(H[operationId]!(reqFor(o), k.ctx));
-    if (r.ok) expect(r.value?.status).toBe(501); // dev only
-    else expect(r.error.code).toMatch(/^(common\.internal|auth\.forbidden)$/);
-    expect(k.writes()).toEqual([]);
+  // T0D-BUILD-2: both settings ops have an owner, so UNOWNED_STUBS is empty (it.each([]) is an empty suite, which vitest fails).
+  // A future unowned stub must be re-added to UNOWNED_STUBS AND get the per-stub fail-closed check back (it.each over UNOWNED_STUBS: 501 or common.internal|auth.forbidden, no writes).
+  it('no operation is left without an owning task', () => {
+    expect(UNOWNED_STUBS).toEqual([]);
   });
 });

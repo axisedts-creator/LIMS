@@ -4,6 +4,7 @@
 // pure deriveOrderStatus; pre_registered / cancelled / completed are returned stored WITHOUT a lab call. The lab call carries {orderId} only (no PHI to C5).
 // Centre scope = IdentityPort.getActor().centreScope (as FD-T06/T07); an order outside it is common.not_found (404, never 403: existence is not confirmed).
 // FD-T09 (below, after F10): F8b quoteOrderItemsChange, F13 changeOrderItems, F14 cancelOrder (02-TRD §5.1 F8b/F13/F14, §6.4, §8.1; 03-APP-FLOW §2.5/§2.6; 07-SECURITY §5/§6).
+import { toDate } from '../../../core/clock.js'; // T0D-FIX-6 (LD-448): ctx.now() is an ISO string in the pipeline, a Date in unit fakes
 import type { IssuedInvoiceRef } from '../../../../../../contracts/ports/BillingCommandPort.js';
 import type { RequestContext } from '../../../../../../contracts/ports/common.js';
 import type { LabPortV1 } from '../../../../../../contracts/ports/LabPort.js';
@@ -41,7 +42,7 @@ function orderCtx(c: unknown): OrderCtx {
   return x;
 }
 /** Port calls take an ISO-string clock (registration.service portCtx); Object.create keeps tenantId/actor/tx visible to the port. */
-const portCtx = <T extends { now(): Date }>(c: T): RequestContext => Object.assign(Object.create(c), { now: () => c.now().toISOString() }); // VERIFY-GREEN-3 (LD-268): return type only; the object is unchanged
+const portCtx = <T extends { now(): Date }>(c: T): RequestContext => Object.assign(Object.create(c), { now: () => toDate(c.now()).toISOString() }); // VERIFY-GREEN-3 (LD-268): return type only; the object is unchanged
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const ISO_MS = /^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{3}Z$/;
@@ -298,7 +299,7 @@ export function quoteItemsChange(hctx: unknown, params: unknown, body: unknown):
     return { status: 200, body: {
       lines: q.lines.map(lineDto), totals: totalsDto(q.totals),
       discount_evaluation: { within_limit: verdict === 'within_limit', approval_required: verdict === 'approval_required', limit_percent_bp: limits.selfLimitBp, limit_paisa: limits.selfLimitPaisa },
-      catalog_revision: resolved.catalogRevision, quote_fingerprint: q.fingerprint, base_fingerprint: q.baseFingerprint, fiscal_year_bs: fiscalYearOf(c.now(), tz),
+      catalog_revision: resolved.catalogRevision, quote_fingerprint: q.fingerprint, base_fingerprint: q.baseFingerprint, fiscal_year_bs: fiscalYearOf(toDate(c.now()), tz),
     } };
   });
 }
@@ -342,7 +343,7 @@ export function changeItems(hctx: unknown, params: unknown, headers: unknown, bo
       if (p.q.fingerprint !== r.fingerprint) throw new LimsError('common.version_conflict', 'Prices changed');     // fresh `quote` extension: same CR as F9 (FD-T06-retry-quote-ext.md)
     }
 
-    const at = c.now();
+    const at = toDate(c.now());
     const by = c.actor.membershipId ?? c.actor.id;
     const itemsVersion = Number(o['items_version']) + 1;
     const added: any[] = [];
@@ -432,7 +433,7 @@ export function cancelOrder(hctx: unknown, params: unknown, headers: unknown, bo
       if (open) required = (await billing.raiseCreditNoteRequirement(pc, { orderId: orderId as never, cause: 'order_cancelled', reasonCode })).required;
     }
     await cancelActiveItems(c.tx, c.tenantId, orderId);
-    const at = c.now();
+    const at = toDate(c.now());
     const updated = await cancelOrderRow(c.tx, c.tenantId, orderId, version, { at, by: c.actor.membershipId ?? c.actor.id, reasonCode, ...(typeof text === 'string' ? { reasonText: text } : {}), requiresCreditNote: required });
     if (!updated) throw new LimsError('common.version_conflict');
     // T0B-REGAPI-2 (LD-310 (7)): reverse once (a second cancel is refused above): the coupon use comes back, the redeemed points come back as ONE 'earned' row

@@ -2,6 +2,7 @@
 // custom field definitions, patient reward points. Permissions are EXISTING codes only (done_when 6): the user's own data and the reads the registration screen needs
 // = frontdesk.registration.create; masters' writes and the coupon list = frontdesk.settings.manage (privileged: IdentityPort enforces aal2); rewards = frontdesk.patient.read.
 // Draft payloads hold patient data: never logged, never echoed in an error (fixed messages only). Drafts / favourites belong to the calling membership.
+import { toDate } from '../../../core/clock.js'; // T0D-FIX-6 (LD-448): ctx.now() is an ISO string in the pipeline, a Date in unit fakes
 import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';
 import { LimsError } from '../../../core/errors.js';
 import { formatNumber, hasToken } from '../domain/numbering.js';
@@ -127,7 +128,7 @@ export function addFavouriteTest(hctx: unknown, body: unknown): Promise<Result> 
     const orderableId = uuidAt(strict(body, ['orderable_id'])['orderable_id'], '/orderable_id');
     const catalog = (c.ports as Obj)['CatalogPort'];
     if (typeof catalog?.resolveOrderables !== 'function') throw new LimsError('common.service_unavailable');
-    const found = await catalog.resolveOrderables(c, { orderableIds: [orderableId], asOf: c.now().toISOString() });   // tenant-bound: unknown / other tenant -> not_found
+    const found = await catalog.resolveOrderables(c, { orderableIds: [orderableId], asOf: toDate(c.now()).toISOString() });   // tenant-bound: unknown / other tenant -> not_found
     if (!found?.orderables?.some((o: Obj) => o['orderableId'] === orderableId)) throw new LimsError('common.not_found');
     const out = await addFavourite(c.tx, c.tenantId, { id: uuidv7(), user_id: me(c), orderable_id: orderableId });
     return { status: out.created ? 201 : 200, body: favDto(out.row) };
@@ -352,7 +353,7 @@ export function previewNumbers(hctx: unknown, query: unknown): Promise<Result> {
     const pattern = tenant.numbering?.registrationNoPattern;
     if (typeof pattern !== 'string') throw new LimsError('common.internal');
     const tz = typeof tenant.timezone === 'string' ? tenant.timezone : 'Asia/Kathmandu';
-    const today = todayIn(tz, c.now());
+    const today = todayIn(tz, toDate(c.now()));
     const core = (c as unknown as { core: { branch(ctx: unknown, i: { branchId: string }): Promise<{ branchCode: string }> } }).core;
     const branch = hasToken(pattern, 'branch') ? (await core.branch(c, { branchId })).branchCode : undefined;
     // the same counter row the save takes under its row lock (counters.repo nextCounterValue), READ here: last_value + 1, nothing consumed
@@ -361,7 +362,7 @@ export function previewNumbers(hctx: unknown, query: unknown): Promise<Result> {
     // bill number (LD-323 b): registration payments use issueReceiptNo=false, so the invoice IS the receipt (PRD D-RECEIPT): the number shown is the next INV,
     // read through BillingCommandPort.previewInvoiceNo (08 R25: frontdesk reads no billing table). Assigned when saved; two users may see the same number.
     // LD-323 (c): no fallback number ever; if the port call fails the field is empty (the UI shows only the "assigned when saved" label).
-    const portCtx = Object.assign(Object.create(c as object), { now: () => c.now().toISOString() });
+    const portCtx = Object.assign(Object.create(c as object), { now: () => toDate(c.now()).toISOString() });
     let receiptNo = '';
     try { receiptNo = String((await (c.ports as Obj)['BillingCommandPort'].previewInvoiceNo(portCtx, {})).invoiceNo); } catch { /* LD-323 (c): empty, never a guessed number */ }
     return { status: 200, body: { centre_id: centreId, next_registration_no: regNo, next_receipt_no: receiptNo, next_receipt_no_label: 'assigned when saved', is_preview: true } };   // LD-331 label, always present

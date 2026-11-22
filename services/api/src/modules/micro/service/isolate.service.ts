@@ -13,7 +13,7 @@ import * as sets from '../repository/codedsets.repo.js';
 import * as cultureRepo from '../repository/cultures.repo.js';
 import * as repo from '../repository/isolates.repo.js';
 import * as obsRepo from '../repository/observations.repo.js';
-import { bad, code, conflict, guarded, isObj, loadForWork, needVersion, nowOf, sameCulture, str, strictKeys, uuid, WORK, type WriteCtx } from './culture.service.js';
+import { bad, code, conflict, guarded, isObj, loadForWork, needVersion, clockOf, sameCulture, str, strictKeys, uuid, WORK, type WriteCtx } from './culture.service.js';
 
 type Obj = Record<string, any>;
 type Out = { body: Obj; version?: number };
@@ -55,7 +55,7 @@ export async function createIsolate(c: WriteCtx, input: { params: unknown; body:
   const cultureId = row['id'] as string;
   if (plateId !== null) sameCulture(await obsRepo.ownerOfPlate(tx, { tenantId, id: plateId }), cultureId);   // 404 / 400 common.id_mismatch (S-03)
 
-  const now = nowOf(c);
+  const now = clockOf(c);
   const membershipId = c.actor.membershipId ?? null;
   const made = await guarded(async () => {
     let seq: number;
@@ -107,7 +107,7 @@ export async function identifyIsolate(c: WriteCtx, input: { params: unknown; ifM
   const organismCode = code(b['organism_code'], '/organism_code');
   await assertEditable(tx, tenantId, row, expected, 'identify');
   const display = await organism(tx, tenantId, organismCode);
-  const done = await guarded(() => repo.identify(tx, { tenantId, id: row['id'], expectedVersion: expected, organismCode, at: nowOf(c), membershipId: c.actor.membershipId ?? null, userId }));
+  const done = await guarded(() => repo.identify(tx, { tenantId, id: row['id'], expectedVersion: expected, organismCode, at: clockOf(c), membershipId: c.actor.membershipId ?? null, userId }));
   if (!done) return conflict();
   return answer(c, tx, tenantId, done, display, true);                                        // AC-05.3: the audit old/new is the DB trigger
 }

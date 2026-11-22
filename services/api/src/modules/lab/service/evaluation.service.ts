@@ -1,6 +1,7 @@
 // Value evaluation (02-TRD §4.3 steps 1-5; 08 A17.1 / CR-C5-012 unknown age; 08 A13 D-9 ordinal). Runs in the caller's transaction (ctx.tx).
 // Tenant comes from ctx only. Thrown problems never carry the submitted value (clinical data stays out of error bodies).
 // R7 (amendment) outputs go ONLY to the NEW lab.result_versions row at INSERT time (evaluationColumns): the approved lab.results row is locked.
+import { toDate } from '../../../core/clock.js'; // T0D-FIX-6 (LD-448): toDate(ctx.now()) is an ISO string in the pipeline, a Date in unit fakes
 import { LimsError, isLimsError } from '../../../core/errors.js';
 import { evaluateDelta, type DeltaCandidate, type DeltaOutcome, type DeltaRule } from '../domain/delta.js';
 import { DECIMAL_RE, computeFlag, criticalDecision, fractionDigits, valueSha256Prefix16, validateOrdinalCode, type Flag, type ValueKind } from '../domain/flags.js';
@@ -64,7 +65,7 @@ export async function evaluateValue(ctx: EvalCtx, i: EvaluateInput): Promise<Eva
   const ageKnown = typeof i.patientAgeDays === 'number';
   // 08 A17.1: unknown age -> keys ABSENT so the catalog returns only age-unrestricted bands.
   const q: RangeQuery = {
-    analyteId: i.analyte.id, sex: i.sex, at: (i.collectedAt ?? ctx.now()).toISOString(),
+    analyteId: i.analyte.id, sex: i.sex, at: (i.collectedAt ?? toDate(ctx.now())).toISOString(),
     ...(i.specimenTypeCode !== undefined ? { specimenTypeCode: i.specimenTypeCode } : {}),
     ...(ageKnown ? { ageDays: i.patientAgeDays as number } : {}),
     ...(ageKnown && i.birthOn !== undefined ? { birthOn: i.birthOn } : {}),
@@ -81,7 +82,7 @@ export async function evaluateValue(ctx: EvalCtx, i: EvaluateInput): Promise<Eva
     manualAbnormal: i.manualAbnormal,
   });
   const d = criticalDecision({ flag, code: kind === 'numeric' ? undefined : i.value, abnormalCodes: crit?.abnormalCodes });
-  const at = i.collectedAt ?? ctx.now();
+  const at = i.collectedAt ?? toDate(ctx.now());
   return {
     ...(flag ? { flag } : {}),
     ...(range ? { rangeSnapshot: { referenceRangeId: range.referenceRangeId, version: range.version, low: range.low, high: range.high, text: range.text, unitCode: range.unitCode } } : {}),

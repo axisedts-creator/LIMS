@@ -6,6 +6,7 @@
 // [CONV] items_changed additions attach to an active specimen of the same type/container still before receipt (ordered/collected/in_transit), else a new specimen
 //   with creation_key suffixed by items_version; removals run after additions so a replacement test keeps its specimen.
 // [CONV] approved results are never touched (02-TRD §7.2 "non-approved"); an order test with an approved result is not cancelled.
+import { toDate } from '../../../core/clock.js'; // T0D-FIX-6 (LD-448): toDate(ctx.now()) is an ISO string in the pipeline, a Date in unit fakes
 import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';
 import { LimsError } from '../../../core/errors.js';
 import { evaluateReadiness, type ReadinessDecision, type ReadinessInput } from '../domain/readiness.js';
@@ -55,7 +56,7 @@ async function loadOrBuild(ctx: OrderCtx, rc: RepoCtx, env: OrderEnvelope, order
     ? { centre_id: p['centre_id'], branch_id: p['branch_id'], patient_id: p['patient_id'], visit_type: p['visit_type'], priority: p['priority'], referrer_id: p['referrer_id'],
       collection_mode: p['collection_mode'], source: p['source'], registered_at: p['registered_at'] }
     : { centre_id: summary.centreId, branch_id: summary.branchId, patient_id: summary.patientId, visit_type: summary.visitType, priority: summary.priority, referrer_id: summary.referrerId,
-      collection_mode: null, source: summary.source, registered_at: summary.registeredAt ?? env.occurred_at ?? iso(ctx.now()) };   // E2/E3: collection_mode stays NULL
+      collection_mode: null, source: summary.source, registered_at: summary.registeredAt ?? env.occurred_at ?? iso(toDate(ctx.now())) };   // E2/E3: collection_mode stays NULL
   const demo = await ctx.ports.FrontdeskPort.getPatientDemographics(ctx, { patientId: base.patient_id, purpose: 'result_evaluation' });
   const inserted = await insertOrderIfAbsent(rc, { id: orderId, ...base, registration_no: summary.registrationNo, patient_sex: demo.sex, patient_age_days: ageDaysOf(demo, base.registered_at),
     lab_status: kind === 'cancelled' ? 'cancelled' : 'active', cancelled_at: kind === 'cancelled' ? p['cancelled_at'] : null, last_order_seq: seq, items_version: 1 });
@@ -72,7 +73,7 @@ async function addItems(ctx: OrderCtx, rc: RepoCtx, order: Row, items: readonly 
   if (todo.length === 0) return;
   const resolved = await ctx.ports.CatalogPort.resolveOrderables(ctx, { orderableIds: [...new Set(todo.map((x) => x.item.orderable_id))], asOf });
   const tests = new Map<string, any>((resolved.tests as any[]).map((t) => [t.id, t]));
-  const now = iso(ctx.now());
+  const now = iso(toDate(ctx.now()));
   const rows = todo.map(({ item, tid }) => {
     const t = tests.get(tid);
     if (!t) throw new LimsError('common.internal');   // fail closed: the catalog did not resolve a test of the order
@@ -215,7 +216,7 @@ export async function evaluateOrderReadiness(rawCtx: unknown, orderId: string): 
     last: { hash: last.lastEmittedHash, completeness: last.lastCompleteness, departmentHashes: last.departmentHashes },
   });
   if (!d) return null;
-  const readyAt = ctx.now().toISOString();
+  const readyAt = toDate(ctx.now()).toISOString();
   const seq = last.readinessSeq + 1;
   // 03-IC §3.12: ids + hash only; approved_set_hash is added by the publisher from the set (same function as the hash stored below).
   await createLabEvents(ctx.events as never).orderReadyForReport(ctx as never, {

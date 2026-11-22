@@ -2,6 +2,7 @@
 // Every operation: load through the tenant-bound repository (404 if invisible) -> IdentityPort.assertRole(permission, centreId: case.centre_id) -> validate -> write.
 // No submitted value is echoed in an error and nothing is logged (REQ-SEC-098). The caller's transaction (requestTx) rolls back on any throw.
 import { LimsError, type FieldError } from '../../../core/errors.js';
+import { toDate } from '../../../core/clock.js'; // T0D-FIX-6 (LD-448)
 import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';
 import { assertTransition, type CaseStatus } from '../domain/case.state.js';
 import type { CaseKind } from '../domain/case.js';
@@ -108,7 +109,7 @@ export async function accessionCase(hctx: unknown, params: unknown, headers: unk
 
   const no = await allocateAccessionNumber(c, { caseKind: cs['case_kind'] as CaseKind, branchId: cs['branch_id'] ?? null });
   const patch: Row = {
-    accession_no: no.accessionNo, accession_series: no.seriesKey, accession_year: no.yearAd, status: 'accessioned', accessioned_at: c.now().toISOString(), accessioned_by: c.actor.id,
+    accession_no: no.accessionNo, accession_series: no.seriesKey, accession_year: no.yearAd, status: 'accessioned', accessioned_at: toDate(c.now()).toISOString(), accessioned_by: c.actor.id,
   };
   if (history !== undefined) patch['clinical_history_text'] = history;
   if (pathologist !== undefined) patch['assigned_pathologist_membership_id'] = pathologist;

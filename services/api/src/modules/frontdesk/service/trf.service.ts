@@ -2,7 +2,8 @@
 // F20: the ONLY writer of the object is ctx.uploads.accept (magic bytes, 413/415, PNG re-encode without metadata, scan). The row stays `pending` under the quarantine key {tenant}/q/{yyyy}/{mm}/{id} (05-SCHEMA trf_attachments.object_path);
 // the worker frontdesk.trf_scan is the only one that may set `clean` and move the object. A scanner outage never blocks the upload (the worker decides later).
 // F21a: bytes go through the API (ctx.download.stream: scan gate, P-2 headers, trf.view access-log row); no Storage URL is ever produced. Not found / other tenant / out of centre scope = 404.
-// Logs: this service logs nothing (file names are P2). Time is ctx.now(). Ctx shape ASSUMED as in the reporting upload handlers: uploads, storage, download (+ the PatientCtx basics).
+// Logs: this service logs nothing (file names are P2). Time is toDate(ctx.now()). Ctx shape ASSUMED as in the reporting upload handlers: uploads, storage, download (+ the PatientCtx basics).
+import { toDate } from '../../../core/clock.js'; // T0D-FIX-6 (LD-448): ctx.now() is an ISO string in the pipeline, a Date in unit fakes
 import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';
 import { LimsError } from '../../../core/errors.js';
 import { contentDisposition } from '../../../core/storage/download.js';
@@ -93,7 +94,7 @@ export async function uploadTrf(hctx: unknown, body: unknown): Promise<{ status:
     if (o['centre_id'] !== centreId) throw bad('/order_id');
   }
 
-  const id = uuidv7(); const now = c.now();
+  const id = uuidv7(); const now = toDate(c.now());
   const objectPath = `${c.tenantId}/q/${now.getUTCFullYear()}/${String(now.getUTCMonth() + 1).padStart(2, '0')}/${id}`;   // server-generated: the client name never reaches the key
   const up = await c.uploads.accept({ filename: name, mimeType: f['mimeType'], bytes: f['bytes'] },
     { allow: ALLOW, maxBytes: Math.min(loadFrontdeskConfig().trfMaxBytes, SIZE_CAP), bucket: BUCKET, objectPath, images: { reencode: true, stripMetadata: true }, scan: 'required' });

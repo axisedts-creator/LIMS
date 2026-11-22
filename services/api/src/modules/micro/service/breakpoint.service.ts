@@ -8,6 +8,7 @@
 import { createHash } from 'node:crypto';
 import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';
 import { LimsError, type FieldError } from '../../../core/errors.js';
+import { toDate } from '../../../core/clock.js';
 import type { IncomingFile, UploadAcceptOptions } from '../../../core/uploads/index.js';
 import { parseAstValue, type AstMethod, type AstValue } from '../domain/ast-value.js';
 import { evaluateBreakpoint, type BpBand, type BpRow, type BpSet, type BreakpointNoneReason, type BreakpointResult } from '../domain/breakpoint-eval.js';
@@ -258,7 +259,7 @@ export async function createImport(c: BreakpointCtx, input: { body: unknown }): 
 // transition) -> version (409) -> four eyes (403): all of it BEFORE the first write, so a refused request leaves nothing behind (not even the lazy settings row).
 // Activation and retirement then take the tenant's micro.settings row FOR UPDATE (03-APP-FLOW §2.5 serialisation) and re-check the set under that lock,
 // because a parallel request may have changed it in between; the UPDATEs themselves keep `version` / `status` in the WHERE as the last guard.
-const clock = (c: BreakpointCtx): Date => (typeof c.now === 'function' ? c.now() : new Date());
+const clock = (c: BreakpointCtx): Date => (typeof c.now === 'function' ? toDate(c.now()) : new Date());   // T0D-FIX-6 (LD-448): ISO string or Date
 const BACKDATE_MS = 60_000;   // M46: an explicit or intended effective_from may be at most 60 s in the past
 const conflict = (): never => { throw new LimsError('common.version_conflict'); };
 function needVersion(v: number | undefined): number {

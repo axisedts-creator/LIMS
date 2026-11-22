@@ -4,6 +4,7 @@
 // Object-scoped (M3, M7–M11, M13, M14): the object is loaded tenant-bound (other tenant = not found), its case gives the centre for assertRole.
 // No submitted value is echoed or logged (REQ-SEC-098); a throw rolls the caller's transaction back (a unique-key clash -> 409 common.version_conflict).
 import { LimsError } from '../../../core/errors.js';
+import { toDate } from '../../../core/clock.js'; // T0D-FIX-6 (LD-448)
 import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';
 import { blockLabel, slideLabelFromBlock, slideLabelFromPart } from '../domain/labels.js';
 import { getCase, getCaseItem, insertCaseItem, listCaseItems } from '../repository/cases.repo.js';
@@ -212,7 +213,7 @@ export async function markSlidesReady(hctx: unknown, body: unknown): Promise<Res
     if (cs['status'] === 'cancelled') results.push({ id, outcome: 'invalid_state' });
     else if (s['status'] === 'ready') results.push({ id, outcome: 'unchanged' });
     else {
-      const u = await updateSlide(c.tx, { tenantId: c.tenantId, id, expectedVersion: Number(s['version']), actorId: c.actor.id, patch: { status: 'ready', ready_at: c.now().toISOString() } });
+      const u = await updateSlide(c.tx, { tenantId: c.tenantId, id, expectedVersion: Number(s['version']), actorId: c.actor.id, patch: { status: 'ready', ready_at: toDate(c.now()).toISOString() } });
       if (!u) throw conflict();
       results.push({ id, outcome: 'updated' });
     }
@@ -353,7 +354,7 @@ export async function createStainOrder(hctx: unknown, params: unknown, body: unk
 
   const row: Row = {
     id: uuidv7(), tenant_id: c.tenantId, centre_id: cs['centre_id'], case_id: cs['id'], stain_id: stain['id'], stain_code: stain['code'], stain_kind: stain['kind'],
-    status: 'requested', requested_at: c.now().toISOString(), requested_by_membership_id: membershipId, created_by: c.actor.id, updated_by: c.actor.id,
+    status: 'requested', requested_at: toDate(c.now()).toISOString(), requested_by_membership_id: membershipId, created_by: c.actor.id, updated_by: c.actor.id,
   };
   if (blockId) row['block_id'] = blockId; else row['part_id'] = partId;
   if (note !== undefined) row['note'] = note;
@@ -386,7 +387,7 @@ async function saveOrder(c: Ctx, o: Row, patch: Row): Promise<Row> {
 export async function startStainOrder(hctx: unknown, params: unknown, headers: unknown): Promise<Result> {
   const { c, o } = await loadOrder(hctx, params);
   expect(o, ifMatch(headers, false), ['requested']);
-  return { status: 200, body: await orderDto(c, await saveOrder(c, o, { status: 'in_progress', started_at: c.now().toISOString() }), names(c)) };
+  return { status: 200, body: await orderDto(c, await saveOrder(c, o, { status: 'in_progress', started_at: toDate(c.now()).toISOString() }), names(c)) };
 }
 
 const ISO_UTC = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,3})?Z$/;
@@ -399,7 +400,7 @@ export async function completeStainOrder(hctx: unknown, params: unknown, headers
   let performedAt: string | undefined;
   if (b['performed_at'] !== undefined) {
     const v = b['performed_at'];
-    if (typeof v !== 'string' || !ISO_UTC.test(v) || Number.isNaN(Date.parse(v)) || Date.parse(v) > c.now().getTime()) throw bad('/performed_at');
+    if (typeof v !== 'string' || !ISO_UTC.test(v) || Number.isNaN(Date.parse(v)) || Date.parse(v) > toDate(c.now()).getTime()) throw bad('/performed_at');
     performedAt = v;
   }
   expect(o, version, ['requested', 'in_progress']);
@@ -416,7 +417,7 @@ export async function completeStainOrder(hctx: unknown, params: unknown, headers
   }
   if (!part) throw notFound();
 
-  const now = c.now().toISOString();
+  const now = toDate(c.now()).toISOString();
   const patch: Row = { status: 'completed', completed_at: now };
   if (lot !== undefined) patch['reagent_lot'] = lot;
   if (performedAt !== undefined) patch['performed_at'] = performedAt;
@@ -436,7 +437,7 @@ export async function cancelStainOrder(hctx: unknown, params: unknown, headers: 
   const reason = text(strict(body, ['reason_text'])['reason_text'], '/reason_text', 500, 1);
   expect(o, version, ['requested', 'in_progress']);
   // AC-05.5: an add-on case item linked to the order is deliberately left as it is
-  return { status: 200, body: await orderDto(c, await saveOrder(c, o, { status: 'cancelled', cancelled_at: c.now().toISOString(), cancel_reason_text: reason }), names(c)) };
+  return { status: 200, body: await orderDto(c, await saveOrder(c, o, { status: 'cancelled', cancelled_at: toDate(c.now()).toISOString(), cancel_reason_text: reason }), names(c)) };
 }
 
 export async function linkAddonItem(hctx: unknown, params: unknown, headers: unknown, body: unknown): Promise<Result> {

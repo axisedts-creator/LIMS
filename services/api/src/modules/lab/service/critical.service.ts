@@ -4,6 +4,7 @@
 // Lifecycle: open --(first notification outcome=reached AND read_back_confirmed)--> notified (+ first_confirmed_notification_at); other notifications append only;
 // closed on approve (R6) / cancel (R8) from open|notified; an AMENDMENT event (its result is already approved) goes open -> closed at its first confirmed notification [CONV].
 // Tenant comes from ctx only; every store call takes (tx, tenantId, ...). The store is a seam wired with the core pipeline (open point, see C5.T-15-impl.md).
+import { toDate } from '../../../core/clock.js'; // T0D-FIX-6 (LD-448): toDate(ctx.now()) is an ISO string in the pipeline, a Date in unit fakes
 import { LimsError, type FieldError } from '../../../core/errors.js';
 
 type Row = Record<string, any>;
@@ -79,7 +80,7 @@ export async function getCriticalValue(ctx: CriticalCtx, criticalEventId: string
 }
 
 export async function logCriticalNotification(ctx: CriticalCtx, criticalEventId: string, input: NotificationInput): Promise<NotificationRow> {
-  const now = ctx.now();
+  const now = toDate(ctx.now());
   validate(input, now);
   const event = await ctx.store.getCriticalEvent(ctx.tx, ctx.tenantId, criticalEventId);
   if (!event) throw new LimsError('common.not_found');                                   // P-01 / P-07
@@ -109,6 +110,6 @@ export async function logCriticalNotification(ctx: CriticalCtx, criticalEventId:
 /** R6 (approve) / R8 (cancel): closes every open|notified event of the result in the caller's transaction. Not a notification; nothing is published. */
 export async function closeCriticalEventsForResult(ctx: CriticalCtx, resultId: string, reason: 'approved' | 'cancelled'): Promise<{ closedEventIds: string[] }> {
   if (reason !== 'approved' && reason !== 'cancelled') throw new LimsError('common.validation_failed', undefined, [invalid('/reason', 'reason must be approved or cancelled')]);
-  const closedEventIds = await ctx.store.closeOpenCriticalEvents(ctx.tx, ctx.tenantId, { resultId, closedAt: ctx.now().toISOString() });
+  const closedEventIds = await ctx.store.closeOpenCriticalEvents(ctx.tx, ctx.tenantId, { resultId, closedAt: toDate(ctx.now()).toISOString() });
   return { closedEventIds };
 }

@@ -52,7 +52,9 @@ export function knowRecipient(w: RWorld, tenant: string, patientId: string, sms:
 }
 
 export interface RegOpts { grants?: readonly string[]; tenant?: string; w?: RWorld; centreId?: string; centreIds?: readonly string[]; headers?: Record<string, string>;
-  failEvent?: string; smsEnabled?: boolean; requestId?: string; now?: Date }
+  failEvent?: string; smsEnabled?: boolean; requestId?: string; now?: Date;
+  /** T0D-FIX-6 (LD-448): ctx.now() returns an ISO string, as core/pipeline/index.ts:169 does (tx.startedAt stays a Date, as in the real request tx). */
+  isoClock?: boolean }
 export interface RegReply { status: number; body: any; probe: { logs: string[]; accessCalls: any[]; identity: any; requestId: string; ctx: any }; w: RWorld }
 
 export function ctxFor(tx: any, tenant: string, w: RWorld, o: RegOpts, probe: RegReply['probe']): any {
@@ -71,7 +73,7 @@ export function ctxFor(tx: any, tenant: string, w: RWorld, o: RegOpts, probe: Re
   const log = (lvl: string) => (obj: object, msg?: string) => { probe.logs.push(`${lvl} ${JSON.stringify(obj)} ${msg ?? ''}`); };
   const ctx: any = {
     operationId: 'createRegistration', clientIp: '203.0.113.9', log: { info: log('info'), warn: log('warn'), error: log('error') },
-    tenantId: tenant, tx, requestId: probe.requestId, now: () => o.now ?? NOW, centreId: centre,
+    tenantId: tenant, tx, requestId: probe.requestId, now: () => (o.isoClock ? (o.now ?? NOW).toISOString() : (o.now ?? NOW)), centreId: centre,
     actor: { type: 'system', id: SYS_ACTOR, membershipId: uid() },
     ports: { IdentityPort: identity, CatalogPort: w.catalog, BillingCommandPort: w.billing, NotificationPort: w.notif },
     events, core: createCoreRepo({} as never),

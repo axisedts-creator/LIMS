@@ -101,11 +101,27 @@ export function getAccountSummary(q: { party_kind: PartyKind; party_id: string }
 
 /** LD-358 AccountSummaryRow: every AccountSummary field plus the party name. */
 export interface AccountSummaryRow extends AccountSummary { party_name: string }
-/** T0D-UILIST-2 (LD-358): ONE list read, operation listAccountSummaries (GET /v1/billing/account-summaries); 501 operation_pending until T0B-ACCTLIST-1.
- *  `q` = party name search (contract maxLength 80). ponytail: first 200 rows only; add cursor paging when a tenant has more parties. */
-export function listAccountSummaryRows(f: { q?: string | undefined } = {}) {
-  const q = f.q?.trim().slice(0, 80);
-  return serverFetch<Page<AccountSummaryRow>>(`/v1/billing/account-summaries${qs({ q, limit: 200 })}`);
+/** T0D-UILIST-2 (LD-358): ONE list read, operation listAccountSummaries (GET /v1/billing/account-summaries).
+ *  T0D-BUILD-1 (LD-447): the five contract filters, cursor paging (50 a page). Every value is checked by shape here; a bad one is dropped, never forwarded. */
+export interface SummaryFilters { party_kind?: PartyKind | undefined; q?: string | undefined; blocked_only?: boolean | undefined; outstanding_only?: boolean | undefined; cursor?: string | undefined }
+export const SUMMARY_PAGE = 50;
+/** URL search params -> filters the API accepts (arrays, unknown kinds, non "true" switches and odd cursors dropped; q trimmed and cut to 80). */
+export function summaryFilters(sp: Record<string, string | string[] | undefined>): SummaryFilters {
+  const one = (k: string) => (typeof sp[k] === 'string' ? (sp[k] as string) : undefined);
+  const kind = one('party_kind');
+  const q = one('q')?.trim().slice(0, 80);
+  const cursor = one('cursor');
+  return {
+    ...(kind && (PARTY_KINDS as readonly string[]).includes(kind) ? { party_kind: kind as PartyKind } : {}),
+    ...(q ? { q } : {}),
+    ...(one('blocked_only') === 'true' ? { blocked_only: true } : {}),
+    ...(one('outstanding_only') === 'true' ? { outstanding_only: true } : {}),
+    ...(cursor && CURSOR_RE.test(cursor) ? { cursor } : {}),
+  };
+}
+export function listAccountSummaryRows(f: SummaryFilters = {}) {
+  const { blocked_only, outstanding_only, ...rest } = f;
+  return serverFetch<Page<AccountSummaryRow>>(`/v1/billing/account-summaries${qs({ ...rest, ...(blocked_only ? { blocked_only: 'true' } : {}), ...(outstanding_only ? { outstanding_only: 'true' } : {}), limit: SUMMARY_PAGE })}`);
 }
 
 type CentreRow ={ centre_id?: string; id?: string; name: string; kind?: string; centre_kind?: string; address?: string; phone?: string; email?: string; created_at?: string };

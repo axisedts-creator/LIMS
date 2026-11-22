@@ -19,10 +19,10 @@ describe('T0C-ACCTLIST-1: billing manifest covers listAccountSummaries (handler 
     const uncovered = specIds.filter((id) => !handlerIds.includes(id) && !pending.includes(id));
     expect(uncovered, `no handler and not pending: ${uncovered.join(', ')}`).toEqual([]);
   });
-  it('the id is pending until T0B-ACCTLIST-1 (LD-325(b)): in pendingOperations, once, and not also a handler key', () => {
-    expect(pending, `${ID} must be in pendingOperations`).toContain(ID);
-    expect(pending.filter((id) => id === ID)).toHaveLength(1);
-    expect(handlerIds, 'a pending operation has no handler key').not.toContain(ID);
+  // T0D-BUILD-1 (LD-447, CR DEPLOY-AXIS-012 item 8): the handler task moved the id from pending to handlers (LD-325(b)); this was the "until T0B-ACCTLIST-1" pin, inverted.
+  it('the id is a handler key and no longer pending: not in pendingOperations, and registered in manifest.handlers', () => {
+    expect(pending, `${ID} must have left pendingOperations`).not.toContain(ID);
+    expect(handlerIds, 'the handler is registered').toContain(ID);
   });
   it('every pending id is a real spec operationId and appears once; nothing else is pending but this task\'s id', () => {
     expect(pending.filter((id) => !specIds.includes(id))).toEqual([]);

@@ -103,7 +103,12 @@ export function loadPaymentsConfig(env: Env = process.env): PaymentsConfig {
   const geRaw = env[geKey];
   const gatewayEnv = geRaw === undefined || geRaw === '' ? 'uat' : geRaw;
   if (gatewayEnv !== 'uat' && gatewayEnv !== 'production') fail(geKey, 'must be uat or production');
-  if ((gatewayEnv === 'production') !== isProductionEnv(env)) fail(geKey, 'must be production exactly when LIMS_CORE_ENV or NODE_ENV is production');
+  // LD-449 (a)(b): the rule is unchanged; the refusal says the value this process has, the value it expects and the fix.
+  if ((gatewayEnv === 'production') !== isProductionEnv(env)) {
+    const expected = isProductionEnv(env) ? 'production' : 'uat';
+    fail(geKey, `is set to ${gatewayEnv} but this process expects ${expected} (must be production exactly when LIMS_CORE_ENV or NODE_ENV is production); `
+      + `fix: set the same value of ${geKey} on web, api and worker, matching their LIMS_CORE_ENV`);
+  }
   const ge = gatewayEnv as GatewayEnv;
 
   // 2. PUBLIC_BASE_URL https.

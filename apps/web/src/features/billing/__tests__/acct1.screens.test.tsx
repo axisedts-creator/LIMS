@@ -118,7 +118,6 @@ const watchIframes = () => {
 };
 
 const VIEW_ACCOUNT_COLUMNS = ['Laboratory', 'Client', 'Franchise', 'Entry Date', 'Particulars', 'Credited', 'Debited', 'Comments', 'Payment Mode', 'Reference Number', 'Bank Details', 'Payment Details', 'Last Modified By', 'Entry Status', 'Download Receipt'];
-const SUMMARY_COLUMNS = ['Center', 'Client Name', 'Franchise', 'Address', 'Joining Date', 'Contact Person', 'Contact No', 'Email', 'PAN No', 'Credit Limit', 'Outstanding Amount', 'Debit/Credit', 'Is Blocked'];
 
 const entriesProps = (o: Record<string, unknown> = {}) => ({ entries, particulars, parties, centres, members, permissions: FULL, ...o });
 const stmtRow = (o: Record<string, unknown>) => ({ entry_id: E1, entry_date: '2026-11-07', receipt_no: 'ACC-000001', entry_type: 'credit', account_particular_id: PART_FEE, status: 'submitted', credit_paisa: 0, debit_paisa: 0, balance_paisa: 0, balance_side: 'credit', ...o });
@@ -564,133 +563,7 @@ describe('billing/accounts/pocket — pocket ledger', () => {
   });
 });
 
-// ───────────────────────── Account summary ─────────────────────────
-describe('billing/accounts/summary — Account Summary', () => {
-  const load = async () => (await mod<{ AccountSummaryScreen: any }>('AccountSummaryScreen')).AccountSummaryScreen;
-  const summaries = [
-    { party_kind: 'credit_party', party_id: CLIENT, credit_limit_paisa: 50000000, outstanding_paisa: 1234567, outstanding_side: 'debit', is_blocked: false },
-    { party_kind: 'franchise', party_id: FRANCHISE, credit_limit_paisa: 0, outstanding_paisa: 500000, outstanding_side: 'credit', is_blocked: true },
-  ];
-  const props = (o: Record<string, unknown> = {}) => ({ summaries, parties, permissions: READ, ...o });
-
-  it('columns are exactly the ElabAssist Account Summary columns, in order', async () => {
-    const S = await load();
-    wrap(<S {...props()} />);
-    expect(names()).toEqual(SUMMARY_COLUMNS);
-  });
-
-  it('filled rows: party details joined, money right aligned in rupees with lakh grouping, text Debit/Credit and Is Blocked', async () => {
-    const S = await load();
-    wrap(<S {...props()} />);
-    const a = screen.getAllByRole('row').find((r) => r.textContent!.includes('Synthetic Client Alpha'))!;
-    for (const x of ['Synthetic Centre A1', 'Synthetic Road 1', 'Synthetic Contact', '9800000000', 'alpha@example.test', '123456789']) expect(a.textContent).toContain(x);
-    expect(a.textContent).toMatch(AD); // joining date
-    expect(a.textContent).toMatch(money('5,00,000.00')); // credit limit
-    expect(a.textContent).toMatch(money('12,345.67')); // outstanding
-    expect(a.textContent).toMatch(/debit/i);
-    const cells = within(a).getAllByRole('gridcell').length ? within(a).getAllByRole('gridcell') : within(a).getAllByRole('cell');
-    expect(cells[names().indexOf('Credit Limit')]!.className).toMatch(/lims-align-end/);
-    expect(cells[names().indexOf('Outstanding Amount')]!.className).toMatch(/lims-align-end/);
-    expect(cells[names().indexOf('Is Blocked')]!.textContent).toMatch(/^(No|Not blocked)/i);
-    const b = screen.getAllByRole('row').find((r) => r.textContent!.includes('Synthetic Franchise Beta'))!;
-    expect(b.textContent).toMatch(/credit/i);
-    expect(within(b).getAllByRole('gridcell')[names().indexOf('Is Blocked')]!.textContent).toMatch(/^(Yes|Blocked)/i);
-  });
-
-  it('each party links to its ledger with party_kind and party_id', async () => {
-    const S = await load();
-    wrap(<S {...props()} />);
-    const link = screen.getAllByRole('link').find((a) => /Synthetic Client Alpha|ledger/i.test(a.textContent ?? '') && /accounts\/ledger/.test(a.getAttribute('href') ?? ''))!;
-    const u = new URL(link.getAttribute('href')!, 'http://x.test');
-    expect(u.pathname).toBe('/billing/accounts/ledger');
-    expect(u.searchParams.get('party_kind')).toBe('credit_party');
-    expect(u.searchParams.get('party_id')).toBe(CLIENT);
-  });
-
-  it('empty summary keeps all 13 headers and 4 placeholders', async () => {
-    const S = await load();
-    wrap(<S {...props({ summaries: [] })} />);
-    expect(names()).toEqual(SUMMARY_COLUMNS);
-    expect(placeholders()).toBe(4);
-  });
-
-  // Reviewer item 1: props `failed?: number`, `truncated?: boolean`; kit Banner (data-tone=warning) with catalogue key billing.accounts.summary.partial ("{n} parties could not be loaded; reload to try again").
-  it('partial state: failed > 0 shows a warning banner with the count, rows still render', async () => {
-    const S = await load();
-    wrap(<S {...props({ failed: 3, truncated: false })} />);
-    expect(t('billing.accounts.summary.partial'), 'catalogue key must exist').not.toBe('billing.accounts.summary.partial');
-    expect(t('billing.accounts.summary.partial')).toContain('{n}');
-    const banner = document.querySelector('.lims-banner[data-tone="warning"]') as HTMLElement;
-    expect(banner, 'warning Banner').toBeTruthy();
-    expect(banner.textContent).toContain(t('billing.accounts.summary.partial').replace('{n}', '3'));
-    expect(names()).toEqual(SUMMARY_COLUMNS);
-    expect(screen.getAllByRole('row').some((r) => r.textContent!.includes('Synthetic Client Alpha'))).toBe(true);
-  });
-
-  it('partial state: truncated alone also shows the warning banner', async () => {
-    const S = await load();
-    wrap(<S {...props({ failed: 0, truncated: true })} />);
-    expect(document.querySelector('.lims-banner[data-tone="warning"]')).toBeTruthy();
-  });
-
-  // Reviewer round 2 item 1: truncated gets its own warning Banner (key billing.accounts.summary.truncated); the "{n} parties could not be loaded" Banner only when failed > 0.
-  it('truncated with failed 0 shows the truncated text and NOT the "0 parties" text', async () => {
-    const S = await load();
-    wrap(<S {...props({ failed: 0, truncated: true })} />);
-    const truncated = t('billing.accounts.summary.truncated');
-    expect(truncated, 'catalogue key must exist').not.toBe('billing.accounts.summary.truncated');
-    expect(truncated).toBe('Only the first 200 clients and franchises are shown.');
-    const banners = Array.from(document.querySelectorAll('.lims-banner[data-tone="warning"]')) as HTMLElement[];
-    expect(banners.some((b) => b.textContent!.includes(truncated))).toBe(true);
-    const text = document.body.textContent!;
-    expect(text).not.toContain(t('billing.accounts.summary.partial').replace('{n}', '0'));
-    expect(text).not.toMatch(/\b0 parties could not be loaded/);
-  });
-
-  it('failed > 0 and truncated true shows both warning banners', async () => {
-    const S = await load();
-    wrap(<S {...props({ failed: 2, truncated: true })} />);
-    const text = Array.from(document.querySelectorAll('.lims-banner[data-tone="warning"]')).map((b) => b.textContent).join('|');
-    expect(text).toContain(t('billing.accounts.summary.partial').replace('{n}', '2'));
-    expect(text).toContain(t('billing.accounts.summary.truncated'));
-  });
-
-  it('failed > 0 and truncated false does not show the truncated text', async () => {
-    const S = await load();
-    wrap(<S {...props({ failed: 2, truncated: false })} />);
-    expect(document.body.textContent).not.toContain(t('billing.accounts.summary.truncated'));
-  });
-
-  it('no banner when nothing failed and nothing was cut (props omitted or zero)', async () => {
-    const S = await load();
-    const a = wrap(<S {...props()} />);
-    expect(document.querySelector('.lims-banner')).toBeNull();
-    a.unmount();
-    wrap(<S {...props({ failed: 0, truncated: false })} />);
-    expect(document.querySelector('.lims-banner')).toBeNull();
-  });
-
-  it('axe: partial banner state', async () => {
-    const S = await load();
-    wrap(<S {...props({ failed: 2, truncated: true })} />);
-    await noAxeViolations();
-  });
-
-  it('a summary whose party is unknown still renders (name falls back to a dash), never throws', async () => {
-    const S = await load();
-    wrap(<S {...props({ summaries: [{ ...summaries[0], party_id: U(777) }] })} />);
-    expect(screen.getAllByRole('row').length).toBeGreaterThan(1);
-  });
-
-  it('axe: populated and empty', async () => {
-    const S = await load();
-    const a = wrap(<S {...props()} />);
-    await noAxeViolations();
-    a.unmount();
-    wrap(<S {...props({ summaries: [] })} />);
-    await noAxeViolations();
-  });
-});
+// Account Summary describe block retired: LD-447 / T0D-BUILD-1 replaced the screen; see build1.accountsummaries.test.tsx.
 
 // ───────────────────────── Masters ─────────────────────────
 describe('billing/accounts/masters — account groups and particulars', () => {

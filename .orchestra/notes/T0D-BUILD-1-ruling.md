@@ -1,0 +1,9 @@
+TESTS_WRONG — the describe block "billing/accounts/summary — Account Summary" in apps/web/src/features/billing/__tests__/acct1.screens.test.tsx (lines 567-~695) pins the retired T0D-ACCT-1 screen; the tester must rewrite or retire it.
+
+Reasons:
+1. LD-447 is binding for this task and overrides spec text (.orchestra/inbox/T0D-BUILD-1-arbiter.md:31-32). Its done_when (3) (inbox:21) orders /billing/accounts/summary to REPLACE the old state with a filter bar (party kind select, search, Blocked only, Outstanding only) and a DataTable of name, kind, credit limit, outstanding, blocked tag, a page totals line and paging.
+2. acct1.screens.test.tsx:121 SUMMARY_COLUMNS (13 ElabAssist party-detail columns, no Kind column) and :574 props (summaries/parties) assert a layout and component API that done_when (3) does not require and that contradicts it (no Kind column).
+3. The task's own tests already follow LD-447: build1.accountsummaries.test.tsx:171-175 (headers name, kind|type, Credit limit, Outstanding, blocked) and uilist2.accounts.test.tsx:189 ("the 13 column party-detail layout is retired"). One component cannot satisfy both; the tester's commit c13f05779 updated uilist2 but missed acct1.
+4. done_when (4) "existing billing web tests stay green" cannot mean keeping a test that pins a layout the same task orders replaced.
+
+What to change (tester, not writer): in acct1.screens.test.tsx delete SUMMARY_COLUMNS (:121) and the Account Summary describe block (:567 up to the masters describe at :696), or rewrite it to the build1 contract (row shape of AccountSummaryRow incl. party_name, columns name/kind/credit limit/outstanding/blocked). Do not duplicate build1 coverage; deleting with a one-line comment pointing to build1.accountsummaries.test.tsx is sufficient. Implementation stays as is for this point.

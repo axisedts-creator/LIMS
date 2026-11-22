@@ -1,11 +1,16 @@
 // A18 Booking detail (04-UI-UX A18; 03-APP-FLOW §6.2, §11; US-EN-14.1-3). E35 on open; [Cancel booking] -> confirm -> E36 (If-Match = version, Idempotency-Key per attempt, reused on a retry of the same version);
 // [Reschedule] opens A17 at the slot step. Both only while E35 carries cancellable_until (the server decides the cutoff). 404 = "no longer available" (AB-6).
 // LD-140: lims_ui components and token names only; one primary button ([Reschedule]). REQ-SEC-109: LimsSecureScreen. PHI stays in widget state; server detail is never shown.
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lims_shared/lims_shared.dart';
 import 'package:lims_ui/lims_ui.dart';
 
+import '../../app/providers.dart';
+import '../../core/session/session_controller.dart';
+import '../orders/order_detail_screen.dart';
 import '../orders/orders_format.dart';
 import '../orders/status_look.dart';
 import 'booking_wizard_screen.dart';
@@ -24,25 +29,79 @@ class BookingDetailScreen extends ConsumerStatefulWidget {
 }
 
 class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
+  // shortcut: provisional 30-second foreground polling cadence; upgrade when server push is specified
+  static const _interval = Duration(seconds: 30); // [CONV] order_poll_seconds default
+
   late final PatientBookingsApi _api = ref.read(patientBookingsApiProvider);
+  late final SessionController _session = ref.read(sessionControllerProvider);
+  late final AppLifecycleListener _life;
+  Timer? _timer;
   Map<String, Object?>? _booking;
   String? _homeAddress, _notice, _cancelKey;
   int? _cancelKeyVersion;
-  bool _gone = false, _failed = false, _cancelling = false;
+  DateTime? _checkedAt;
+  bool _gone = false, _failed = false, _cancelling = false, _busy = false, _ended = false;
 
   @override
   void initState() {
     super.initState();
+    _session.status.addListener(_onSession);
+    _life = AppLifecycleListener(onStateChange: _onLifecycle);
+    _startPolling();
+  }
+
+  @override
+  void dispose() {
+    _session.status.removeListener(_onSession);
+    _life.dispose();
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  void _startPolling() {
+    _timer?.cancel();
+    _timer = Timer.periodic(_interval, (_) => _fetch());
     _fetch();
   }
 
+  void _stopPolling() {
+    _timer?.cancel();
+    _timer = null;
+  }
+
+  void _onLifecycle(AppLifecycleState s) {
+    switch (s) {
+      case AppLifecycleState.hidden:
+      case AppLifecycleState.paused:
+      case AppLifecycleState.detached:
+        _stopPolling();
+      case AppLifecycleState.resumed:
+        if (!_ended && _timer == null) _startPolling();
+      case AppLifecycleState.inactive:
+        break;
+    }
+  }
+
+  void _onSession() {
+    if (_session.status.value != SessionStatus.signedOut) return;
+    _ended = true; // logout / expiry: stop and wipe PHI from memory (TRD §3.5)
+    _stopPolling();
+    if (mounted) setState(() => _booking = null);
+  }
+
   Future<void> _fetch() async {
+    if (_busy || _ended) return;
+    _busy = true;
     try {
       final b = asMap(await _api.getBooking(bookingId: widget.bookingId));
-      if (!mounted) return;
-      final addressId = b?['home_address_id'];
-      String? text;
-      if (addressId is String) {
+      if (!mounted || _ended) return;
+      if (b == null) {
+        setState(() => _failed = true);
+        return;
+      }
+      final addressId = b['home_address_id'];
+      String? text = _homeAddress;
+      if (addressId is String && text == null) {
         try {
           text = mapList(asMap(await _api.listAddresses())?['data'])
               .where((a) => a['id'] == addressId)
@@ -53,21 +112,34 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
           text = null; // the booking is still readable without the address line
         }
       }
-      if (!mounted) return;
+      if (!mounted || _ended) return;
       setState(() {
         _booking = b;
         _homeAddress = text;
-        _failed = b == null;
+        _checkedAt = DateTime.now();
+        _failed = false;
       });
+      // Stop polling when terminal state is reached
+      final status = b['status'];
+      if (status == 'completed' || status == 'cancelled') {
+        _stopPolling();
+      }
     } on LimsException catch (e) {
-      if (mounted)
-        setState(
-          () => e.code == LimsErrorCodes.commonNotFound
-              ? _gone = true
-              : _failed = true,
-        );
+      if (!mounted || _ended) return;
+      if (e.code == LimsErrorCodes.commonNotFound) {
+        _ended = true;
+        _stopPolling();
+        setState(() {
+          _gone = true;
+          _booking = null;
+        });
+      } else {
+        setState(() => _failed = true);
+      }
     } on Object {
-      if (mounted) setState(() => _failed = true);
+      if (mounted && !_ended) setState(() => _failed = true);
+    } finally {
+      _busy = false;
     }
   }
 
@@ -121,6 +193,135 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
       ),
     );
     if (mounted) _fetch();
+  }
+
+  void _showExplainer(
+    BuildContext context, {
+    required String title,
+    required String content,
+  }) {
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(LimsTokens.space4),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: Theme.of(ctx).textTheme.titleMedium),
+              const SizedBox(height: LimsTokens.space2),
+              Text(content),
+              const SizedBox(height: LimsTokens.space3),
+              LimsButton(
+                label: 'Got it',
+                onPressed: () => Navigator.of(ctx).pop(),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHomeCollectionCard(BuildContext context, Map<String, Object?> b) {
+    final tr = asMap(b['tracking']);
+    final trackingStatus = tr?['tracking_status'] as String? ?? 'not_assigned';
+    final locationStatus = tr?['location_status'] as String? ?? 'not_applicable';
+    final statusMsg = tr?['status_message'] as String?;
+    final collector = tr?['collector_display_name'] as String?;
+    final (tone, label) = trackingLook(trackingStatus);
+    final etaAvailable = tr?['eta_available'] == true;
+    final etaMin = tr?['eta_minutes'] as int?;
+
+    return LimsCard(
+      title: 'Home Collection',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ToneChip(
+            LimsStatusChip(
+              kind: 'generic',
+              status: trackingStatus,
+              tone: tone,
+              label: label,
+            ),
+          ),
+          const SizedBox(height: LimsTokens.space2),
+          if (collector != null && collector.isNotEmpty) ...[
+            Text(
+              'Phlebotomist: $collector',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+            ),
+            const SizedBox(height: LimsTokens.space1),
+          ],
+          Text(
+            statusMsg ??
+                'A certified phlebotomist will visit your address during the scheduled time window.',
+          ),
+          if (etaAvailable && etaMin != null) ...[
+            const SizedBox(height: LimsTokens.space1),
+            Text('Estimated arrival in $etaMin min'),
+          ],
+          if (locationStatus == 'unavailable' ||
+              locationStatus == 'lost' ||
+              locationStatus == 'offline' ||
+              locationStatus == 'not_applicable') ...[
+            const SizedBox(height: LimsTokens.space2),
+            const Text(
+              'Live tracking status: Provider integration pending (BLOCKED). Sample collection appointment is confirmed.',
+            ),
+          ],
+          if (_failed) ...[
+            const SizedBox(height: LimsTokens.space2),
+            ToneChip(
+              const LimsStatusChip(
+                kind: 'generic',
+                status: 'offline',
+                tone: 'warning',
+                label: 'Offline — tracking paused',
+              ),
+            ),
+            const SizedBox(height: LimsTokens.space1),
+            const Text(
+              'Your device is offline. Live location tracking is paused until connection is restored.',
+            ),
+          ],
+          const SizedBox(height: LimsTokens.space3),
+          Row(
+            children: [
+              Expanded(
+                child: LimsButton(
+                  label: 'Sample guide',
+                  secondary: true,
+                  onPressed: () => _showExplainer(
+                    context,
+                    title: 'How sample collection works',
+                    content:
+                        'Our phlebotomist uses single-use sterile supplies, verifies your identity, and labels sample tubes with secure barcodes in your presence.',
+                  ),
+                ),
+              ),
+              const SizedBox(width: LimsTokens.space2),
+              Expanded(
+                child: LimsButton(
+                  label: 'Report timeline',
+                  secondary: true,
+                  onPressed: () => _showExplainer(
+                    context,
+                    title: 'When to expect your report',
+                    content:
+                        'Once received at the lab, samples are analyzed and reviewed by pathologists. You will receive an in-app notification when your report is released.',
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -216,6 +417,32 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
               ],
             ),
           ),
+          if (b['order_id'] is String) ...[
+            gap,
+            LimsCard(
+              title: 'Order Tracking',
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Text('Samples and lab processing have been registered for this booking.'),
+                  const SizedBox(height: LimsTokens.space2),
+                  LimsButton(
+                    label: 'Track Order & Samples',
+                    secondary: true,
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => OrderDetailScreen(orderId: b['order_id']! as String),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+          if (b['booking_kind'] == 'home_collection') ...[
+            gap,
+            _buildHomeCollectionCard(context, b),
+          ],
           if (open) ...[
             gap,
             LimsCard(
@@ -240,6 +467,17 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
               ),
             ),
           ],
+          const SizedBox(height: LimsTokens.space2),
+          if (_checkedAt != null)
+            Text(
+              updatedText(_checkedAt!),
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          if (_failed)
+            Text(
+              'Could not refresh. Showing the last update.',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
         ],
       ),
     );

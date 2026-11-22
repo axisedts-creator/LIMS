@@ -18,6 +18,27 @@ const bookingStatuses = <String, (String, String)>{
 (String, String) bookingLook(Object? status) =>
     bookingStatuses[status] ?? ('neutral', 'In progress');
 
+/// Tracking status -> (LimsStatusChip tone, label) for S28-S32a
+(String, String) trackingLook(Object? trackingStatus) => switch (trackingStatus) {
+  'not_assigned' => ('neutral', 'Awaiting phlebotomist assignment'),
+  'assignment_delayed' => ('warning', 'Assignment delayed'),
+  'collector_assigned' => ('info', 'Phlebotomist assigned'),
+  'en_route' || 'live' => ('info', 'Phlebotomist en route'),
+  'collector_late' => ('warning', 'Phlebotomist running late'),
+  'delayed' || 'waiting_for_location' => ('warning', 'Locating phlebotomist'),
+  'unavailable' || 'lost' || 'offline' => ('neutral', 'Location unavailable'),
+  'reassigned' => ('warning', 'Phlebotomist reassigned'),
+  'tracking_restored' => ('info', 'Tracking active'),
+  'collector_arrived' => ('success', 'Phlebotomist arrived'),
+  'sample_collected' => ('success', 'Samples collected'),
+  'partially_collected' => ('warning', 'Partially collected'),
+  'in_lab' => ('info', 'Samples in lab'),
+  'recollection_needed' => ('warning', 'Recollection needed'),
+  'report_ready' || 'completed' => ('success', 'Completed'),
+  'cancelled' => ('neutral', 'Cancelled'),
+  _ => ('neutral', 'Home collection'),
+};
+
 const addressLabels = <String, String>{
   'home': 'Home',
   'work': 'Work',

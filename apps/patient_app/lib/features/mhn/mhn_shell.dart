@@ -1,14 +1,16 @@
-// My Health Now shell: four tabs (Home, Contact, All Tests, Profile) with the bottom bar and the floating cart bar of the prototype.
+// My Health Now shell: five approved tabs (Home, All Tests, Bookings, Reports, Profile)
+// with the bottom bar and the floating cart bar per ADR-UI-NAV-001.
 // Pushed screens (category, packages, cart, booking...) use MhnPage. Tab choice is in memory only.
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'bookings_screen.dart';
 import 'cart_screen.dart';
-import 'contact_tab.dart';
 import 'home_tab.dart';
 import 'mhn_state.dart';
 import 'mhn_theme.dart';
 import 'profile_tab.dart';
+import 'reports_screen.dart';
 import 'tests_tab.dart';
 
 class MhnTabController extends Notifier<int> {
@@ -22,9 +24,11 @@ final mhnTabProvider = NotifierProvider<MhnTabController, int>(
 );
 
 const mhnTabHome = 0;
-const mhnTabContact = 1;
-const mhnTabTests = 2;
-const mhnTabProfile = 3;
+const mhnTabTests = 1;
+const mhnTabBookings = 2;
+const mhnTabReports = 3;
+const mhnTabProfile = 4;
+const mhnTabContact = -1; // Retained for backwards compatibility; contact lives in Profile/Header
 
 Future<T?> mhnPush<T>(BuildContext context, Widget screen) =>
     Navigator.of(context).push<T>(MaterialPageRoute<T>(builder: (_) => screen));
@@ -74,8 +78,9 @@ class MhnShell extends ConsumerWidget {
 
   static const _items = <(IconData, String)>[
     (Icons.home_outlined, 'Home'),
-    (Icons.phone_outlined, 'Contact'),
     (Icons.science_outlined, 'All Tests'),
+    (Icons.event_available_outlined, 'Bookings'),
+    (Icons.description_outlined, 'Reports'),
     (Icons.person_outline, 'Profile'),
   ];
 
@@ -84,8 +89,9 @@ class MhnShell extends ConsumerWidget {
     final tab = ref.watch(mhnTabProvider);
     final body = switch (tab) {
       mhnTabHome => const MhnHomeTab(),
-      mhnTabContact => const MhnContactTab(),
       mhnTabTests => const MhnTestsTab(),
+      mhnTabBookings => const MhnBookingsScreen(isTab: true),
+      mhnTabReports => const MhnReportsScreen(isTab: true),
       _ => const MhnProfileTab(),
     };
     return Scaffold(

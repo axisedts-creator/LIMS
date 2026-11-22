@@ -47,11 +47,18 @@ export interface EventsDeps { readonly producer: string; readonly metrics?: Metr
 
 const INSERT_SQL = `INSERT INTO core.event_log
   (tenant_id, event_id, event_type, producer, idempotency_key, aggregate_type, aggregate_id, aggregate_seq, occurred_at, envelope, created_by)
-  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-  ON CONFLICT (tenant_id, event_type, idempotency_key) DO NOTHING
-  RETURNING event_id`;
+  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`;
+const LOOKUP_DEF_SQL = `SELECT app.core_lookup_event_id($1, $2) AS event_id`;
 const EXISTING_SQL = `SELECT event_id FROM core.event_log WHERE tenant_id = $1 AND event_type = $2 AND idempotency_key = $3`;
 const FANOUT_SQL = `SELECT app.enqueue_job('core.event_fanout', jsonb_build_object('event_id', $1::uuid, 'tenant_id', $2::uuid), $1::text, NULL, NULL)`;
+
+function isIdemDuplicate(err: unknown): boolean {
+  if (!err || typeof err !== 'object') return false;
+  const e = err as { code?: string; constraint?: string };
+  if (e.code !== '23505') return false;
+  if (e.constraint && e.constraint !== 'event_log__tenant_id_event_type_idempotency_key__uq') return false;
+  return true;
+}
 
 export function createEvents(deps: EventsDeps) {
   const { producer } = deps;
@@ -80,16 +87,36 @@ export function createEvents(deps: EventsDeps) {
         throw new LimsError('common.internal');
       }
       const ag = i.aggregate!;
-      const { rows } = await tx.query(INSERT_SQL, [
-        ctx.tenantId, envelope.event_id, type, producer, i.idempotencyKey, ag.type, ag.id, ag.seq, tx.startedAt, envelope, a.id,
-      ]);
-      if (rows.length === 0) {
-        const hit = await tx.query(EXISTING_SQL, [ctx.tenantId, type, i.idempotencyKey]);
-        const eventId = hit.rows[0]?.event_id;
-        if (typeof eventId !== 'string') throw new LimsError('common.internal');
-        return { eventId, duplicate: true };
+      const eventId = envelope.event_id as string;
+      try {
+        await tx.query(INSERT_SQL, [
+          ctx.tenantId, eventId, type, producer, i.idempotencyKey, ag.type, ag.id, ag.seq, tx.startedAt, envelope, a.id,
+        ]);
+      } catch (err: unknown) {
+        if (isIdemDuplicate(err)) {
+          let existingId: string | undefined;
+          try {
+            const hit = await tx.query(LOOKUP_DEF_SQL, [type, i.idempotencyKey]);
+            existingId = hit.rows[0]?.event_id;
+          } catch {
+            // Definer function may be unmigrated in unit test environments; fallback to direct SELECT
+          }
+          if (!existingId) {
+            try {
+              const hit = await tx.query(EXISTING_SQL, [ctx.tenantId, type, i.idempotencyKey]);
+              existingId = hit.rows[0]?.event_id;
+            } catch {
+              // RLS hides event_log from non-staff caller
+            }
+          }
+          if (typeof existingId === 'string' && existingId.length > 0) {
+            return { eventId: existingId, duplicate: true };
+          }
+          // If the persisted event cannot be determined (cross-actor probe), do not mint a fake persisted event ID
+          throw new LimsError('common.conflict');
+        }
+        throw err;
       }
-      const eventId = rows[0].event_id as string;
       await tx.query(FANOUT_SQL, [eventId, ctx.tenantId]);
       deps.metrics?.inc('lims_core_events_published_total', { event_type: type, tenant_id: ctx.tenantId });
       return { eventId, duplicate: false };

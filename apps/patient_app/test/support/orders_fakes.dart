@@ -10,8 +10,6 @@
 //   lib/features/orders/orders_list_screen.dart  OrdersListScreen()               = A10 (no polling; pull-to-refresh)
 //   lib/features/orders/order_detail_screen.dart OrderDetailScreen({required String orderId}) = A11 (polls E21 every 30 s [CONV] while the app is in the foreground and the screen is mounted)
 //   Both screens: wrapped in LimsSecureScreen (REQ-SEC-109); status chips are LimsStatusChip; text from the spec (04-UI-UX A10/A11, 03-APP-FLOW §11): "No orders yet", "This order is no longer available", "Payment due", "Updated hh:mm".
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';

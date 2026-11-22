@@ -2,9 +2,7 @@
 // Resend countdown: driven by one-second timer ticks (not the wall clock), so tester.pump(Duration) advances it.
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lims_shared/lims_shared.dart';
 import 'package:patient_app/core/session/session_controller.dart';

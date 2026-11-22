@@ -3,16 +3,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../bookings/addresses_screen.dart';
 import 'about_screen.dart';
-import 'bookings_screen.dart';
+import 'contact_tab.dart';
 import 'members_screen.dart';
-import 'membership_screen.dart';
 import 'mhn_shell.dart';
 import 'mhn_state.dart';
 import 'mhn_theme.dart';
 import 'my_profile_screen.dart';
 import 'problem_screen.dart';
-import 'reports_screen.dart';
 
 class MhnProfileTab extends ConsumerWidget {
   const MhnProfileTab({super.key});
@@ -53,6 +52,7 @@ class MhnProfileTab extends ConsumerWidget {
               ),
             ),
             _Row(icon: Icons.groups_2_outlined, title: 'Other members', trailing: st.members.isEmpty ? 'None' : '${st.members.length}', onTap: () => mhnPush<void>(context, const MhnMembersScreen())),
+            _Row(icon: Icons.location_on_outlined, title: 'Saved addresses', onTap: () => mhnPush<void>(context, const AddressesScreen())),
             _Row(
               icon: Icons.calendar_today_outlined,
               title: 'Calendar',
@@ -83,15 +83,15 @@ class MhnProfileTab extends ConsumerWidget {
         MhnCard(
           padding: EdgeInsets.zero,
           child: Column(children: [
-            _Row(icon: Icons.description_outlined, title: 'Reports', onTap: () => mhnPush<void>(context, const MhnReportsScreen())),
-            _Row(icon: Icons.event_available_outlined, title: 'Bookings', trailing: st.bookings.isEmpty ? '' : '${st.bookings.length}', onTap: () => mhnPush<void>(context, const MhnBookingsScreen())),
-            _Row(icon: Icons.workspace_premium_outlined, title: 'Membership', trailing: st.isMember ? 'Active' : 'Not a member', onTap: () => mhnPush<void>(context, const MhnMembershipScreen())),
+            _Row(icon: Icons.description_outlined, title: 'Reports', onTap: () => ref.read(mhnTabProvider.notifier).go(mhnTabReports)),
+            _Row(icon: Icons.event_available_outlined, title: 'Bookings', trailing: st.bookings.isEmpty ? '' : '${st.bookings.length}', onTap: () => ref.read(mhnTabProvider.notifier).go(mhnTabBookings)),
           ]),
         ),
         const _Label('INFORMATION'),
         MhnCard(
           padding: EdgeInsets.zero,
           child: Column(children: [
+            _Row(icon: Icons.phone_outlined, title: 'Contact us', onTap: () => mhnPush<void>(context, const MhnPage(title: 'Contact us', child: MhnContactTab()))),
             _Row(icon: Icons.info_outline, title: 'About us', onTap: () => mhnPush<void>(context, const MhnAboutScreen())),
             _Row(icon: Icons.lock_outline, title: 'Privacy policy', badge: 'Draft', onTap: () => mhnToast(context, 'Draft text awaiting Metro Labs legal review')),
             _Row(icon: Icons.description_outlined, title: 'Terms & conditions', badge: 'Draft', onTap: () => mhnToast(context, 'Draft text awaiting Metro Labs legal review')),

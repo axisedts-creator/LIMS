@@ -21,6 +21,8 @@ dependencies:
   drift: 2.35.3
   sqlite3: 3.8.0
   flutter_secure_storage: 11.2.0
+  # CR-C17-010 location capture (same pin as packages/ui-flutter)
+  geolocator: 14.1.2
 dev_dependencies:
   flutter_test:
     sdk: flutter

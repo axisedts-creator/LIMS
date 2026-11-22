@@ -25,6 +25,11 @@ class MhnTest {
     required this.age,
     required this.desc,
     this.centre = false,
+    this.code = '',
+    this.kind = 'test',
+    this.sexRestriction,
+    this.hasIndicativePrice = true,
+    this.bookingKinds = const [],
   });
   final String id;
   final String cat;
@@ -35,7 +40,50 @@ class MhnTest {
   final String age;
   final String desc;
   final bool centre;
-  bool get needsFasting => fasting != noFast;
+  final String code;
+  final String kind;
+  final String? sexRestriction;
+  final bool hasIndicativePrice;
+  final List<String> bookingKinds;
+
+  bool get needsFasting => fasting.isNotEmpty && fasting != noFast;
+  bool get isPanel => kind == 'panel';
+
+  factory MhnTest.fromBookable(Map<String, Object?> map) {
+    final id = map['orderable_id'] as String? ?? '';
+    final name = map['display_name'] as String? ?? '';
+    final code = map['code'] as String? ?? '';
+    final kind = map['kind'] as String? ?? 'test';
+    final priceObj = map['indicative_price'] is Map
+        ? (map['indicative_price'] as Map).cast<String, Object?>()
+        : null;
+    final pricePaisa = priceObj?['amount_paisa'] is num
+        ? (priceObj!['amount_paisa'] as num).toInt()
+        : null;
+    final price = pricePaisa != null ? pricePaisa ~/ 100 : 0;
+    final kinds = map['booking_kinds'] is List
+        ? (map['booking_kinds'] as List).cast<String>()
+        : <String>[];
+    final sex = map['sex_restriction'] as String?;
+    final isCentre = kinds.contains('centre_visit') && !kinds.contains('home_collection');
+
+    return MhnTest(
+      id: id,
+      cat: kind == 'panel' ? 'packages' : 'general',
+      name: name.isNotEmpty ? name : code,
+      price: price,
+      fasting: noFast,
+      report: '',
+      age: '',
+      desc: code.isNotEmpty && code != name ? 'Code: $code' : '',
+      centre: isCentre,
+      code: code,
+      kind: kind,
+      sexRestriction: sex,
+      hasIndicativePrice: pricePaisa != null,
+      bookingKinds: kinds,
+    );
+  }
 }
 
 class MhnPackage {
@@ -141,7 +189,7 @@ const kFaqs = <MhnFaq>[
 const kHero = <MhnHeroSlide>[
   MhnHeroSlide('Health packages', 'Looking for a full body checkup?', 'Five packages, from Bronze to Elite.', 'See packages', 'packages'),
   MhnHeroSlide('At your door', 'Free home sample collection', 'A phlebotomist comes to you at the time you pick.', 'Book a test', 'tests'),
-  MhnHeroSlide('Membership', 'Save on every test', 'Individual and family plans.', 'See plans', 'membership'),
+  MhnHeroSlide('Laboratory tests', 'Accurate & verified reports', 'Comprehensive test profiles with barcoded sample tracking.', 'View tests', 'tests'),
 ];
 
 const kPlaceholders = <String>['Thyroid profile', 'CBC', 'HbA1c', 'Vitamin D', 'Lipid profile'];

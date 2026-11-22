@@ -9,8 +9,6 @@
 //   lib/features/reports/smart/smart_summary_entry.dart       SmartSummaryEntry({required String reportId, required int versionNo, required bool smartSummaryAvailable, bool superseded = false})
 //       = the A13 "smart tab" hook: renders NOTHING (no text, no API call) when smartSummaryAvailable is false; otherwise a control labelled "Smart summary" that pushes SmartSummaryScreen (Navigator.push).
 //   Text is the spec's (04-UI-UX A14), quoted in the tests. The app shows what E24 returned; no number is recomputed, no wording is invented.
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';

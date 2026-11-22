@@ -3,6 +3,7 @@
 // M2-M12 to in-memory synthetic data so the whole visit flow can be walked through on a phone. No network, no DB, no PHI.
 import 'package:flutter/material.dart';
 
+import '../core/platform/device_gps.dart';
 import '../features/handover/domain/handover_models.dart';
 import '../features/handover/ui/handover_screen.dart';
 import '../features/outbox/domain/outbox_row.dart';
@@ -175,7 +176,7 @@ class _PhleboPreviewHomeState extends State<PhleboPreviewHome> {
       otherVisitBarcodes: others,
       sink: _store,
       initialLog: List.of(_store.logs[visitId]!),
-      readGps: () async => const {'status': 'off'},
+      readGps: const DeviceGps().readGps,
       now: DateTime.now,
       launchUri: (_) async {},
       onExit: (outcome) {

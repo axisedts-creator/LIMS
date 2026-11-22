@@ -28,19 +28,13 @@
 //   Wizard chrome: ONE primary LimsButton per page (LD-140): "Continue" on steps 1-5, "Confirm booking" on step 6; a secondary LimsButton "Back" from step 2 on (entries kept in memory); steps in the order of 04-UI-UX A17.
 //   All five screens are wrapped in LimsSecureScreen (REQ-SEC-109: A18 PHI; bookings / addresses carry PHI). Status chips are LimsStatusChip (generic kind: tone + word). Money = rupees() of orders_format.dart ("Rs. 450.00").
 //   Slot labels are Asia/Kathmandu (UTC+05:45) clock times ("7:15" is contained in the label of 2026-11-16T01:30:00.000Z).
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lims_shared/lims_shared.dart';
 import 'package:lims_ui/lims_ui.dart';
 import 'package:patient_app/app/providers.dart';
-import 'package:patient_app/features/bookings/addresses_screen.dart';
-import 'package:patient_app/features/bookings/booking_detail_screen.dart';
 import 'package:patient_app/features/bookings/booking_wizard_screen.dart';
 import 'package:patient_app/features/bookings/bookings_api.dart';
-import 'package:patient_app/features/bookings/bookings_list_screen.dart';
 import 'package:patient_app/features/bookings/bookings_providers.dart';
 
 import 'auth_fakes.dart';

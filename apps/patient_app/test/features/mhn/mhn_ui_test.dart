@@ -15,8 +15,8 @@ SemanticsHandle? _sem;
 
 final _vertical = find.byWidgetPredicate((w) => w is Scrollable && w.axis == Axis.vertical).first;
 
-Future<ProviderContainer> open(WidgetTester t, {double scale = 1.0}) async {
-  t.view.physicalSize = const Size(390, 844);
+Future<ProviderContainer> open(WidgetTester t, {double scale = 1.0, Size size = const Size(390, 844)}) async {
+  t.view.physicalSize = size;
   t.view.devicePixelRatio = 1;
   addTearDown(t.view.reset);
   _sem = t.ensureSemantics();
@@ -25,7 +25,7 @@ Future<ProviderContainer> open(WidgetTester t, {double scale = 1.0}) async {
   await t.pumpWidget(UncontrolledProviderScope(
     container: c,
     child: MediaQuery(
-      data: MediaQueryData(size: const Size(390, 844), textScaler: TextScaler.linear(scale)),
+      data: MediaQueryData(size: size, textScaler: TextScaler.linear(scale)),
       child: MaterialApp(theme: LimsTheme.light(), home: const MhnShell()),
     ),
   ));
@@ -79,9 +79,9 @@ void main() {
       await open(t, scale: scale);
       expect(t.takeException(), isNull);
       expect(find.text('Hi, Aayush'), findsOneWidget);
-      expect(find.text('Become a Member'), findsOneWidget);
+      expect(find.bySemanticsLabel('Cart'), findsOneWidget);
       expect(find.text('Popular tests'), findsOneWidget);
-      for (final l in ['Home', 'Contact', 'All Tests', 'Profile']) {
+      for (final l in ['Home', 'All Tests', 'Bookings', 'Reports', 'Profile']) {
         expect(find.text(l), findsWidgets, reason: l);
       }
       for (final s in ['Tests by category', 'Routine Health Checkup for Men', 'Health Checkup Packages', 'ISO 9001:2015 certified · NPHL approved']) {
@@ -96,12 +96,48 @@ void main() {
     });
   }
 
+  for (final width in [360.0, 390.0, 430.0]) {
+    testWidgets('responsive layout: ${width}dp viewport with 1.3x text scale across all 5 tabs renders without overflow', (t) async {
+      await open(t, scale: 1.3, size: Size(width, 740));
+      expect(t.takeException(), isNull);
+      for (final l in ['Home', 'All Tests', 'Bookings', 'Reports', 'Profile']) {
+        await tab(t, l);
+        expect(t.takeException(), isNull, reason: 'Tab $l has overflow at width $width');
+      }
+      await end(t);
+    });
+  }
+
+  testWidgets('accessibility: 390dp viewport with 2.0x enlarged text scale renders without overflow', (t) async {
+    await open(t, scale: 2.0, size: const Size(390, 844));
+    expect(t.takeException(), isNull);
+    for (final l in ['Home', 'All Tests', 'Bookings', 'Reports', 'Profile']) {
+      await tab(t, l);
+      expect(t.takeException(), isNull, reason: 'Tab $l has overflow at 2.0x text scale');
+    }
+    await end(t);
+  });
+
   testWidgets('hero carousel changes slide after 4.8 s', (t) async {
     await open(t);
     expect(find.text('Looking for a full body checkup?'), findsOneWidget);
     await t.pump(const Duration(milliseconds: 5200));
     await t.pump(const Duration(milliseconds: 500));
     expect(find.text('Free home sample collection'), findsOneWidget);
+    await end(t);
+  });
+
+  testWidgets('H02 city change dialog: tap location opens sheet and updates location', (t) async {
+    final c = await open(t);
+    expect(find.text('Baneshwor, Kathmandu'), findsOneWidget);
+    await t.tap(find.text('Baneshwor, Kathmandu'));
+    await t.pumpAndSettle();
+    expect(find.text('Select service location'), findsOneWidget);
+    expect(find.text('Patan, Lalitpur'), findsOneWidget);
+    await t.tap(find.text('Patan, Lalitpur'));
+    await t.pumpAndSettle();
+    expect(c.read(mhnProvider).selectedLocationLabel, 'Patan, Lalitpur');
+    expect(find.text('Patan, Lalitpur'), findsOneWidget);
     await end(t);
   });
 
@@ -115,7 +151,7 @@ void main() {
     await t.pumpAndSettle();
     expect(find.text('Complete Blood Count (CBC)'), findsOneWidget);
     expect(find.text('Rs 400'), findsWidgets);
-    expect(find.text('Members would save Rs 40 on this cart'), findsOneWidget);
+    expect(find.textContaining('Members would save'), findsNothing);
     await t.tap(find.byTooltip('Remove Complete Blood Count (CBC)'));
     await t.pumpAndSettle();
     expect(find.text('Your cart is empty'), findsOneWidget);
@@ -196,22 +232,11 @@ void main() {
     await end(t);
   });
 
-  testWidgets('membership: activating gives 10% off the cart and shows the active card', (t) async {
-    final c = await open(t);
-    c.read(mhnProvider.notifier).toggleCart('lipid');
-    expect(c.read(mhnProvider.notifier).totals().total, 800);
-    await t.tap(find.text('Become a Member'));
-    await t.pumpAndSettle();
-    expect(find.text('Individual Membership'), findsOneWidget);
-    expect(find.text('Rs 999'), findsOneWidget);
-    expect(find.text('Rs 1,999'), findsOneWidget);
-    await t.tap(find.text('Activate Individual Membership · Rs 999'));
-    await t.pump();
-    await t.pump(const Duration(seconds: 2));
-    await t.pumpAndSettle();
-    expect(c.read(mhnProvider).isMember, isTrue);
-    expect(c.read(mhnProvider.notifier).totals().total, 720);
-    expect(find.textContaining('Active'), findsWidgets);
+  testWidgets('membership: excluded per ADR-SCOPE-001', (t) async {
+    await open(t);
+    expect(find.text('Become a Member'), findsNothing);
+    await tab(t, 'Profile');
+    expect(find.text('Membership'), findsNothing);
     await end(t);
   });
 
@@ -242,6 +267,16 @@ void main() {
     final p = c.read(mhnProvider).profile;
     expect((p.phone, p.email, p.blood), ('9812345678', 'aayush@example.com', 'B+'));
     expect(p.completeness, 86);
+    await end(t);
+  });
+
+  testWidgets('profile: saved addresses opens AddressesScreen', (t) async {
+    await open(t);
+    await tab(t, 'Profile');
+    expect(find.text('Saved addresses'), findsOneWidget);
+    await t.tap(find.text('Saved addresses'));
+    await t.pumpAndSettle();
+    expect(find.text('Addresses'), findsOneWidget);
     await end(t);
   });
 
@@ -278,8 +313,7 @@ void main() {
 
   testWidgets('reports: ready opens values with a Low flag, processing only toasts', (t) async {
     await open(t);
-    await tab(t, 'Profile');
-    await t.tap(find.text('Reports'));
+    await tab(t, 'Reports');
     await t.pumpAndSettle();
     expect(find.text('Ready'), findsOneWidget);
     expect(find.text('Processing'), findsOneWidget);
@@ -296,8 +330,9 @@ void main() {
 
   testWidgets('contact: FAQ search and accordion', (t) async {
     await open(t);
-    await tab(t, 'Contact');
-    expect(find.text('Contact us'), findsOneWidget);
+    await tab(t, 'Profile');
+    await t.tap(find.text('Contact us'));
+    await t.pumpAndSettle();
     expect(find.text('Metro Labs, Baneshwor'), findsOneWidget);
     await t.drag(find.byType(ListView).first, const Offset(0, -600));
     await t.pump();

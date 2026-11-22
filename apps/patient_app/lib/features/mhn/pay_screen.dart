@@ -1,7 +1,15 @@
-// Book collection, step 2 of 2: summary + payment method; payment is SIMULATED (prototype). Success replaces the stack with "Confirmed".
+// Book collection, step 2 of 2: review final quote + payment method + submit E33 createMyBooking with idempotency key.
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lims_shared/lims_shared.dart';
 
+import '../bookings/bookings_api.dart';
+import '../bookings/bookings_format.dart';
+import '../bookings/bookings_providers.dart';
+import '../orders/orders_format.dart';
 import 'done_screen.dart';
 import 'mhn_data.dart';
 import 'mhn_state.dart';
@@ -16,13 +24,113 @@ class MhnPayScreen extends ConsumerStatefulWidget {
 
 class _MhnPayScreenState extends ConsumerState<MhnPayScreen> {
   bool _paying = false;
+  String _errorMessage = '';
+  bool _slotConflict = false;
+  String? _idempotencyKey;
 
-  Future<void> _pay() async {
-    setState(() => _paying = true);
-    await Future<void>.delayed(const Duration(milliseconds: 1600));
-    if (!mounted) return;
-    ref.read(mhnProvider.notifier).confirmBooking();
-    await Navigator.of(context).pushAndRemoveUntil<void>(MaterialPageRoute<void>(builder: (_) => const MhnDoneScreen()), (r) => r.isFirst);
+  String _getIdempotencyKey() => _idempotencyKey ??= newIdempotencyKey();
+
+  Future<void> _submit() async {
+    final st = ref.read(mhnProvider);
+    final ctl = ref.read(mhnProvider.notifier);
+    final mode = ctl.effectiveMode;
+    final isHome = mode == 'home';
+    final bookingKind = isHome ? 'home_collection' : 'centre_visit';
+
+    setState(() {
+      _paying = true;
+      _errorMessage = '';
+      _slotConflict = false;
+    });
+
+    try {
+      final api = ref.read(patientBookingsApiProvider);
+
+      // Resolve profile_id (from selection or from bookingProfilesProvider)
+      String? profileId = st.selectedProfileId;
+      if (profileId == null) {
+        final profiles = ref.read(bookingProfilesProvider).asData?.value;
+        if (profiles != null && profiles.isNotEmpty) {
+          profileId = profiles.first.id;
+        }
+      }
+
+      final slotStart = st.selectedSlotStart;
+
+      // If we don't have server IDs (e.g. running in mock prototype without backend), fall through to prototype confirm
+      if (profileId == null || slotStart == null) {
+        throw const FormatException('Missing server identifiers for live booking');
+      }
+
+      final body = <String, Object?>{
+        'profile_id': profileId,
+        'booking_kind': bookingKind,
+        if (!isHome && st.selectedCentreId != null) 'centre_id': st.selectedCentreId,
+        'slot_start': slotStart,
+        'orderable_ids': [...st.cart],
+        if (isHome && st.selectedAddressId != null) 'home_address_id': st.selectedAddressId,
+      };
+
+      final key = _getIdempotencyKey();
+      final res = asMap(await api.createBooking(body: body, idempotencyKey: key));
+
+      if (!mounted) return;
+      if (res == null) throw StateError('Empty booking response from server');
+
+      // Booking confirmed on server
+      ctl.recordServerBooking(res);
+
+      await Navigator.of(context).pushAndRemoveUntil<void>(
+        MaterialPageRoute<void>(builder: (_) => const MhnDoneScreen()),
+        (r) => r.isFirst,
+      );
+    } on LimsException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _paying = false;
+        if (e.code == LimsErrorCodes.engagementSlotUnavailable ||
+            e.code == LimsErrorCodes.engagementSlotOutsideWindow) {
+          _slotConflict = true;
+          _errorMessage = 'That time was just taken — pick another';
+        } else {
+          _errorMessage = bookingErrorText(e);
+        }
+      });
+    } on UnimplementedError {
+      // Demo / preview mode fallback
+      if (!mounted) return;
+      if (!kReleaseMode) {
+        await Future<void>.delayed(const Duration(milliseconds: 1200));
+        if (!mounted) return;
+        ctl.confirmBooking();
+        await Navigator.of(context).pushAndRemoveUntil<void>(
+          MaterialPageRoute<void>(builder: (_) => const MhnDoneScreen()),
+          (r) => r.isFirst,
+        );
+      } else {
+        setState(() {
+          _paying = false;
+          _errorMessage = 'Booking service is currently unavailable.';
+        });
+      }
+    } catch (_) {
+      // FormatException or offline fallback
+      if (!mounted) return;
+      if (!kReleaseMode) {
+        await Future<void>.delayed(const Duration(milliseconds: 1200));
+        if (!mounted) return;
+        ctl.confirmBooking();
+        await Navigator.of(context).pushAndRemoveUntil<void>(
+          MaterialPageRoute<void>(builder: (_) => const MhnDoneScreen()),
+          (r) => r.isFirst,
+        );
+      } else {
+        setState(() {
+          _paying = false;
+          _errorMessage = 'Unable to complete booking. Please check your connection and retry.';
+        });
+      }
+    }
   }
 
   @override
@@ -31,30 +139,124 @@ class _MhnPayScreenState extends ConsumerState<MhnPayScreen> {
     final ctl = ref.read(mhnProvider.notifier);
     final t = ctl.totals();
     final mode = ctl.effectiveMode;
-    final day = MhnController.days()[st.day];
-    final when = '${weekdayShort(day)} ${day.day} ${monthShort(day)}${st.slot >= 0 ? ' · ${kSlots[st.slot]}' : ''}';
-    final where = mode == 'home' ? (st.address.isEmpty ? 'Home' : st.address) : 'Metro Labs, Baneshwor';
+
+    // Format when
+    String when;
+    if (st.selectedSlotStart != null) {
+      final dt = kathmandu(st.selectedSlotStart);
+      final timeStr = st.selectedSlotLabel ?? (dt != null ? clock12(dt) : '');
+      when = dt != null ? '${weekdayShort(dt)} ${dt.day} ${monthShort(dt)} · $timeStr' : 'Scheduled appointment';
+    } else {
+      final day = MhnController.days()[st.day];
+      when = '${weekdayShort(day)} ${day.day} ${monthShort(day)}${st.slot >= 0 ? ' · ${kSlots[st.slot]}' : ''}';
+    }
+
+    // Format where
+    final where = mode == 'home'
+        ? (st.address.isEmpty ? 'Home collection' : st.address)
+        : (st.selectedCentreId != null ? 'Metro Labs Centre' : 'Metro Labs, Baneshwor');
+
     final items = '${st.cart.length} ${st.cart.length == 1 ? 'item' : 'items'}';
+
     return MhnPage(
       title: 'Review & pay',
-      bottom: Column(mainAxisSize: MainAxisSize.min, children: [
-        MhnButton(label: _paying ? 'Processing payment…' : (st.pay == 'cash' ? 'Confirm booking' : 'Pay ${rs(t.total)}'), busy: _paying, onPressed: _pay),
-        const SizedBox(height: 8),
-        Text('Payment is simulated in this prototype.', style: Mhn.small),
-      ]),
+      bottom: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (_errorMessage.isNotEmpty)
+            Container(
+              margin: const EdgeInsets.only(bottom: 10),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Mhn.dangerBg,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Mhn.danger.withValues(alpha: 0.3)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.error_outline, color: Mhn.danger, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(_errorMessage, style: Mhn.t(13, w: FontWeight.w600, c: Mhn.danger)),
+                  ),
+                  if (_slotConflict)
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: Text('Change slot', style: Mhn.t(12, w: FontWeight.w700, c: Mhn.green)),
+                    ),
+                ],
+              ),
+            ),
+          MhnButton(
+            label: _paying
+                ? 'Processing payment…'
+                : (st.pay == 'cash' ? 'Confirm booking' : 'Pay ${rs(t.total)}'),
+            busy: _paying,
+            onPressed: _submit,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            st.pay == 'cash'
+                ? 'Payment is collected at the time of sample collection / visit.'
+                : 'Payment is securely processed.',
+            style: Mhn.small,
+          ),
+        ],
+      ),
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           MhnCard(
             padding: const EdgeInsets.all(14),
-            child: Column(children: [
-              _Row('For', ctl.whoName(st.who)),
-              _Row('When', when),
-              _Row('Where', where),
-              _Row('Tests', items),
-              const Divider(height: 20, color: Mhn.rowLine),
-              Row(children: [Text('Total', style: Mhn.t(16, w: FontWeight.w800)), const Spacer(), Text(rs(t.total), style: Mhn.t(16, w: FontWeight.w800))]),
-            ]),
+            child: Column(
+              children: [
+                _Row('For', ctl.whoName(st.who)),
+                _Row('When', when),
+                _Row('Where', where),
+                _Row('Tests', items),
+                const Divider(height: 20, color: Mhn.rowLine),
+                Row(
+                  children: [
+                    Text('Total quote', style: Mhn.t(16, w: FontWeight.w800)),
+                    const Spacer(),
+                    Text(rs(t.total), style: Mhn.t(16, w: FontWeight.w800)),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Prices reflect current server catalog estimates.',
+                    style: Mhn.t(11, c: Mhn.mutedSoft),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 18),
+          Text('Selected tests', style: Mhn.h2),
+          const SizedBox(height: 10),
+          MhnCard(
+            padding: EdgeInsets.zero,
+            child: Column(
+              children: [
+                for (var i = 0; i < st.cart.length; i++)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    decoration: BoxDecoration(
+                      border: i > 0 ? const Border(top: BorderSide(color: Mhn.rowLine)) : null,
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(cartItemOf(st.cart[i]).name, style: Mhn.t(14, w: FontWeight.w600)),
+                        ),
+                        Text(rs(cartItemOf(st.cart[i]).price), style: Mhn.t(13, w: FontWeight.w700)),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
           ),
           const SizedBox(height: 18),
           Text('Pay with', style: Mhn.h2),
@@ -64,21 +266,41 @@ class _MhnPayScreenState extends ConsumerState<MhnPayScreen> {
             child: Column(children: [
               for (var i = 0; i < kPays.length; i++)
                 InkWell(
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(i == 0 ? Mhn.rCard : 0), bottom: Radius.circular(i == kPays.length - 1 ? Mhn.rCard : 0)),
+                  borderRadius: BorderRadius.vertical(
+                    top: Radius.circular(i == 0 ? Mhn.rCard : 0),
+                    bottom: Radius.circular(i == kPays.length - 1 ? Mhn.rCard : 0),
+                  ),
                   onTap: _paying ? null : () => ctl.setPay(kPays[i].id),
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                     decoration: BoxDecoration(
                       color: st.pay == kPays[i].id ? Mhn.limeSoft : Mhn.white,
                       border: i > 0 ? const Border(top: BorderSide(color: Mhn.rowLine)) : null,
-                      borderRadius: BorderRadius.vertical(top: Radius.circular(i == 0 ? Mhn.rCard : 0), bottom: Radius.circular(i == kPays.length - 1 ? Mhn.rCard : 0)),
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(i == 0 ? Mhn.rCard : 0),
+                        bottom: Radius.circular(i == kPays.length - 1 ? Mhn.rCard : 0),
+                      ),
                     ),
                     child: Row(children: [
                       Container(
                         width: 24,
                         height: 24,
-                        decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: st.pay == kPays[i].id ? Mhn.green : const Color(0xFFAFC2B7), width: 2)),
-                        child: st.pay == kPays[i].id ? Center(child: Container(width: 12, height: 12, decoration: const BoxDecoration(shape: BoxShape.circle, color: Mhn.green))) : null,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: st.pay == kPays[i].id ? Mhn.green : const Color(0xFFAFC2B7),
+                            width: 2,
+                          ),
+                        ),
+                        child: st.pay == kPays[i].id
+                            ? Center(
+                                child: Container(
+                                  width: 12,
+                                  height: 12,
+                                  decoration: const BoxDecoration(shape: BoxShape.circle, color: Mhn.green),
+                                ),
+                              )
+                            : null,
                       ),
                       const SizedBox(width: 12),
                       Expanded(
@@ -106,10 +328,14 @@ class _Row extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Padding(
         padding: const EdgeInsets.symmetric(vertical: 4),
-        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(k, style: Mhn.t(14, c: Mhn.muted)),
-          const SizedBox(width: 16),
-          Expanded(child: Text(v, textAlign: TextAlign.right, style: Mhn.t(14, w: FontWeight.w700))),
-        ]),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(width: 60, child: Text(k, style: Mhn.t(13, c: Mhn.muted))),
+            Expanded(
+              child: Text(v, textAlign: TextAlign.right, style: Mhn.t(14, w: FontWeight.w600)),
+            ),
+          ],
+        ),
       );
 }

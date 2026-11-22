@@ -37,6 +37,8 @@ export function makeEventDb() {
   const stmts: Stmt[] = [];
   const failures: Array<{ match: RegExp; error: () => Error }> = [];
 
+  let onInsertError: (() => Error) | undefined;
+
   const tx = {
     startedAt: STARTED_AT,
     operation: { module: 'frontdesk', operationId: 'createOrder', context: 'tenant' },
@@ -45,6 +47,7 @@ export function makeEventDb() {
       const f = failures.find((x) => x.match.test(text));
       if (f) throw f.error();
       if (/INSERT\s+INTO\s+core\.event_log/i.test(text)) {
+        if (onInsertError) throw onInsertError();
         const env = envelopeOf(values);
         if (!env) throw new Error('fake: INSERT INTO core.event_log without an envelope value');
         const dup = work.events.find((e) => e.tenantId === env.tenant_id && e.eventType === env.event_type && e.key === env.idempotency_key);
@@ -54,6 +57,11 @@ export function makeEventDb() {
         }
         work.events.push({ tenantId: env.tenant_id, eventType: env.event_type, key: env.idempotency_key, eventId: env.event_id, envelope: env });
         return { rows: [{ event_id: env.event_id }] };
+      }
+      if (/app\.core_lookup_event_id/i.test(text)) {
+        const [type, key] = values;
+        const hit = work.events.find((e) => e.eventType === type && e.key === key);
+        return { rows: hit ? [{ event_id: hit.eventId }] : [] };
       }
       if (/FROM\s+core\.event_log/i.test(text)) {
         const hit = work.events.find((e) => values.includes(e.tenantId) && values.includes(e.eventType) && values.includes(e.key));
@@ -91,6 +99,7 @@ export function makeEventDb() {
     /** Statements that wrote (not SELECT-only). */
     writes: () => stmts.filter((s) => /INSERT|UPDATE|DELETE|enqueue_job/i.test(s.text)),
     fail(match: RegExp, error: () => Error = () => new Error('injected')) { failures.push({ match, error }); },
+    set onInsertError(fn: (() => Error) | undefined) { onInsertError = fn; },
   };
 }
 

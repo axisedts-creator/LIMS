@@ -1,6 +1,7 @@
 // My Health Now look: colours, radii and the small widgets every screen of the prototype is built from.
 // Values are the prototype's own (deep green #0E4B3B, lime #D9EE8C, pale green page), font is the app's bundled Poppins.
 import 'package:flutter/material.dart';
+import 'package:lims_ui/lims_ui.dart';
 
 abstract final class Mhn {
   static const green = Color(0xFF0E4B3B);
@@ -174,8 +175,9 @@ class MhnIconTile extends StatelessWidget {
 
 /// Screen title bar for pushed screens: rounded back button + title (prototype header).
 class MhnTopBar extends StatelessWidget implements PreferredSizeWidget {
-  const MhnTopBar(this.title, {super.key});
+  const MhnTopBar(this.title, {super.key, this.showBack = true});
   final String title;
+  final bool showBack;
 
   @override
   Size get preferredSize => const Size.fromHeight(64);
@@ -188,37 +190,40 @@ class MhnTopBar extends StatelessWidget implements PreferredSizeWidget {
           padding: const EdgeInsets.symmetric(horizontal: 12),
           decoration: const BoxDecoration(color: Mhn.page, border: Border(bottom: BorderSide(color: Mhn.line))),
           child: Row(children: [
-            Semantics(
-              button: true,
-              label: 'Back',
-              child: Material(
-                color: Mhn.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: Mhn.line)),
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(12),
-                  onTap: () => Navigator.of(context).maybePop(),
-                  child: const SizedBox(width: 44, height: 44, child: Icon(Icons.chevron_left, size: 26, color: Mhn.ink)),
+            if (showBack) ...[
+              Semantics(
+                button: true,
+                label: 'Back',
+                child: Material(
+                  color: Mhn.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: Mhn.line)),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(12),
+                    onTap: () => Navigator.of(context).maybePop(),
+                    child: const SizedBox(width: 44, height: 44, child: Icon(Icons.chevron_left, size: 26, color: Mhn.ink)),
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(width: 12),
+              const SizedBox(width: 12),
+            ],
             Expanded(child: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis, style: Mhn.t(18, w: FontWeight.w700))),
           ]),
         ),
       );
 }
 
-/// Page scaffold for pushed screens.
+/// Page scaffold for pushed screens and embedded tabs.
 class MhnPage extends StatelessWidget {
-  const MhnPage({super.key, required this.title, required this.child, this.bottom});
+  const MhnPage({super.key, required this.title, required this.child, this.bottom, this.showBack = true});
   final String title;
   final Widget child;
   final Widget? bottom;
+  final bool showBack;
 
   @override
   Widget build(BuildContext context) => Scaffold(
         backgroundColor: Mhn.page,
-        appBar: MhnTopBar(title),
+        appBar: MhnTopBar(title, showBack: showBack),
         body: child,
         bottomNavigationBar: bottom == null ? null : SafeArea(child: Padding(padding: const EdgeInsets.fromLTRB(16, 8, 16, 12), child: bottom)),
       );
@@ -264,7 +269,9 @@ class MhnField extends StatelessWidget {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Text(label, style: Mhn.t(12, w: FontWeight.w600, c: Mhn.muted)),
       const SizedBox(height: 6),
-      TextField(
+      LimsTextField(
+        label: label,
+        maxLength: 300,
         controller: controller,
         keyboardType: keyboardType,
         onChanged: onChanged,
@@ -272,6 +279,7 @@ class MhnField extends StatelessWidget {
         readOnly: readOnly,
         style: Mhn.t(15, w: FontWeight.w600),
         decoration: InputDecoration(
+          counterText: '',
           hintText: hint,
           hintStyle: Mhn.t(15, c: Mhn.mutedSoft),
           prefixText: prefix,

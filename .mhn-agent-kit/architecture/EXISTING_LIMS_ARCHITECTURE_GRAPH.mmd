@@ -1,0 +1,40 @@
+flowchart LR
+ subgraph CLIENT[Flutter: apps/patient_app]
+  UI[155 v1.1 visual IDs + approved navigation]
+  STATE[Riverpod controllers and typed repositories]
+  UI --> STATE
+ end
+ subgraph SERVER[Existing Fastify modular monolith: services/api]
+  PIPE[Auth JWT / tenant RLS / validation / idempotency / audit]
+  ID[identity & engagement]
+  CAT[catalog & frontdesk]
+  PAY[billing & payments]
+  HC[homecollection]
+  LAB[lab & reporting]
+  PIPE --> ID
+  PIPE --> CAT
+  PIPE --> PAY
+  PIPE --> HC
+  PIPE --> LAB
+ end
+ STATE -->|typed authenticated HTTPS / verified contracts| PIPE
+ subgraph OPS[Existing backing systems]
+  PG[(Postgres + RLS + audit + events)]
+  WORK[Graphile worker + notifications]
+  STORE[Report PDF renderer + secure object storage]
+  PHLEBO[Flutter phlebotomist app / offline outbox]
+  MAP[Map/routing + authorised collector GPS: unverified]
+  BRIDGE[Analyser bridge]
+ end
+ ID --> PG
+ CAT --> PG
+ PAY --> PG
+ HC --> PG
+ LAB --> PG
+ PG --> WORK
+ LAB --> STORE
+ PHLEBO -->|authenticated sync / scans| HC
+ MAP -.->|ONLY WHEN BACKEND EXISTS| HC
+ BRIDGE --> LAB
+ LAB -->|LIMS-approved states and released reports| PIPE
+ HC -->|collector state + specimen custody events| PIPE

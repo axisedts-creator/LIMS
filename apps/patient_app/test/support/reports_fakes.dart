@@ -15,7 +15,6 @@
 //     downloads once on open, writes the bytes to ONE file inside `ref.read(secureTempFilesProvider).dir` (SecureTempFiles, REQ-SEC-103), hands the path to the viewer builder; deletes that file on close (viewer onClose, system back, dispose) and never writes outside that dir.
 //     Both screens: wrapped in LimsSecureScreen (REQ-SEC-109); text from the spec (03-APP-FLOW §11 A12/A13, 04-UI-UX A12/A13): quoted strings below.
 //   The temp-file writes may be async: tests let real IO finish with `settle` (tester.runAsync).
-import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 

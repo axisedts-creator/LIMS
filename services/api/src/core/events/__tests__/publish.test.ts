@@ -7,7 +7,7 @@ import { LimsError } from '../../errors.js';
 import { createEvents } from '../publish.js';
 import {
   EVENT, PATIENT_ID, TENANT_A, TENANT_B, USER, MEMBERSHIP, SUPPORT_SESSION, REQ_ID, STARTED_AT, UUIDV7,
-  ctxFor, makeEventDb, orderCreatedPayload, publishInput, recorder, rejection, ORDER_ID,
+  ctxFor, makeEventDb, orderCreatedPayload, publishInput, recorder, rejection, ORDER_ID, pgError,
 } from './helpers.js';
 
 const setup = (producer = 'frontdesk') => {
@@ -58,11 +58,24 @@ describe('AC-0D-5.1 publish is atomic with the caller transaction', () => {
     expect(s.db.jobs).toHaveLength(0);
   });
 
-  it('INSERT uses ON CONFLICT (tenant_id, event_type, idempotency_key) DO NOTHING', async () => {
+  it('INSERT relies on unique constraint (tenant_id, event_type, idempotency_key) for dedupe without RLS-violating ON CONFLICT', async () => {
     const s = setup();
     await s.db.transaction(() => publish(s));
     const ins = s.db.stmts.find((x) => /INSERT\s+INTO\s+core\.event_log/i.test(x.text))!;
-    expect(ins.text).toMatch(/ON\s+CONFLICT\s*\(\s*tenant_id\s*,\s*event_type\s*,\s*idempotency_key\s*\)\s*DO\s+NOTHING/i);
+    expect(ins.text).toContain('INSERT INTO core.event_log');
+    expect(ins.text).not.toContain('ON CONFLICT');
+  });
+
+  it('unrelated unique constraint error throws and is not swallowed as duplicate', async () => {
+    const s = setup();
+    s.db.fail(/INSERT\s+INTO\s+core\.event_log/i, () => Object.assign(new Error('pk violation'), { code: '23505', constraint: 'event_log__pk' }));
+    await expect(s.db.transaction(() => publish(s))).rejects.toThrow('pk violation');
+  });
+
+  it('authorization or database errors (e.g. 42501, 23503) propagate without being swallowed', async () => {
+    const s = setup();
+    s.db.fail(/INSERT\s+INTO\s+core\.event_log/i, () => Object.assign(new Error('rls violation'), { code: '42501' }));
+    await expect(s.db.transaction(() => publish(s))).rejects.toThrow('rls violation');
   });
 });
 
@@ -206,5 +219,14 @@ describe('AC-0D-5.3 dedupe on (tenant_id, event_type, idempotency_key)', () => {
     await s.db.transaction(async () => { await publish(s); await publish(s, publishInput({ idempotencyKey: `${ORDER_ID}:created:2` })); });
     expect(s.db.events).toHaveLength(2);
     expect(s.db.jobs).toHaveLength(2);
+  });
+
+  it('unresolvable duplicate without persisted record throws common.conflict instead of returning minted ID', async () => {
+    const s = setup();
+    // Simulate 23505 unique error on INSERT but query lookup returns no row
+    s.db.onInsertError = () => pgError('23505', 'duplicate key value violates unique constraint');
+    const e = await rejection(s.db.transaction(() => publish(s)));
+    expect(e).toBeInstanceOf(LimsError);
+    expect(e.code).toBe('common.conflict');
   });
 });

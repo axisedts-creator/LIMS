@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'book_screen.dart';
-import 'membership_screen.dart';
 import 'mhn_data.dart';
 import 'mhn_shell.dart';
 import 'mhn_state.dart';
@@ -77,39 +76,18 @@ class MhnCartScreen extends ConsumerWidget {
           MhnCard(
             padding: const EdgeInsets.all(14),
             child: Column(children: [
-              _Line('Subtotal', rs(t.sub)),
-              if (st.isMember) _Line('Member saving (10%)', '− ${rs(t.save)}', color: Mhn.green),
-              _Line('Home collection', mode == 'home' ? 'Free' : 'Centre visit'),
+              _Line('Estimated subtotal', rs(t.sub)),
+              _Line('Collection method', mode == 'home' ? 'Home collection' : 'Centre visit'),
               const Divider(height: 22, color: Mhn.rowLine),
               Row(children: [
-                Text('Total', style: Mhn.t(17, w: FontWeight.w800)),
+                Text('Estimated total', style: Mhn.t(17, w: FontWeight.w800)),
                 const Spacer(),
-                Text(rs(t.total), style: Mhn.t(17, w: FontWeight.w800)),
+                Text(rs(t.sub), style: Mhn.t(17, w: FontWeight.w800)),
               ]),
               const SizedBox(height: 6),
-              Align(alignment: Alignment.centerLeft, child: Text('Most prices are sample figures.', style: Mhn.small)),
+              Align(alignment: Alignment.centerLeft, child: Text('Prices shown are indicative. Final quote is confirmed at booking review.', style: Mhn.small)),
             ]),
           ),
-          if (!st.isMember) ...[
-            const SizedBox(height: 12),
-            Material(
-              color: Mhn.limeSoft,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14), side: const BorderSide(color: Mhn.limeLine)),
-              child: InkWell(
-                borderRadius: BorderRadius.circular(14),
-                onTap: () => mhnPush<void>(context, const MhnMembershipScreen()),
-                child: Padding(
-                  padding: const EdgeInsets.all(14),
-                  child: Row(children: [
-                    const Icon(Icons.workspace_premium_outlined, size: 20, color: Mhn.green),
-                    const SizedBox(width: 10),
-                    Expanded(child: Text('Members would save ${rs(t.would)} on this cart', style: Mhn.t(13, w: FontWeight.w700, c: Mhn.green))),
-                    const Icon(Icons.chevron_right, size: 20, color: Mhn.green),
-                  ]),
-                ),
-              ),
-            ),
-          ],
         ],
       ),
     );
@@ -117,14 +95,13 @@ class MhnCartScreen extends ConsumerWidget {
 }
 
 class _Line extends StatelessWidget {
-  const _Line(this.k, this.v, {this.color = Mhn.muted});
+  const _Line(this.k, this.v);
   final String k;
   final String v;
-  final Color color;
 
   @override
   Widget build(BuildContext context) => Padding(
         padding: const EdgeInsets.symmetric(vertical: 4),
-        child: Row(children: [Text(k, style: Mhn.t(14, c: color)), const Spacer(), Text(v, style: Mhn.t(14, c: color))]),
+        child: Row(children: [Text(k, style: Mhn.t(14, c: Mhn.muted)), const Spacer(), Text(v, style: Mhn.t(14, c: Mhn.muted))]),
       );
 }

@@ -1,7 +1,6 @@
 // T-P3 — A13 report viewer (04-UI-UX A13; 03-APP-FLOW §11 A13 states; US-EN-08.3, 08.6; REQ-SEC-103 "transient PDFs are the only files the app writes; they die on viewer close and on logout").
 // The platform PDF view is replaced by a stub (reportViewerBuilderProvider); what is tested is OUR code: download, the temp file, its deletion, the save confirmation, error states. Synthetic data only.
 import 'dart:async';
-import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';

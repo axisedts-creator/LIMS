@@ -16,8 +16,6 @@
 //        = A15 result (app link /payments/{payment_request_id}/done?intent_id&outcome): polls E42 every 3 s up to 60 s; the returnUri is NEVER read for a result (REQ-SEC-059).
 //          completed -> "Paid — thank you"; failed / expired -> "Payment not completed" [Try again]; review or 60 s without a result -> "We are confirming your payment. This can take a few minutes." [Check again] (one more E42).
 //   Both screens: LimsSecureScreen (REQ-SEC-109), LimsStatusChip for status, no hex colours / pixel radii / inline styles (LD-140).
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';

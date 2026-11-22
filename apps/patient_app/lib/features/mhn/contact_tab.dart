@@ -1,5 +1,6 @@
 // Contact tab: call / WhatsApp / email, address card with map, searchable FAQ accordion. Numbers and hours are placeholders to be confirmed.
 import 'package:flutter/material.dart';
+import 'package:lims_ui/lims_ui.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'mhn_data.dart';
@@ -97,11 +98,13 @@ class _MhnContactTabState extends State<MhnContactTab> {
             const Icon(Icons.search, size: 20, color: Mhn.green),
             const SizedBox(width: 10),
             Expanded(
-              child: TextField(
+              child: LimsTextField(
+                label: 'Search questions',
+                maxLength: 100,
                 controller: _q,
                 onChanged: (_) => setState(() => _open = -1),
                 style: Mhn.t(15, w: FontWeight.w600),
-                decoration: InputDecoration(border: InputBorder.none, isCollapsed: true, hintText: 'Search questions', hintStyle: Mhn.t(15, c: Mhn.muted)),
+                decoration: InputDecoration(border: InputBorder.none, counterText: '', isCollapsed: true, hintText: 'Search questions', hintStyle: Mhn.t(15, c: Mhn.muted)),
               ),
             ),
           ]),

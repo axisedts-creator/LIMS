@@ -5,6 +5,7 @@ import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../orders/orders_format.dart';
 import 'mhn_data.dart';
 
 @immutable
@@ -72,6 +73,14 @@ class MhnState {
     this.lastId = '',
     this.doneMode = 'home',
     this.calendar = 'BS',
+    this.selectedLocationLabel = 'Baneshwor, Kathmandu',
+    this.selectedProfileId,
+    this.selectedAddressId,
+    this.selectedCentreId,
+    this.selectedSlotStart,
+    this.selectedSlotLabel,
+    this.lastBookingNo = '',
+    this.lastBooking,
   });
 
   final List<String> cart;
@@ -90,6 +99,14 @@ class MhnState {
   final String lastId;
   final String doneMode;
   final String calendar;
+  final String selectedLocationLabel;
+  final String? selectedProfileId;
+  final String? selectedAddressId;
+  final String? selectedCentreId;
+  final String? selectedSlotStart;
+  final String? selectedSlotLabel;
+  final String lastBookingNo;
+  final Map<String, Object?>? lastBooking;
 
   bool get isMember => member != null;
   MhnPlan? get plan => member == null ? null : kPlans.firstWhere((p) => p.id == member);
@@ -97,12 +114,18 @@ class MhnState {
   MhnState copyWith({
     List<String>? cart, String? who, String? mode, int? day, int? slot, String? address, String? pay, List<MhnBooking>? bookings,
     String? member, String? memberId, String? memberUntil, MhnProfile? profile, List<MhnMember>? members, String? lastId, String? doneMode, String? calendar,
+    String? selectedLocationLabel,
+    String? selectedProfileId, String? selectedAddressId, String? selectedCentreId, String? selectedSlotStart, String? selectedSlotLabel, String? lastBookingNo, Map<String, Object?>? lastBooking,
   }) =>
       MhnState(
         cart: cart ?? this.cart, who: who ?? this.who, mode: mode ?? this.mode, day: day ?? this.day, slot: slot ?? this.slot,
         address: address ?? this.address, pay: pay ?? this.pay, bookings: bookings ?? this.bookings, member: member ?? this.member,
         memberId: memberId ?? this.memberId, memberUntil: memberUntil ?? this.memberUntil, profile: profile ?? this.profile,
         members: members ?? this.members, lastId: lastId ?? this.lastId, doneMode: doneMode ?? this.doneMode, calendar: calendar ?? this.calendar,
+        selectedLocationLabel: selectedLocationLabel ?? this.selectedLocationLabel,
+        selectedProfileId: selectedProfileId ?? this.selectedProfileId, selectedAddressId: selectedAddressId ?? this.selectedAddressId,
+        selectedCentreId: selectedCentreId ?? this.selectedCentreId, selectedSlotStart: selectedSlotStart ?? this.selectedSlotStart,
+        selectedSlotLabel: selectedSlotLabel ?? this.selectedSlotLabel, lastBookingNo: lastBookingNo ?? this.lastBookingNo, lastBooking: lastBooking ?? this.lastBooking,
       );
 }
 
@@ -117,21 +140,32 @@ class MhnCartItem {
   final bool centre;
 }
 
+final Map<String, MhnCartItem> _cartItemRegistry = {};
+
+void registerCartItem(MhnCartItem item) {
+  _cartItemRegistry[item.id] = item;
+}
+
 MhnCartItem cartItemOf(String id) {
+  if (_cartItemRegistry.containsKey(id)) {
+    return _cartItemRegistry[id]!;
+  }
   for (final t in kTests) {
     if (t.id == id) return MhnCartItem(t.id, t.name, t.price, '${t.fasting} · Report ${t.report}', t.centre);
   }
-  final p = kPackages.firstWhere((x) => x.id == id);
-  return MhnCartItem(p.id, '${p.name} package', p.price, p.params, false);
+  for (final p in kPackages) {
+    if (p.id == id) return MhnCartItem(p.id, '${p.name} package', p.price, p.params, false);
+  }
+  return MhnCartItem(id, id, 0, '', false);
 }
 
 @immutable
 class MhnTotals {
-  const MhnTotals(this.sub, this.save, this.would);
+  const MhnTotals(this.sub, [this.save = 0, this.would = 0]);
   final int sub;
-  final int save; // member saving actually applied
-  final int would; // what a member would save
-  int get total => sub - save + homeFee;
+  final int save; // 0: paid membership excluded per ADR-SCOPE-001
+  final int would; // 0: paid membership excluded per ADR-SCOPE-001
+  int get total => sub + homeFee;
 }
 
 class MhnController extends Notifier<MhnState> {
@@ -148,8 +182,7 @@ class MhnController extends Notifier<MhnState> {
 
   MhnTotals totals() {
     final sub = state.cart.fold<int>(0, (a, id) => a + cartItemOf(id).price);
-    final would = (sub * memberDiscount).round();
-    return MhnTotals(sub, state.isMember ? would : 0, would);
+    return MhnTotals(sub, 0, 0);
   }
 
   bool get hasImaging => state.cart.any((id) => cartItemOf(id).centre);
@@ -169,6 +202,47 @@ class MhnController extends Notifier<MhnState> {
   void setAddress(String v) => state = state.copyWith(address: v);
   void setPay(String v) => state = state.copyWith(pay: v);
   void toggleCalendar() => state = state.copyWith(calendar: state.calendar == 'BS' ? 'AD' : 'BS');
+  void setSelectedProfileId(String? id) => state = state.copyWith(selectedProfileId: id);
+  void setSelectedAddressId(String? id) => state = state.copyWith(selectedAddressId: id);
+  void setSelectedCentreId(String? id) => state = state.copyWith(selectedCentreId: id);
+  void setSelectedSlot({String? slotStart, String? slotLabel}) => state = state.copyWith(
+        selectedSlotStart: slotStart,
+        selectedSlotLabel: slotLabel,
+      );
+
+  void recordServerBooking(Map<String, Object?> booking) {
+    final id = booking['id'] as String? ?? state.lastId;
+    final no = booking['booking_no'] as String? ?? id;
+    final mode = (booking['booking_kind'] as String?) == 'home_collection' ? 'home' : 'lab';
+    final slotStart = booking['slot_start'] as String?;
+    final t = kathmandu(slotStart);
+    final when = t != null ? '${weekdayShort(t)} ${t.day} ${monthShort(t)} · ${clock12(t)}' : 'Upcoming appointment';
+    final itemsList = mapList(booking['items']);
+    final itemNames = [
+      for (final it in itemsList)
+        (it['display_name'] as String?) ?? (it['orderable_id'] as String? ?? 'Test')
+    ];
+    final b = MhnBooking(
+      id: no,
+      when: when,
+      items: itemNames.isNotEmpty ? itemNames : [for (final c in state.cart) cartItemOf(c).name],
+      who: whoName(state.who),
+      mode: mode,
+      total: totals().total,
+      payLabel: kPays.where((p) => p.id == state.pay).firstOrNull?.label ?? 'Pay on collection',
+    );
+    state = state.copyWith(
+      bookings: [...state.bookings, b],
+      lastId: no,
+      lastBookingNo: no,
+      lastBooking: booking,
+      doneMode: mode,
+      cart: const [],
+      slot: -1,
+      selectedSlotStart: null,
+      selectedSlotLabel: null,
+    );
+  }
 
   String whoName(String id) {
     if (id == 'self') return state.profile.name;
@@ -202,6 +276,13 @@ class MhnController extends Notifier<MhnState> {
   void activateMembership(String planId) {
     final until = DateTime.now().add(const Duration(days: 365));
     state = state.copyWith(member: planId, memberId: 'MHN-M-${1000 + _rng.nextInt(9000)}', memberUntil: dateLong(until));
+  }
+
+  void setSelectedLocation({String? centreId, required String locationLabel}) {
+    state = state.copyWith(
+      selectedCentreId: centreId,
+      selectedLocationLabel: locationLabel,
+    );
   }
 
   void saveProfile(MhnProfile p) => state = state.copyWith(profile: p);

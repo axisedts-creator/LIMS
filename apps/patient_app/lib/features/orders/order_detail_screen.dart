@@ -11,6 +11,7 @@ import 'package:lims_ui/lims_ui.dart';
 
 import '../../app/providers.dart';
 import '../../core/session/session_controller.dart';
+import '../reports/report_viewer_screen.dart';
 import 'orders_api.dart';
 import 'orders_format.dart';
 import 'orders_providers.dart';
@@ -210,6 +211,17 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
             LimsListTile(
               title: kinds[r['kind']] ?? 'Report', // an unknown kind is passed through as "Report" (x-extensible)
               subtitle: [if (r['panel_names'] is List) (r['panel_names']! as List).whereType<String>().join(', '), dateText(r['released_at'])].where((e) => e.isNotEmpty).join(' · '),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: r['report_id'] is String && r['version_no'] is int
+                  ? () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => ReportViewerScreen(
+                            reportId: r['report_id']! as String,
+                            versionNo: r['version_no']! as int,
+                          ),
+                        ),
+                      )
+                  : null,
             ),
         ]),
       ),

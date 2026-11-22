@@ -5,9 +5,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../bookings/bookings_api.dart';
+import '../bookings/bookings_providers.dart';
+import '../orders/orders_format.dart';
 import 'cart_screen.dart';
 import 'category_screen.dart';
-import 'membership_screen.dart';
 import 'mhn_data.dart';
 import 'mhn_package_card.dart';
 import 'mhn_shell.dart';
@@ -59,8 +61,6 @@ class _MhnHomeTabState extends ConsumerState<MhnHomeTab> {
     switch (go) {
       case 'packages':
         mhnPush<void>(context, const MhnPackagesScreen());
-      case 'membership':
-        mhnPush<void>(context, const MhnMembershipScreen());
       default:
         ref.read(mhnTabProvider.notifier).go(mhnTabTests);
     }
@@ -107,51 +107,26 @@ class _MhnHomeTabState extends ConsumerState<MhnHomeTab> {
                     overflow: TextOverflow.ellipsis,
                     style: Mhn.t(16, w: FontWeight.w700),
                   ),
-                  Text(
-                    'Baneshwor, Kathmandu',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Mhn.t(13, c: Mhn.muted),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 8),
-            Flexible(
-              flex: 2,
-              child: Material(
-                color: Mhn.lime,
-                shape: const StadiumBorder(),
-                child: InkWell(
-                  customBorder: const StadiumBorder(),
-                  onTap: () =>
-                      mhnPush<void>(context, const MhnMembershipScreen()),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 10,
-                    ),
+                  InkWell(
+                    onTap: () => showCitySelectionSheet(context, ref),
+                    borderRadius: BorderRadius.circular(4),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(
-                          Icons.workspace_premium_outlined,
-                          size: 16,
-                          color: Mhn.green,
-                        ),
-                        const SizedBox(width: 6),
                         Flexible(
                           child: Text(
-                            st.isMember ? 'Member' : 'Become a Member',
+                            st.selectedLocationLabel,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: Mhn.t(13, w: FontWeight.w700, c: Mhn.green),
+                            style: Mhn.t(13, c: Mhn.muted),
                           ),
                         ),
+                        const SizedBox(width: 4),
+                        const Icon(Icons.keyboard_arrow_down, size: 16, color: Mhn.muted),
                       ],
                     ),
                   ),
-                ),
+                ],
               ),
             ),
             const SizedBox(width: 8),
@@ -684,5 +659,112 @@ class _AgeRow extends ConsumerWidget {
         ),
       ],
     ],
+  );
+}
+
+/// H02 City / Service Location selection bottom sheet (E31 listMyBookingCentres).
+Future<void> showCitySelectionSheet(BuildContext context, WidgetRef ref) async {
+  PatientBookingsApi? api;
+  try {
+    api = ref.read(patientBookingsApiProvider);
+  } catch (_) {
+    api = null;
+  }
+
+  List<Map<String, Object?>> centres = [];
+  if (api != null) {
+    try {
+      final res = asMap(await api.listBookingCentres(bookingKind: 'home_collection'));
+      centres = mapList(res?['data']);
+    } catch (_) {
+      centres = [];
+    }
+  }
+
+  if (centres.isEmpty) {
+    centres = const [
+      {
+        'centre_id': '01950c16-0000-7000-8000-000000000031',
+        'display_name': 'MetroLabs Baneshwor',
+        'address_text': 'Baneshwor, Kathmandu',
+      },
+      {
+        'centre_id': '01950c16-0000-7000-8000-000000000032',
+        'display_name': 'MetroLabs Lalitpur',
+        'address_text': 'Patan, Lalitpur',
+      },
+    ];
+  }
+
+  if (!context.mounted) return;
+
+  await showModalBottomSheet<void>(
+    context: context,
+    backgroundColor: Mhn.white,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+    ),
+    builder: (ctx) {
+      final current = ref.watch(mhnProvider).selectedLocationLabel;
+      return SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 20, 16, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Text('Select service location', style: Mhn.h2),
+                  const Spacer(),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Mhn.muted),
+                    onPressed: () => Navigator.of(ctx).pop(),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Choose your city or branch to check test availability and booking slots.',
+                style: Mhn.t(13, c: Mhn.muted),
+              ),
+              const SizedBox(height: 16),
+              for (final c in centres) ...[
+                Builder(
+                  builder: (_) {
+                    final label = (c['address_text'] as String?)?.isNotEmpty == true
+                        ? c['address_text'] as String
+                        : (c['display_name'] as String? ?? 'Kathmandu');
+                    final id = c['centre_id'] as String?;
+                    final isSelected = current == label;
+                    return ListTile(
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      leading: Icon(
+                        isSelected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
+                        color: isSelected ? Mhn.green : Mhn.muted,
+                      ),
+                      title: Text(label, style: Mhn.t(15, w: FontWeight.w700)),
+                      subtitle: Text(
+                        c['display_name'] as String? ?? '',
+                        style: Mhn.t(13, c: Mhn.muted),
+                      ),
+                      onTap: () {
+                        ref.read(mhnProvider.notifier).setSelectedLocation(
+                          centreId: id,
+                          locationLabel: label,
+                        );
+                        Navigator.of(ctx).pop();
+                        mhnToast(context, 'Location set to $label');
+                      },
+                    );
+                  },
+                ),
+                const Divider(height: 1, color: Mhn.line),
+              ],
+            ],
+          ),
+        ),
+      );
+    },
   );
 }

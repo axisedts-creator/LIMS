@@ -90,6 +90,11 @@ class LimsTextField extends StatelessWidget {
     this.keyboardType,
     this.inputFormatters,
     this.obscureText = false,
+    this.maxLines = 1,
+    this.readOnly = false,
+    this.style,
+    this.decoration,
+    this.textInputAction,
   });
 
   final String label;
@@ -101,6 +106,11 @@ class LimsTextField extends StatelessWidget {
   final TextInputType? keyboardType;
   final List<TextInputFormatter>? inputFormatters;
   final bool obscureText;
+  final int maxLines;
+  final bool readOnly;
+  final TextStyle? style;
+  final InputDecoration? decoration;
+  final TextInputAction? textInputAction;
 
   @override
   Widget build(BuildContext context) => TextField(
@@ -113,7 +123,11 @@ class LimsTextField extends StatelessWidget {
         obscureText: obscureText,
         keyboardType: keyboardType,
         inputFormatters: inputFormatters,
-        decoration: InputDecoration(labelText: label, errorText: errorText, errorMaxLines: 3),
+        maxLines: maxLines,
+        readOnly: readOnly,
+        style: style,
+        textInputAction: textInputAction,
+        decoration: decoration ?? InputDecoration(labelText: label, errorText: errorText, errorMaxLines: 3),
       );
 }
 

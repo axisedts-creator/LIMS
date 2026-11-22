@@ -331,14 +331,119 @@ export function createMyBookingService(deps: { repo?: BookingRepo } = {}) {
     const [items, names] = await Promise.all([repo.itemsOf(tx, { tenantId, bookingIds: [b['id']] }), repo.centreNames(tx, tenantId)]);
     return myBody(b, items, names.find((c) => c['centre_id'] === b['centre_id'])?.['display_name'] ?? '', cutoffMin);
   }
+  // shortcut: provisional 30-min assignment delay and 15-min GPS freshness threshold pending formal MetroLabs operational policy sign-off
+const PROVISIONAL_ASSIGNMENT_DELAY_MIN = 30;
+const PROVISIONAL_GPS_FRESHNESS_MIN = 15;
+
+function buildTracking(b: Row): Record<string, unknown> {
+    if (b['booking_kind'] === 'centre') {
+      return {
+        tracking_status: 'centre_visit',
+        location_status: 'not_applicable',
+        status_message: 'Please arrive at the centre during your scheduled slot.',
+        eta_available: false,
+      };
+    }
+    if (b['status'] === 'cancelled') {
+      return {
+        tracking_status: 'cancelled',
+        location_status: 'not_applicable',
+        status_message: 'Booking cancelled.',
+        eta_available: false,
+      };
+    }
+    if (b['status'] === 'completed') {
+      return {
+        tracking_status: 'completed',
+        location_status: 'not_applicable',
+        status_message: 'Sample collection completed.',
+        eta_available: false,
+      };
+    }
+    if (b['status'] === 'checked_in') {
+      return {
+        tracking_status: 'in_lab',
+        location_status: 'not_applicable',
+        status_message: 'Samples received at laboratory for testing.',
+        eta_available: false,
+      };
+    }
+    const isReassigned = Boolean(b['reassigned']);
+    let trackingStatus = b['tracking_status'];
+    if (!trackingStatus) {
+      if (isReassigned) {
+        trackingStatus = 'reassigned';
+      } else if (b['collector_display_name']) {
+        trackingStatus = 'collector_assigned';
+      } else {
+        trackingStatus = 'not_assigned';
+      }
+    }
+
+    let locationStatus = b['location_status'];
+    if (!locationStatus) {
+      if (trackingStatus === 'not_assigned') {
+        locationStatus = 'not_applicable';
+      } else if (trackingStatus === 'assignment_delayed') {
+        locationStatus = 'unavailable';
+      } else if (isReassigned) {
+        locationStatus = 'waiting_for_location';
+      } else if (b['coordinates']) {
+        const capturedMs = Date.parse(b['coordinates']['captured_at'] ?? '');
+        locationStatus = (!Number.isNaN(capturedMs) && Date.now() - capturedMs > PROVISIONAL_GPS_FRESHNESS_MIN * 60_000) ? 'delayed' : 'live';
+      } else {
+        locationStatus = 'delayed';
+      }
+    }
+
+    let statusMessage = b['status_message'];
+    if (!statusMessage) {
+      if (trackingStatus === 'assignment_delayed') {
+        statusMessage = 'Collector assignment is taking longer than usual.';
+      } else if (trackingStatus === 'reassigned') {
+        statusMessage = 'Phlebotomist reassigned. Updating live tracking details.';
+      } else if (trackingStatus === 'collector_assigned') {
+        statusMessage = 'Phlebotomist assigned. Live GPS tracking will begin when en route.';
+      } else if (trackingStatus === 'en_route') {
+        statusMessage = 'Phlebotomist is en route to your address.';
+      } else if (trackingStatus === 'collector_arrived') {
+        statusMessage = 'Phlebotomist has arrived at your address.';
+      } else if (trackingStatus === 'collector_late') {
+        statusMessage = 'Phlebotomist is running delayed.';
+      } else if (trackingStatus === 'sample_collected') {
+        statusMessage = 'Samples collected successfully.';
+      } else if (trackingStatus === 'partially_collected') {
+        statusMessage = 'Sample collection is partially completed.';
+      } else {
+        statusMessage = 'A phlebotomist will be assigned before your appointment.';
+      }
+    }
+
+    const res: Record<string, unknown> = {
+      tracking_status: trackingStatus,
+      location_status: locationStatus,
+      status_message: statusMessage,
+      eta_available: Boolean(b['eta_available']),
+    };
+    if (b['collector_display_name']) res['collector_display_name'] = b['collector_display_name'];
+    if (isReassigned) res['reassigned'] = true;
+    // REQ-SEC: Old coordinates must be invalidated immediately on reassignment; coordinates terminate on completion/cancellation
+    if (b['coordinates'] && !isReassigned && !['cancelled', 'completed', 'checked_in'].includes(b['status'])) {
+      res['coordinates'] = b['coordinates'];
+    }
+    if (b['eta_minutes'] !== undefined && b['eta_minutes'] !== null) res['eta_minutes'] = b['eta_minutes'];
+    return res;
+  }
   function myBody(b: Row, items: Row[], centreName: string, cutoffMin: number): Record<string, unknown> {
     const o: Record<string, unknown> = {
       id: b['id'], booking_no: b['booking_no'], profile_id: b['link_id'], booking_kind: b['booking_kind'], centre_id: b['centre_id'], centre_display_name: centreName, slot_start: iso(b['slot_start']), slot_end: iso(b['slot_end']),
       status: b['status'], items: items.map((i) => ({ orderable_id: i['orderable_id'], display_name: i['display_name_snapshot'], ...money(i['indicative_price_paisa']) })), created_via: b['created_via'], version: b['version'],
     };
+    if (b['order_id']) o['order_id'] = b['order_id'];
     if (b['home_address_id']) o['home_address_id'] = b['home_address_id'];
     if (b['status'] === 'confirmed') o['cancellable_until'] = new Date(Date.parse(iso(b['slot_start'])) - cutoffMin * 60_000).toISOString();
     if (b['cancel_reason_code']) o['cancel_reason_code'] = b['cancel_reason_code'];
+    o['tracking'] = buildTracking(b);
     return o;
   }
   const cutoffOf = (s: Row | undefined): number => s?.['booking_cancel_cutoff_minutes'] ?? DEFAULT_CUTOFF_MIN;

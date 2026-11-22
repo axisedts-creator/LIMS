@@ -8786,6 +8786,78 @@ components:
             - staff
         version:
           $ref: _common.yaml#/components/schemas/Version
+        order_id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        tracking:
+          $ref: "#/components/schemas/BookingTrackingDto"
+    BookingTrackingDto:
+      type: object
+      additionalProperties: false
+      required:
+        - tracking_status
+        - location_status
+        - status_message
+      properties:
+        tracking_status:
+          type: string
+          enum:
+            - not_assigned
+            - assignment_delayed
+            - collector_assigned
+            - en_route
+            - collector_arrived
+            - collector_late
+            - reassigned
+            - waiting_for_location
+            - tracking_restored
+            - sample_collected
+            - partially_collected
+            - in_lab
+            - recollection_needed
+            - report_ready
+            - completed
+            - cancelled
+            - centre_visit
+        location_status:
+          type: string
+          enum:
+            - live
+            - delayed
+            - unavailable
+            - lost
+            - offline
+            - not_applicable
+        status_message:
+          type: string
+          maxLength: 300
+        collector_display_name:
+          type: string
+          maxLength: 100
+        coordinates:
+          type: object
+          additionalProperties: false
+          required:
+            - latitude
+            - longitude
+            - captured_at
+          properties:
+            latitude:
+              type: number
+            longitude:
+              type: number
+            accuracy_m:
+              type: integer
+            captured_at:
+              $ref: _common.yaml#/components/schemas/IsoUtc
+        reassigned:
+          type: boolean
+        eta_available:
+          type: boolean
+        eta_minutes:
+          type: integer
+          nullable: true
+        updated_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
     StaffBooking:
       type: object
       additionalProperties: false

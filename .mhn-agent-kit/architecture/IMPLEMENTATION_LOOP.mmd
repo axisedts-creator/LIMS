@@ -1,0 +1,31 @@
+flowchart TD
+  START([START: agent receives PDFs and actual monorepo]) --> P[0. Verify branch, repo, Ponytail skill and scope]
+  P --> AUDIT[1. Extract 155 v1.1 IDs and audit real code/contract/DB for each]
+  AUDIT --> SCOPE{Navigation or Phase-2 scope unresolved?}
+  SCOPE -->|yes| HOLD[Record approval blocker; preserve frozen v1.0 behavior; do NOT invent requirements]
+  HOLD --> CHOOSE[Choose next unblocked approved vertical slice]
+  SCOPE -->|no| CHOOSE
+  CHOOSE --> EXIST{Does an existing, working implementation already satisfy it?}
+  EXIST -->|yes| VERIFY[Run relevant contract, UI, permission and regression tests; record evidence]
+  EXIST -->|partial| EXTEND[Smallest safe change to existing module and Flutter feature]
+  EXIST -->|no| CONTRACT[Propose missing contract and data policy; get approval if business or clinical]
+  CONTRACT --> BLOCK{Approved and inputs available?}
+  BLOCK -->|no| LOG[Mark BLOCKED / NOT IMPLEMENTED, no misleading demo success]
+  BLOCK -->|yes| EXTEND
+  EXTEND --> TEST[Tests: server + DB RLS + authz + Dart + UX + negative cases]
+  TEST --> PASS{All acceptance criteria and tests pass?}
+  PASS -->|no| DIAG[Identify root cause and regression scope] --> EXTEND
+  PASS -->|yes| VERIFY
+  VERIFY --> LEDGER[Update screen-to-route-to-contract-to-service evidence + report]
+  LOG --> LEDGER
+  LEDGER --> MORE{More approved, unblocked feature slices?}
+  MORE -->|yes| CHOOSE
+  MORE -->|no| DONE{All 155 IDs accounted for and release gates met?}
+  DONE -->|no| REPORT[Report exact blocked decisions and incomplete work; STOP before release]
+  DONE -->|yes| RELEASE[Stage candidate + real device and operations signoff; NEVER auto-deploy]
+  classDef stop fill:#fff2e3,stroke:#bb7800,color:#392600;
+  classDef success fill:#e7f1e8,stroke:#07584D,color:#12392e;
+  classDef process fill:#e8f0f5,stroke:#39637a,color:#12313c;
+  class HOLD,LOG,REPORT stop;
+  class VERIFY,LEDGER,RELEASE success;
+  class AUDIT,EXTEND,CONTRACT,TEST process;

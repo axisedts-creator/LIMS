@@ -252,125 +252,148 @@ exports[`RS-C7 key screens (DOM snapshots) > instruments: link cards (state dot 
 </div>
 <div class="lims-data-table">
 <div class="lims-table-scroll">
-<table role="grid" aria-label="Instruments" class="lims-table lims-table-regular lims-table-sticky">
-<thead>
-<tr>
-<th scope="col" class="lims-col lims-align-start" aria-sort="ascending">
-<button type="button" class="lims-btn lims-btn-ghost lims-btn-sm">Code</button>
-</th>
-<th scope="col" class="lims-col lims-align-start">Name</th>
-<th scope="col" class="lims-col lims-align-start">Status</th>
-<th scope="col" class="lims-col lims-align-start lims-hide-below-xl">Vendor / Model</th>
-<th scope="col" class="lims-col lims-align-start lims-hide-below-xl">Protocol</th>
-<th scope="col" class="lims-col lims-align-start">Agent</th>
-<th scope="col" class="lims-col lims-align-start">Driver</th>
-<th scope="col" class="lims-col lims-align-start lims-hide-below-xl">Link state</th>
-<th scope="col" class="lims-col lims-align-start" aria-sort="none">
-<button type="button" class="lims-btn lims-btn-ghost lims-btn-sm">Last message</button>
-</th>
-<th scope="col" class="lims-col lims-align-end">Unmapped</th>
+<template>
+</template>
+<span data-focus-scope-start="true" hidden="">
+</span>
+<table class="lims-table lims-table-regular lims-table-sticky" data-rac="" aria-label="Instruments" id="ID" role="grid" tabindex="0" aria-describedby="ID" data-collection="ID">
+<thead role="rowgroup" class="ID" data-rac="">
+<tr role="row">
+<th tabindex="-1" data-collection="ID" data-key="code" id="ID" role="columnheader" aria-colindex="1" data-ID="true" aria-sort="ascending" class="lims-col lims-align-start" data-rac="" data-allows-sorting="true" data-sort-direction="ascending" aria-describedby="ID">Code</th>
+<th tabindex="-1" data-collection="ID" data-key="name" id="ID" role="columnheader" aria-colindex="2" data-ID="true" class="lims-col lims-align-start" data-rac="">Name</th>
+<th tabindex="-1" data-collection="ID" data-key="status" id="ID" role="columnheader" aria-colindex="3" data-ID="true" class="lims-col lims-align-start" data-rac="">Status</th>
+<th tabindex="-1" data-collection="ID" data-key="vendor" id="ID" role="columnheader" aria-colindex="4" data-ID="true" class="lims-col lims-align-start lims-hide-below-xl" data-rac="">Vendor / Model</th>
+<th tabindex="-1" data-collection="ID" data-key="protocol" id="ID" role="columnheader" aria-colindex="5" data-ID="true" class="lims-col lims-align-start lims-hide-below-xl" data-rac="">Protocol</th>
+<th tabindex="-1" data-collection="ID" data-key="agent" id="ID" role="columnheader" aria-colindex="6" data-ID="true" class="lims-col lims-align-start" data-rac="">Agent</th>
+<th tabindex="-1" data-collection="ID" data-key="driver" id="ID" role="columnheader" aria-colindex="7" data-ID="true" class="lims-col lims-align-start" data-rac="">Driver</th>
+<th tabindex="-1" data-collection="ID" data-key="link" id="ID" role="columnheader" aria-colindex="8" data-ID="true" class="lims-col lims-align-start lims-hide-below-xl" data-rac="">Link state</th>
+<th tabindex="-1" data-collection="ID" data-key="last_message" id="ID" role="columnheader" aria-colindex="9" data-ID="true" aria-sort="none" class="lims-col lims-align-start" data-rac="" data-allows-sorting="true" aria-describedby="ID">Last message</th>
+<th tabindex="-1" data-collection="ID" data-key="unmapped" id="ID" role="columnheader" aria-colindex="10" data-ID="true" class="lims-col lims-align-end" data-rac="">Unmapped</th>
 </tr>
 </thead>
-<tbody>
-<tr class="lims-row">
-<td class="lims-cell lims-align-start">
-<a class="lims-link" href="/instruments/instruments/01a1a98a-ac40-7000-8000-000000003585">SIM-CHEM-1</a> </td>
-<td class="lims-cell lims-align-start">Sim chem </td>
-<td class="lims-cell lims-align-start">
+<tbody class="ID" data-rac="" role="rowgroup">
+<tr data-row-id="01a1a98a-ac40-7000-8000-000000003585" data-row-index="0" class="lims-row" style="--table-row-level: 1;" data-rac="" role="row" tabindex="-1" data-collection="ID" data-key="01a1a98a-ac40-7000-8000-000000003585" id="ID" aria-labelledby="ID" data-level="1">
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="rowheader" data-column-index="0" data-level="1">
+<a class="lims-link" href="/instruments/instruments/01a1a98a-ac40-7000-8000-000000003585">SIM-CHEM-1</a>
+</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="gridcell" data-column-index="1" data-level="1">Sim chem</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="gridcell" data-column-index="2" data-level="1">
 <span class="lims-chip lims-chip-md lims-tone-neutral" data-tone="neutral">
 <svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
 <path d="M12 3a9 9 0 100 18 9 9 0 000-18z">
 </path>
-</svg>Draft</span> </td>
-<td class="lims-cell lims-align-start lims-hide-below-xl">Synthetic Vendor SV-100 </td>
-<td class="lims-cell lims-align-start lims-hide-below-xl">ASTM </td>
-<td class="lims-cell lims-align-start">SYN-AGENT-1 </td>
-<td class="lims-cell lims-align-start">Generic ASTM E1394 <span class="lims-chip lims-chip-md lims-tone-warning" data-tone="warning">
+</svg>Draft</span>
+</td>
+<td class="lims-cell lims-align-start lims-hide-below-xl" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="gridcell" data-column-index="3" data-level="1">Synthetic Vendor SV-100</td>
+<td class="lims-cell lims-align-start lims-hide-below-xl" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="gridcell" data-column-index="4" data-level="1">ASTM</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="gridcell" data-column-index="5" data-level="1">SYN-AGENT-1</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="gridcell" data-column-index="6" data-level="1">Generic ASTM E1394 <span class="lims-chip lims-chip-md lims-tone-warning" data-tone="warning">
 <svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
 <path d="M12 4l9 16H3L12 4zM12 10v4M12 17h.01">
 </path>
-</svg>Generic</span> </td>
-<td class="lims-cell lims-align-start lims-hide-below-xl">up </td>
-<td class="lims-cell lims-align-start">
-<time class="lims-date-text" datetime="2026-11-07T03:58:00.000Z">07/11/2026 09:43 AM</time> </td>
-<td class="lims-cell lims-align-end">
-<a class="lims-link" href="/instruments/instruments/01a1a98a-ac40-7000-8000-000000003585/mappings">3 unmapped</a> </td>
+</svg>Generic</span>
+</td>
+<td class="lims-cell lims-align-start lims-hide-below-xl" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="gridcell" data-column-index="7" data-level="1">up</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="gridcell" data-column-index="8" data-level="1">
+<time class="lims-date-text" datetime="2026-11-07T03:58:00.000Z">07/11/2026 09:43 AM</time>
+</td>
+<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="gridcell" data-column-index="9" data-level="1">
+<a class="lims-link" href="/instruments/instruments/01a1a98a-ac40-7000-8000-000000003585/mappings">3 unmapped</a>
+</td>
 </tr>
-<tr class="lims-row">
-<td class="lims-cell lims-align-start">
-<a class="lims-link" href="/instruments/instruments/01a1a98a-ac40-7000-8000-000000003586">SIM-CHEM-2</a> </td>
-<td class="lims-cell lims-align-start">Verified chem </td>
-<td class="lims-cell lims-align-start">
+<tr data-row-id="01a1a98a-ac40-7000-8000-000000003586" data-row-index="1" class="lims-row" style="--table-row-level: 1;" data-rac="" role="row" tabindex="-1" data-collection="ID" data-key="01a1a98a-ac40-7000-8000-000000003586" id="ID" aria-labelledby="ID" data-level="1">
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="rowheader" data-column-index="0" data-level="1">
+<a class="lims-link" href="/instruments/instruments/01a1a98a-ac40-7000-8000-000000003586">SIM-CHEM-2</a>
+</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="gridcell" data-column-index="1" data-level="1">Verified chem</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="gridcell" data-column-index="2" data-level="1">
 <span class="lims-chip lims-chip-md lims-tone-success" data-tone="success">
 <svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
 <path d="M12 3a9 9 0 100 18 9 9 0 000-18zM8 12l3 3 5-6">
 </path>
-</svg>Live</span> </td>
-<td class="lims-cell lims-align-start lims-hide-below-xl">Synthetic Vendor SV-100 </td>
-<td class="lims-cell lims-align-start lims-hide-below-xl">ASTM </td>
-<td class="lims-cell lims-align-start">SYN-AGENT-1 </td>
-<td class="lims-cell lims-align-start">Generic ASTM E1394 <span class="lims-chip lims-chip-md lims-tone-success" data-tone="success">
+</svg>Live</span>
+</td>
+<td class="lims-cell lims-align-start lims-hide-below-xl" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="gridcell" data-column-index="3" data-level="1">Synthetic Vendor SV-100</td>
+<td class="lims-cell lims-align-start lims-hide-below-xl" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="gridcell" data-column-index="4" data-level="1">ASTM</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="gridcell" data-column-index="5" data-level="1">SYN-AGENT-1</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="gridcell" data-column-index="6" data-level="1">Generic ASTM E1394 <span class="lims-chip lims-chip-md lims-tone-success" data-tone="success">
 <svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
 <path d="M12 3a9 9 0 100 18 9 9 0 000-18zM8 12l3 3 5-6">
 </path>
-</svg>Verified</span> </td>
-<td class="lims-cell lims-align-start lims-hide-below-xl">up </td>
-<td class="lims-cell lims-align-start">
-<time class="lims-date-text" datetime="2026-11-07T03:58:00.000Z">07/11/2026 09:43 AM</time> </td>
-<td class="lims-cell lims-align-end">
-<a class="lims-link" href="/instruments/instruments/01a1a98a-ac40-7000-8000-000000003586/mappings">0 unmapped</a> </td>
+</svg>Verified</span>
+</td>
+<td class="lims-cell lims-align-start lims-hide-below-xl" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="gridcell" data-column-index="7" data-level="1">up</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="gridcell" data-column-index="8" data-level="1">
+<time class="lims-date-text" datetime="2026-11-07T03:58:00.000Z">07/11/2026 09:43 AM</time>
+</td>
+<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="gridcell" data-column-index="9" data-level="1">
+<a class="lims-link" href="/instruments/instruments/01a1a98a-ac40-7000-8000-000000003586/mappings">0 unmapped</a>
+</td>
 </tr>
-<tr class="lims-row">
-<td class="lims-cell lims-align-start">
-<a class="lims-link" href="/instruments/instruments/01a1a98a-ac40-7000-8000-000000003587">SIM-HEM-1</a> </td>
-<td class="lims-cell lims-align-start">Sketchy </td>
-<td class="lims-cell lims-align-start">
+<tr data-row-id="01a1a98a-ac40-7000-8000-000000003587" data-row-index="2" class="lims-row" style="--table-row-level: 1;" data-rac="" role="row" tabindex="-1" data-collection="ID" data-key="01a1a98a-ac40-7000-8000-000000003587" id="ID" aria-labelledby="ID" data-level="1">
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="rowheader" data-column-index="0" data-level="1">
+<a class="lims-link" href="/instruments/instruments/01a1a98a-ac40-7000-8000-000000003587">SIM-HEM-1</a>
+</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="gridcell" data-column-index="1" data-level="1">Sketchy</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="gridcell" data-column-index="2" data-level="1">
 <span class="lims-chip lims-chip-md lims-tone-info" data-tone="info">
 <svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
 <path d="M12 8h.01M11 12h1v5h1M12 3a9 9 0 100 18 9 9 0 000-18z">
 </path>
 </svg>Commissioning</span>
-<span class="lims-description"> (no results sent)</span> </td>
-<td class="lims-cell lims-align-start lims-hide-below-xl">Synthetic Vendor SV-100 </td>
-<td class="lims-cell lims-align-start lims-hide-below-xl">ASTM </td>
-<td class="lims-cell lims-align-start">SYN-AGENT-1 </td>
-<td class="lims-cell lims-align-start">Generic ASTM E1394 <span class="lims-chip lims-chip-md lims-tone-danger" data-tone="danger">
+<span class="lims-description"> (no results sent)</span>
+</td>
+<td class="lims-cell lims-align-start lims-hide-below-xl" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="gridcell" data-column-index="3" data-level="1">Synthetic Vendor SV-100</td>
+<td class="lims-cell lims-align-start lims-hide-below-xl" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="gridcell" data-column-index="4" data-level="1">ASTM</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="gridcell" data-column-index="5" data-level="1">SYN-AGENT-1</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="gridcell" data-column-index="6" data-level="1">Generic ASTM E1394 <span class="lims-chip lims-chip-md lims-tone-danger" data-tone="danger">
 <svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
 <path d="M12 3a9 9 0 100 18 9 9 0 000-18zM9 9l6 6M15 9l-6 6">
 </path>
-</svg>Sketch — not for live use</span> </td>
-<td class="lims-cell lims-align-start lims-hide-below-xl">up </td>
-<td class="lims-cell lims-align-start">
-<time class="lims-date-text" datetime="2026-11-07T03:58:00.000Z">07/11/2026 09:43 AM</time> </td>
-<td class="lims-cell lims-align-end">
-<a class="lims-link" href="/instruments/instruments/01a1a98a-ac40-7000-8000-000000003587/mappings">12 unmapped</a> </td>
+</svg>Sketch — not for live use</span>
+</td>
+<td class="lims-cell lims-align-start lims-hide-below-xl" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="gridcell" data-column-index="7" data-level="1">up</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="gridcell" data-column-index="8" data-level="1">
+<time class="lims-date-text" datetime="2026-11-07T03:58:00.000Z">07/11/2026 09:43 AM</time>
+</td>
+<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="gridcell" data-column-index="9" data-level="1">
+<a class="lims-link" href="/instruments/instruments/01a1a98a-ac40-7000-8000-000000003587/mappings">12 unmapped</a>
+</td>
 </tr>
-<tr class="lims-row">
-<td class="lims-cell lims-align-start">
-<a class="lims-link" href="/instruments/instruments/01a1a98a-ac40-7000-8000-000000003589">SIM-SUS-1</a> </td>
-<td class="lims-cell lims-align-start">Paused </td>
-<td class="lims-cell lims-align-start">
+<tr data-row-id="01a1a98a-ac40-7000-8000-000000003589" data-row-index="3" class="lims-row" style="--table-row-level: 1;" data-rac="" role="row" tabindex="-1" data-collection="ID" data-key="01a1a98a-ac40-7000-8000-000000003589" id="ID" aria-labelledby="ID" data-level="1">
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="rowheader" data-column-index="0" data-level="1">
+<a class="lims-link" href="/instruments/instruments/01a1a98a-ac40-7000-8000-000000003589">SIM-SUS-1</a>
+</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="gridcell" data-column-index="1" data-level="1">Paused</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="gridcell" data-column-index="2" data-level="1">
 <span class="lims-chip lims-chip-md lims-tone-warning" data-tone="warning">
 <svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
 <path d="M12 4l9 16H3L12 4zM12 10v4M12 17h.01">
 </path>
 </svg>Suspended</span>
-<span class="lims-description"> (no results sent)</span> </td>
-<td class="lims-cell lims-align-start lims-hide-below-xl">Synthetic Vendor SV-100 </td>
-<td class="lims-cell lims-align-start lims-hide-below-xl">ASTM </td>
-<td class="lims-cell lims-align-start">SYN-AGENT-1 </td>
-<td class="lims-cell lims-align-start">Generic ASTM E1394 <span class="lims-chip lims-chip-md lims-tone-warning" data-tone="warning">
+<span class="lims-description"> (no results sent)</span>
+</td>
+<td class="lims-cell lims-align-start lims-hide-below-xl" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="gridcell" data-column-index="3" data-level="1">Synthetic Vendor SV-100</td>
+<td class="lims-cell lims-align-start lims-hide-below-xl" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="gridcell" data-column-index="4" data-level="1">ASTM</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="gridcell" data-column-index="5" data-level="1">SYN-AGENT-1</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="gridcell" data-column-index="6" data-level="1">Generic ASTM E1394 <span class="lims-chip lims-chip-md lims-tone-warning" data-tone="warning">
 <svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
 <path d="M12 4l9 16H3L12 4zM12 10v4M12 17h.01">
 </path>
-</svg>Generic</span> </td>
-<td class="lims-cell lims-align-start lims-hide-below-xl">up </td>
-<td class="lims-cell lims-align-start">— </td>
-<td class="lims-cell lims-align-end">
-<a class="lims-link" href="/instruments/instruments/01a1a98a-ac40-7000-8000-000000003589/mappings">0 unmapped</a> </td>
+</svg>Generic</span>
+</td>
+<td class="lims-cell lims-align-start lims-hide-below-xl" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="gridcell" data-column-index="7" data-level="1">up</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="gridcell" data-column-index="8" data-level="1">—</td>
+<td class="lims-cell lims-align-end" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="gridcell" data-column-index="9" data-level="1">
+<a class="lims-link" href="/instruments/instruments/01a1a98a-ac40-7000-8000-000000003589/mappings">0 unmapped</a>
+</td>
 </tr>
 </tbody>
 </table>
+<span data-focus-scope-end="true" hidden="">
+</span>
+</div>
+<div role="status" class="lims-visually-hidden">
 </div>
 </div>
 </section>
@@ -405,13 +428,13 @@ exports[`RS-C7 key screens (DOM snapshots) > messages: log table with the existi
 </div>
 <div id="ID" aria-labelledby="ID" role="tabpanel" class="lims-tabpanel" data-rac="">
 <div role="search" class="lims-filter-bar">
-<div role="group" aria-labelledby="_r_1v_-l" class="lims-field lims-date-range">
-<span id="_r_1v_-l" class="lims-label">Received</span>
+<div role="group" aria-labelledby="_r_40_-l" class="lims-field lims-date-range">
+<span id="_r_40_-l" class="lims-label">Received</span>
 <div class="lims-inline">
 <div class="lims-field lims-date-field">
-<label class="lims-label" for="_r_20_">From</label>
+<label class="lims-label" for="_r_41_">From</label>
 <div class="lims-input-group">
-<input id="_r_20_" class="lims-input" placeholder="DD/MM/YYYY" autocomplete="off" type="text" value="" name="received_from">
+<input id="_r_41_" class="lims-input" placeholder="DD/MM/YYYY" autocomplete="off" type="text" value="" name="received_from">
 <button type="button" class="lims-btn lims-btn-ghost lims-icon-btn" aria-label="Open calendar for From" aria-expanded="false">
 <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 <rect x="4" y="5" width="16" height="15">
@@ -423,9 +446,9 @@ exports[`RS-C7 key screens (DOM snapshots) > messages: log table with the existi
 </div>
 </div>
 <div class="lims-field lims-date-field">
-<label class="lims-label" for="_r_21_">To</label>
+<label class="lims-label" for="_r_42_">To</label>
 <div class="lims-input-group">
-<input id="_r_21_" class="lims-input" placeholder="DD/MM/YYYY" autocomplete="off" type="text" value="" name="received_to">
+<input id="_r_42_" class="lims-input" placeholder="DD/MM/YYYY" autocomplete="off" type="text" value="" name="received_to">
 <button type="button" class="lims-btn lims-btn-ghost lims-icon-btn" aria-label="Open calendar for To" aria-expanded="false">
 <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 <rect x="4" y="5" width="16" height="15">
@@ -479,12 +502,12 @@ exports[`RS-C7 key screens (DOM snapshots) > messages: log table with the existi
 </div>
 </div>
 <div class="lims-field">
-<label class="lims-label" id="_r_2m_">Kind</label>
+<label class="lims-label" id="_r_4n_">Kind</label>
 <template>
 </template>
 <span data-focus-scope-start="true" hidden="">
 </span>
-<div class="lims-listbox lims-chip-list" data-rac="" aria-labelledby="_r_2m_" aria-multiselectable="true" role="listbox" aria-orientation="horizontal" id="ID" tabindex="0" data-collection="ID" data-layout="stack" data-orientation="horizontal">
+<div class="lims-listbox lims-chip-list" data-rac="" aria-labelledby="_r_4n_" aria-multiselectable="true" role="listbox" aria-orientation="horizontal" id="ID" tabindex="0" data-collection="ID" data-layout="stack" data-orientation="horizontal">
 <div class="lims-option lims-chip" data-rac="" role="option" aria-selected="false" tabindex="-1" data-collection="ID" data-key="data" data-ID="true" id="ID" data-selection-mode="multiple">Data</div>
 <div class="lims-option lims-chip" data-rac="" role="option" aria-selected="false" tabindex="-1" data-collection="ID" data-key="host_query" data-ID="true" id="ID" data-selection-mode="multiple">Host query</div>
 <div class="lims-option lims-chip" data-rac="" role="option" aria-selected="false" tabindex="-1" data-collection="ID" data-key="attachment" data-ID="true" id="ID" data-selection-mode="multiple">Attachment</div>
@@ -494,12 +517,12 @@ exports[`RS-C7 key screens (DOM snapshots) > messages: log table with the existi
 </span>
 </div>
 <div class="lims-field">
-<label class="lims-label" id="_r_2s_">Latest outcome</label>
+<label class="lims-label" id="_r_4t_">Latest outcome</label>
 <template>
 </template>
 <span data-focus-scope-start="true" hidden="">
 </span>
-<div class="lims-listbox lims-chip-list" data-rac="" aria-labelledby="_r_2s_" aria-multiselectable="true" role="listbox" aria-orientation="horizontal" id="ID" tabindex="0" data-collection="ID" data-layout="stack" data-orientation="horizontal">
+<div class="lims-listbox lims-chip-list" data-rac="" aria-labelledby="_r_4t_" aria-multiselectable="true" role="listbox" aria-orientation="horizontal" id="ID" tabindex="0" data-collection="ID" data-layout="stack" data-orientation="horizontal">
 <div class="lims-option lims-chip" data-rac="" role="option" aria-selected="false" tabindex="-1" data-collection="ID" data-key="parsed" data-ID="true" id="ID" data-selection-mode="multiple">Parsed</div>
 <div class="lims-option lims-chip" data-rac="" role="option" aria-selected="false" tabindex="-1" data-collection="ID" data-key="shadow" data-ID="true" id="ID" data-selection-mode="multiple">Shadow</div>
 <div class="lims-option lims-chip" data-rac="" role="option" aria-selected="false" tabindex="-1" data-collection="ID" data-key="quarantined" data-ID="true" id="ID" data-selection-mode="multiple">Quarantined</div>
@@ -530,8 +553,8 @@ exports[`RS-C7 key screens (DOM snapshots) > messages: log table with the existi
 </span>Has unmapped codes</label>
 <div>
 <div class="lims-field lims-barcode">
-<label class="lims-label" for="_r_38_">Barcode</label>
-<input id="_r_38_" class="lims-input lims-mono" autocomplete="off" autocapitalize="characters" spellcheck="false" type="text" name="search">
+<label class="lims-label" for="_r_59_">Barcode</label>
+<input id="_r_59_" class="lims-input lims-mono" autocomplete="off" autocapitalize="characters" spellcheck="false" type="text" name="search">
 <span role="status" class="lims-visually-hidden">
 </span>
 </div>

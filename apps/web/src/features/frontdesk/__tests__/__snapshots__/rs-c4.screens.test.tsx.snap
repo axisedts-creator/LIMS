@@ -108,9 +108,9 @@ exports[`RS-C4 key-screen snapshots > Daily cash (open shift) 1`] = `
 </div>
 <div role="search" class="lims-filter-bar">
 <div class="lims-field lims-date-field">
-<label class="lims-label" for="_r_4_">Business date</label>
+<label class="lims-label" for="_r_uh_">Business date</label>
 <div class="lims-input-group">
-<input id="_r_4_" class="lims-input" placeholder="DD/MM/YYYY" autocomplete="off" type="text" value="07/11/2026" name="date">
+<input id="_r_uh_" class="lims-input" placeholder="DD/MM/YYYY" autocomplete="off" type="text" value="07/11/2026" name="date">
 <button type="button" class="lims-btn lims-btn-ghost lims-icon-btn" aria-label="Open calendar for Business date" aria-expanded="false">
 <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 <rect x="4" y="5" width="16" height="15">
@@ -140,14 +140,14 @@ exports[`RS-C4 key-screen snapshots > Daily cash (open shift) 1`] = `
 <span class="lims-stat-value">No variance</span>
 </div>
 </div>
-<section class="lims-chart-card" aria-labelledby="_r_5_">
+<section class="lims-chart-card" aria-labelledby="_r_ui_">
 <header class="lims-chart-card-header">
-<h2 id="_r_5_" class="lims-chart-card-title">Net by payment method</h2>
+<h2 id="_r_ui_" class="lims-chart-card-title">Net by payment method</h2>
 </header>
 <div class="lims-chart-frame">
 <figure class="lims-chart">
-<figcaption id="_r_6_-t" class="lims-chart-title">Net by payment method</figcaption>
-<svg role="img" aria-labelledby="_r_6_-t" viewBox="0 0 600 240" width="100%" height="240" class="lims-chart-svg">
+<figcaption id="_r_uj_-t" class="lims-chart-title">Net by payment method</figcaption>
+<svg role="img" aria-labelledby="_r_uj_-t" viewBox="0 0 600 240" width="100%" height="240" class="lims-chart-svg">
 <line class="lims-chart-axis" x1="56" y1="204" x2="588" y2="204">
 </line>
 <text class="lims-chart-tick" x="52" y="12" text-anchor="end">Rs. 3,277.00</text>
@@ -490,7 +490,9 @@ exports[`RS-C4 key-screen snapshots > Register: blank 1`] = `
 </div>
 </div>
 </div>
-<button type="button" class="lims-reg-more" aria-expanded="false" aria-controls="_r_0_">More ▾</button>
+<button class="lims-btn lims-btn-ghost lims-btn-sm" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID" aria-expanded="false" aria-controls="_r_0_">
+<span class="lims-btn-label">More ▾</span>
+</button>
 <div id="_r_0_" hidden="" class="lims-reg-section lims-reg-fold">
 <div class="lims-field" data-rac="">
 <label class="lims-label" id="ID" for="ID">Clinical history</label>
@@ -582,9 +584,15 @@ exports[`RS-C4 key-screen snapshots > Register: blank 1`] = `
 </span>Both</label>
 </div>
 </div>
-<div role="tablist" aria-label="Test lists" class="lims-reg-tabs">
-<button type="button" role="tab" id="_r_0_-tab-all" aria-selected="true" class="lims-reg-tab">All tests</button>
-<button type="button" role="tab" id="_r_0_-tab-favourites" aria-selected="false" aria-controls="_r_0_-favs" class="lims-reg-tab">Favourites</button>
+<template>
+</template>
+<div class="lims-tabs" data-rac="" data-orientation="horizontal">
+<div class="lims-tablist" data-rac="" data-collection="aria-id" id="ID" aria-label="Test lists" role="tablist" aria-orientation="horizontal" data-orientation="horizontal">
+<div class="lims-tab" data-rac="" tabindex="0" data-collection="aria-id" data-key="all" data-aria-id="true" id="ID" aria-selected="true" aria-controls="ID" role="tab" data-selected="true">All tests</div>
+<div class="lims-tab" data-rac="" tabindex="-1" data-collection="aria-id" data-key="favourites" data-aria-id="true" id="ID" aria-selected="false" role="tab">Favourites</div>
+</div>
+<div id="ID" aria-labelledby="ID" tabindex="0" role="tabpanel" class="lims-tabpanel" data-rac="">
+</div>
 </div>
 <div data-field="tests">
 <template>
@@ -599,9 +607,9 @@ exports[`RS-C4 key-screen snapshots > Register: blank 1`] = `
 </div>
 <div class="lims-reg-pair">
 <div class="lims-field lims-date-field">
-<label class="lims-label" for="_r_4i_">Collection date and time</label>
+<label class="lims-label" for="_r_4o_">Collection date and time</label>
 <div class="lims-input-group">
-<input id="_r_4i_" class="lims-input" placeholder="DD/MM/YYYY hh:mm AM" autocomplete="off" type="text" value="" name="collection_at">
+<input id="_r_4o_" class="lims-input" placeholder="DD/MM/YYYY hh:mm AM" autocomplete="off" type="text" value="" name="collection_at">
 <button type="button" class="lims-btn lims-btn-ghost lims-icon-btn" aria-label="Open calendar for Collection date and time" aria-expanded="false">
 <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 <rect x="4" y="5" width="16" height="15">
@@ -778,12 +786,12 @@ exports[`RS-C4 key-screen snapshots > Register: blank 1`] = `
 </div>
 <aside class="lims-reg-summary" aria-label="Registration summary">
 <p role="heading" aria-level="2" class="lims-reg-summary-title">Summary</p>
-<dl class="lims-reg-summary-list">
-<div class="lims-reg-summary-row">
+<dl class="lims-dl lims-cols-1">
+<div class="lims-dl-item">
 <dt>Tests</dt>
 <dd>None yet</dd>
 </div>
-<div class="lims-reg-summary-row">
+<div class="lims-dl-item">
 <dt>Total</dt>
 <dd>
 <span class="lims-money">
@@ -791,7 +799,7 @@ exports[`RS-C4 key-screen snapshots > Register: blank 1`] = `
 </span>
 </dd>
 </div>
-<div class="lims-reg-summary-row">
+<div class="lims-dl-item">
 <dt>Net</dt>
 <dd>
 <span class="lims-money">
@@ -799,7 +807,7 @@ exports[`RS-C4 key-screen snapshots > Register: blank 1`] = `
 </span>
 </dd>
 </div>
-<div class="lims-reg-summary-row">
+<div class="lims-dl-item">
 <dt>Paid</dt>
 <dd>
 <span class="lims-money">
@@ -807,7 +815,7 @@ exports[`RS-C4 key-screen snapshots > Register: blank 1`] = `
 </span>
 </dd>
 </div>
-<div class="lims-reg-summary-row lims-reg-summary-balance">
+<div class="lims-dl-item">
 <dt>Balance</dt>
 <dd>
 <span class="lims-money">
@@ -815,7 +823,7 @@ exports[`RS-C4 key-screen snapshots > Register: blank 1`] = `
 </span>
 </dd>
 </div>
-<div class="lims-reg-summary-row">
+<div class="lims-dl-item">
 <dt>Refund</dt>
 <dd>
 <span class="lims-money">
@@ -823,7 +831,7 @@ exports[`RS-C4 key-screen snapshots > Register: blank 1`] = `
 </span>
 </dd>
 </div>
-<div class="lims-reg-summary-row">
+<div class="lims-dl-item">
 <dt>Billed</dt>
 <dd>
 <span class="lims-money">
@@ -831,7 +839,7 @@ exports[`RS-C4 key-screen snapshots > Register: blank 1`] = `
 </span>
 </dd>
 </div>
-<div class="lims-reg-summary-row">
+<div class="lims-dl-item">
 <dt>Discount authority</dt>
 <dd>—</dd>
 </div>
@@ -968,9 +976,9 @@ exports[`RS-C4 key-screen snapshots > Register: new-patient form open 1`] = `
 <fieldset class="lims-reg-fieldset">
 <legend>Age or date of birth</legend>
 <div class="lims-field lims-date-field">
-<label class="lims-label" for="_r_o7_">Date of birth</label>
+<label class="lims-label" for="_r_qd_">Date of birth</label>
 <div class="lims-input-group">
-<input id="_r_o7_" class="lims-input" placeholder="DD/MM/YYYY" autocomplete="off" type="text" value="" name="birth_on">
+<input id="_r_qd_" class="lims-input" placeholder="DD/MM/YYYY" autocomplete="off" type="text" value="" name="birth_on">
 <button type="button" class="lims-btn lims-btn-ghost lims-icon-btn" aria-label="Open calendar for Date of birth" aria-expanded="false">
 <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 <rect x="4" y="5" width="16" height="15">
@@ -1147,10 +1155,10 @@ exports[`RS-C4 key-screen snapshots > Register: new-patient form open 1`] = `
 </fieldset>
 <div class="lims-reg-pair">
 <div class="lims-field lims-file-upload">
-<label class="lims-label" for="_r_r2_">Profile photo</label>
-<input id="_r_r2_" class="lims-file-input" accept="image/png,image/jpeg" aria-describedby="_r_r2_-d" type="file" name="profile_photo">
-<p id="_r_r2_-d" class="lims-description">PNG or JPEG, at most 2 MB</p>
-<div id="_r_r2_-p" aria-live="polite">
+<label class="lims-label" for="_r_t8_">Profile photo</label>
+<input id="_r_t8_" class="lims-file-input" accept="image/png,image/jpeg" aria-describedby="_r_t8_-d" type="file" name="profile_photo">
+<p id="_r_t8_-d" class="lims-description">PNG or JPEG, at most 2 MB</p>
+<div id="_r_t8_-p" aria-live="polite">
 </div>
 </div>
 <button class="lims-btn lims-btn-ghost lims-btn-md" data-rac="" type="button" disabled="" data-aria-id="true" id="ID" data-disabled="true">
@@ -1375,8 +1383,10 @@ exports[`RS-C4 key-screen snapshots > Register: new-patient form open 1`] = `
 </div>
 </div>
 <p class="lims-reg-hint">Assigned when saved</p>
-<button type="button" class="lims-reg-more" aria-expanded="false" aria-controls="_r_g6_">More ▾</button>
-<div id="_r_g6_" hidden="" class="lims-reg-section lims-reg-fold">
+<button class="lims-btn lims-btn-ghost lims-btn-sm" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID" aria-expanded="false" aria-controls="_r_i4_">
+<span class="lims-btn-label">More ▾</span>
+</button>
+<div id="_r_i4_" hidden="" class="lims-reg-section lims-reg-fold">
 <div class="lims-field" data-rac="">
 <label class="lims-label" id="ID" for="ID">Clinical history</label>
 <div class="lims-input-group">
@@ -1467,9 +1477,15 @@ exports[`RS-C4 key-screen snapshots > Register: new-patient form open 1`] = `
 </span>Both</label>
 </div>
 </div>
-<div role="tablist" aria-label="Test lists" class="lims-reg-tabs">
-<button type="button" role="tab" id="_r_g6_-tab-all" aria-selected="true" class="lims-reg-tab">All tests</button>
-<button type="button" role="tab" id="_r_g6_-tab-favourites" aria-selected="false" aria-controls="_r_g6_-favs" class="lims-reg-tab">Favourites</button>
+<template>
+</template>
+<div class="lims-tabs" data-rac="" data-orientation="horizontal">
+<div class="lims-tablist" data-rac="" data-collection="aria-id" id="ID" aria-label="Test lists" role="tablist" aria-orientation="horizontal" data-orientation="horizontal">
+<div class="lims-tab" data-rac="" tabindex="0" data-collection="aria-id" data-key="all" data-aria-id="true" id="ID" aria-selected="true" aria-controls="ID" role="tab" data-selected="true">All tests</div>
+<div class="lims-tab" data-rac="" tabindex="-1" data-collection="aria-id" data-key="favourites" data-aria-id="true" id="ID" aria-selected="false" role="tab">Favourites</div>
+</div>
+<div id="ID" aria-labelledby="ID" tabindex="0" role="tabpanel" class="lims-tabpanel" data-rac="">
+</div>
 </div>
 <div data-field="tests">
 <template>
@@ -1484,9 +1500,9 @@ exports[`RS-C4 key-screen snapshots > Register: new-patient form open 1`] = `
 </div>
 <div class="lims-reg-pair">
 <div class="lims-field lims-date-field">
-<label class="lims-label" for="_r_ko_">Collection date and time</label>
+<label class="lims-label" for="_r_ms_">Collection date and time</label>
 <div class="lims-input-group">
-<input id="_r_ko_" class="lims-input" placeholder="DD/MM/YYYY hh:mm AM" autocomplete="off" type="text" value="" name="collection_at">
+<input id="_r_ms_" class="lims-input" placeholder="DD/MM/YYYY hh:mm AM" autocomplete="off" type="text" value="" name="collection_at">
 <button type="button" class="lims-btn lims-btn-ghost lims-icon-btn" aria-label="Open calendar for Collection date and time" aria-expanded="false">
 <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 <rect x="4" y="5" width="16" height="15">
@@ -1665,12 +1681,12 @@ exports[`RS-C4 key-screen snapshots > Register: new-patient form open 1`] = `
 </div>
 <aside class="lims-reg-summary" aria-label="Registration summary">
 <p role="heading" aria-level="2" class="lims-reg-summary-title">Summary</p>
-<dl class="lims-reg-summary-list">
-<div class="lims-reg-summary-row">
+<dl class="lims-dl lims-cols-1">
+<div class="lims-dl-item">
 <dt>Tests</dt>
 <dd>None yet</dd>
 </div>
-<div class="lims-reg-summary-row">
+<div class="lims-dl-item">
 <dt>Total</dt>
 <dd>
 <span class="lims-money">
@@ -1678,7 +1694,7 @@ exports[`RS-C4 key-screen snapshots > Register: new-patient form open 1`] = `
 </span>
 </dd>
 </div>
-<div class="lims-reg-summary-row">
+<div class="lims-dl-item">
 <dt>Net</dt>
 <dd>
 <span class="lims-money">
@@ -1686,7 +1702,7 @@ exports[`RS-C4 key-screen snapshots > Register: new-patient form open 1`] = `
 </span>
 </dd>
 </div>
-<div class="lims-reg-summary-row">
+<div class="lims-dl-item">
 <dt>Paid</dt>
 <dd>
 <span class="lims-money">
@@ -1694,7 +1710,7 @@ exports[`RS-C4 key-screen snapshots > Register: new-patient form open 1`] = `
 </span>
 </dd>
 </div>
-<div class="lims-reg-summary-row lims-reg-summary-balance">
+<div class="lims-dl-item">
 <dt>Balance</dt>
 <dd>
 <span class="lims-money">
@@ -1702,7 +1718,7 @@ exports[`RS-C4 key-screen snapshots > Register: new-patient form open 1`] = `
 </span>
 </dd>
 </div>
-<div class="lims-reg-summary-row">
+<div class="lims-dl-item">
 <dt>Refund</dt>
 <dd>
 <span class="lims-money">
@@ -1710,7 +1726,7 @@ exports[`RS-C4 key-screen snapshots > Register: new-patient form open 1`] = `
 </span>
 </dd>
 </div>
-<div class="lims-reg-summary-row">
+<div class="lims-dl-item">
 <dt>Billed</dt>
 <dd>
 <span class="lims-money">
@@ -1718,7 +1734,7 @@ exports[`RS-C4 key-screen snapshots > Register: new-patient form open 1`] = `
 </span>
 </dd>
 </div>
-<div class="lims-reg-summary-row">
+<div class="lims-dl-item">
 <dt>Discount authority</dt>
 <dd>—</dd>
 </div>
@@ -1918,8 +1934,10 @@ exports[`RS-C4 key-screen snapshots > Register: returning patient, one test, quo
 </div>
 </div>
 <p class="lims-reg-hint">Assigned when saved</p>
-<button type="button" class="lims-reg-more" aria-expanded="false" aria-controls="_r_78_">More ▾</button>
-<div id="_r_78_" hidden="" class="lims-reg-section lims-reg-fold">
+<button class="lims-btn lims-btn-ghost lims-btn-sm" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID" aria-expanded="false" aria-controls="_r_7g_">
+<span class="lims-btn-label">More ▾</span>
+</button>
+<div id="_r_7g_" hidden="" class="lims-reg-section lims-reg-fold">
 <div class="lims-field" data-rac="">
 <label class="lims-label" id="ID" for="ID">Clinical history</label>
 <div class="lims-input-group">
@@ -2010,9 +2028,15 @@ exports[`RS-C4 key-screen snapshots > Register: returning patient, one test, quo
 </span>Both</label>
 </div>
 </div>
-<div role="tablist" aria-label="Test lists" class="lims-reg-tabs">
-<button type="button" role="tab" id="_r_78_-tab-all" aria-selected="true" class="lims-reg-tab">All tests</button>
-<button type="button" role="tab" id="_r_78_-tab-favourites" aria-selected="false" aria-controls="_r_78_-favs" class="lims-reg-tab">Favourites</button>
+<template>
+</template>
+<div class="lims-tabs" data-rac="" data-orientation="horizontal">
+<div class="lims-tablist" data-rac="" data-collection="aria-id" id="ID" aria-label="Test lists" role="tablist" aria-orientation="horizontal" data-orientation="horizontal">
+<div class="lims-tab" data-rac="" tabindex="0" data-collection="aria-id" data-key="all" data-aria-id="true" id="ID" aria-selected="true" aria-controls="ID" role="tab" data-selected="true">All tests</div>
+<div class="lims-tab" data-rac="" tabindex="-1" data-collection="aria-id" data-key="favourites" data-aria-id="true" id="ID" aria-selected="false" role="tab">Favourites</div>
+</div>
+<div id="ID" aria-labelledby="ID" tabindex="0" role="tabpanel" class="lims-tabpanel" data-rac="">
+</div>
 </div>
 <div data-field="tests">
 <template>
@@ -2023,39 +2047,44 @@ exports[`RS-C4 key-screen snapshots > Register: returning patient, one test, quo
 </div>
 </div>
 <div class="lims-reg-tests-list">
-<table aria-label="Selected tests">
-<thead>
-<tr>
-<th scope="col">
-<span style="position: absolute; width: 1px; height: 1px; padding: 0px; margin: -1px; overflow: hidden; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); white-space: nowrap; border: 0px;">Favourite</span>
-</th>
-<th scope="col">Code</th>
-<th scope="col">Name</th>
-<th scope="col">Kind</th>
-<th scope="col">Priority</th>
-<th scope="col">Price</th>
-<th scope="col">Surcharge</th>
-<th scope="col">Disc. %</th>
-<th scope="col">ICD code</th>
-<th scope="col">
-<span style="position: absolute; width: 1px; height: 1px; padding: 0px; margin: -1px; overflow: hidden; clip: rect(0px 0px 0px 0px); clip-path: inset(50%); white-space: nowrap; border: 0px;">Remove</span>
-</th>
+<div>
+<div class="lims-data-table">
+<div class="lims-table-scroll">
+<template>
+</template>
+<span data-focus-scope-start="true" hidden="">
+</span>
+<table class="lims-table lims-table-regular lims-table-sticky" data-rac="" aria-label="Selected tests" id="ID" role="grid" tabindex="0" aria-describedby="" data-collection="aria-id">
+<thead role="rowgroup" class="aria-id" data-rac="">
+<tr role="row">
+<th tabindex="-1" data-collection="aria-id" data-key="fav" id="ID" role="columnheader" aria-colindex="1" data-aria-id="true" class="lims-col lims-align-start" data-rac="">Favourite</th>
+<th tabindex="-1" data-collection="aria-id" data-key="code" id="ID" role="columnheader" aria-colindex="2" data-aria-id="true" class="lims-col lims-align-start" data-rac="">Code</th>
+<th tabindex="-1" data-collection="aria-id" data-key="name" id="ID" role="columnheader" aria-colindex="3" data-aria-id="true" class="lims-col lims-align-start" data-rac="">Name</th>
+<th tabindex="-1" data-collection="aria-id" data-key="kind" id="ID" role="columnheader" aria-colindex="4" data-aria-id="true" class="lims-col lims-align-start" data-rac="">Kind</th>
+<th tabindex="-1" data-collection="aria-id" data-key="priority" id="ID" role="columnheader" aria-colindex="5" data-aria-id="true" class="lims-col lims-align-start" data-rac="">Priority</th>
+<th tabindex="-1" data-collection="aria-id" data-key="price" id="ID" role="columnheader" aria-colindex="6" data-aria-id="true" class="lims-col lims-align-end lims-num" data-rac="">Price</th>
+<th tabindex="-1" data-collection="aria-id" data-key="surcharge" id="ID" role="columnheader" aria-colindex="7" data-aria-id="true" class="lims-col lims-align-end lims-num" data-rac="">Surcharge</th>
+<th tabindex="-1" data-collection="aria-id" data-key="disc" id="ID" role="columnheader" aria-colindex="8" data-aria-id="true" class="lims-col lims-align-start" data-rac="">Disc. %</th>
+<th tabindex="-1" data-collection="aria-id" data-key="icd" id="ID" role="columnheader" aria-colindex="9" data-aria-id="true" class="lims-col lims-align-start" data-rac="">ICD code</th>
+<th tabindex="-1" data-collection="aria-id" data-key="remove" id="ID" role="columnheader" aria-colindex="10" data-aria-id="true" class="lims-col lims-align-start" data-rac="">Remove</th>
 </tr>
 </thead>
-<tbody>
-<tr tabindex="0">
-<td>
-<button type="button" class="lims-reg-star" aria-pressed="false" aria-label="Favourite CBC">
+<tbody class="aria-id" data-rac="" role="rowgroup">
+<tr data-row-id="01a1a98a-ac40-7000-8000-000000000011" data-row-index="0" class="lims-row" style="--table-row-level: 1;" data-rac="" role="row" tabindex="-1" data-collection="aria-id" data-key="01a1a98a-ac40-7000-8000-000000000011" id="ID" aria-labelledby="ID" data-level="1">
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="0" data-level="1">
+<button class="lims-btn lims-btn-ghost lims-btn-sm" data-rac="" type="button" tabindex="0" data-aria-id="true" id="ID" aria-pressed="false" aria-label="Favourite CBC">
+<span class="lims-btn-label">
 <span aria-hidden="true">☆</span>
+</span>
 </button>
 </td>
-<td>CBC</td>
-<td>Complete blood count</td>
-<td>Test</td>
-<td>Routine</td>
-<td>100.00</td>
-<td>—</td>
-<td class="lims-reg-cell-field">
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="rowheader" data-column-index="1" data-level="1">CBC</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="2" data-level="1">Complete blood count</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="3" data-level="1">Test</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="4" data-level="1">Routine</td>
+<td class="lims-cell lims-align-end lims-num" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="5" data-level="1">100.00</td>
+<td class="lims-cell lims-align-end lims-num" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="6" data-level="1">—</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="7" data-level="1">
 <div class="lims-field" data-rac="">
 <label class="lims-label" id="ID" for="ID">CBC discount percent</label>
 <div class="lims-input-group">
@@ -2063,7 +2092,7 @@ exports[`RS-C4 key-screen snapshots > Register: returning patient, one test, quo
 </div>
 </div>
 </td>
-<td class="lims-reg-cell-field lims-reg-cell-icd">
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="8" data-level="1">
 <template>
 </template>
 <div class="lims-field" data-rac="">
@@ -2077,7 +2106,7 @@ exports[`RS-C4 key-screen snapshots > Register: returning patient, one test, quo
 </svg>
 </button>
 </td>
-<td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="9" data-level="1">
 <button class="lims-btn lims-btn-ghost lims-icon-btn" data-rac="" type="button" tabindex="0" data-aria-id="true" aria-label="Remove CBC" id="ID">
 <svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lims-icon">
 <path d="M6 6l12 12M18 6L6 18">
@@ -2088,12 +2117,19 @@ exports[`RS-C4 key-screen snapshots > Register: returning patient, one test, quo
 </tr>
 </tbody>
 </table>
+<span data-focus-scope-end="true" hidden="">
+</span>
+</div>
+<div role="status" class="lims-visually-hidden">
+</div>
+</div>
+</div>
 </div>
 <div class="lims-reg-pair">
 <div class="lims-field lims-date-field">
-<label class="lims-label" for="_r_bq_">Collection date and time</label>
+<label class="lims-label" for="_r_c8_">Collection date and time</label>
 <div class="lims-input-group">
-<input id="_r_bq_" class="lims-input" placeholder="DD/MM/YYYY hh:mm AM" autocomplete="off" type="text" value="" name="collection_at">
+<input id="_r_c8_" class="lims-input" placeholder="DD/MM/YYYY hh:mm AM" autocomplete="off" type="text" value="" name="collection_at">
 <button type="button" class="lims-btn lims-btn-ghost lims-icon-btn" aria-label="Open calendar for Collection date and time" aria-expanded="false">
 <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 <rect x="4" y="5" width="16" height="15">
@@ -2161,67 +2197,79 @@ exports[`RS-C4 key-screen snapshots > Register: returning patient, one test, quo
 </div>
 </div>
 <div role="status" aria-live="polite">
-<table aria-label="Bill lines">
-<thead>
-<tr>
-<th scope="col">Code</th>
-<th scope="col">Name</th>
-<th scope="col">Unit price</th>
-<th scope="col">Discount</th>
-<th scope="col">Tax</th>
-<th scope="col">Net</th>
+<div class="lims-data-table">
+<div class="lims-table-scroll">
+<template>
+</template>
+<span data-focus-scope-start="true" hidden="">
+</span>
+<table class="lims-table lims-table-regular lims-table-sticky" data-rac="" aria-label="Bill lines" id="ID" role="grid" tabindex="0" aria-describedby="" data-collection="aria-id">
+<thead role="rowgroup" class="aria-id" data-rac="">
+<tr role="row">
+<th tabindex="-1" data-collection="aria-id" data-key="code" id="ID" role="columnheader" aria-colindex="1" data-aria-id="true" class="lims-col lims-align-start" data-rac="">Code</th>
+<th tabindex="-1" data-collection="aria-id" data-key="name" id="ID" role="columnheader" aria-colindex="2" data-aria-id="true" class="lims-col lims-align-start" data-rac="">Name</th>
+<th tabindex="-1" data-collection="aria-id" data-key="unit" id="ID" role="columnheader" aria-colindex="3" data-aria-id="true" class="lims-col lims-align-end lims-num" data-rac="">Unit price</th>
+<th tabindex="-1" data-collection="aria-id" data-key="discount" id="ID" role="columnheader" aria-colindex="4" data-aria-id="true" class="lims-col lims-align-end lims-num" data-rac="">Discount</th>
+<th tabindex="-1" data-collection="aria-id" data-key="tax" id="ID" role="columnheader" aria-colindex="5" data-aria-id="true" class="lims-col lims-align-end lims-num" data-rac="">Tax</th>
+<th tabindex="-1" data-collection="aria-id" data-key="net" id="ID" role="columnheader" aria-colindex="6" data-aria-id="true" class="lims-col lims-align-end lims-num" data-rac="">Net</th>
 </tr>
 </thead>
-<tbody>
-<tr>
-<td>CBC</td>
-<td>Complete blood count</td>
-<td>100.00</td>
-<td>0.00</td>
-<td>13.00</td>
-<td>113.00</td>
+<tbody class="aria-id" data-rac="" role="rowgroup">
+<tr data-row-id="l0" data-row-index="0" class="lims-row" style="--table-row-level: 1;" data-rac="" role="row" tabindex="-1" data-collection="aria-id" data-key="l0" id="ID" aria-labelledby="ID" data-level="1">
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="0" data-level="1">CBC</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="rowheader" data-column-index="1" data-level="1">Complete blood count</td>
+<td class="lims-cell lims-align-end lims-num" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="2" data-level="1">100.00</td>
+<td class="lims-cell lims-align-end lims-num" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="3" data-level="1">0.00</td>
+<td class="lims-cell lims-align-end lims-num" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="4" data-level="1">13.00</td>
+<td class="lims-cell lims-align-end lims-num" data-rac="" tabindex="-1" data-collection="aria-id" data-key="aria-id" id="ID" role="gridcell" data-column-index="5" data-level="1">113.00</td>
 </tr>
 </tbody>
 </table>
-<dl>
-<div class="lims-total-row">
-<dt class="lims-label">Gross</dt>
+<span data-focus-scope-end="true" hidden="">
+</span>
+</div>
+<div role="status" class="lims-visually-hidden">
+</div>
+</div>
+<dl class="lims-dl lims-cols-1">
+<div class="lims-dl-item">
+<dt>Gross</dt>
 <dd>
 <span class="lims-money">Rs. 100.00</span>
 </dd>
 </div>
-<div class="lims-total-row">
-<dt class="lims-label">Discount</dt>
+<div class="lims-dl-item">
+<dt>Discount</dt>
 <dd>
 <span class="lims-money">Rs. 0.00</span>
 </dd>
 </div>
-<div class="lims-total-row">
-<dt class="lims-label">Exempt</dt>
+<div class="lims-dl-item">
+<dt>Exempt</dt>
 <dd>
 <span class="lims-money">Rs. 0.00</span>
 </dd>
 </div>
-<div class="lims-total-row">
-<dt class="lims-label">Taxable</dt>
+<div class="lims-dl-item">
+<dt>Taxable</dt>
 <dd>
 <span class="lims-money">Rs. 100.00</span>
 </dd>
 </div>
-<div class="lims-total-row">
-<dt class="lims-label">VAT</dt>
+<div class="lims-dl-item">
+<dt>VAT</dt>
 <dd>
 <span class="lims-money">Rs. 13.00</span>
 </dd>
 </div>
-<div class="lims-total-row">
-<dt class="lims-label">Other tax</dt>
+<div class="lims-dl-item">
+<dt>Other tax</dt>
 <dd>
 <span class="lims-money">Rs. 0.00</span>
 </dd>
 </div>
-<div class="lims-total-row lims-total-net">
-<dt class="lims-label">Net</dt>
+<div class="lims-dl-item">
+<dt>Net</dt>
 <dd>
 <span class="lims-money">Rs. 113.00</span>
 </dd>
@@ -2346,15 +2394,15 @@ exports[`RS-C4 key-screen snapshots > Register: returning patient, one test, quo
 </div>
 <aside class="lims-reg-summary" aria-label="Registration summary">
 <p role="heading" aria-level="2" class="lims-reg-summary-title">Summary</p>
-<dl class="lims-reg-summary-list">
-<div class="lims-reg-summary-row">
+<dl class="lims-dl lims-cols-1">
+<div class="lims-dl-item">
 <dt>Tests</dt>
 <dd>1 selected<div role="list" class="lims-reg-summary-tests">
 <div role="listitem">Complete blood count</div>
 </div>
 </dd>
 </div>
-<div class="lims-reg-summary-row">
+<div class="lims-dl-item">
 <dt>Total</dt>
 <dd>
 <span class="lims-money">
@@ -2362,7 +2410,7 @@ exports[`RS-C4 key-screen snapshots > Register: returning patient, one test, quo
 </span>
 </dd>
 </div>
-<div class="lims-reg-summary-row">
+<div class="lims-dl-item">
 <dt>Net</dt>
 <dd>
 <span class="lims-money">
@@ -2370,7 +2418,7 @@ exports[`RS-C4 key-screen snapshots > Register: returning patient, one test, quo
 </span>
 </dd>
 </div>
-<div class="lims-reg-summary-row">
+<div class="lims-dl-item">
 <dt>Paid</dt>
 <dd>
 <span class="lims-money">
@@ -2378,7 +2426,7 @@ exports[`RS-C4 key-screen snapshots > Register: returning patient, one test, quo
 </span>
 </dd>
 </div>
-<div class="lims-reg-summary-row lims-reg-summary-balance">
+<div class="lims-dl-item">
 <dt>Balance</dt>
 <dd>
 <span class="lims-money">
@@ -2386,7 +2434,7 @@ exports[`RS-C4 key-screen snapshots > Register: returning patient, one test, quo
 </span>
 </dd>
 </div>
-<div class="lims-reg-summary-row">
+<div class="lims-dl-item">
 <dt>Refund</dt>
 <dd>
 <span class="lims-money">
@@ -2394,7 +2442,7 @@ exports[`RS-C4 key-screen snapshots > Register: returning patient, one test, quo
 </span>
 </dd>
 </div>
-<div class="lims-reg-summary-row">
+<div class="lims-dl-item">
 <dt>Billed</dt>
 <dd>
 <span class="lims-money">
@@ -2402,7 +2450,7 @@ exports[`RS-C4 key-screen snapshots > Register: returning patient, one test, quo
 </span>
 </dd>
 </div>
-<div class="lims-reg-summary-row">
+<div class="lims-dl-item">
 <dt>Discount authority</dt>
 <dd>Limit 5%</dd>
 </div>

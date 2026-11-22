@@ -11,3 +11,6 @@ Reasons:
 
 ## LEAD ITEM LD-443 (11:20 NPT)
 Snapshots under __snapshots__ are writer or reviewer owned, never tester owned (LD-440, LD-443). Tester: do not run vitest -u, only name stale snapshots in your tests note. Writer or reviewer: regenerate a stale rs-cN screens snapshot with -u after reading the diff, only when the diff is markup (table, dl, button, kit classes, react-aria ids) and no text or data changes. A stale snapshot is not a test dispute.
+
+## LEAD ITEM LD-445 (12:10 NPT)
+Correction of LD-443: the reviewer may NOT edit snapshots or source files and creates no scratch files in the repo (Enforce reverts them). Only the WRITER (or debugger) edits non-test sources and regenerates snapshots with -u after reading the diff. The reviewer states the exact change in the review note. See the LD-445 line for the exact list the writer does now for this task.

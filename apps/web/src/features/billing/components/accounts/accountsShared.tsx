@@ -1,7 +1,8 @@
 'use client';
 // T0D-ACCT-1 (LD-313) shared bits for the lab accounting screens: permission-gated buttons with a visible reason, the select used where the
 // selected value must not become part of the field name, paisa parsing, CSV export, label lookups. Text comes from the message catalogue.
-import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react';
+import { useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent, type RefObject } from 'react';
+import { Button } from '@lims/ui/components/Button';
 import { t } from '@/core/i18n/messages';
 import type { AccountParty, Named } from '../../server/accounts.server';
 import { humanize } from '../format';
@@ -61,6 +62,18 @@ export function downloadCsv(fileName: string, rows: readonly (readonly string[])
   URL.revokeObjectURL(url);
 }
 
+/** T0D-UIX-4 (LD-442): the kit Button forwards no aria-* props, so the ARIA state attributes are set on its element (attribute values only). */
+function useAria(ref: RefObject<HTMLElement | null>, attrs: Record<string, string | undefined>) {
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    for (const [k, v] of Object.entries(attrs)) {
+      if (v === undefined) el.removeAttribute(k);
+      else el.setAttribute(k, v);
+    }
+  });
+}
+
 /**
  * Button that is disabled with a visible reason (founder 04:49 NPT: shown or disabled with a reason by permission). The reason is linked
  * with aria-describedby; pass reasonId when one reason on the page explains several buttons.
@@ -68,12 +81,11 @@ export function downloadCsv(fileName: string, rows: readonly (readonly string[])
 export function GatedButton({ label, blocked, reasonId, onPress, variant = 'secondary' }: { label: string; blocked?: string | undefined; reasonId?: string; onPress: () => void; variant?: 'primary' | 'secondary' | 'ghost' | 'danger' }) {
   const own = useId();
   const describedBy = blocked ? (reasonId ?? own) : undefined;
+  const ref = useRef<HTMLButtonElement>(null);
+  useAria(ref, { 'aria-describedby': describedBy });
   return (
     <>
-      {/* Native button: the kit Button has no aria-describedby, and react-aria-components is not an apps/web dependency. */}
-      <button type="button" className={`lims-btn lims-btn-${variant} lims-btn-sm`} disabled={!!blocked} onClick={onPress} {...(describedBy ? { 'aria-describedby': describedBy } : {})}>
-        <span className="lims-btn-label">{label}</span>
-      </button>
+      <Button ref={ref} variant={variant} size="sm" isDisabled={!!blocked} onPress={onPress}>{label}</Button>
       {blocked && !reasonId ? <span id={own} className="lims-description">{blocked}</span> : null}
     </>
   );
@@ -114,23 +126,22 @@ export function LabelOnlySelect<V extends string>({ label, value, options, onCha
     }
   };
   const current = options.find((o) => o.value === value);
+  useAria(trigger, {
+    'aria-haspopup': 'listbox',
+    'aria-expanded': String(open),
+    'aria-labelledby': `${id}-l`,
+    'aria-describedby': error ? `${id}-v ${id}-e` : `${id}-v`,
+    'aria-invalid': error ? 'true' : undefined,
+  });
   return (
     <div className="lims-field">
       <span id={`${id}-l`} className="lims-label">{label}</span>
-      <button
-        ref={trigger}
-        type="button"
-        className="lims-input lims-select-trigger"
-        aria-haspopup="listbox"
-        aria-expanded={open}
-        aria-labelledby={`${id}-l`}
-        aria-describedby={error ? `${id}-v ${id}-e` : `${id}-v`}
-        {...(error ? { 'aria-invalid': true } : {})}
-        onClick={() => setOpen((o) => !o)}
-        onKeyDown={(e) => { if (e.key === 'ArrowDown') { e.preventDefault(); setOpen(true); } }}
-      >
-        <span id={`${id}-v`}>{current?.label ?? ''}</span>
-      </button>
+      {/* ArrowDown on the trigger opens the list (the kit Button takes no onKeyDown, so the wrapper listens; the key bubbles from the button). */}
+      <span className="lims-select-trigger-wrap" onKeyDown={(e) => { if (e.key === 'ArrowDown' && e.target === trigger.current) { e.preventDefault(); setOpen(true); } }}>
+        <Button ref={trigger} variant="secondary" onPress={() => setOpen((o) => !o)}>
+          <span id={`${id}-v`}>{current?.label ?? ''}</span>
+        </Button>
+      </span>
       {open ? (
         // T0D-UIGUARD-1-BILLING (LD-436 R7, LD-439): the popover list is a div listbox (same roles), not a raw ul.
         <div ref={list} role="listbox" aria-labelledby={`${id}-l`} className="lims-popover lims-listbox" onKeyDown={onListKey}>

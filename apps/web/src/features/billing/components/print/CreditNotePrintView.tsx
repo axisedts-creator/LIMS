@@ -1,9 +1,19 @@
 'use client';
 // 04-UI-UX §8.3 credit note: "CREDIT NOTE", CN no, date (B.S. + A.D.), original invoice no/date, reason, lines, totals.
+import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
 import { DataUriImage } from '@lims/ui/components/DataUriImage';
+import { DescriptionList } from '@lims/ui/components/DescriptionList';
 import { PrintFrame } from '@lims/ui/components/PrintFrame';
 import type { CreditNotePrintDocument } from '../../server/types';
 import { BsAd, humanize, npr } from '../format';
+
+type Line = CreditNotePrintDocument['lines'][number];
+// T0D-UIX-4 (LD-442): credited lines are a kit DataTable, the fields and totals kit DescriptionLists.
+const LINE_COLUMNS: ColumnDef<Line>[] = [
+  { id: 'sn', header: 'S.N.', numeric: true, cell: (l) => l.line_no },
+  { id: 'name', header: 'Description', isRowHeader: true, cell: (l) => l.name },
+  { id: 'amount', header: 'Amount', numeric: true, cell: (l) => npr(l.net) },
+];
 
 export function CreditNotePrintView({ document: d }: { document: CreditNotePrintDocument }) {
   const totals: [string, string][] = [
@@ -20,19 +30,17 @@ export function CreditNotePrintView({ document: d }: { document: CreditNotePrint
       ) : null}
       <h2>CREDIT NOTE</h2>
       {(d.print_no ?? 0) >= 2 && d.copy_mark ? <p><strong>{d.copy_mark}</strong></p> : null}
-      <dl>
-        <dt>Credit note no</dt><dd>{d.credit_note_no}</dd>
-        <dt>Date</dt><dd>{d.dates ? <>{d.dates.bs} B.S. / {d.dates.ad}</> : <BsAd bs={d.credit_note_date_bs} utc={d.issued_at} withTime />}</dd>
-        <dt>Original invoice</dt>
-        <dd>{d.invoice_no}{d.invoice_date_bs ? <> — <BsAd bs={d.invoice_date_bs} {...(d.invoice_issued_at ? { utc: d.invoice_issued_at } : {})} /></> : null}</dd>
-        <dt>Reason</dt><dd>{humanize(d.reason_code)}{d.reason_text ? ` — ${d.reason_text}` : ''}</dd>
-      </dl>
-      <table className="lims-invoice-lines">
-        <caption>Credited lines</caption>
-        <thead><tr><th scope="col">S.N.</th><th scope="col">Description</th><th scope="col">Amount</th></tr></thead>
-        <tbody>{d.lines.map((l) => <tr key={l.id}><td>{l.line_no}</td><td>{l.name}</td><td>{npr(l.net)}</td></tr>)}</tbody>
-      </table>
-      <dl className="lims-invoice-totals">{totals.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>
+      <DescriptionList
+        columns={2}
+        items={[
+          { term: 'Credit note no', value: d.credit_note_no },
+          { term: 'Date', value: d.dates ? <>{d.dates.bs} B.S. / {d.dates.ad}</> : <BsAd bs={d.credit_note_date_bs} utc={d.issued_at} withTime /> },
+          { term: 'Original invoice', value: <>{d.invoice_no}{d.invoice_date_bs ? <> — <BsAd bs={d.invoice_date_bs} {...(d.invoice_issued_at ? { utc: d.invoice_issued_at } : {})} /></> : null}</> },
+          { term: 'Reason', value: `${humanize(d.reason_code)}${d.reason_text ? ` — ${d.reason_text}` : ''}` },
+        ]}
+      />
+      <DataTable caption="Credited lines" stickyHeader={false} columns={LINE_COLUMNS} rows={d.lines} getRowId={(l) => l.id} emptyState={{ title: 'No lines.' }} />
+      <DescriptionList items={totals.map(([term, value]) => ({ term, value }))} />
     </article>
   );
 }

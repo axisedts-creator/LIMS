@@ -1,5 +1,6 @@
 'use client';
 // 04-UI-UX §8.3 receipt (non-fiscal): "PAYMENT RECEIPT", receipt no, date, order registration no, invoice no(s), method, amount, balance after.
+import { DescriptionList } from '@lims/ui/components/DescriptionList';
 import { PrintFrame } from '@lims/ui/components/PrintFrame';
 import type { ReceiptDocument } from '../../server/types';
 import { Ad, humanize, npr } from '../format';
@@ -13,15 +14,18 @@ export function ReceiptPrintView({ receipt: r }: { receipt: ReceiptDocument }) {
       {/* T0D-UIGUARD-1-FRONTDESK (LD-436 R7): print heading as p role=heading, same as the T0D-UIGUARD-1-BILLING print documents. */}
       <p role="heading" aria-level={2} className="lims-card-title">PAYMENT RECEIPT</p>
       <IssuedOfflineWatermark numbers={[r.receipt_no, ...r.invoice_nos]} />
-      <dl>
-        <dt>Receipt no</dt><dd><DocNumber value={r.receipt_no} /></dd>
-        <dt>Date</dt><dd>{r.dates ? r.dates.ad : <Ad value={r.issued_at} withTime />}</dd>
-        {r.registration_no ? <><dt>Registration no</dt><dd>{r.registration_no}</dd></> : null}
-        <dt>Invoice no</dt><dd>{r.invoice_nos.length ? r.invoice_nos.map((n, i) => <span key={n}>{i ? ', ' : ''}<DocNumber value={n} /></span>) : '—'}</dd>
-        <dt>Method</dt><dd>{humanize(r.method_code)}</dd>
-        <dt>Amount</dt><dd>{npr(r.amount)}</dd>
-        {r.balance_after ? <><dt>Balance after</dt><dd>{npr(r.balance_after)}</dd></> : null}
-      </dl>
+      {/* T0D-UIX-4 (LD-442): the receipt fields are a kit DescriptionList */}
+      <DescriptionList
+        items={[
+          { term: 'Receipt no', value: <DocNumber value={r.receipt_no} /> },
+          { term: 'Date', value: r.dates ? r.dates.ad : <Ad value={r.issued_at} withTime /> },
+          ...(r.registration_no ? [{ term: 'Registration no', value: r.registration_no }] : []),
+          { term: 'Invoice no', value: r.invoice_nos.length ? r.invoice_nos.map((n, i) => <span key={n}>{i ? ', ' : ''}<DocNumber value={n} /></span>) : '—' },
+          { term: 'Method', value: humanize(r.method_code) },
+          { term: 'Amount', value: npr(r.amount) },
+          ...(r.balance_after ? [{ term: 'Balance after', value: npr(r.balance_after) }] : []),
+        ]}
+      />
     </article>
   );
 }

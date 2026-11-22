@@ -4,6 +4,7 @@ import { useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@lims/ui/components/Button';
 import { Card } from '@lims/ui/components/Card';
+import { DescriptionList } from '@lims/ui/components/DescriptionList';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { Timeline } from '@lims/ui/components/Timeline';
 import { useToast } from '@lims/ui/components/Toast';
@@ -34,13 +35,14 @@ export function DeliveryDetail({ delivery, permissions }: { delivery: Delivery; 
       <p><a className="lims-link" href="/reporting/deliveries">Back to delivery log</a></p>
       {/* T0D-UIGUARD-1-REPORTING (LD-436 Card title rows, LD-439 a): kit Cards; attempts are a kit Timeline with the outcome chip in `extra`. */}
       <Card title="Delivery">
-        <dl className="lims-dl">
-          <dt>Channel</dt><dd>{CHANNEL[delivery.channel] ?? humanize(delivery.channel)}</dd>
-          <dt>Purpose</dt><dd>{humanize(delivery.purpose)}</dd>
-          <dt>Recipient</dt><dd>{humanize(delivery.recipient_kind)}</dd>
-          <dt>To</dt><dd>{delivery.destination_masked ?? '—'}</dd>
-          {delivery.report_id ? <><dt>Report</dt><dd><a className="lims-link" href={`/reporting/reports/${delivery.report_id}`}>Open report</a></dd></> : null}
-        </dl>
+        {/* T0D-UIX-4 (LD-442): label and value pairs are the kit DescriptionList */}
+        <DescriptionList items={[
+          { term: 'Channel', value: CHANNEL[delivery.channel] ?? humanize(delivery.channel) },
+          { term: 'Purpose', value: humanize(delivery.purpose) },
+          { term: 'Recipient', value: humanize(delivery.recipient_kind) },
+          { term: 'To', value: delivery.destination_masked ?? '—' },
+          ...(delivery.report_id ? [{ term: 'Report', value: <a className="lims-link" href={`/reporting/reports/${delivery.report_id}`}>Open report</a> }] : []),
+        ]} />
         {delivery.failure_code ? <p>{FAILURE_TEXT[delivery.failure_code] ?? delivery.failure_code}</p> : null}
       </Card>
       <Card title="Attempts">

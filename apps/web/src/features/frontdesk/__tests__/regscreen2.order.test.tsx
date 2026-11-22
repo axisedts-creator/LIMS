@@ -194,7 +194,7 @@ describe('More fold: histories, MR number, external reference, insurance', () =>
 });
 
 describe('ICD code per test, with apply to all', () => {
-  const rows = () => within(screen.getByRole('table', { name: /selected tests/i }));
+  const rows = () => within(screen.getByRole('grid', { name: /selected tests/i }));
   async function twoTests(u: User) {
     await patientPicked(u);
     await addTest(u, 'CBC');

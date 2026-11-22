@@ -1,0 +1,26 @@
+# T0D-UIX-4 screens changed (done_when 4); kit component introduced per file
+- admin/CopyButton: Button
+- admin/MyAccount: DescriptionList
+- admin/OrgUnits: markup only (no new kit import)
+- billing/InvoiceDetailView: DataTable
+- billing/InvoiceDocument: DataTable + DescriptionList
+- billing/accounts/AccountReceiptView: DescriptionList
+- billing/accounts/accountsShared: Button
+- billing/print/CreditNotePrintView: DataTable + DescriptionList
+- billing/print/ReceiptPrintView: DescriptionList
+- billing/transfers/CashTransfersScreen: DescriptionList
+- engagement/content/MarkdownEditor: Button
+- engagement/content/ProfileImages: markup only (no new kit import)
+- frontdesk/DraftsDialog: DataTable
+- frontdesk/OrderView: DescriptionList (fields) + DataTable (order lines)
+- frontdesk/PatientView: DescriptionList (fields) + DataTable
+- frontdesk/RegistrationForm: DataTable (selected tests) + DescriptionList (summary) + Tabs
+- frontdesk/SuccessPanel: DescriptionList
+- instruments/InstrumentMappings: DataTable
+- instruments/InstrumentsList: DataTable (sortable kit headers, ruling B)
+- instruments/ReprocessDialog: DataTable
+- inventory/UnresolvedView: DataTable
+- inventory/consoleParts, payments/consoleParts: DescriptionList
+- reporting/DeliveryDetail, ReportDetailView: DescriptionList
+- reporting/SignatoryProfiles: markup only (no new kit import)
+- reporting/SimpleTable: DataTable (shared by reporting screens)

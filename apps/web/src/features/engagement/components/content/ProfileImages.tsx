@@ -78,7 +78,8 @@ export function ProfileImages({ images: initial, canManage, canUpload, searchPro
           // T0D-UIGUARD-1-ENGAGEMENT (LD-436 R7): the search hits are a group of toggle buttons, not a raw list
           <div role="group" className="lims-inline" aria-label={t('engagement.content.profile.results')}>
             {hits.map((h) => (
-              <button key={h.id} type="button" className="lims-btn lims-btn-secondary lims-btn-sm" aria-pressed={picked?.hit.id === h.id} onClick={() => { setPicked({ kind, hit: h }); setFailure(undefined); }}>{h.name}</button>
+              // T0D-UIX-4 (LD-442): kit Button; the picked hit is the primary one and its section below carries its name
+              <Button key={h.id} size="sm" variant={picked?.hit.id === h.id ? 'primary' : 'secondary'} onPress={() => { setPicked({ kind, hit: h }); setFailure(undefined); }}>{h.name}</Button>
             ))}
           </div>
         ) : <p className="lims-description">{t('engagement.content.profile.no_results')}</p>

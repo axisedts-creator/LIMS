@@ -7,7 +7,7 @@ import { Button } from '@lims/ui/components/Button';
 import { Card } from '@lims/ui/components/Card';
 import { Checkbox } from '@lims/ui/components/Checkbox';
 import { ConfirmDialog } from '@lims/ui/components/ConfirmDialog';
-import { DataTable, EmptyRow, PlaceholderRows, type ColumnDef } from '@lims/ui/components/DataTable';
+import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
 import { Dialog } from '@lims/ui/components/Dialog';
 import { Form } from '@lims/ui/components/Form';
 import { RadioGroup } from '@lims/ui/components/RadioGroup';
@@ -38,7 +38,15 @@ const firstStyle = (prints: readonly InvoicePrintRow[]): PrintStyle | undefined 
   return first ? (isStyle(first.style) ? first.style : 'full') : undefined;
 };
 
-const CREDIT_COLUMNS: ColumnDef<CreditNoteSummary>[] = [
+const PRINT_COLUMNS: ColumnDef<InvoicePrintRow>[] = [
+  { id: 'no', header: 'No', numeric: true, isRowHeader: true, cell: (p) => p.print_no },
+  { id: 'type', header: 'Type', cell: (p) => (p.is_copy ? 'Copy' : 'Original') },
+  { id: 'style', header: 'Style', cell: (p) => STYLE_LABEL[isStyle(p.style) ? p.style : 'full'] },
+  { id: 'by', header: 'By', cell: (p) => p.printed_by_display },
+  { id: 'time', header: 'Time', cell: (p) => <Ad value={p.printed_at} withTime /> },
+  { id: 'reason', header: 'Reason', cell: (p) => humanize(p.reason_code) },
+];
+const CREDIT_COLUMNS:ColumnDef<CreditNoteSummary>[] = [
   { id: 'no', header: 'Credit note', isRowHeader: true, cell: (c) => c.credit_note_no },
   { id: 'kind', header: 'Kind', cell: (c) => humanize(c.kind) },
   { id: 'date', header: 'Date', cell: (c) => <BsAd bs={c.credit_note_date_bs} utc={c.issued_at} /> },
@@ -105,20 +113,8 @@ export function InvoiceDetailView({ invoice, prints, creditNotes, permissions }:
         {/* T0D-UIGUARD-1-BILLING (LD-353 rule 5, LD-436 R7, LD-439): each side block is a Card with a title row and a DataTable that keeps its header when empty. */}
         <aside aria-label="Invoice history" className="lims-invoice-detail-side">
           <Card title="Print history">
-            {/* native table (printcfg1.invoice pins role table); empty = kit EmptyRow + PlaceholderRows, the header stays */}
-            <table>
-              <caption>Print history</caption>
-              <thead><tr><th scope="col">No</th><th scope="col">Type</th><th scope="col">Style</th><th scope="col">By</th><th scope="col">Time</th><th scope="col">Reason</th></tr></thead>
-              <tbody>
-                {prints.length ? prints.map((p) => (
-                  <tr key={p.print_no}>
-                    <td>{p.print_no}</td><td>{p.is_copy ? 'Copy' : 'Original'}</td><td>{STYLE_LABEL[isStyle(p.style) ? p.style : 'full']}</td><td>{p.printed_by_display}</td>
-                    <td><Ad value={p.printed_at} withTime /></td><td>{humanize(p.reason_code)}</td>
-                  </tr>
-                )) : <EmptyRow colSpan={6}>Not printed yet.</EmptyRow>}
-              </tbody>
-              {prints.length ? null : <PlaceholderRows colSpan={6} />}
-            </table>
+            {/* T0D-UIX-4 (LD-442): kit DataTable, header kept when empty */}
+            <DataTable caption="Print history" density="regular" columns={PRINT_COLUMNS} rows={prints} getRowId={(p) => String(p.print_no)} emptyState={{ title: 'Not printed yet.' }} />
           </Card>
           <Card title="Credit notes">
             <DataTable caption="Credit notes" density="compact" columns={CREDIT_COLUMNS} rows={creditNotes} getRowId={(c) => c.id} emptyState={{ title: 'No credit notes.' }} />

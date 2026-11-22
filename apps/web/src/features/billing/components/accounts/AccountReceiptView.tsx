@@ -1,6 +1,7 @@
 'use client';
 // T0D-ACCT-1 (LD-313): printable account receipt (records only, no money moves; not a fiscal document). Dates A.D. with B.S. beside.
 import type { ReactNode } from 'react';
+import { DescriptionList } from '@lims/ui/components/DescriptionList';
 import { DateText } from '@lims/ui/components/DateText';
 import { t } from '@/core/i18n/messages';
 import type { AccountLedgerEntry, AccountParticular, AccountParty, Named } from '../../server/accounts.server';
@@ -8,27 +9,30 @@ import { amountInWords, formatNpr } from '../format';
 import { fill, modeText, statusText, typeText } from './accountsShared';
 
 export function AccountReceiptView({ entry: e, party, particular, centre }: { entry: AccountLedgerEntry; party?: AccountParty | undefined; particular?: AccountParticular | undefined; centre?: Named | undefined }) {
-  const row = (key: string, value: ReactNode) => (value === undefined || value === '' ? null : <><dt>{t(key)}</dt><dd>{value}</dd></>);
+  // T0D-UIX-4 (LD-442): the receipt fields are a kit DescriptionList; empty fields are left out as before.
+  const row = (key: string, value: ReactNode) => (value === undefined || value === '' ? [] : [{ term: t(key), value }]);
   return (
     <article className="lims-receipt-doc" aria-label={fill('billing.accounts.receipt.label', { no: e.receipt_no })}>
       {/* T0D-UIGUARD-1-BILLING (LD-436 R7): print heading with heading semantics, not a raw h2. */}
       <p role="heading" aria-level={2} className="lims-card-title">{t('billing.accounts.receipt.heading')}</p>
-      <dl>
-        {row('billing.accounts.receipt.no', e.receipt_no)}
-        {row('billing.accounts.receipt.date', <DateText value={e.entry_date as never} mode="AD_BS" />)}
-        {row('billing.accounts.field.laboratory', centre?.name ?? '—')}
-        {row('billing.accounts.receipt.party', party?.name ?? '—')}
-        {row('billing.accounts.field.particulars', particular?.name ?? '—')}
-        {row('billing.accounts.field.type', typeText(e.entry_type))}
-        {row('billing.accounts.receipt.amount', formatNpr(e.amount_paisa))}
-        {row('billing.accounts.receipt.in_words', amountInWords(e.amount_paisa))}
-        {row('billing.accounts.field.payment_mode', modeText(e.payment_mode))}
-        {row('billing.accounts.field.bank', e.bank_name)}
-        {row('billing.accounts.field.reference', e.reference_no)}
-        {row('billing.accounts.field.payment_details', e.payment_details)}
-        {row('billing.accounts.field.comments', e.comments)}
-        {row('billing.accounts.col.status', statusText(e.status))}
-      </dl>
+      <DescriptionList
+        items={[
+          ...row('billing.accounts.receipt.no', e.receipt_no),
+          ...row('billing.accounts.receipt.date', <DateText value={e.entry_date as never} mode="AD_BS" />),
+          ...row('billing.accounts.field.laboratory', centre?.name ?? '—'),
+          ...row('billing.accounts.receipt.party', party?.name ?? '—'),
+          ...row('billing.accounts.field.particulars', particular?.name ?? '—'),
+          ...row('billing.accounts.field.type', typeText(e.entry_type)),
+          ...row('billing.accounts.receipt.amount', formatNpr(e.amount_paisa)),
+          ...row('billing.accounts.receipt.in_words', amountInWords(e.amount_paisa)),
+          ...row('billing.accounts.field.payment_mode', modeText(e.payment_mode)),
+          ...row('billing.accounts.field.bank', e.bank_name),
+          ...row('billing.accounts.field.reference', e.reference_no),
+          ...row('billing.accounts.field.payment_details', e.payment_details),
+          ...row('billing.accounts.field.comments', e.comments),
+          ...row('billing.accounts.col.status', statusText(e.status)),
+        ]}
+      />
       {e.status === 'reversed' ? <p>{t('billing.accounts.receipt.reversed_note')}</p> : null}
     </article>
   );

@@ -43,7 +43,8 @@ export function OrgUnits({ kind, units: initial, branches, canEdit }: { kind: Un
             onClick: () => setEditing(u),
             cells: [
               u.code,
-              <button key="n" type="button" className="lims-link" onClick={(e) => { e.stopPropagation(); setEditing(u); }}>{u.name}</button>,
+              // T0D-UIX-4 (LD-442): the name opens the editor through the kit ghost Button (usePress keeps the click off the row)
+              <Button key="n" variant="ghost" size="sm" onPress={() => setEditing(u)}>{u.name}</Button>,
               ...(centres ? [branchName.get(String(u['branch_id'])) ?? '—', KIND_LABEL[String(u['kind'])] ?? String(u['kind'])] : [u['is_processing_lab'] ? 'Yes' : 'No']),
               u.phone ?? '—',
               u.is_active ? 'Active' : 'Inactive',

@@ -25,7 +25,7 @@ const mount = async (sp: Record<string, string | undefined> = {}) => {
   return render(<ToastProvider>{await (mod.default as unknown as (p: unknown) => Promise<ReactNode>)({ searchParams: Promise.resolve(sp) })}</ToastProvider>);
 };
 // T0D-UICONSOLE-1: the queue is the console list (a table); the row actions live in the sticky bar of the SELECTED record.
-const rowOf = async (text: RegExp) => (await within(await screen.findByRole('table')).findByText(text)).closest('tr') as HTMLElement;
+const rowOf = async (text: RegExp) => (await within(await screen.findByRole('grid')).findByText(text)).closest('tr') as HTMLElement;
 const barOf = async (text: RegExp) => { await userEvent.click(await rowOf(text)); return actionBar(document.body) as HTMLElement; };
 const resolves = () => hit('POST', /^\/v1\/inventory\/consumption-facts\/[^/]+\/resolve$/);
 const dismisses = () => hit('POST', /^\/v1\/inventory\/consumption-facts\/[^/]+\/dismiss$/);
@@ -49,7 +49,7 @@ describe('S15 gating', () => {
 describe('S15 queue (TRD #75)', () => {
   it('asks the API for status=unresolved only', async () => {
     await mount();
-    await screen.findByRole('table');
+    await screen.findByRole('grid');
     expect(new URLSearchParams(hit('GET', /^\/v1\/inventory\/consumption-facts$/)[0]!.search).get('status')).toBe('unresolved');
   });
   it('header copy is verbatim', async () => {
@@ -58,7 +58,7 @@ describe('S15 queue (TRD #75)', () => {
   });
   it('columns Occurred, Kind, Analyser, Test, Reason; the reason is the TEXT "No store found"; ids are joined to names', async () => {
     await mount();
-    const grid = await screen.findByRole('table');
+    const grid = await screen.findByRole('grid');
     const heads = within(grid).getAllByRole('columnheader').map((h) => h.textContent?.trim());
     for (const h of ['Occurred', 'Kind', 'Analyser', 'Test']) expect(heads, h).toContain(h);
     const r1 = grid.querySelectorAll('tbody tr')[0] as HTMLElement;
@@ -71,7 +71,7 @@ describe('S15 queue (TRD #75)', () => {
   });
   it('a fact without an analyser (manual QC) shows a dash, not "undefined"', async () => {
     await mount();
-    const grid = await screen.findByRole('table');
+    const grid = await screen.findByRole('grid');
     expect(grid.textContent).not.toMatch(/undefined|null/);
   });
   it('empty state: "Nothing waiting"', async () => {
@@ -91,7 +91,7 @@ describe('S15 queue (TRD #75)', () => {
       return new URL(request.url).searchParams.get('cursor') ? page([fact(5, { test_id: ID(71) })]) : page([fact(1)], 'CUR2');
     }));
     await mount();
-    await screen.findByRole('table');
+    await screen.findByRole('grid');
     await userEvent.click(await screen.findByRole('button', { name: /load more|next/i }));
     await waitFor(() => expect(n).toBe(2));
     expect(new URLSearchParams(hit('GET', /consumption-facts$/)[1]!.search).get('cursor')).toBe('CUR2');

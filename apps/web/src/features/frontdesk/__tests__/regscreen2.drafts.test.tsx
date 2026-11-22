@@ -36,7 +36,7 @@ async function patientAndCbc(u: User) {
 }
 const saveDraft = async (u: User) => { await u.click(screen.getByRole('button', { name: /^save as draft/i })); await waitFor(() => expect(of('POST', DRAFTS)).toHaveLength(1), { timeout: T }); };
 const openDrafts = async (u: User) => { await u.click(screen.getByRole('button', { name: /^drafts/i })); return dialog(); };
-const cart = () => screen.getByRole('table', { name: /selected tests/i });
+const cart = () => screen.getByRole('grid', { name: /selected tests/i });
 const seedDraft = (payload: string, id = U(950)) => reg2.drafts.push({ id, centre_id: CENTRE, payload, created_at: '2026-11-17T04:15:00.000Z', updated_at: '2026-11-17T04:15:00.000Z', expires_at: '2026-12-01T04:15:00.000Z' });
 
 describe('Save as draft', () => {
@@ -58,7 +58,7 @@ describe('Save as draft', () => {
     expect(p.items.map((i: any) => i.orderable_id)).toEqual([ITEM.CBC]);
     expect(c.headers.get('idempotency-key')).toMatch(/^[A-Za-z0-9_-]{8,64}$/);
     expect((await screen.findAllByText(/draft saved/i, undefined, { timeout: T })).length).toBeGreaterThan(0);
-    expect(within(cart()).getByRole('cell', { name: 'CBC' })).toBeTruthy(); // the form keeps its data
+    expect(within(cart()).getByRole('rowheader', { name: 'CBC' })).toBeTruthy(); // the form keeps its data
   });
 
   it('the payload is minimal: no quote_fingerprint, payments, card holder name or Government ID number, even when they were typed', async () => {
@@ -101,7 +101,7 @@ describe('Save as draft', () => {
     expect((await screen.findAllByText(/not allowed to save drafts/i, undefined, { timeout: T })).length).toBeGreaterThan(0);
     await settle();
     expect(of('POST', DRAFTS)).toHaveLength(1);
-    expect(within(cart()).getByRole('cell', { name: 'CBC' })).toBeTruthy();
+    expect(within(cart()).getByRole('rowheader', { name: 'CBC' })).toBeTruthy();
   });
 });
 
@@ -129,7 +129,7 @@ describe('Drafts list', () => {
     expect(within(row).getByRole('button', { name: /^delete/i })).toBeTruthy();
     await u2.click(within(row).getByRole('button', { name: /^open/i }));
     expect(await screen.findByText(/P-000123/, undefined, { timeout: T })).toBeTruthy();
-    await waitFor(() => expect(within(cart()).getByRole('cell', { name: 'CBC' })).toBeTruthy(), { timeout: T });
+    await waitFor(() => expect(within(cart()).getByRole('rowheader', { name: 'CBC' })).toBeTruthy(), { timeout: T });
     await waitFor(() => expect(screen.queryByRole('dialog', { name: /drafts/i })).toBeNull(), { timeout: T });
     await waitFor(() => expect(of('POST', PATH.quote).at(-1)?.body.items).toHaveLength(1), { timeout: T }); // the restored form is priced again
   });
@@ -156,7 +156,7 @@ describe('Drafts list', () => {
     const d = await openDrafts(u);
     await u.click(await within(d).findByRole('button', { name: /^open/i }, { timeout: T }));
     expect((await within(d).findAllByText(/no longer available|expired|not found/i, undefined, { timeout: T })).length).toBeGreaterThan(0);
-    expect(screen.queryByRole('table', { name: /selected tests/i })?.querySelectorAll('tbody tr').length ?? 0).toBe(0);
+    expect(screen.queryByRole('grid', { name: /selected tests/i })?.querySelectorAll('tbody tr').length ?? 0).toBe(0);
   });
 
   it('an unusable payload (wrong shapes, prototype pollution attempt) is refused with a message; the form stays blank and nothing is registered', async () => {
@@ -181,7 +181,7 @@ describe('Drafts list', () => {
     await form();
     const d = await openDrafts(u2);
     await u2.click(await within(d).findByRole('button', { name: /^open/i }, { timeout: T }));
-    await waitFor(() => expect(within(cart()).getByRole('cell', { name: 'CBC' })).toBeTruthy(), { timeout: T });
+    await waitFor(() => expect(within(cart()).getByRole('rowheader', { name: 'CBC' })).toBeTruthy(), { timeout: T });
     await waitFor(() => expect(screen.getAllByText(/113\.00/).length).toBeGreaterThan(0), { timeout: T });
     await u2.keyboard('{Control>}{Enter}{/Control}');
     await waitFor(() => expect(of('POST', PATH.register)).toHaveLength(1), { timeout: T });
@@ -222,7 +222,7 @@ describe('favourite tests', () => {
     await u.click(screen.getByRole('tab', { name: /favourites/i }));
     expect(await screen.findByText(/Thyroid stimulating hormone/, undefined, { timeout: T })).toBeTruthy();
     await u.click(await screen.findByText(/Complete blood count/, undefined, { timeout: T }));
-    await waitFor(() => expect(within(cart()).getByRole('cell', { name: 'CBC' })).toBeTruthy(), { timeout: T });
+    await waitFor(() => expect(within(cart()).getByRole('rowheader', { name: 'CBC' })).toBeTruthy(), { timeout: T });
     await waitFor(() => expect(of('POST', PATH.quote).at(-1)?.body.items.map((i: any) => i.orderable_id)).toEqual([ITEM.CBC]), { timeout: T });
   });
 

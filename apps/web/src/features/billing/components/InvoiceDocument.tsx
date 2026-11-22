@@ -1,9 +1,23 @@
+'use client';
 // Fiscal invoice layout (04-UI-UX §8.3). Used by the detail screen and the print template, so what is on screen is what is printed.
 // Real text only (screen readers, copy); data-driven rows so statutory fields can be added without a layout change (04 L10, B6).
+import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
 import { DataUriImage } from '@lims/ui/components/DataUriImage';
+import { DescriptionList } from '@lims/ui/components/DescriptionList';
 import type { InvoicePrintDocument } from '../server/types';
 import { Ad, BsAd, amountInWords, npr } from './format';
 import './billing.css';
+
+type Line = InvoicePrintDocument['lines'][number];
+// T0D-UIX-4 (LD-442): invoice lines are a kit DataTable (money end aligned with tabular figures), the fields a kit DescriptionList.
+const LINE_COLUMNS: ColumnDef<Line>[] = [
+  { id: 'sn', header: 'S.N.', numeric: true, cell: (l) => l.line_no },
+  { id: 'code', header: 'Code', cell: (l) => l.code ?? '' },
+  { id: 'name', header: 'Description', isRowHeader: true, cell: (l) => l.name },
+  { id: 'rate', header: 'Rate', numeric: true, cell: (l) => npr(l.unit_price) },
+  { id: 'discount', header: 'Discount', numeric: true, cell: (l) => npr(l.discount) },
+  { id: 'amount', header: 'Amount', numeric: true, cell: (l) => npr(l.net) },
+];
 
 /** `plain` (T0D-PRINTCFG-1, LD-316): the plain black and white tax bill: no logo, no phone line, no footer text; lab name, address, seller PAN,
  * bill number and date stay. The server also prints plain_bw this way; the client strips again so a stale document never prints a logo. */
@@ -34,42 +48,26 @@ export function InvoiceDocument({ document: d, plain = false }: { document: Invo
       <p role="heading" aria-level={2} className="lims-card-title">{title}</p>
       {showCopy ? <p className="lims-copy-mark"><strong>{d.copy_mark}</strong></p> : null}
       {d.cancelled_banner ? <p className="lims-cancelled-banner"><strong>{d.cancelled_banner}</strong></p> : null}
-      <dl className="lims-invoice-meta">
-        <dt>Seller PAN</dt><dd>{d.seller.pan ?? '—'}</dd>
-        <dt>Invoice no</dt><dd>{d.invoice_no}</dd>
-        <dt>Invoice date</dt>
-        <dd>{d.dates ? <>{d.dates.bs} B.S. / {d.dates.ad}</> : <BsAd bs={d.invoice_date_bs} utc={d.issued_at} withTime />}</dd>
-        <dt>Fiscal year</dt><dd>{d.fiscal_year_bs}</dd>
-        <dt>Buyer</dt><dd>{d.buyer.name ?? '—'}</dd>
-        {d.buyer.pan ? <><dt>Buyer PAN</dt><dd>{d.buyer.pan}</dd></> : null}
-        {d.registration_no ? <><dt>Registration no</dt><dd>{d.registration_no}</dd></> : null}
-      </dl>
+      <DescriptionList
+        columns={2}
+        items={[
+          { term: 'Seller PAN', value: d.seller.pan ?? '—' },
+          { term: 'Invoice no', value: d.invoice_no },
+          { term: 'Invoice date', value: d.dates ? <>{d.dates.bs} B.S. / {d.dates.ad}</> : <BsAd bs={d.invoice_date_bs} utc={d.issued_at} withTime /> },
+          { term: 'Fiscal year', value: d.fiscal_year_bs },
+          { term: 'Buyer', value: d.buyer.name ?? '—' },
+          ...(d.buyer.pan ? [{ term: 'Buyer PAN', value: d.buyer.pan }] : []),
+          ...(d.registration_no ? [{ term: 'Registration no', value: d.registration_no }] : []),
+        ]}
+      />
       <p>Referred by: {d.referrer_id ? (d.referrer_name ?? 'Referrer on file') : 'Self'}</p>
-      <table className="lims-invoice-lines">
-        <caption>Invoice lines</caption>
-        <thead>
-          <tr><th scope="col">S.N.</th><th scope="col">Code</th><th scope="col">Description</th><th scope="col">Rate</th><th scope="col">Discount</th><th scope="col">Amount</th></tr>
-        </thead>
-        <tbody>
-          {d.lines.map((l) => (
-            <tr key={l.id}>
-              <td>{l.line_no}</td><td>{l.code ?? ''}</td><td>{l.name}</td>
-              <td>{npr(l.unit_price)}</td><td>{npr(l.discount)}</td><td>{npr(l.net)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      <dl className="lims-invoice-totals">
-        {totals.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}
-      </dl>
+      <DataTable caption="Invoice lines" stickyHeader={false} columns={LINE_COLUMNS} rows={d.lines} getRowId={(l) => l.id} emptyState={{ title: 'No lines.' }} />
+      <DescriptionList items={totals.map(([term, value]) => ({ term, value }))} />
       <p>Amount in words: {amountInWords(d.totals.net.amount_paisa)}</p>
       {d.payment_block ? (
         <section aria-label="Payment summary">
           <p role="heading" aria-level={3} className="lims-card-title">Payment summary (not part of the invoice)</p>
-          <dl>
-            <dt>Paid</dt><dd>{npr(d.payment_block.paid)}</dd>
-            <dt>Balance due</dt><dd>{npr(d.payment_block.balance_due)}</dd>
-          </dl>
+          <DescriptionList items={[{ term: 'Paid', value: npr(d.payment_block.paid) }, { term: 'Balance due', value: npr(d.payment_block.balance_due) }]} />
         </section>
       ) : null}
       {d.printed_by_display && d.printed_at ? <p>Printed by {d.printed_by_display} on <Ad value={d.printed_at} withTime /></p> : null}

@@ -9,10 +9,9 @@ import { useRef, useState, type ComponentProps } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@lims/ui/components/Button';
 import { Card } from '@lims/ui/components/Card';
-import { EmptyRow, PlaceholderRows } from '@lims/ui/components/DataTable';
+import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
 import { DateText } from '@lims/ui/components/DateText';
 import { Dialog } from '@lims/ui/components/Dialog';
-import { EmptyState } from '@lims/ui/components/EmptyState';
 import { FilterBar } from '@lims/ui/components/FilterBar';
 import { Inline } from '@lims/ui/components/Inline';
 import { PageHeader } from '@lims/ui/components/PageHeader';
@@ -21,7 +20,7 @@ import { Stack } from '@lims/ui/components/Stack';
 import { StatTile, StatTileRow } from '@lims/ui/components/StatTile';
 import { useToast } from '@lims/ui/components/Toast';
 import { t } from '@/core/i18n/messages';
-import { Facts, History, ShortcutKey, hhmm, itemProps, oldest, useNow } from './consoleParts';
+import { Facts, History, ShortcutKey, hhmm, oldest, useNow } from './consoleParts';
 import { dismissFactAction, listFactsAction, resolveFactAction } from '../server/actions';
 import type { CodedValue, Fact, Instrument, Store, TestRef } from '../server/types';
 import { CONSUMPTION_HELP } from './RulesView';
@@ -29,7 +28,6 @@ import { Chip, Pick, ProblemBanner, useAttemptKey, type Failure } from './shared
 
 type IsoUtc = NonNullable<ComponentProps<typeof DateText>['value']>;
 const KIND: Record<string, string> = { test: 'Test result', analyte: 'Analyte result', rerun: 'Rerun', qc: 'QC result', calibration: 'Calibration', fixed: 'Analyser-day' };
-const HEADERS = ['Age', 'Occurred', 'Kind', 'Analyser', 'Test'];
 
 export interface UnresolvedViewProps {
   facts: readonly Fact[];
@@ -77,26 +75,17 @@ export function UnresolvedView(p: UnresolvedViewProps) {
   const sel = rows.find((f) => f.id === selectedId);
   const title = t('inventory.nav.unresolved');
 
+  // T0D-UIX-4 (LD-442): the queue is the kit DataTable; rows are the console items (consoleSelection), like the payments queues.
+  const columns: ColumnDef<Fact>[] = [
+    { id: 'age', header: 'Age', numeric: true, cell: (f) => <span suppressHydrationWarning>{f.occurred_at ? hhmm(age(f)) : '—'}</span> },
+    { id: 'occurred', header: 'Occurred', cell: (f) => (f.occurred_at ? <DateText value={f.occurred_at as IsoUtc} withTime /> : '—') },
+    { id: 'kind', header: 'Kind', isRowHeader: true, cell: kind },
+    { id: 'analyser', header: 'Analyser', cell: analyser },
+    { id: 'test', header: 'Test', cell: test },
+  ];
   const list = (
-    <div className="lims-data-table"><div className="lims-table-scroll">
-      <table className="lims-table">
-        <caption className="lims-visually-hidden">{title}</caption>
-        <thead><tr>{HEADERS.map((h) => <th key={h} scope="col">{h}</th>)}</tr></thead>
-        <tbody>
-          {rows.length === 0 ? <EmptyRow colSpan={HEADERS.length}><EmptyState title="Nothing waiting" /></EmptyRow> : null}
-          {rows.map((f) => (
-            <tr key={f.id} {...itemProps(f.id, selectedId, setSelectedId)}>
-              <td suppressHydrationWarning>{f.occurred_at ? hhmm(age(f)) : '—'}</td>
-              <td>{f.occurred_at ? <DateText value={f.occurred_at as IsoUtc} withTime /> : '—'}</td>
-              <td>{kind(f)}</td>
-              <td>{analyser(f)}</td>
-              <td>{test(f)}</td>
-            </tr>
-          ))}
-        </tbody>
-        {rows.length === 0 ? <PlaceholderRows colSpan={HEADERS.length} /> : null}
-      </table>
-    </div></div>
+    <DataTable<Fact> columns={columns} rows={rows} getRowId={(f) => f.id} density="regular" caption={title}
+      emptyState={{ title: 'Nothing waiting' }} consoleSelection={{ selectedId, onSelect: setSelectedId }} />
   );
 
   const detail = sel ? (

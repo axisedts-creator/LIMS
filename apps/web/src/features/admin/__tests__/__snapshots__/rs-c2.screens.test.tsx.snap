@@ -42,7 +42,9 @@ exports[`visual snapshots of the key screens are recorded > snapshot: centres dr
 <tr role="row" class="lims-row lims-row-click">
 <td role="gridcell" class="lims-cell">C01</td>
 <td role="gridcell" class="lims-cell">
-<button type="button" class="lims-link">Central Collection</button>
+<button class="lims-btn lims-btn-ghost lims-btn-sm" data-rac="" type="button" tabindex="0" data-#id="true" id="#id" data-hovered="true">
+<span class="lims-btn-label">Central Collection</span>
+</button>
 </td>
 <td role="gridcell" class="lims-cell">Kathmandu lab</td>
 <td role="gridcell" class="lims-cell">Own</td>

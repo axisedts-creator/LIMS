@@ -11,6 +11,7 @@ import { Dialog } from '@lims/ui/components/Dialog';
 import { Switch } from '@lims/ui/components/Switch';
 import { TextField } from '@lims/ui/components/TextField';
 import { useToast } from '@lims/ui/components/Toast';
+import { VisuallyHidden } from '@lims/ui/components/VisuallyHidden';
 import { listSignatoriesAction, uploadSignatureAction, upsertSignatoryAction } from '../server/actions';
 import { plainError, type SignatoryRow } from '../server/types';
 import { errorText, hasPerm, newKey } from './format';
@@ -62,7 +63,7 @@ export function SignatoryProfiles({ permissions }: { permissions: readonly strin
     { id: 'reg', header: 'Registration number', cell: (r) => r.profile?.registration_no || '—' },
     { id: 'sig', header: 'Signature', cell: (r) => (r.profile?.signature_asset_id ? 'Signature on file' : 'No signature') },
     { id: 'active', header: 'Active', cell: (r) => (r.profile?.is_active ? 'Yes' : 'No') },
-    ...(canManage ? [{ id: 'edit', header: 'Actions', cell: (r: SignatoryRow) => <button type="button" className="lims-btn lims-btn-secondary lims-btn-sm" aria-label={`Edit ${nameOf(r)}`} onClick={() => setEditing(r)}>Edit</button> }] : []), // native button: the kit Button takes no aria-label
+    ...(canManage ? [{ id: 'edit', header: 'Actions', cell: (r: SignatoryRow) => <Button size="sm" onPress={() => setEditing(r)}>Edit<VisuallyHidden> {nameOf(r)}</VisuallyHidden></Button> }] : []), // T0D-UIX-4 (LD-442): kit Button, the name "Edit <signatory>" via a visually hidden suffix
   ];
   return (
     // T0D-UIGUARD-1-REPORTING (LD-436 Card title row, LD-439 a): kit Card with a title row instead of a raw h2.

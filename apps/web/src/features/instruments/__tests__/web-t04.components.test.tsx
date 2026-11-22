@@ -164,7 +164,7 @@ describe('AC-17.1 — manager sees observed codes and C3 maps', () => {
     // GLU is in the C3 maps list but E32 still says unmapped (refresh task not run yet) → shown as Unmapped
     await show({ observed: [oc({ instrument_analyte_code: 'GLU' })] });
     // scoped to the Observed codes table: the Mappings table also has a GLU row (04-UI-UX.md:148 "Instrument code")
-    const observedTable = screen.getByRole('table', { name: /observed codes/i });
+    const observedTable = screen.getByRole('grid', { name: /observed codes/i });
     expect(text(within(observedTable).getByRole('row', { name: /\bGLU\b/ }))).toMatch(/Unmapped/);
   });
 
@@ -623,7 +623,7 @@ describe('"Copy from instrument…" (C3 upsertInstrumentCodeMaps with per-row ou
     await waitFor(() => expect((copyBtn() as HTMLButtonElement).disabled).toBe(false));
     await userEvent.click(copyBtn());
     await waitFor(() => expect(bulks()).toHaveLength(1));
-    const t = await within(dialog()).findByRole('table');
+    const t = await within(dialog()).findByRole('grid');
     expect(text(within(t).getByRole('row', { name: /\bWBC\b/ }))).toMatch(/created/i);
     expect(text(within(t).getByRole('row', { name: /\bGLU\b/ }))).toMatch(/unchanged/i);
     const bad = text(within(t).getByRole('row', { name: /\bOLD\b/ }));
@@ -641,7 +641,7 @@ describe('"Copy from instrument…" (C3 upsertInstrumentCodeMaps with per-row ou
     await waitFor(() => expect((copyBtn() as HTMLButtonElement).disabled).toBe(false));
     await userEvent.click(copyBtn());
     expect(await screen.findByText(new RegExp(MFA))).toBeTruthy();
-    expect(within(dialog()).queryByRole('table')).toBeNull();
+    expect(within(dialog()).queryByRole('grid')).toBeNull();
     await userEvent.click(copyBtn());
     await waitFor(() => expect(bulks()).toHaveLength(2));
     expect(bulks()[1]!.headers.get('idempotency-key')).toBe(bulks()[0]!.headers.get('idempotency-key'));

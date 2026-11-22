@@ -9,6 +9,7 @@ import { Button } from '@lims/ui/components/Button';
 import { ConfirmDialog } from '@lims/ui/components/ConfirmDialog';
 import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
 import { DateText } from '@lims/ui/components/DateText';
+import { DescriptionList } from '@lims/ui/components/DescriptionList';
 import { Dialog } from '@lims/ui/components/Dialog';
 import { FilterBar } from '@lims/ui/components/FilterBar';
 import { Form } from '@lims/ui/components/Form';
@@ -142,10 +143,14 @@ function Balances({ fromId, toId, amount }: { fromId: string | undefined; toId: 
   const short = !!from && amount !== undefined && amount > held(from);
   return (
     <div className="lims-stack">
-      <dl className="lims-inline">
-        {fromId ? <><dt>{X('balance_sender')}</dt><dd>{balanceText(from)}</dd></> : null}
-        {toId ? <><dt>{X('balance_receiver')}</dt><dd>{balanceText(to)}</dd></> : null}
-      </dl>
+      {/* T0D-UIX-4 (LD-442): kit DescriptionList */}
+      <DescriptionList
+        columns={2}
+        items={[
+          ...(fromId ? [{ term: X('balance_sender'), value: balanceText(from) }] : []),
+          ...(toId ? [{ term: X('balance_receiver'), value: balanceText(to) }] : []),
+        ]}
+      />
       {short ? <p role="status" className="lims-warning">{X('balance_warning')}</p> : null}
     </div>
   );
@@ -170,12 +175,15 @@ function DecideDialog({ row, action, fromName, toName, onClose, onDone, onFail }
       onConfirm={confirm}
       body={(
         <>
-          <dl className="lims-inline">
-            <dt>{X('col.from')}</dt><dd>{fromName}</dd>
-            <dt>{X('col.to')}</dt><dd>{toName}</dd>
-            <dt>{X('col.amount')}</dt><dd>{formatNpr(row.amount_paisa)}</dd>
-            {row.remark ? <><dt>{X('col.remark')}</dt><dd>{row.remark}</dd></> : null}
-          </dl>
+          <DescriptionList
+            columns={2}
+            items={[
+              { term: X('col.from'), value: fromName },
+              { term: X('col.to'), value: toName },
+              { term: X('col.amount'), value: formatNpr(row.amount_paisa) },
+              ...(row.remark ? [{ term: X('col.remark'), value: row.remark }] : []),
+            ]}
+          />
           {action === 'accept' ? <Balances fromId={row.from_id} toId={row.to_id} amount={row.amount_paisa} /> : null}
         </>
       )}

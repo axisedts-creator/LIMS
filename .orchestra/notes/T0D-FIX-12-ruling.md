@@ -1,0 +1,7 @@
+TESTS_WRONG — the test at apps/web/src/__tests__/fix12.burst.test.ts:129-131 asserts prefetch={false} on every <Link> in apps/web/src, which neither the brief nor the spec requires and which forces edits outside this chunk and file budget.
+Change: delete the `it('anywhere else in apps/web/src ...')` case (lines 129-131), or restrict its `users` scan to files under `core/` (C0-owned). Keep the two `it.each` cases for core/shell/Rail.tsx and core/shell/GlobalSearch.tsx (lines 124-128), the "scan is not empty" check (119-123) and the router.prefetch check (132-134) unchanged.
+Reasons:
+1. Brief done_when (2) asks for prefetch off only "if link prefetch is a source" and only "on the links that fan out to authenticated pages"; the brief's own evidence (bursts of 7 to 15 in ~100 ms) matches the rail/search fan-out the remaining tests already cover.
+2. Brief "files": "at most 12 files in all"; "Stay inside the file budget; leftovers go to notes/<TASK-ID>-left.md, never a wider scope" (LD-455 rule 4). The test needs 13 more files.
+3. Ownership: CLAUDE.md "Edit only paths your chunk owns (spec/program/01-CHUNK-MAP.md §3)". The 13 files sit in apps/web/src/{app/(staff),features}/<m> for admin (core/identity logic → C2, 01-CHUNK-MAP.md:154,158-159), lab (C5, :164) and partners (C13, :172).
+4. Writer must list the in-page/list links in those modules in notes/T0D-FIX-12-left.md as a follow-up per owning lane (C2, C5, C13), for the lead to rule on.

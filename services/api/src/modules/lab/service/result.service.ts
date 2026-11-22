@@ -1,5 +1,6 @@
 // Result service — T-13: calculated-result recompute (02-TRD §4.3 step 6, §4.4; 08 R3/R5/R7, R12a). Runs in the caller's transaction (ctx.tx).
 // Tenant comes from ctx only; thrown problems never carry values. R7 outputs go only to the NEW result_versions row (store.amendCalculated).
+import { toDate } from '../../../core/clock.js'; // T0D-FIX-6 (LD-448): toDate(ctx.now()) is an ISO string in the pipeline, a Date in unit fakes
 import { LimsError, type FieldError } from '../../../core/errors.js';
 import type { PublishInput } from '../../../core/events/publish.js';
 import { computeCalculated, formulaRefsOf, orderCalculated, type CalcInput, type CalcOutcome } from '../domain/formulaInputs.js';
@@ -82,7 +83,7 @@ export async function recomputeDependents(ctx: RecomputeCtx, i: RecomputeInput):
       : computeCalculated({
         expression: t.expression, inputs, inputUnitByCode: units, outputDecimals: t.decimals,
         ctx: { sex: t.sex, ...(t.ageDays === undefined ? {} : { ageDays: t.ageDays }), ...(t.ageYears === undefined ? {} : { ageYears: t.ageYears }) }, // 02-TRD §4.4
-        testRevision: t.testRevision, catalogRevision: t.catalogRevision, evaluatedAt: ctx.now(),
+        testRevision: t.testRevision, catalogRevision: t.catalogRevision, evaluatedAt: toDate(ctx.now()),
       });
     let versionNo = t.versionNo;
     if (t.status === 'approved') {
@@ -101,7 +102,7 @@ export async function recomputeDependents(ctx: RecomputeCtx, i: RecomputeInput):
           result_id: t.resultId, previous_version_no: t.versionNo, new_version_no: versionNo,
           order_id: t.orderId, order_item_id: i.orderItemId, test_id: t.testId, analyte_id: t.analyteId,
           amendment_reason_code: (i.amendmentReason as { reasonCode: string }).reasonCode,
-          amended_at: ctx.now().toISOString(), amended_by_membership_id: ctx.actor.membershipId,
+          amended_at: toDate(ctx.now()).toISOString(), amended_by_membership_id: ctx.actor.membershipId,
         },
       });
     } else {
@@ -306,7 +307,7 @@ export async function bulkEnterResults(rawCtx: unknown, input: EntryInput): Prom
         const act = criticalAction({ isCritical: evaluation.critical.isCritical, valueSha256Prefix16: hash, existing });
         if (act.markValueChangedAfterDetection) await store.markCriticalValueChanged(tx, tenantId, e.resultId);
         if (act.insertLogAndEmit && evaluation.critical.direction) {
-          const detectedAt = ctx.now().toISOString();   // server clock, never the back-entry time (S-12 / LD-25)
+          const detectedAt = toDate(ctx.now()).toISOString();   // server clock, never the back-entry time (S-12 / LD-25)
           const { criticalEventId } = await store.insertCriticalLog(tx, tenantId, {
             resultId: e.resultId, resultVersionNo: row.currentVersionNo, orderId: row.orderId, patientId: row.patientId, analyteId: row.analyteId, centreId: row.centreId,
             direction: evaluation.critical.direction, valueSha256Prefix16: hash, value,
@@ -398,7 +399,7 @@ async function visibleRow(ctx: VerifyCtx, row: VerifyRow | undefined): Promise<V
 /** R4 for an already checked row. Returns the saved row; any failure after the store call propagates (caller rolls back). */
 async function applyVerify(ctx: VerifyCtx, row: VerifyRow, a: { mode: 'manual' | 'auto'; acknowledgedFlags: readonly string[]; ruleSetVersion?: string }): Promise<ResultRow> {
   const { tx, tenantId, store } = ctx;
-  const occurredAt = ctx.now().toISOString();   // server clock
+  const occurredAt = toDate(ctx.now()).toISOString();   // server clock
   const manual = a.mode === 'manual';
   const out = await store.verify(tx, tenantId, {
     resultId: row.resultId, expectedRowVersion: row.rowVersion, mode: a.mode,
@@ -538,7 +539,7 @@ export async function returnResult(rawCtx: unknown, i: ReturnInput): Promise<Res
   }
   const out = await store.applyReturn(tx, tenantId, {
     resultId: row.resultId, expectedRowVersion: row.rowVersion, reasonCode: i.reasonCode, ...(i.comment === undefined ? {} : { comment: i.comment }),
-    ...(ctx.actor.membershipId === undefined ? {} : { membershipId: ctx.actor.membershipId }), occurredAt: ctx.now().toISOString(),
+    ...(ctx.actor.membershipId === undefined ? {} : { membershipId: ctx.actor.membershipId }), occurredAt: toDate(ctx.now()).toISOString(),
   });
   if (row.specimenId) await store.rollupSpecimen(tx, tenantId, row.specimenId);   // S15: the specimen drops back
   return out;
@@ -640,7 +641,7 @@ async function checkApprovable(ctx: ApprovalCtx, row: ApproveRow): Promise<void>
 /** R6 for an already checked row; the approval call carries no value column (S-03). Any failure after the store call propagates (caller rolls back). */
 async function applyApprove(ctx: ApprovalCtx, row: ApproveRow, o: { approvalRow?: false } = {}): Promise<ResultRow> {
   const { tx, tenantId, store } = ctx;
-  const occurredAt = ctx.now().toISOString();   // server clock
+  const occurredAt = toDate(ctx.now()).toISOString();   // server clock
   const membershipId = ctx.actor.membershipId as string;   // checkApprovable fails closed without it
   const out = await store.approve(tx, tenantId, { resultId: row.resultId, expectedRowVersion: row.rowVersion, membershipId, occurredAt, ...o });
   await store.closeOpenCriticalEvents(tx, tenantId, { resultId: row.resultId, closedAt: occurredAt });   // 02-TRD §5.5: R6 closes the events
@@ -763,7 +764,7 @@ export async function amendResult(rawCtx: unknown, i: AmendInput): Promise<Resul
     ...(delta.rule === undefined ? {} : { deltaRule: delta.rule }), deltaCandidates: delta.candidates,
   });
 
-  const occurredAt = ctx.now().toISOString();   // server clock
+  const occurredAt = toDate(ctx.now()).toISOString();   // server clock
   const previousVersionNo = row.currentVersionNo, newVersionNo = previousVersionNo + 1;
   const out = await store.amendResult(tx, tenantId, {
     resultId: row.resultId, expectedRowVersion: row.rowVersion, previousVersionNo, newVersionNo, value, evaluation,

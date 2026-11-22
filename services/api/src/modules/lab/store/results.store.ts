@@ -2,6 +2,7 @@
 // (ApproveStore, AmendStore, ReadinessStore) and history (listResultHistory) over the lab tables. Runs on the caller's ctx.tx only; tenant = the `tenantId`
 // argument ($1 of every statement, REQ-SEC-024) and RLS stays the guard. Members already written for the ingest path are reused from service/result-side.store.ts.
 // The roll-up publishes lab.specimen.status_changed.v1 through the handler ctx (its events / clock), exactly as the specimen actions do.
+import { toDate } from '../../../core/clock.js'; // T0D-FIX-6 (LD-448): toDate(ctx.now()) is an ISO string in the pipeline, a Date in unit fakes
 import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';
 import { LimsError } from '../../../core/errors.js';
 import { groupTests, specimenDto } from '../mappers/specimen.mapper.js';
@@ -54,7 +55,7 @@ export function resultsStore(ctx?: StoreCtx) {
   /** PortCtx view of the handler ctx for the shared ingest-path members (string clock as the port path). */
   const port = (): PortCtx => {
     if (!ctx || typeof ctx.now !== 'function' || typeof ctx.actor?.id !== 'string') throw new LimsError('common.internal');   // fail closed: no request ctx
-    return { tenantId: ctx.tenantId, requestId: ctx.requestId ?? '', tx: ctx.tx as never, now: () => ctx.now().toISOString(), actor: { type: ctx.actor.type ?? 'user', ...ctx.actor }, ports: ctx.ports };
+    return { tenantId: ctx.tenantId, requestId: ctx.requestId ?? '', tx: ctx.tx as never, now: () => toDate(ctx.now()).toISOString(), actor: { type: ctx.actor.type ?? 'user', ...ctx.actor }, ports: ctx.ports };
   };
   const side = () => resultSideStore(port()) as Required<ReturnType<typeof resultSideStore>>;
   const crit = criticalStore();

@@ -4,6 +4,7 @@
 // Tenant comes from ctx only (never from the payload); every store call is (ctx.tx, ctx.tenantId, ...). Logs carry outcome codes only: the result key
 // contains the barcode (P2) and values are P3 (REQ-SEC-098). A technical failure propagates (the caller rolls back / the job retries): never a silent ack.
 // Decision table = ../domain/matching.ts (pure).
+import { toDate } from '../../../core/clock.js'; // T0D-FIX-6 (LD-448): toDate(ctx.now()) is an ISO string in the pipeline, a Date in unit fakes
 import { LimsError, isLimsError } from '../../../core/errors.js';
 import { attachmentTenantOk, classifyRecord, decideMatch, decideUnit, resultKey, type IngestReason, type MatchDecision, type RecordKind } from '../domain/matching.js';
 import { DECIMAL_RE, fractionDigits } from '../domain/flags.js';
@@ -180,7 +181,7 @@ async function run(ctx: IngestCtx, i: InstrumentResultInput, source: 'event' | '
   checkInput(i);
   const key = opts.resultKey ?? resultKey(i);
   const assign = opts.assign;
-  const at = ctx.now().toISOString();
+  const at = toDate(ctx.now()).toISOString();
   const flags = [...(i.instrumentFlags ?? [])];
 
   // step 1: claim the result-level key; a stored unmatched/rejected_state outcome WITH an open exception is re-evaluated (replay after a fix, CR-C7-011)

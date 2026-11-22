@@ -5,6 +5,7 @@
 // No SQL here: repo / events / limits are seams (auth-events.repo.ts, AuthLimits adapter in handlers/loginStaff.ts).
 import { createHash, createHmac, randomBytes } from 'node:crypto';
 import { LimsError, isLimsError } from '../../../core/errors.js';
+import { toDate } from '../../../core/clock.js'; // T0D-FIX-6 (LD-448)
 // [CONV] relative import until @lims/shared-ts is a services/api dependency (same as core/errors.ts).
 import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';
 import type { GoTrueGateway, GoTrueTokens } from '../gotrue/gateway.js';
@@ -109,7 +110,7 @@ export function createAuthService(deps: AuthDeps) {
   };
 
   async function login(ctx: AuthCtx, input: { email: unknown; password: unknown }, mode: LoginMode, app?: { appInstanceId: string; appPlatform: string }): Promise<LoginResult | MobileSessionResult> {
-    const start = ctx.now().getTime();
+    const start = toDate(ctx.now()).getTime();
     const { email, password } = input ?? ({} as never);
     if (typeof email !== 'string' || typeof password !== 'string' || password.length < 1 || password.length > PASSWORD_MAX) throw invalid();
     const norm = normalise(email);
@@ -122,7 +123,7 @@ export function createAuthService(deps: AuthDeps) {
     /** P-42 exit: writes already done by the caller; keep them, pad, throw. */
     const deny = async (err: LimsError): Promise<never> => {
       ctx.commitOnError();
-      const left = floorMs - (ctx.now().getTime() - start);
+      const left = floorMs - (toDate(ctx.now()).getTime() - start);
       if (left > 0) await sleep(left);
       throw err;
     };
@@ -142,7 +143,7 @@ export function createAuthService(deps: AuthDeps) {
     const st = await deps.limits.accountState(k);
     if (st.failures >= STEP_UP_FAILS) {
       const backoffMs = Math.min(BACKOFF_BASE_S * 2 ** (st.failures - STEP_UP_FAILS), BACKOFF_CAP_S) * 1000;
-      const since = st.lastFailureAt ? ctx.now().getTime() - st.lastFailureAt.getTime() : backoffMs;
+      const since = st.lastFailureAt ? toDate(ctx.now()).getTime() - st.lastFailureAt.getTime() : backoffMs;
       if (since < backoffMs) {
         const e = new LimsError('common.rate_limited'); e.retryAfterSeconds = Math.max(1, Math.ceil((backoffMs - since) / 1000));
         return tenantless('login_rate_limited', e);
@@ -161,7 +162,7 @@ export function createAuthService(deps: AuthDeps) {
       const ip = await deps.limits.recordIpFailure(ctx.clientIp);
       await deps.events.recordTenantless(tx, ev('login_failed', { emailHmacHex: k }));
       if (ip.engaged) {
-        const now = ctx.now();
+        const now = toDate(ctx.now());
         await deps.events.recordTenantless(tx, ev('login_ip_throttled'));
         await deps.repo.enqueue(tx, 'identity.notify_ip_throttle', { client_ip: ctx.clientIp, window_start: ip.windowStart.toISOString() },
           `ipthrottle:${sha256(ctx.clientIp).toString('hex')}:${now.toISOString().slice(0, 16)}`);
@@ -196,7 +197,7 @@ export function createAuthService(deps: AuthDeps) {
     const blocked = async (eventType: string, code: string) => {
       await deps.events.recordTenant(tx, ev(eventType, { ...who, tenantId, membershipId, emailHmacHex: k }));
       await signOut(eventType, tenantId);
-      tenantFailure(ctx, tenantId, ctx.now().getTime());
+      tenantFailure(ctx, tenantId, toDate(ctx.now()).getTime());
       return deny(new LimsError(code));
     };
     if (row['membership_status'] !== 'active') return blocked('login_blocked_inactive', 'identity.membership_inactive');
@@ -209,7 +210,7 @@ export function createAuthService(deps: AuthDeps) {
       if (!ok) {
         await deps.events.recordTenant(tx, ev('login_failed', { ...who, tenantId, membershipId, emailHmacHex: k, reasonCode: 'auth.forbidden' }));
         await signOut('mobile_permission', tenantId);
-        tenantFailure(ctx, tenantId, ctx.now().getTime());
+        tenantFailure(ctx, tenantId, toDate(ctx.now()).getTime());
         return deny(new LimsError('auth.forbidden'));
       }
     }
@@ -219,7 +220,7 @@ export function createAuthService(deps: AuthDeps) {
     if (!(idle > 0) || !(abs > 0)) throw new LimsError('common.internal', 'identity: tenant session settings missing');
     const state = row['has_verified_factor'] === true ? 'mfa_pending' : row['mfa_required'] === true ? 'mfa_enrolment_required' : 'active';
     const actor = await actorOf(ctx, { userId: t.userId, tenantId, membershipId }, state, mode);
-    const now = ctx.now();
+    const now = toDate(ctx.now());
     const kind = mode === 'partner' ? 'partner' : mode === 'mobile' ? 'staff_mobile' : 'tenant_staff';
     const { s, token } = session(ctx, t, { tenantId, kind, membershipId, platformStaffId: null, state, idle, abs, now });
     if (app) { s.appInstanceId = app.appInstanceId; s.appPlatform = app.appPlatform; }
@@ -252,7 +253,7 @@ export function createAuthService(deps: AuthDeps) {
     }
     const state = row['has_verified_factor'] === true ? 'mfa_pending' : 'mfa_enrolment_required';   // MFA always required (08 A28.1)
     const actor = await actorOf(ctx, { userId: t.userId, tenantId: null, membershipId: null }, state, 'staff');
-    const now = ctx.now();
+    const now = toDate(ctx.now());
     const { s, token } = session(ctx, t, { tenantId: null, kind: 'platform', membershipId: null, platformStaffId, state, idle: pIdle, abs: pAbs, now });
     await deps.repo.insertPlatformSession(tx, s);
     await deps.repo.platformStaffLogin(tx, { platformStaffId, userId: t.userId, at: now });

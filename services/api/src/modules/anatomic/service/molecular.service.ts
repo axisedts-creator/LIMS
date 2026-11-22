@@ -2,6 +2,7 @@
 // Every operation: load through the tenant-bound repository (404 if invisible) -> IdentityPort.assertRole -> validate -> write. The caller's transaction (requestTx) rolls back on any throw.
 // No submitted value is echoed in an error and nothing is logged (REQ-SEC-098; comment_text is P3 data).
 import { LimsError, type FieldError } from '../../../core/errors.js';
+import { toDate } from '../../../core/clock.js'; // T0D-FIX-6 (LD-448)
 import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';
 import { accessionYearAd } from '../domain/accession-pattern.js';
 import { assertTransition, type CaseStatus } from '../domain/case.state.js';
@@ -245,7 +246,7 @@ export async function createBatch(hctx: unknown, body: unknown): Promise<Result>
   let yearAd: number;
   try {
     const tz = (await c.ports.IdentityPort.getTenantSettings(c, { keys: ['timezone'] }))['timezone'];
-    yearAd = accessionYearAd(c.now(), String(tz));
+    yearAd = accessionYearAd(toDate(c.now()), String(tz));
   } catch { throw new LimsError('common.internal'); } // bad tz: never fall back to UTC
   const seq = await bumpAccessionCounter(c.tx, { tenantId: c.tenantId, seriesKey: 'batch', yearAd, actorId: c.actor.id });
   if (seq > 9999) throw new LimsError('anatomic.accession_pattern_invalid');
@@ -315,7 +316,7 @@ export async function removeMembers(hctx: unknown, params: unknown, headers: unk
   const active = await listBatchMembers(c.tx, { tenantId: c.tenantId, batchId: b['id'], activeOnly: true });
   const hits = caseIds.map((id) => active.find((m) => m['case_id'] === id));
   if (hits.some((m) => !m)) throw new LimsError('common.not_found'); // per-id not_found, nothing removed
-  const now = c.now().toISOString();
+  const now = toDate(c.now()).toISOString();
   for (const m of hits as Row[]) { // soft delete frees the position
     if (!(await updateBatchMember(c.tx, { tenantId: c.tenantId, id: m['id'], expectedVersion: ver(m), actorId: c.actor.id, patch: { is_active: false, removed_at: now } }))) throw new LimsError('common.version_conflict');
   }
@@ -330,7 +331,7 @@ export async function closeBatch(hctx: unknown, params: unknown, headers: unknow
   const version = ifMatch(headers);
   assertOpen(b);
   if (ver(b) !== version) throw new LimsError('common.version_conflict');
-  const updated = await updateBatch(c.tx, { tenantId: c.tenantId, id: b['id'], expectedVersion: version, actorId: c.actor.id, patch: { status: 'closed', closed_at: c.now().toISOString() } });
+  const updated = await updateBatch(c.tx, { tenantId: c.tenantId, id: b['id'], expectedVersion: version, actorId: c.actor.id, patch: { status: 'closed', closed_at: toDate(c.now()).toISOString() } });
   if (!updated) throw new LimsError('common.version_conflict');
   return { status: 200, body: await batchDetail(c, updated) };
 }

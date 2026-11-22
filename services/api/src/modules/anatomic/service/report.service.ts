@@ -2,6 +2,7 @@
 // 01-PRD AC-07.1, 07.3–07.6, AC-08.5/08.6 draft side). Order: load case (404) -> IdentityPort.assertRole(case centre) -> state guard -> If-Match -> body (all errors together)
 // -> version check -> write. Nothing submitted (texts, codes, captions) is echoed in an error or logged (REQ-SEC-098); a throw rolls the caller's transaction back.
 import { LimsError, type FieldError } from '../../../core/errors.js';
+import { toDate } from '../../../core/clock.js'; // T0D-FIX-6 (LD-448)
 import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';
 import type { CaseStatus } from '../domain/case.state.js';
 import { validateMolecularResult } from '../domain/molecular.js';
@@ -369,7 +370,7 @@ export async function signOut(hctx: unknown, params: unknown, headers: unknown, 
 
   // 6. content (in memory) + amendment
   const n = Number(cs['current_version_no'] ?? 0) + 1;
-  const now = c.now();
+  const now = toDate(c.now());
   const parts = await listParts(c.tx, { tenantId: c.tenantId, caseId: cs['id'] });
   const slides = (await listSlides(c.tx, { tenantId: c.tenantId, caseId: cs['id'] })).filter((s) => s['include_in_report'] === true);
   const stains = slides.length || ancillaryIn.length ? await stainDisplays(c) : new Map<string, string>();

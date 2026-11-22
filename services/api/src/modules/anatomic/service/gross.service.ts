@@ -2,6 +2,7 @@
 // (02-TRD §5 A8–A11, §7 C3/C4/C7, D-66 signout_locked). Order in every operation: load case (404) -> IdentityPort.assertRole(anatomic.case.work, case centre)
 // -> lock/state guard -> If-Match -> body -> version check -> write. No submitted value is echoed or logged (REQ-SEC-098); a throw rolls the caller's transaction back.
 import { LimsError } from '../../../core/errors.js';
+import { toDate } from '../../../core/clock.js'; // T0D-FIX-6 (LD-448)
 import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';
 import { assertTransition, type CaseStatus } from '../domain/case.state.js';
 import { insertCaseTransition, listCaseItems, updateCase } from '../repository/cases.repo.js';
@@ -81,7 +82,7 @@ export async function saveGross(hctx: unknown, params: unknown, headers: unknown
     if (!c.actor.membershipId) throw new LimsError('auth.unauthenticated'); // grossed_by_membership_id is NOT NULL
     const row: Row = {
       id: uuidv7(), tenant_id: c.tenantId, centre_id: cs['centre_id'], case_id: cs['id'], part_id: part['id'], gross_text: grossText,
-      is_complete: complete, completed_at: complete ? c.now().toISOString() : null, grossed_by_membership_id: c.actor.membershipId, created_by: c.actor.id, updated_by: c.actor.id,
+      is_complete: complete, completed_at: complete ? toDate(c.now()).toISOString() : null, grossed_by_membership_id: c.actor.membershipId, created_by: c.actor.id, updated_by: c.actor.id,
     };
     if (pieces !== undefined) row['pieces_count'] = pieces;
     if (dims !== undefined) row['dimensions_mm'] = dims;
@@ -96,7 +97,7 @@ export async function saveGross(hctx: unknown, params: unknown, headers: unknown
     if (!existing || Number(existing['version']) !== version) throw new LimsError('common.version_conflict');
     const patch: Row = { gross_text: grossText, pieces_count: pieces ?? null, dimensions_mm: dims ?? null, weight_g: weight ?? null, is_complete: complete }; // PUT: omitted = cleared
     if (!complete) patch['completed_at'] = null; // DB CHECK is_complete = (completed_at IS NOT NULL)
-    else if (!existing['is_complete'] || !existing['completed_at']) patch['completed_at'] = c.now().toISOString(); // an already complete record keeps its completed_at (AC-03.3)
+    else if (!existing['is_complete'] || !existing['completed_at']) patch['completed_at'] = toDate(c.now()).toISOString(); // an already complete record keeps its completed_at (AC-03.3)
     saved = await updateGrossRecord(c.tx, { tenantId: c.tenantId, id: existing['id'], expectedVersion: version, actorId: c.actor.id, patch });
   }
   if (!saved) throw new LimsError('common.version_conflict');
@@ -192,5 +193,5 @@ export async function cancelCase(hctx: unknown, params: unknown, headers: unknow
   if (Number(cs['version']) !== version) throw new LimsError('common.version_conflict');
   assertTransition(cs['status'] as CaseStatus, 'cancelled'); // signed_out and cancelled have no edge to cancelled
   if ((await listItemSubmissions(c.tx, { tenantId: c.tenantId, caseId: cs['id'] })).length > 0) throw invalid(); // AC-15.2
-  return moveCase(c, cs, version, { cancelled_at: c.now().toISOString(), cancel_reason_code: code, cancel_reason_text: reasonText ?? null }, 'cancelled', code);
+  return moveCase(c, cs, version, { cancelled_at: toDate(c.now()).toISOString(), cancel_reason_code: code, cancel_reason_text: reasonText ?? null }, 'cancelled', code);
 }

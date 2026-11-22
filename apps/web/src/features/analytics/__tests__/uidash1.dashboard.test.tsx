@@ -107,9 +107,11 @@ describe('/analytics chart row (LD-353 rule 10: the frame ALWAYS draws)', () => 
     expect(cs.map(cardTitle)).toEqual(['Billed per day', 'Tests by department']);
     expect(cs[0]!.parentElement, 'same row').toBe(cs[1]!.parentElement);
     expect([...cs[0]!.parentElement!.children]).toEqual(cs);
-    expect(frameDraws(cs[0]!)).toBe(true); expect(cardNotAvailable(cs[0]!), 'Billed per day: Not available yet (ruling T0D-UIDASH-2)').toBe(true);
-    expect(cardNotAvailable(cs[1]!), 'Tests by department: Not available yet').toBe(true);
-    expect(norm(container.textContent), 'department_top is net sales money, not a test count: not drawn as tests').not.toContain(DEPT);
+    // T0D-DASHCARDS-1 (LD-447, founder order 2026-11-22): the charts draw the dashboard series and department_top (bars), they no longer say "Not available yet"
+    expect(frameDraws(cs[0]!)).toBe(true); expect(cardNotAvailable(cs[0]!), 'Billed per day draws the series').toBe(false);
+    expect(cardNotAvailable(cs[1]!), 'Tests by department draws department_top').toBe(false);
+    expect(cs[0]!.querySelectorAll('.lims-chart-bar')).toHaveLength(2);
+    expect(norm(cs[1]!.textContent), 'the department label is drawn').toContain(DEPT);
   });
 
   it('the line chart is first in the DOM (two thirds) and the bar chart second (one third); the row is the one the stylesheet sizes', () => {
@@ -118,12 +120,13 @@ describe('/analytics chart row (LD-353 rule 10: the frame ALWAYS draws)', () => 
     expect(row.className, 'a named row class the kit/feature css sizes 2:1').toMatch(/lims-[a-z-]*(charts|chart-row)/);
   });
 
-  it('EMPTY period: both frames still draw; "Billed per day" says "No data yet", "Tests by department" says "Not available yet"', () => {
+  it('EMPTY period: both frames still draw and say "No data yet" (T0D-DASHCARDS-1)', () => {
     const { container } = mount(emptyPeriod());
     const cs = cards(container);
     expect(cs.map(cardTitle)).toEqual(['Billed per day', 'Tests by department']);
-    expect(frameDraws(cs[0]!), 'Billed per day draws').toBe(true); expect(cardNotAvailable(cs[0]!), 'Billed per day says Not available yet').toBe(true);
-    expect(cardNotAvailable(cs[1]!)).toBe(true);
+    // T0D-DASHCARDS-1: fresh data with an empty series says "No data yet" (a stale read model says "Data is being prepared": dashcards1.dashboard.test.tsx)
+    expect(frameDraws(cs[0]!), 'Billed per day draws').toBe(true); expect(norm(cs[0]!.textContent), 'Billed per day says No data yet').toMatch(/no data yet/i);
+    expect(norm(cs[1]!.textContent)).toMatch(/no data yet/i);
   });
 
   it('a role that may not read money: both frames draw ("No data yet" / "Not available yet"), no department name and no amount leaks', () => {
@@ -136,12 +139,12 @@ describe('/analytics chart row (LD-353 rule 10: the frame ALWAYS draws)', () => 
     expect(container.textContent).not.toMatch(/Rs\.|NPR|225,000|123,456/);
   });
 
-  it('data with no departments yet: "Billed per day" still draws, "Tests by department" still says "Not available yet"', () => {
+  it('data with no departments yet: "Billed per day" still draws, "Tests by department" says "No data yet"', () => {
     const d = withData();
     d.department_top = [];
     const { container } = mount(d);
     expect(frameSaysNoData(cardByTitle(container, 'Billed per day')!)).toBe(false);
-    expect(cardNotAvailable(cardByTitle(container, 'Tests by department')!)).toBe(true);
+    expect(norm(cardByTitle(container, 'Tests by department')!.textContent), 'T0D-DASHCARDS-1: no departments = No data yet').toMatch(/no data yet/i);
   });
 
   it('charts use accent plus grey: no inline colour literal in the chart cards', () => {

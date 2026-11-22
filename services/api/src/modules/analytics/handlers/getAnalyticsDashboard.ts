@@ -9,8 +9,11 @@ export const getAnalyticsDashboard: Handler = async (req, ctx) => {
   const q = queryOf(req);
   const { period, scope, generatedAt } = await periodAndScope(c, q);
   const withCollections = await holds(c, 'analytics.collections.read'); // X1: tile omitted (not 403) without it; the family is not even read
+  // T0D-DASHCARDS-1 (LD-447): outstanding_paisa needs billing.account.read (listAccountSummaries); omitted, not 403.
+  // cash_in_drawer_paisa is never emitted: an open session's expected is not stored and getDailyCash has no live figure (notes/T0D-DASHCARDS-1-left.md item 6)
+  const withOutstanding = await holds(c, 'billing.account.read');
   const filtered = [q.centre_id, q.branch_id].some((v) => Array.isArray(v) && v.length > 0);
-  const out = await dashboard(c as never, { period, scope, filtered, withCollections });
+  const out = await dashboard(c as never, { period, scope, filtered, withCollections, withOutstanding });
   return { status: 200, body: toDashboardDto({ period, scope, generatedAt }, out) };
 };
 

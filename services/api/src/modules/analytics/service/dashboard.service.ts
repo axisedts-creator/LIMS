@@ -52,6 +52,24 @@ FROM lab.v_pub_pending_items
 WHERE tenant_id = $1${filtered ? ' AND centre_id = ANY ($2::uuid[])' : ''}
 GROUP BY 1, 2, 3, 4`; // D-49: no implicit centre predicate - C5 RLS narrows; only an explicit centre/branch filter adds one
 
+// T0D-DASHCARDS-1 (LD-447 ruling 2): read-only outstanding snapshot, the same figure as listAccountSummaries (cash in drawer: left note item 6). [CONV] Read in this service file over the owner's
+// tables with an explicit tenant predicate, like misReports.service.ts (no v_pub view / port carries them and LD-447 allows no migration); the SQL mirrors the source.
+/** = sum of outstanding_paisa (|balance|, side ignored) over every row of listAccountSummaries: accounts.repo listSummaries' parties and balance, no filter. */
+const OUTSTANDING_SQL = `WITH parties AS (
+    SELECT 'credit_party'::text AS party_kind, c.credit_party_id AS party_id FROM billing.credit_accounts c WHERE c.tenant_id = $1
+    UNION ALL SELECT 'franchise', cc.id FROM core.collection_centres cc WHERE cc.tenant_id = $1 AND cc.centre_kind = 'franchise'
+    UNION ALL SELECT 'laboratory', b.id FROM core.branches b WHERE b.tenant_id = $1
+  ), bal AS (
+    SELECT e.party_kind, e.party_id, SUM(CASE e.entry_type WHEN 'credit' THEN e.amount_paisa ELSE -e.amount_paisa END) AS s
+      FROM billing.account_ledger_entries e WHERE e.tenant_id = $1 AND e.status <> 'held' GROUP BY e.party_kind, e.party_id
+  )
+  SELECT COALESCE(SUM(abs(b.s)), 0)::text AS s FROM parties p JOIN bal b ON b.party_kind = p.party_kind AND b.party_id = p.party_id`;
+const money = (rows: { s?: unknown }[]): Tile => {
+  const value = Number(rows[0]?.s ?? 0); // the fake / an empty source answers no row: 0, never an error
+  if (!Number.isSafeInteger(value)) throw new RangeError('dashboard: tile is not a safe integer');
+  return { value, unit: 'paisa' };
+};
+
 export interface DashboardOut {
   tiles: Record<string, Tile>;
   series: { business_date: string; net_sales_paisa: number; patient_visits: number; net_orders: number }[];
@@ -61,7 +79,7 @@ export interface DashboardOut {
 
 export async function dashboard(
   ctx: Ctx,
-  a: { period: Period; scope: Scope; filtered: boolean; withCollections: boolean },
+  a: { period: Period; scope: Scope; filtered: boolean; withCollections: boolean; withOutstanding?: boolean },
 ): Promise<DashboardOut> {
   const { period, scope } = a;
   const prev = previousPeriod(period);
@@ -103,6 +121,8 @@ export async function dashboard(
   tiles.reports_ready_unreleased = snapshot(ready);
   tiles.pending_tests = snapshot(sum(pending, (r) => num(r.n)));
   tiles.pending_overdue = snapshot(sum(pending, (r) => num(r.overdue)));
+  // T0D-DASHCARDS-1 (LD-447): omitted, not 403, without the source permission; the source is then not read at all
+  if (a.withOutstanding) tiles.outstanding_paisa = money((await ctx.tx.query(OUTSTANDING_SQL, [ctx.tenantId])).rows); // party level: no centre scope, as the source
 
   // series: one entry per business date that has income or volume, ascending
   const days = new Map<string, { business_date: string; net_sales_paisa: number; patient_visits: number; net_orders: number }>();

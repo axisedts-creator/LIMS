@@ -189,7 +189,7 @@ describe('Today Money (Card + StatTile cells + MoneyText + collected of billed b
     expect(norm(statOf(card, /^Collected$/)!.querySelector('.lims-money')?.textContent)).toBe('Rs. 2,10,000.00');
   });
 
-  it('data: Cash in drawer has no field in the contract, so its cell says "Not available yet" and invents no amount; Outstanding is an amount or "Not available yet", never blank or a bare 0', () => {
+  it('data: a dashboard without the outstanding_paisa / cash_in_drawer_paisa tiles (omitted by permission) keeps both cells on "Not available yet" and invents no amount; Outstanding is an amount or "Not available yet", never blank or a bare 0', () => {
     const { container } = mount(withData());
     const card = cardOf(container, /^Money\b/)!;
     expect(norm(statOf(card, /^Cash in drawer/)!.textContent)).toMatch(/not available yet/i);
@@ -232,22 +232,21 @@ describe('Today charts (two ChartCards, mock row 4)', () => {
     expect(norm(a.querySelector('.lims-chart-period')?.textContent).length, 'caption such as "Last 14 days"').toBeGreaterThan(0);
   });
 
-  // RULING T0D-UIDASH-2 (item 1 to 4): the title stays "Billed per day" (mock :294); the contract has no invoiced per day (net_sales_paisa is not "Billed"), so the card says "Not available yet", draws no bar and leaks no amount.
-  it('data: the contract has no billed per day (only net_sales_paisa), so "Billed per day" says "Not available yet": no bar, no day row, no amount', () => {
+  // T0D-DASHCARDS-1 (LD-447; founder order 2026-11-22 supersedes the T0D-UIDASH-2 ruling "Not available yet"): the series and department_top are drawn. Details: dashcards1.dashboard.test.tsx.
+  it('data: "Billed per day" draws one bar per series day (current day accent), no "Not available yet"', () => {
     const { container } = mount(withData());
     const a = cardOf(container, 'Billed per day')!;
-    expect(cardNotAvailable(a)).toBe(true);
-    expect(a.querySelectorAll('.lims-chart-bar').length, 'no bars').toBe(0);
-    expect(a.querySelectorAll('[data-current="true"]')).toHaveLength(0);
-    expect(a.textContent).not.toMatch(/Rs\.|NPR|2,00,000|2,25,000|200,000|225,000/);
+    expect(cardNotAvailable(a)).toBe(false);
+    expect(a.querySelectorAll('.lims-chart-bar').length, 'one bar per day').toBe(2);
+    expect(a.querySelectorAll('[data-current="true"]')).toHaveLength(1);
   });
 
-  it('data: the contract has no tests per department (department_top is net sales money), so "Tests by department" says "Not available yet" and shows no department name or amount', () => {
+  it('data: "Tests by department" draws the department_top rows (label and net amount), no "Not available yet"', () => {
     const { container } = mount(withData());
     const b = cardOf(container, 'Tests by department')!;
-    expect(norm(b.textContent)).toMatch(/not available yet/i);
-    expect(b.textContent).not.toContain(DEPT);
-    expect(b.textContent).not.toMatch(/Rs\.|NPR|123,456|1,23,456/);
+    expect(norm(b.textContent)).not.toMatch(/not available yet/i);
+    expect(b.textContent).toContain(DEPT);
+    expect(b.querySelectorAll('.lims-chart-bar').length).toBe(1);
   });
 
   it('empty period and a role without money: both frames still draw ("No data yet" or "Not available yet"), no leak', () => {

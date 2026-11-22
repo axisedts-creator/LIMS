@@ -1,0 +1,1 @@
+cd /d C:\LIMS-lanes\C0-0Q && "C:\Program Files\Git\bin\bash.exe" tests/analytics/T0D-DASHCARDS-1.pg.sh && pnpm --dir apps/web run build:nav && pnpm --dir apps/web exec vitest run --config src/features/analytics/__tests__/vitest.dashcards1.config.ts

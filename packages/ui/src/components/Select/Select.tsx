@@ -21,9 +21,11 @@ export interface SelectProps<V extends string> extends FieldBase {
   onChange?: (v: V) => void;
   options: readonly { value: V; label: string; isDisabled?: boolean }[];
   placeholder?: string;
+  /** T0D-DASHCARDS-1 (UIX-6): a select used as a toolbar control (page header) carries a button role class. */
+  triggerVariant?: 'secondary' | 'ghost';
 }
 
-export function Select<V extends string>({ label, name, description, error: ownError, isRequired, isDisabled, isReadOnly, value, onChange, options, placeholder, ...rest }: SelectProps<V>) {
+export function Select<V extends string>({ label, name, description, error: ownError, isRequired, isDisabled, isReadOnly, value, onChange, options, placeholder, triggerVariant, ...rest }: SelectProps<V>) {
   const trigger = useRef<HTMLButtonElement>(null);
   const current = useRef<string | undefined>(value);
   current.current = value ?? current.current;
@@ -51,7 +53,7 @@ export function Select<V extends string>({ label, name, description, error: ownE
         {label}
         {isRequired ? <span aria-hidden="true"> *</span> : null}
       </Label>
-      <RacButton ref={trigger} className="lims-input lims-select-trigger">
+      <RacButton ref={trigger} className={`lims-input lims-select-trigger${triggerVariant ? ` lims-btn-${triggerVariant}` : ''}`}>
         <SelectValue />
         <Icon name="chevron-down" />
       </RacButton>

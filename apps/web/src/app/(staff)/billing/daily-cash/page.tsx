@@ -17,10 +17,15 @@ async function collection(sp: Record<string, string | string[] | undefined>, per
   const day = typeof sp['day'] === 'string' && ISO_DATE_RE.test(sp['day']) ? sp['day'] : new Date(Date.now() + 345 * 60_000).toISOString().slice(0, 10);
   // T0D-FINCTRL-1 (LD-321): the cash sessions of that centre and day carry Previous Outstanding Cash and Deposit (getDailyCash needs
   // billing.cash_report.read; a refused read passes null and the figures show "—", never invented 0.00 — review fix).
+  // T0D-FIX-9 (LD-455): a refusal (403) keeps the dash; any other failure is shown in the section with its reference (sessionsFailed).
+  let sessionsFailed: string | undefined;
   const [summary, sessions] = centreId
-    ? await Promise.all([getDailyCollectionSummary(centreId, day).catch(() => null), getDailyCash({ date: day, centreId }).then((r) => r.sessions ?? [], () => null)])
+    ? await Promise.all([getDailyCollectionSummary(centreId, day).catch(() => null), getDailyCash({ date: day, centreId }).then((r) => r.sessions ?? [], (e: { status?: number; problem?: { request_id?: string } }) => {
+        if (e?.status !== 403) sessionsFailed = e?.problem?.request_id ?? '';
+        return null;
+      })])
     : [null, []];
-  return { summary, centres, centreId, day, particulars, sessions };
+  return { summary, centres, centreId, day, particulars, sessions, sessionsFailed };
 }
 
 export default async function DailyCashPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {

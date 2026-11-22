@@ -1,0 +1,7 @@
+# T0D-FIX-9 impl (writer)
+- API: inventory `handlers/lots.schemas.ts` csvOf() takes the validator array AND the comma string (1-20 kinds, enum). reporting `service/printProfile.service.ts` previewCentre(): ctx centre, else first scoped centre (IdentityPort.getActor().centreScope), else for all-centres the tenant's first active `core.collection_centres` row; none -> auth.forbidden / common.not_found (never 500). [CONV]
+- Web: billing `read.server.ts` getDailyCash sends business_date / collected_by_membership_id (signature kept); daily-cash page + DailyCollectionScreen show ErrorState with reference when the sessions read fails (403 keeps the dash).
+- Web: inventory `read.server.ts` listCodedSet maps wastage|adjustment|transfer_discrepancy|calibration to /coded-sets/reasons?reason_group=; new softOr() keeps the request id; inventory home checklist step and wastage page show "Reference: <id>" on failure. [CONV]
+- Web: reporting ActionResult carries requestId; PrintStationery preview failure shows "Reference: <id>".
+- Checks: fix9 verify.cmd green (api 49, web 18); api tsc clean; web tsc clean outside pre-existing test-file errors; finctrl1 379/379, rs-c6 60/60.
+- After rulings 1+2 (eeca98507): fix9 api 49/49, fix9 web 18/18, t23 229/230 (only t23.stock "In transit", not FIX-9, see -left.md). Pre-existing, unrelated: printcfg1 signatories/invoice (10+), t20.alerts 1, api inventory boot.test 1, billing api handler tests (fakes lack IdentityPort). Leftovers: T0D-FIX-9-left.md.

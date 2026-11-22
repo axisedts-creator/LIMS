@@ -8,6 +8,7 @@ import { useRef, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { Button } from '@lims/ui/components/Button';
 import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
+import { ErrorState } from '@lims/ui/components/ErrorState';
 import { FilterBar } from '@lims/ui/components/FilterBar';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { Select } from '@lims/ui/components/Select';
@@ -36,9 +37,11 @@ export interface DailyCollectionScreenProps {
   permissions: readonly string[];
   /** Cash sessions of the day (optional: existing callers pass none, the figures then show 0.00; null = the read was refused, figures show "—"). */
   sessions?: readonly CollectionSession[] | null | undefined;
+  /** T0D-FIX-9: the sessions read failed (not a refusal): the request id of the failure ('' when none). */
+  sessionsFailed?: string | undefined;
 }
 
-export function DailyCollectionScreen({ summary, centres, centreId, day, particulars, permissions, sessions = [] }: DailyCollectionScreenProps) {
+export function DailyCollectionScreen({ summary, centres, centreId, day, particulars, permissions, sessions = [], sessionsFailed }: DailyCollectionScreenProps) {
   const router = useRouter();
   const pathname = usePathname();
   const toast = useToast();
@@ -106,7 +109,10 @@ export function DailyCollectionScreen({ summary, centres, centreId, day, particu
         <p className="lims-inline"><span>{D('deposited')}</span><strong>{sessions === null ? '—' : formatNpr(deposited)}</strong></p>
         <p className="lims-inline"><span>{D('carried_forward')}</span><strong>{sessions === null ? '—' : formatNpr(carried)}</strong></p>
       </div>
-      {sessions === null ? <p className="lims-description">{D('sessions_unavailable')}</p> : null}
+      {sessionsFailed !== undefined ? (
+        // T0D-FIX-9 (LD-455): a failed read is shown with its reference, never a silent dash
+        <div role="alert"><ErrorState title={D('sessions_unavailable')} {...(sessionsFailed ? { requestId: sessionsFailed } : {})} /></div>
+      ) : sessions === null ? <p className="lims-description">{D('sessions_unavailable')}</p> : null}
       <div className="lims-inline">
         <TextField label={D('deposit')} name="deposit" inputMode="decimal" maxLength={17} value={deposit} isDisabled={!!blocked} onChange={(v) => { setDeposit(v); setError(undefined); }} {...(error ? { error } : {})} />
         {blocked ? <GatedButton variant="primary" label={D('save')} blocked={blocked} onPress={() => undefined} /> : <Button variant="primary" isLoading={pending} onPress={() => void save()}>{D('save')}</Button>}

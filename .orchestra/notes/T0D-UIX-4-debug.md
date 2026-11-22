@@ -1,0 +1,4 @@
+- Cause: RegistrationForm.tsx still had a raw table (Selected tests); uix4.markup.test "no raw <table" failed.
+- Fix: replaced it with kit DataTable (same columns and cells, Delete/U row keys kept via data-row-id). uix4 test 9/9 green.
+- Side effect: DataTable is role=grid; about 12 old frontdesk tests query role "table" (fd-t13.keyboard, regscreen1.items, regscreen2.order/drafts) and fail. They pin old markup: see T0D-UIX-4-dispute.md.
+- Not from this change: regscreen1.items Favourites tab (aria-selected undefined), Tabs kit.

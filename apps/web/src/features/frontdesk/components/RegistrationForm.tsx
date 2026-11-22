@@ -700,39 +700,35 @@ function Registration({ centres, permissions, defaultCentreId, consentTextVersio
                   </div>
                   <div className="lims-reg-tests-list">
                     {items.length === 0 ? <p>No tests selected yet. Press F4 to search.</p> : (
-                      <table aria-label="Selected tests">
-                        <thead><tr><th scope="col"><VisuallyHidden>Favourite</VisuallyHidden></th><th scope="col">Code</th><th scope="col">Name</th><th scope="col">Kind</th><th scope="col">Priority</th><th scope="col">Price</th><th scope="col">Surcharge</th><th scope="col">Disc. %</th><th scope="col">ICD code</th><th scope="col"><VisuallyHidden>Remove</VisuallyHidden></th></tr></thead>
-                        <tbody>
-                          {items.map((i) => {
-                            const l = lineOf(i.orderable.id);
-                            const p = linePct[i.orderable.id];
-                            return (
-                              <tr key={i.orderable.id} tabIndex={0} onKeyDown={(e) => rowKey(e, i.orderable.id)}>
-                                <td>
-                                  <Button variant="ghost" size="sm" ref={ariaRef({ 'aria-pressed': String(favs.has(i.orderable.id)), 'aria-label': `Favourite ${i.orderable.code}` })} onPress={() => void toggleFav(i.orderable.id)}>
-                                    <span aria-hidden="true">{favs.has(i.orderable.id) ? '★' : '☆'}</span>
-                                  </Button>
-                                </td>
-                                <td>{i.orderable.code}</td><td>{i.orderable.name}</td><td>{KIND[i.orderable.kind] ?? i.orderable.kind}</td>
-                                <td>{effectivePriority(i, urgentAll) === 'urgent' ? 'Urgent' : 'Routine'}</td>
-                                <td>{l ? plain(l.unit_price.amount_paisa) : '—'}</td><td>—</td>
-                                <td className="lims-reg-cell-field">
-                                  <IntegerField label={`${i.orderable.code} discount percent`} name={`line_discount_${i.orderable.code}`} min={0} max={100} {...(p !== undefined ? { value: p } : {})}
-                                    onChange={(v) => setLinePct((m) => ({ ...m, [i.orderable.id]: v }))} {...(p !== undefined && p > 100 ? { error: PCT } : {})} />
-                                </td>
-                                <td className="lims-reg-cell-field lims-reg-cell-icd">
-                                  {/* ICD master codes only (free text that is not in the master is not accepted: the combobox commits a picked option only) */}
-                                  <Combobox<IcdCode> label={`${i.orderable.code} ICD code`} name={`icd_${i.orderable.code}`} loadOptions={loadIcd} getKey={(c) => c.code} renderValue={(c) => c.code}
-                                    {...(i.icd ? { value: icdMaster.find((c) => c.code === i.icd) ?? { id: i.icd, code: i.icd, description: '', is_active: true } } : {})}
-                                    onChange={(c) => setIcd(i.orderable.id, c?.code)} renderOption={(c) => <span><strong>{c.code}</strong> {c.description}</span>} />
-                                  <IconButton label={`Apply ${i.orderable.code} ICD code to all`} icon="copy" onPress={() => icdToAll(i.icd)} />
-                                </td>
-                                <td><IconButton label={`Remove ${i.orderable.code}`} icon="close" onPress={() => removeItem(i.orderable.id)} /></td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
+                      // T0D-UIX-4 (LD-442): kit DataTable; Delete / U row keys are read from the row's data-row-id.
+                      <div onKeyDown={(e) => { const id = (e.target as HTMLElement).closest?.('[data-row-id]')?.getAttribute('data-row-id'); if (id) rowKey(e, id); }}>
+                        <DataTable<Item> caption="Selected tests" density="regular" rows={items} getRowId={(i) => i.orderable.id} emptyState={{ title: 'No tests selected yet' }}
+                          columns={[
+                            { id: 'fav', header: 'Favourite', cell: (i) => (
+                              <Button variant="ghost" size="sm" ref={ariaRef({ 'aria-pressed': String(favs.has(i.orderable.id)), 'aria-label': `Favourite ${i.orderable.code}` })} onPress={() => void toggleFav(i.orderable.id)}>
+                                <span aria-hidden="true">{favs.has(i.orderable.id) ? '★' : '☆'}</span>
+                              </Button>) },
+                            { id: 'code', header: 'Code', isRowHeader: true, cell: (i) => i.orderable.code },
+                            { id: 'name', header: 'Name', cell: (i) => i.orderable.name },
+                            { id: 'kind', header: 'Kind', cell: (i) => KIND[i.orderable.kind] ?? i.orderable.kind },
+                            { id: 'priority', header: 'Priority', cell: (i) => (effectivePriority(i, urgentAll) === 'urgent' ? 'Urgent' : 'Routine') },
+                            { id: 'price', header: 'Price', numeric: true, cell: (i) => { const l = lineOf(i.orderable.id); return l ? plain(l.unit_price.amount_paisa) : '—'; } },
+                            { id: 'surcharge', header: 'Surcharge', numeric: true, cell: () => '—' },
+                            { id: 'disc', header: 'Disc. %', cell: (i) => {
+                              const p = linePct[i.orderable.id];
+                              return <IntegerField label={`${i.orderable.code} discount percent`} name={`line_discount_${i.orderable.code}`} min={0} max={100} {...(p !== undefined ? { value: p } : {})}
+                                onChange={(v) => setLinePct((m) => ({ ...m, [i.orderable.id]: v }))} {...(p !== undefined && p > 100 ? { error: PCT } : {})} />; } },
+                            { id: 'icd', header: 'ICD code', cell: (i) => (
+                              <>
+                                {/* ICD master codes only (free text that is not in the master is not accepted: the combobox commits a picked option only) */}
+                                <Combobox<IcdCode> label={`${i.orderable.code} ICD code`} name={`icd_${i.orderable.code}`} loadOptions={loadIcd} getKey={(c) => c.code} renderValue={(c) => c.code}
+                                  {...(i.icd ? { value: icdMaster.find((c) => c.code === i.icd) ?? { id: i.icd, code: i.icd, description: '', is_active: true } } : {})}
+                                  onChange={(c) => setIcd(i.orderable.id, c?.code)} renderOption={(c) => <span><strong>{c.code}</strong> {c.description}</span>} />
+                                <IconButton label={`Apply ${i.orderable.code} ICD code to all`} icon="copy" onPress={() => icdToAll(i.icd)} />
+                              </>) },
+                            { id: 'remove', header: 'Remove', cell: (i) => <IconButton label={`Remove ${i.orderable.code}`} icon="close" onPress={() => removeItem(i.orderable.id)} /> },
+                          ]} />
+                      </div>
                     )}
                   </div>
                   <div className="lims-reg-pair">

@@ -77,6 +77,14 @@ describe('TAT tiles and chart: never an invented total (contract has no total/co
     expect(v['Escalated']).toBe('1');
     expect(norm(container.textContent)).not.toMatch(/at least/i);
   });
+  it("a later page (sp.cursor set, no next): tiles still read 'at least N', earlier pages hold more (reviewer item 1)", () => {
+    const { container } = mountTat(TATS, undefined, { sp: { cursor: 'x' } });
+    const v = tileTexts(container);
+    expect(v['Warning']).toMatch(/at least\s*1\b/i);
+    expect(v['Breached']).toMatch(/at least\s*2\b/i);
+    expect(v['Escalated']).toMatch(/at least\s*1\b/i);
+    expect(norm(cardByTitle(container, 'Alerts by level')!.textContent)).toMatch(/at least|this page/i);
+  });
   it('no rows and no next page: tiles read 0, no "at least"', () => {
     const { container } = mountTat([]);
     expect(Object.values(tileTexts(container)).every((x) => x === '0')).toBe(true);

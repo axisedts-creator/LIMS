@@ -12,7 +12,7 @@ import * as repo from '../repository/cultures.repo.js';
 type Row = Record<string, any>;
 type Obj = Record<string, unknown>;
 export interface ChainCtx {
-  readonly tenantId: string; readonly tx: unknown; readonly now?: () => Date;
+  readonly tenantId: string; readonly tx: unknown; readonly now?: () => Date;   // really an ISO string from the pipeline: clockOf normalises (T0D-FIX-1)
   readonly audit: { access(e: object): Promise<void> };
   readonly core?: {
     user?(ctx: unknown, i: { userId: string }): Promise<{ displayName: string }>;
@@ -49,7 +49,12 @@ function identity(c: ChainCtx): NonNullable<NonNullable<ChainCtx['ports']>['Iden
   if (!i) throw new LimsError('auth.forbidden');   // fail closed: no way to ask, so no
   return i;
 }
-const nowOf = (c: ChainCtx): Date => (typeof c.now === 'function' ? c.now() : new Date());
+/** T0D-FIX-1 item 3 (LD-446, CR DEPLOY-AXIS-012 item 4): the pipeline's ctx.now() is an ISO string; a Date is also accepted. */
+const clockOf = (c: ChainCtx): Date => {
+  const d = typeof c.now === 'function' ? new Date(c.now()) : new Date();
+  if (Number.isNaN(d.getTime())) throw new LimsError('common.internal');
+  return d;
+};
 
 // ---------------------------------------------------------------- query parsing
 const uuidQ = (q: Obj, k: string): string | undefined => (q[k] === undefined ? undefined : typeof q[k] === 'string' && UUID.test(q[k] as string) ? (q[k] as string).toLowerCase() : fail(`/${k}`));
@@ -147,7 +152,7 @@ export async function listCultures(c: ChainCtx, input: { query: unknown }): Prom
   }
   const sort = q['sort'] === undefined ? 'received_at' : (SORTS as readonly unknown[]).includes(q['sort']) ? (q['sort'] as repo.CultureSort) : fail('/sort');
   const limit = limitOf(q['limit']);
-  const now = nowOf(c);
+  const now = clockOf(c);
   const filter: repo.CultureFilter = { tenantId, now: now.toISOString() };
   const opt = <K extends keyof repo.CultureFilter>(k: K, v: repo.CultureFilter[K] | undefined): void => { if (v !== undefined) filter[k] = v; };
   opt('statuses', statuses); opt('specimenId', uuidQ(q, 'specimen_id')); opt('orderId', uuidQ(q, 'order_id')); opt('centreId', uuidQ(q, 'centre_id'));
@@ -207,7 +212,7 @@ export async function cultureDetail(c: ChainCtx, tx: any, tenantId: string, row:
   const perms: readonly string[] = Array.isArray(actor?.permissions) ? actor.permissions : [];
 
   const corrected = new Set(observations.map((o) => o['corrects_observation_id']).filter((x) => x != null));
-  const out: Obj = dto.cultureSummaryDto(row, test, nowOf(c));
+  const out: Obj = dto.cultureSummaryDto(row, test, clockOf(c));
   if (row['status'] === 'awaiting_setup') {   // 02-TRD.md:306: suggested_protocol only in awaiting_setup; selection per §4.2; omitted when none matches
     const code = selectPlatingProtocol((await repo.activeProtocolKeys(tx, tenantId)).map((k) => ({
       protocol_code: k['protocol_code'], test_id: k['test_id'] ?? null, specimen_type_code: k['specimen_type_code'] ?? null, is_active: k['is_active'] !== false })),

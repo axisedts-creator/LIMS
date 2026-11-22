@@ -191,11 +191,15 @@ export function createTestsService(deps: Deps) {
     panel_kind: panelKind, sex_restriction: o.sex_restriction, workflow_type: wf, is_orderable: o.is_orderable === true, is_active: o.is_active === true, revision: Number(o.revision),
     ...extra,
   });
-  /** OrderableSummary parity fields of tests (T0B-TESTMGMT-1): category_id + category_name, short_name, display_name. default_price_paisa is not joined here (no price list context). */
-  async function testExtras(tx: Tx, t: string, rows: readonly any[]): Promise<Map<string, Record<string, unknown>>> {
+  /** OrderableSummary parity fields of tests (T0B-TESTMGMT-1): category_id + category_name, short_name, display_name; default_price_paisa from the
+   *  tenant's default price list (T0D-FIX-1 item 5, LD-446), absent when that list has no price for the test. */
+  async function testExtras(ctx: Ctx, rows: readonly any[]): Promise<Map<string, Record<string, unknown>>> {
+    const tx = ctx.tx as Tx, t = ctx.tenantId;
     const catIds = [...new Set(rows.map((r) => r.category_id).filter((x): x is string => typeof x === 'string'))];
     const names = new Map((catIds.length ? await repo.find(tx, 'test_categories', ['id', 'name'], t, {}, { ids: catIds }) : []).map((c) => [c.id, c.name]));
-    return new Map(rows.map((r) => [r.id, { category_id: r.category_id, category_name: r.category_id ? names.get(r.category_id) : undefined, short_name: r.short_name, display_name: r.display_name }]));
+    const prices = await repo.defaultPrices(tx, t, rows.map((r) => r.id as string), String(nowIso(ctx)));
+    return new Map(rows.map((r) => [r.id, { category_id: r.category_id, category_name: r.category_id ? names.get(r.category_id) : undefined, short_name: r.short_name,
+      display_name: r.display_name, default_price_paisa: prices.get(r.id) }]));
   }
   /** 404 for an unknown / other tenant's category (S-1), 400 /category_id for a deactivated one: a new link may only point at an active category. */
   async function checkCategory(tx: Tx, t: string, id: unknown): Promise<void> {
@@ -293,7 +297,7 @@ export function createTestsService(deps: Deps) {
       const tests = await repo.find(tx, 'tests', SUMMARY_TEST_COLS, t, {}, { ids: ids('test') });
       const panels = kindPanels ?? await repo.find(tx, 'panels', ['id', 'panel_kind'], t, {}, { ids: ids('panel') });
       const wf = new Map(tests.map((r) => [r.id, r.workflow_type])), pk = new Map(panels.map((r) => [r.id, r.panel_kind]));
-      const extra = await testExtras(tx, t, tests);
+      const extra = await testExtras(ctx, tests);
       return { data: ranked.map((o) => summary(o, dept, wf.get(o.id), pk.get(o.id), extra.get(o.id))) };
     },
 
@@ -329,7 +333,7 @@ export function createTestsService(deps: Deps) {
           { ...page, ...(ids ? { ids } : {}) });
         tests = await repo.find(tx, 'tests', TEST_COLS, t, {}, { ids: ords.slice(0, limit).map((r) => r.id) });
       }
-      const extra = await testExtras(tx, t, tests);
+      const extra = await testExtras(ctx, tests);
       const driving = col === 'report_order' ? tests : ords;
       const byId = new Map(ords.map((o) => [o.id, o])), wf = new Map(tests.map((r) => [r.id, r.workflow_type]));
       const data = driving.slice(0, limit).map((r) => byId.get(r.id)).filter(Boolean);

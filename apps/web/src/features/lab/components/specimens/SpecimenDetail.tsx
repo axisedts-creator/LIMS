@@ -9,6 +9,7 @@ import { Banner } from '@lims/ui/components/Banner';
 import { Button } from '@lims/ui/components/Button';
 import { Card } from '@lims/ui/components/Card';
 import { Checkbox } from '@lims/ui/components/Checkbox';
+import { DataTable } from '@lims/ui/components/DataTable';
 import { DescriptionList } from '@lims/ui/components/DescriptionList';
 import { Dialog } from '@lims/ui/components/Dialog';
 import { IntegerField } from '@lims/ui/components/IntegerField';
@@ -176,11 +177,14 @@ export function SpecimenDetail({ specimen: s, rejectionReasons, recollectionDefa
       ) : null}
 
       <Card title="Tests">
-        <table>
-          <caption className="lims-visually-hidden">Tests on this specimen</caption>
-          <thead><tr><th scope="col">Test</th></tr></thead>
-          <tbody>{s.tests.map((t) => <tr key={t.test_id}><td>{t.test_code}</td></tr>)}</tbody>
-        </table>
+        {/* T0D-UIX-3 (LD-442): kit DataTable */}
+        <DataTable
+          caption="Tests on this specimen"
+          rows={s.tests}
+          getRowId={(t) => t.test_id}
+          emptyState={{ title: 'No tests on this specimen.' }}
+          columns={[{ id: 'test', header: 'Test', isRowHeader: true, cell: (t: Detail['tests'][number]) => t.test_code }]}
+        />
       </Card>
 
       <Card title="Timeline">

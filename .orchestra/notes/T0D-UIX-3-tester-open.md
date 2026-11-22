@@ -1,0 +1,6 @@
+# T0D-UIX-3 open items after the tester revision (not in the ruling, tests left unchanged)
+1. c5-t21.queues.test.tsx:163 "Space on a focused row box selects it; Shift+ArrowDown extends": in the kit grid, Space on the checkbox inside the row does not toggle it (assert at :170 fails). The spec (04-UI-UX 3.8) names Space and Shift+Down for bulk select, so this looks like a behaviour change, not only markup. Needs a ruling (writer fix in QueueScreen or accept new keys).
+2. uiconsole2.queues.test.tsx:229 "j and k move the focus": after `j` focus lands on a different button than `[data-console-item]` item 2 (grid focus management vs SplitConsole). Same question: behaviour change. Needs a ruling.
+3. lab-t25.qc.test.tsx:140 "a failing list shows its problem title in an alert": the kit ErrorState inside DataTable has no role=alert (packages/ui not editable). Needs a ruling: accept ErrorState text, or writer wraps in role=alert like the old line.
+4. uilist1.lab.test.tsx: critical values pins filters:0, min:5 and ingest exceptions pins min:6 while the components have 1 FilterBar and 5 columns (HEADERS length unchanged by this task). Looks pre-existing (UICONSOLE-1 vs UILIST-1 pins); not checked against HEAD~3.
+Flaky: c5-t20.pages timed out once under load (30s), 7/7 green alone.

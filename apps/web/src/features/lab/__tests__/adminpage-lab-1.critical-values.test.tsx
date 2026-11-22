@@ -80,7 +80,7 @@ describe('permission gate (lab.critical_value.read)', () => {
     const { default: Page } = await pageModule();
     let out: ReactNode | undefined;
     try { out = await Page({ searchParams: Promise.resolve({}) }); } catch (e) { expect(String((e as Error).message)).toBe('NEXT_NOT_FOUND'); }
-    if (out !== undefined) { render(out); expect(screen.queryByText('KPLASMA')).toBeNull(); expect(screen.queryAllByRole('table')).toEqual([]); }
+    if (out !== undefined) { render(out); expect(screen.queryByText('KPLASMA')).toBeNull(); expect(screen.queryAllByRole('grid')).toEqual([]); }
     expect(calls).toHaveLength(0);
   });
 
@@ -90,7 +90,7 @@ describe('permission gate (lab.critical_value.read)', () => {
     const { default: Page } = await pageModule();
     let out: ReactNode | undefined;
     try { out = await Page({ searchParams: Promise.resolve({}) }); } catch (e) { expect(String((e as Error).message)).toBe('NEXT_NOT_FOUND'); }
-    if (out !== undefined) { render(out); expect(screen.queryAllByRole('table')).toEqual([]); }
+    if (out !== undefined) { render(out); expect(screen.queryAllByRole('grid')).toEqual([]); }
   });
 });
 
@@ -146,7 +146,7 @@ describe('age since detected (live)', () => {
   it('shows hours and minutes since detection and moves forward by itself', async () => {
     vi.useFakeTimers({ toFake: ['Date', 'setInterval', 'clearInterval'], now: NOW });
     await open();
-    const age = () => within(rowOf('KPLASMA')).getAllByRole('cell').map((c) => c.textContent ?? '').join(' | ');
+    const age = () => [...rowOf('KPLASMA').querySelectorAll<HTMLElement>('[role="gridcell"], [role="rowheader"]')].map((c) => c.textContent ?? '').join(' | ');
     expect(age()).toMatch(/\b0?1:30\b|1 ?h 30 ?m/); // 90 min, hh:mm as the TAT ages of 3.4 / 3.5
     await act(async () => { vi.advanceTimersByTime(60_000); });
     expect(age()).toMatch(/\b0?1:31\b|1 ?h 31 ?m/);
@@ -213,10 +213,17 @@ describe('accessibility and keyboard', () => {
 
   it('the table has a caption or accessible name; Tab reaches the row links in list order', async () => {
     const user = await open();
-    expect(screen.getByRole('table', { name: /critical/i })).toBeTruthy();
+    expect(screen.getByRole('grid', { name: /critical/i })).toBeTruthy();
     const ls = links();
     const seen: Element[] = [];
-    for (let i = 0; i < 20 && seen.length < ls.length; i++) { await user.tab(); if (ls.includes(document.activeElement as HTMLAnchorElement)) seen.push(document.activeElement!); }
+    // Ruling T0D-UIX-3 (04-UI-UX:35 DataTable keyboard row navigation): Tab enters the grid once, the arrow keys reach the link in each row (ArrowRight into the cell's link, ArrowDown to the next row).
+    const grid = screen.getByRole('grid', { name: /critical/i });
+    for (let i = 0; i < 10 && !grid.contains(document.activeElement); i++) await user.tab(); // the page header buttons come first
+    expect(grid.contains(document.activeElement), 'Tab reaches the grid').toBe(true);
+    for (let i = 0; i < 60 && seen.length < ls.length; i++) {
+      if (ls.includes(document.activeElement as HTMLAnchorElement)) { if (!seen.includes(document.activeElement!)) seen.push(document.activeElement!); await user.keyboard('{ArrowDown}'); }
+      else await user.keyboard('{ArrowRight}');
+    }
     expect(seen).toEqual(ls);
   });
 });

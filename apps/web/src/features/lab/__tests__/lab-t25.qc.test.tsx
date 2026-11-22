@@ -77,7 +77,7 @@ const rowsOf = () => screen.getAllByRole('row').slice(1);
 const fill = async (user: ReturnType<typeof userEvent.setup>, dlg: HTMLElement, label: RegExp, value: string) => { const el = within(dlg).getByLabelText(label); await user.clear(el); if (value) await user.type(el, value); return el as HTMLInputElement; };
 const openDialog = async () => {
   const user = userEvent.setup();
-  await screen.findByRole('table');
+  await screen.findByRole('grid');
   await user.click(screen.getByRole('button', { name: /add qc result/i }));
   return { user, dlg: await screen.findByRole('dialog') };
 };
@@ -130,22 +130,25 @@ describe('QC results list — #43 (04-UI-UX §3.12)', () => {
       : HttpResponse.json({ data: [row(1), row(2)], page: { limit: 50, next_cursor: 'CUR2' } });
     await open();
     const user = userEvent.setup();
-    await screen.findByRole('table');
+    await screen.findByRole('grid');
     await user.click(await screen.findByRole('button', { name: /load more/i }));
     await waitFor(() => expect(rowsOf()).toHaveLength(3));
     expect(gets().at(-1)!.url.searchParams.get('cursor')).toBe('CUR2');
     expect(screen.queryByRole('button', { name: /load more/i })).toBeNull();
   });
 
-  it('a failing list shows its problem title in an alert and does not crash', async () => {
+  it('a failing list shows the ErrorState (danger tone, Retry) and does not crash', async () => {
+    // Ruling round 2 point 1: spec C5 04-UI-UX.md:58 specifies ErrorState + "Retry", no alert role.
     listReply = () => problem(500, 'common.internal', 'Something went wrong');
     await open();
-    expect((await screen.findByRole('alert')).textContent).toMatch(/something went wrong/i);
+    const state = (await screen.findByText(/something went wrong/i)).closest('.lims-state.lims-tone-danger') as HTMLElement | null;
+    expect(state).not.toBeNull();
+    expect(within(state!).getByRole('button', { name: /retry/i })).toBeTruthy();
   });
 
   it('without lab.qc.capture there is no "Add QC result" control', async () => {
     await open(['lab.worklist.read']);
-    await screen.findByRole('table');
+    await screen.findByRole('grid');
     expect(screen.queryByRole('button', { name: /add qc result/i })).toBeNull();
   });
 

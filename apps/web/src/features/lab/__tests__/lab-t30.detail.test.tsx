@@ -117,7 +117,7 @@ describe('T-30 header, timeline, tests (04-UI-UX §3.14)', () => {
 
   it('tests table lists every test_code of the specimen', async () => {
     await show();
-    const table = screen.getByRole('table');
+    const table = screen.getByRole('grid'); // Ruling T0D-UIX-3: kit DataTable is a grid
     expect(within(table).getByText('TSTA')).toBeTruthy();
     expect(within(table).getByText('TSTB')).toBeTruthy();
   });

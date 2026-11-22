@@ -6,20 +6,20 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { EmptyRow, PlaceholderRows } from '@lims/ui/components/DataTable';
-import { EmptyState } from '@lims/ui/components/EmptyState';
+import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
 import { FilterBar, type FilterValue } from '@lims/ui/components/FilterBar';
+import { IdText } from '@lims/ui/components/IdText';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { SplitConsole } from '@lims/ui/components/SplitConsole';
 import { StatTile, StatTileRow } from '@lims/ui/components/StatTile';
 import { t } from '@/core/i18n/messages';
 import { EXCEPTION_REASONS, EXCEPTION_STATUSES, type IngestException } from '../server/types';
 import { REASON_TEXT } from './exceptionText';
-import { Facts, History, OpenBar, OpenKey, hhmm, itemProps, oldest, useNow, when } from './consoleParts';
+import { Facts, History, OpenBar, OpenKey, hhmm, oldest, useNow, when } from './consoleParts';
 
 export interface IngestExceptionListProps { items: readonly IngestException[]; permissions?: readonly string[]; status?: string; nextCursor?: string }
 
-const HEADERS = ['Age', 'Barcode', 'Reason', 'Instrument code', 'Status'];
+const HEADERS = ['Age', 'Barcode', 'Reason', 'Instrument code', 'Instrument', 'Status'];
 const href = (id: string) => `/lab/ingest-exceptions/${encodeURIComponent(id)}`;
 const reasonText = (r: string) => REASON_TEXT[r] ?? r;
 
@@ -42,26 +42,19 @@ export function IngestExceptionList({ items, status = 'open', nextCursor }: Inge
   const open = items.filter((e) => e.status === 'open');
   const sel = items.find((e) => e.id === selectedId);
 
+  // T0D-UIX-3 (LD-442): the queue is the kit DataTable; consoleSelection keeps the SplitConsole row selection (data-console-item, aria-selected).
+  const columns: ColumnDef<IngestException>[] = [
+    { id: 'age', header: HEADERS[0]!, numeric: true, cell: (e) => <span suppressHydrationWarning>{hhmm(age(e))}</span> },
+    { id: 'barcode', header: HEADERS[1]!, isRowHeader: true, cell: (e) => <Link href={href(e.id)}>{e.sample_barcode ?? 'No barcode'}</Link> },
+    { id: 'reason', header: HEADERS[2]!, cell: (e) => reasonText(e.reason) },
+    { id: 'code', header: HEADERS[3]!, cell: (e) => e.instrument_analyte_code ?? '' },
+    // T0D-UIX-3 ruling round 2 point 2b (04-UI-UX §3.10 "C7 name or IdText"): display only, from the existing instrument_id.
+    { id: 'instrument', header: HEADERS[4]!, cell: (e) => (e.instrument_id ? <IdText value={e.instrument_id} /> : '') },
+    { id: 'status', header: HEADERS[5]!, cell: (e) => e.status },
+  ];
   const list = (
-    <div className="lims-data-table"><div className="lims-table-scroll">
-      <table className="lims-table">
-        <caption className="lims-visually-hidden">{title}</caption>
-        <thead><tr>{HEADERS.map((h) => <th key={h} scope="col">{h}</th>)}</tr></thead>
-        <tbody>
-          {items.length === 0 ? <EmptyRow colSpan={HEADERS.length}><EmptyState title={`No ${status} instrument exceptions.`} /></EmptyRow> : null}
-          {items.map((e) => (
-            <tr key={e.id} {...itemProps(e.id, selectedId, setSelectedId)}>
-              <td suppressHydrationWarning>{hhmm(age(e))}</td>
-              <td><Link href={href(e.id)}>{e.sample_barcode ?? 'No barcode'}</Link></td>
-              <td>{reasonText(e.reason)}</td>
-              <td>{e.instrument_analyte_code ?? ''}</td>
-              <td>{e.status}</td>
-            </tr>
-          ))}
-        </tbody>
-        {items.length === 0 ? <PlaceholderRows colSpan={HEADERS.length} /> : null}
-      </table>
-    </div></div>
+    <DataTable caption={title} columns={columns} rows={items} getRowId={(e) => e.id} emptyState={{ title: `No ${status} instrument exceptions.` }}
+      consoleSelection={{ selectedId, onSelect: setSelectedId }} />
   );
 
   const detail = sel ? (

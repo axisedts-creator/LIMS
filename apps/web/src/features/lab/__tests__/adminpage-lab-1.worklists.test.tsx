@@ -165,9 +165,13 @@ describe('accessibility and keyboard', () => {
     const user = await render_();
     const links = cardLinks();
     const seen: Element[] = [];
-    for (let i = 0; i < 12 && seen.length < links.length; i++) {
-      await user.tab();
-      if (links.includes(document.activeElement as HTMLAnchorElement)) seen.push(document.activeElement!);
+    // Ruling T0D-UIX-3 (04-UI-UX:35 DataTable keyboard row navigation): Tab enters the grid once, the arrow keys reach the link in each row (ArrowRight into the cell's link, ArrowDown to the next row).
+    const grid = screen.getByRole('grid');
+    for (let i = 0; i < 10 && !grid.contains(document.activeElement); i++) await user.tab(); // the page header buttons come first
+    expect(grid.contains(document.activeElement), 'Tab reaches the grid').toBe(true);
+    for (let i = 0; i < 60 && seen.length < links.length; i++) {
+      if (links.includes(document.activeElement as HTMLAnchorElement)) { if (!seen.includes(document.activeElement!)) seen.push(document.activeElement!); await user.keyboard('{ArrowDown}'); }
+      else await user.keyboard('{ArrowRight}');
     }
     expect(seen).toEqual(links);
     for (const a of links) expect((a.textContent ?? '').trim().length).toBeGreaterThan(0);

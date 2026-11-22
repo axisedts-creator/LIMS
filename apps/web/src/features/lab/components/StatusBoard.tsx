@@ -11,14 +11,14 @@ import { Button } from '@lims/ui/components/Button';
 import { ChartCard } from '@lims/ui/components/ChartCard';
 import { StatTileRow } from '@lims/ui/components/StatTile';
 import { t } from '@/core/i18n/messages';
-import { EmptyRow, PlaceholderRows } from '@lims/ui/components/DataTable';
-import { EmptyState } from '@lims/ui/components/EmptyState';
+import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
 import { FilterBar } from '@lims/ui/components/FilterBar';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { StatusChip } from '@lims/ui/components/StatusChip';
 import { getStatusBoardAction } from '../server/actions';
 import { BOARD_STATUSES, type BoardStatus, type StatusBoardRow } from '../server/types';
 import { call, FAILED } from './shared';
+import { domAttrs } from './consoleParts';
 
 const POLL_MS = 30_000;
 const MAX_SPAN_MS = 7 * 86_400_000;
@@ -42,6 +42,20 @@ const dayInput = (iso: string) => { const d = new Date(iso); return `${d.getFull
 /** Local calendar day boundaries as ISO UTC (the date inputs speak local days; the API speaks instants). */
 const startOf = (day: string) => { const [y, m, d] = day.split('-').map(Number); return new Date(y!, m! - 1, d!, 0, 0, 0, 0).toISOString(); };
 const endOf = (day: string) => { const [y, m, d] = day.split('-').map(Number); return new Date(y!, m! - 1, d!, 23, 59, 59, 999).toISOString(); };
+
+const COLUMNS = (centreName: (id: string) => string): ColumnDef<StatusBoardRow>[] => [
+  { id: 'reg', header: 'Reg no', isRowHeader: true, cell: (r) => r.registration_no },
+  { id: 'patient', header: 'Patient', cell: (r) => <>{r.patient_display.full_name}{r.patient_display.age_sex ? <> <span>{r.patient_display.age_sex}</span></> : null}</> },
+  { id: 'centre', header: 'Centre', cell: (r) => centreName(r.centre_id) },
+  { id: 'status', header: 'Status', cell: (r) => (
+    <>
+      <StatusChip kind="generic" status={r.board_status} tone={TONE[r.board_status] ?? 'neutral'} label={LABEL[r.board_status] ?? r.board_status} />
+      {r.rejected_specimens > 0 ? <> <Badge tone="danger">Sample rejected</Badge></> : null}
+      {r.priority === 'urgent' ? <> <span role="img" aria-label="Urgent">★</span></> : null}
+    </>
+  ) },
+  { id: 'released', header: 'Released at', cell: (r) => stamp(r.last_released_at) },
+];
 
 export function StatusBoard(props: StatusBoardProps) {
   return props.permissions.includes('lab.status_board.read') ? <Board {...props} /> : <p role="alert">{"You don't have access to this screen."}</p>;
@@ -121,11 +135,14 @@ function Board({ centres, initialRows, initialNextCursor, initialRange }: Status
       />
       <StatTileRow>
         {BOARD_STATUSES.map((s) => (
-          // the kit StatTile is a div or a link; a filter tile is a toggle button with the same parts (leading space keeps "Ready 1" readable)
-          <button key={s} type="button" className="lims-stat lims-stat-toggle" aria-pressed={statuses.includes(s)} aria-label={`${LABEL[s]} ${shownCount(s)}`} onClick={() => toggleStatus(s)}>
-            <span className="lims-stat-label">{LABEL[s]}</span>
-            <span className="lims-stat-value"> {shownCount(s)}</span>
-          </button>
+          // the kit StatTile is a div or a link; a filter tile is a toggle button with the same parts (leading space keeps "Ready 1" readable).
+          // T0D-UIX-3 (LD-442): the kit Button inside the tile; aria-pressed and the name go on through domAttrs (the kit Button has no aria props).
+          <div key={s} className="lims-stat lims-stat-toggle">
+            <Button variant="ghost" ref={domAttrs({ 'aria-pressed': String(statuses.includes(s)), 'aria-label': `${LABEL[s]} ${shownCount(s)}` })} onPress={() => toggleStatus(s)}>
+              <span className="lims-stat-label">{LABEL[s]}</span>
+              <span className="lims-stat-value"> {shownCount(s)}</span>
+            </Button>
+          </div>
         ))}
       </StatTileRow>
       {/* T0D-UILIST-1 (LD-353 rule 2); T0D-UIGUARD-1-LAB (LD-441): the kit FilterBar draws the search landmark around the screen's own controls */}
@@ -141,33 +158,8 @@ function Board({ centres, initialRows, initialNextCursor, initialRange }: Status
       </FilterBar>
       {rangeErr ? <p id="board-range-err" role="alert" className="lims-error">{rangeErr}</p> : null}
       {error ? <p role="alert" className="lims-error">{error}</p> : null}
-      {/* T0D-EMPTYTBL-1 (LD-310): headers always drawn; the empty message is a body row. T0D-UILIST-1 / LD-353 rule 5: full width, scrolls in its own box. */}
-      <div className="lims-data-table"><div className="lims-table-scroll">
-      <table className="lims-table" aria-label="Order status board">
-          <thead>
-            <tr>
-              <th scope="col">Reg no</th><th scope="col">Patient</th><th scope="col">Centre</th><th scope="col">Status</th><th scope="col">Released at</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.length === 0 ? <EmptyRow colSpan={5}><EmptyState title="No registrations in this period." /></EmptyRow> : null}
-            {rows.map((r) => (
-              <tr key={r.order_id}>
-                <th scope="row">{r.registration_no}</th>
-                <td>{r.patient_display.full_name}{r.patient_display.age_sex ? <> <span>{r.patient_display.age_sex}</span></> : null}</td>
-                <td>{centreName(r.centre_id)}</td>
-                <td>
-                  <StatusChip kind="generic" status={r.board_status} tone={TONE[r.board_status] ?? 'neutral'} label={LABEL[r.board_status] ?? r.board_status} />
-                  {r.rejected_specimens > 0 ? <> <Badge tone="danger">Sample rejected</Badge></> : null}
-                  {r.priority === 'urgent' ? <> <span role="img" aria-label="Urgent">★</span></> : null}
-                </td>
-                <td>{stamp(r.last_released_at)}</td>
-              </tr>
-            ))}
-          </tbody>
-          {rows.length === 0 ? <PlaceholderRows colSpan={5} /> : null}
-        </table>
-      </div></div>
+      {/* T0D-UIX-3 (LD-442): the kit DataTable (header kept when empty, empty message in the body). */}
+      <DataTable caption="Order status board" columns={COLUMNS(centreName)} rows={rows} getRowId={(r) => r.order_id} emptyState={{ title: 'No registrations in this period.' }} />
       {next ? <Button size="sm" onPress={() => { void refresh({}, next); }}>Load more</Button> : null}
       {/* merge of T0D-UILIST-1: the chart sits below the order table so the order table stays the page's first table */}
       <ChartCard title="Samples by status" isEmpty={rows.length === 0}>

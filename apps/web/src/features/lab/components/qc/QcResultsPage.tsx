@@ -10,7 +10,8 @@ import type { NamedOption, QcCaptureBody, QcResult } from '../../server/qc.types
 import { UUID_RE } from '../../server/types';
 import { NativeSelect } from '../NativeSelect';
 import { AlertText, errText, Field, ShortId } from '../settings/common';
-import { call, ListTable, newKey, NUM, utc, type Fail } from '../shared';
+import { call, ListTable, newKey, utc, type Fail } from '../shared';
+import type { ColumnDef } from '@lims/ui/components/DataTable';
 
 const QC_COLUMNS = ['Time', 'Instrument', 'Analyte', 'Control', 'Lot', 'Level', 'Value', 'Unit', 'Source'] as const;
 import { t } from '@/core/i18n/messages';
@@ -93,17 +94,20 @@ export function QcResultsPage({ permissions, centres, instruments }: { permissio
       <PageHeader title={t('lab.nav.qc')} helpKey="lab.qc" {...(canCapture ? { actions: <Button variant="primary" onPress={show}>Add QC result</Button> } : {})} />
       {err ? <AlertText text={err} /> : null}
       {rows === null && !fail ? <p role="status">Loading…</p> : null}
-      <ListTable caption="QC results" cols={QC_COLUMNS.length} empty="No QC results captured." fail={fail} onRetry={() => { setFail(undefined); void load(); }}
-        head={QC_COLUMNS.map((h) => <th key={h} scope="col" {...(h === 'Value' ? { className: NUM } : {})}>{h}</th>)}
-        rows={rows?.map((r) => (
-          <tr key={r.id}>
-            <td>{utc(r.instrument_result_time)}</td>
-            <td>{names.get(r.instrument_id) ?? <ShortId value={r.instrument_id} />}</td>
-            <td><ShortId value={r.analyte_id} /></td>
-            <td>{r.control_id_raw}</td><td>{r.control_lot_raw ?? '—'}</td><td>{r.control_level ?? '—'}</td><td className={NUM}>{r.value_numeric}</td><td>{r.unit_code ?? '—'}</td>
-            <td>{SOURCE[r.source] ?? r.source}</td>
-          </tr>
-        ))} />
+      {/* T0D-UIX-3 (LD-442): kit DataTable columns; Value is numeric (end aligned, tabular figures) */}
+      <ListTable caption="QC results" getRowId={(r) => r.id} empty="No QC results captured." fail={fail} onRetry={() => { setFail(undefined); void load(); }}
+        columns={[
+          { id: 'time', header: QC_COLUMNS[0], isRowHeader: true, cell: (r) => utc(r.instrument_result_time) },
+          { id: 'instrument', header: QC_COLUMNS[1], cell: (r) => names.get(r.instrument_id) ?? <ShortId value={r.instrument_id} /> },
+          { id: 'analyte', header: QC_COLUMNS[2], cell: (r) => <ShortId value={r.analyte_id} /> },
+          { id: 'control', header: QC_COLUMNS[3], cell: (r) => r.control_id_raw },
+          { id: 'lot', header: QC_COLUMNS[4], cell: (r) => r.control_lot_raw ?? '—' },
+          { id: 'level', header: QC_COLUMNS[5], cell: (r) => r.control_level ?? '—' },
+          { id: 'value', header: QC_COLUMNS[6], numeric: true, cell: (r) => r.value_numeric },
+          { id: 'unit', header: QC_COLUMNS[7], cell: (r) => r.unit_code ?? '—' },
+          { id: 'source', header: QC_COLUMNS[8], cell: (r) => SOURCE[r.source] ?? r.source },
+        ] satisfies ColumnDef<QcResult>[]}
+        rows={rows ?? undefined} />
       {rows && rows.length > 0 && next ?<Button variant="secondary" onPress={() => void load(next)}>Load more</Button> : null}
 
       <Dialog

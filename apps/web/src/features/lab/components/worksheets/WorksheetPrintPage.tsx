@@ -5,6 +5,7 @@
 // so the sheet shows #, barcode text, test and blank Result / Remarks cells until the CR lands.
 import { useEffect, useState } from 'react';
 import { Button } from '@lims/ui/components/Button';
+import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
 import { IdText } from '@lims/ui/components/IdText';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { getWorksheetAction, listInstrumentsAction } from '../../server/worklist.actions';
@@ -15,7 +16,16 @@ type Load = { s: 'loading' } | { s: 'ok'; sheet: Worksheet; printedAt: string } 
 type Names = { s: 'loading' } | { s: 'ok'; names: Map<string, string> } | { s: 'denied' };
 
 const PRINT_CSS = `@page { size: A4 portrait; margin: 12mm; }
-@media print { .ws-noprint, .ws-sheet .lims-page-actions { display: none !important; } .ws-sheet table { width: 100%; border-collapse: collapse; } .ws-sheet th, .ws-sheet td { border: 1px solid currentColor; padding: 4px 6px; } .ws-sheet td.ws-blank { height: 10mm; } }`;
+@media print { .ws-noprint, .ws-sheet .lims-page-actions { display: none !important; } .ws-sheet table { width: 100%; border-collapse: collapse; } .ws-sheet th, .ws-sheet td { border: 1px solid currentColor; padding: 4px 6px; } .ws-sheet .ws-blank { display: block; height: 10mm; } }`;
+
+type SheetRow = Worksheet['rows'][number];
+const ROW_COLUMNS: readonly ColumnDef<SheetRow>[] = [
+  { id: 'position', header: '#', numeric: true, cell: (r) => r.position },
+  { id: 'barcode', header: 'Barcode', isRowHeader: true, cell: (r) => r.barcode ?? '—' },
+  { id: 'test', header: 'Test', cell: (r) => r.test_code },
+  { id: 'result', header: 'Result', cell: () => <span className="ws-blank" /> },
+  { id: 'remarks', header: 'Remarks', cell: () => <span className="ws-blank" /> },
+];
 
 export function WorksheetPrintPage({ worksheetId }: { worksheetId: string }) {
   const [load, setLoad] = useState<Load>({ s: 'loading' });
@@ -48,16 +58,8 @@ export function WorksheetPrintPage({ worksheetId }: { worksheetId: string }) {
       <PageHeader title={sheet.title} helpKey="lab.worksheet_print"
         caption={<>Created {utc(sheet.created_at)} · {sheet.rows.length} tests{sheet.department_id ? <> · Department: <IdText value={sheet.department_id} /></> : null}{instrument ? <> · Instrument: {instrument}</> : null}</>}
         actions={<span className="ws-noprint"><Button variant="primary" onPress={() => window.print()}>Print</Button></span>} />
-      <table aria-label="Worksheet rows">
-        <thead><tr><th scope="col">#</th><th scope="col">Barcode</th><th scope="col">Test</th><th scope="col">Result</th><th scope="col">Remarks</th></tr></thead>
-        <tbody>
-          {sheet.rows.map((r) => (
-            <tr key={r.order_test_id}>
-              <td>{r.position}</td><td>{r.barcode ?? '—'}</td><td>{r.test_code}</td><td className="ws-blank" /><td className="ws-blank" />
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      {/* T0D-UIX-3 (LD-442): the kit DataTable; Result and Remarks stay blank write-in cells */}
+      <DataTable caption="Worksheet rows" columns={ROW_COLUMNS} rows={sheet.rows} getRowId={(r) => r.order_test_id} stickyHeader={false} emptyState={{ title: 'No rows on this worksheet.' }} />
       <p>Printed {utc(printedAt)} — snapshot; check the worklist for current status.</p>
     </section>
   );

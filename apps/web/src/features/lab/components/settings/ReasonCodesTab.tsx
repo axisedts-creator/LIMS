@@ -3,6 +3,7 @@
 // SPEC GAP (CR-C5-T29-001, .orchestra/cr/C5.T-29.md): LabCodeDto has no `version`, so an existing TENANT row cannot be edited from here (#54 needs its If-Match) — only global rows offer Edit.
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '@lims/ui/components/Button';
+import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
 import { Dialog } from '@lims/ui/components/Dialog';
 import { useToast } from '@lims/ui/components/Toast';
 import { listCodedSetAction, upsertCodeAction } from '../../server/config.actions';
@@ -63,17 +64,21 @@ export function ReasonCodesTab({ canManage }: { canManage: boolean }) {
       <NativeSelect label="Code set" value={set} placeholder={null} onChange={(v) => { setRows(null); setSet(v as CodedSetName); }} options={CODED_SETS.map((s) => ({ value: s, label: SET_LABEL[s] }))} />
       {dlg ? null : <AlertText text={err} />}
       {canManage ? <Button variant="primary" onPress={() => open({ kind: 'add' })}>Add code</Button> : null}
-      <table className="lims-table">
-        <thead><tr><th scope="col">Code</th><th scope="col">Display</th><th scope="col">Order</th><th scope="col">Active</th><th scope="col">Source</th>{canManage ? <th scope="col">Actions</th> : null}</tr></thead>
-        <tbody>
-          {rows.map((r) => (
-            <tr key={r.code}>
-              <td>{r.code}</td><td>{r.display}</td><td>{r.sort_order}</td><td><span>{r.is_active ? 'Active' : 'Inactive'}</span></td><td><span>{r.source === 'global' ? 'Global' : 'Tenant'}</span></td>
-              {canManage ? <td>{r.source === 'global' ? <Button variant="secondary" size="sm" onPress={() => open({ kind: 'edit', row: r })}>Edit</Button> : null}</td> : null}
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      {/* T0D-UIX-3 (LD-442): kit DataTable */}
+      <DataTable
+        caption="Reason codes"
+        rows={rows}
+        getRowId={(r) => r.code}
+        emptyState={{ title: 'No codes in this set.' }}
+        columns={[
+          { id: 'code', header: 'Code', isRowHeader: true, cell: (r) => r.code },
+          { id: 'display', header: 'Display', cell: (r) => r.display },
+          { id: 'order', header: 'Order', numeric: true, cell: (r) => r.sort_order },
+          { id: 'active', header: 'Active', cell: (r) => (r.is_active ? 'Active' : 'Inactive') },
+          { id: 'source', header: 'Source', cell: (r) => (r.source === 'global' ? 'Global' : 'Tenant') },
+          ...(canManage ? [{ id: 'actions', header: 'Actions', cell: (r: LabCode) => (r.source === 'global' ? <Button variant="secondary" size="sm" onPress={() => open({ kind: 'edit', row: r })}>Edit</Button> : null) }] : []),
+        ] satisfies ColumnDef<LabCode>[]}
+      />
 
       <Dialog
         title={dlg?.kind === 'edit' ? 'Edit code' : 'Add code'}

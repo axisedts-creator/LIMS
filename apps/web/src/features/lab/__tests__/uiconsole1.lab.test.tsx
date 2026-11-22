@@ -7,7 +7,7 @@
 //   (Detected, Acknowledged when notified, Closed when closed). Bar: a link to /lab/critical-values/{id} whose label ends with the shortcut "(O)". NO new action (no acknowledge, resolve, close).
 //   The result value is never printed (it is shown on the detail screen, which logs the access).
 // INGEST EXCEPTIONS contract (IngestExceptionList({ items, permissions, status?, nextCursor? }), route /lab/ingest-exceptions, menu lab.nav.ingest_exceptions):
-//   list headers exactly Age, Barcode, Reason, Instrument code, Status; the barcode stays the link to /lab/ingest-exceptions/{id}; API order. FilterBar: Reason and Status selects (kit Select), changing one still
+//   list headers exactly Age, Barcode, Reason, Instrument code, Instrument, Status; the barcode stays the link to /lab/ingest-exceptions/{id}; API order. FilterBar: Reason and Status selects (kit Select), changing one still
 //   calls router.push with reason= / status= and nothing patient-linked. Tiles Open, Resolved, Oldest age (oldest open row). Detail: reason text, status, barcode, instrument code, instrument, received; History
 //   (Received, Resolved or Discarded). Bar: link to the detail route labelled "...(O)". NO Re-apply / Assign / Discard here and the raw value / flags are never printed (P3, REQ-SEC-028).
 // PAGES: a 501 operation_pending shows NotAvailable (h1 = menu label, no alert, the list header row stays); a 500 still throws to error.tsx; every error.tsx keeps the h1, shows the reference and Retry.
@@ -84,7 +84,7 @@ describe('/lab/critical-values detail, History, bar and security', () => {
     const d = pickItem(container, CV(2));
     const text = norm(d.textContent);
     expect(text).toMatch(/critical high/i);
-    expect(text).toMatch(/\bopen\b/i);
+    expect(text).toMatch(/status\s*open/i); // the kit DescriptionList joins term and value, and value and next term, without a space in textContent (no \b)
     expect(text).toContain('16 Nov 2026');
     expect(text).toMatch(/time to acknowledge/i);
     expect(historyLabels(d)).toEqual(['Detected']);
@@ -143,7 +143,7 @@ const exMount = async (rows: readonly unknown[]) => {
 };
 
 consoleContract({
-  route: '/lab/ingest-exceptions', menuKey: 'lab.nav.ingest_exceptions', headers: ['Age', 'Barcode', 'Reason', 'Instrument code', 'Status'], tileLabels: ['Open', 'Resolved', 'Oldest age'],
+  route: '/lab/ingest-exceptions', menuKey: 'lab.nav.ingest_exceptions', headers: ['Age', 'Barcode', 'Reason', 'Instrument code', 'Instrument', 'Status'], tileLabels: ['Open', 'Resolved', 'Oldest age'],
   emptyText: 'No open instrument exceptions.', mount: exMount, empty: [], one: [exOld], oneId: EX(1), many: [exOld, exNew, exDone], manyIds: [EX(1), EX(2), EX(3)],
   tilesEmpty: { Open: '0', Resolved: '0', 'Oldest age': '—' }, tilesOne: { Open: '1', Resolved: '0', 'Oldest age': { ageMin: 180 } },
   // the resolved exception is older (4 h) but not open: the oldest age is the oldest OPEN row
@@ -224,7 +224,7 @@ afterAll(() => api.close());
 
 const PAGES = [
   ['critical values', () => import('@/app/(staff)/lab/critical-values/page'), 'lab.nav.critical_values', ['Age since detected', 'Detected at', 'Analyte', 'Direction', 'Status'], ['lab.critical_value.read']],
-  ['instrument exceptions', () => import('@/app/(staff)/lab/ingest-exceptions/page'), 'lab.nav.ingest_exceptions', ['Age', 'Barcode', 'Reason', 'Instrument code', 'Status'], []],
+  ['instrument exceptions', () => import('@/app/(staff)/lab/ingest-exceptions/page'), 'lab.nav.ingest_exceptions', ['Age', 'Barcode', 'Reason', 'Instrument code', 'Instrument', 'Status'], []],
 ] as const;
 
 describe.each(PAGES)('%s page: pending operation and failures', (_n, load, key, headers, perms) => {

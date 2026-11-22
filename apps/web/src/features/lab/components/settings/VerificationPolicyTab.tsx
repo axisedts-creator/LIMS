@@ -4,8 +4,7 @@
 // active policy (lab.yaml upsertVerificationPolicy). Only lab.verification_policy.manage edits; the API enforces it again (REQ-SEC-062). Heights and text sizes come from the density tokens.
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '@lims/ui/components/Button';
-import { EmptyRow, PlaceholderRows } from '@lims/ui/components/DataTable';
-import { EmptyState } from '@lims/ui/components/EmptyState';
+import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
 import { RadioGroup } from '@lims/ui/components/RadioGroup';
 import { useToast } from '@lims/ui/components/Toast';
 import type { CatalogOption, PolicyScope, VerificationPolicy } from '../../server/config.types';
@@ -23,7 +22,6 @@ const LINE: Record<Level, string> = {
 };
 const SCOPES = [{ value: 'lab', label: 'Whole lab' }, { value: 'department', label: 'One department' }, { value: 'test', label: 'One test' }] as const;
 const LEVELS = [{ value: '1', label: 'Level 1' }, { value: '2', label: 'Level 2' }, { value: '3', label: 'Level 3' }] as const;
-const COLS = 7;
 const yesNo = (b: boolean) => (b ? 'Yes' : 'No');
 const toForm = (p: VerificationPolicy | undefined): Form => (p ? { level: String(p.required_verifiers) as Level, pathologist: p.require_pathologist, enterer: p.allow_enterer_verify } : DEFAULTS);
 
@@ -119,32 +117,23 @@ export function VerificationPolicyTab({ canManage }: { canManage: boolean }) {
       <p className="lims-description">Accreditation bodies expect a second person to check every result.</p>
       {canManage ? <Button variant="primary" isLoading={busy} onPress={() => void save()}>Save policy</Button> : null}
 
-      <div className="lims-data-table">
-        <div className="lims-table-scroll">
-          <table className="lims-table" aria-label="Verification level overrides">
-            <thead>
-              <tr><th scope="col">Scope</th><th scope="col">Name</th><th scope="col" className="lims-align-end lims-num">Level</th><th scope="col">Pathologist required</th><th scope="col">Entered-by may verify</th><th scope="col">Updated by</th><th scope="col">Updated at</th></tr>
-            </thead>
-            <tbody>
-              {overrides.length === 0 ? <EmptyRow colSpan={COLS}><EmptyState title="No overrides yet" body="Every result uses the whole lab level." /></EmptyRow> : overrides.map((p) => {
-                const name = nameOf(p);
-                return (
-                  <tr key={p.id}>
-                    <td>{p.scope === 'department' ? 'Department' : 'Test'}</td>
-                    <td title={name}>{name}</td>
-                    <td className="lims-align-end lims-num">{p.required_verifiers}</td>
-                    <td>{yesNo(p.require_pathologist)}</td>
-                    <td>{yesNo(p.allow_enterer_verify)}</td>
-                    <td>—</td>{/* VerificationPolicy has no updated-by field yet */}
-                    <td>{utc(p.updated_at)}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-            {overrides.length === 0 ? <PlaceholderRows colSpan={COLS} /> : null}
-          </table>
-        </div>
-      </div>
+      {/* T0D-UIX-3 (LD-442): kit DataTable; cellTitle keeps the title on the cut-off name cell */}
+      <DataTable
+        caption="Verification level overrides"
+        rows={overrides}
+        getRowId={(p) => p.id}
+        cellTitle
+        emptyState={{ title: 'No overrides yet', body: 'Every result uses the whole lab level.' }}
+        columns={[
+          { id: 'scope', header: 'Scope', cell: (p) => (p.scope === 'department' ? 'Department' : 'Test') },
+          { id: 'name', header: 'Name', isRowHeader: true, cell: (p) => nameOf(p) },
+          { id: 'level', header: 'Level', numeric: true, cell: (p) => p.required_verifiers },
+          { id: 'pathologist', header: 'Pathologist required', cell: (p) => yesNo(p.require_pathologist) },
+          { id: 'enterer', header: 'Entered-by may verify', cell: (p) => yesNo(p.allow_enterer_verify) },
+          { id: 'by', header: 'Updated by', cell: () => '—' }, // VerificationPolicy has no updated-by field yet
+          { id: 'at', header: 'Updated at', cell: (p) => utc(p.updated_at) },
+        ] satisfies ColumnDef<VerificationPolicy>[]}
+      />
     </div>
   );
 }

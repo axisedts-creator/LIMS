@@ -6,8 +6,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { BarcodeInput, useScanCapture, type BarcodeInputProps, type OnScan } from '@lims/ui/components/BarcodeInput';
 import { Button } from '@lims/ui/components/Button';
 import { Checkbox } from '@lims/ui/components/Checkbox';
-import { EmptyRow, PlaceholderRows } from '@lims/ui/components/DataTable';
-import { EmptyState } from '@lims/ui/components/EmptyState';
+import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { Tabs } from '@lims/ui/components/Tabs';
 import { useToast } from '@lims/ui/components/Toast';
@@ -49,22 +48,9 @@ function Panel({ result, children, ...input }: BarcodeInputProps & { result: str
   );
 }
 
-/** T0D-UISCAN-1 (LD-353 rule 5): the queue table in the kit scroll box, header row always drawn, the EmptyState in the body. */
-function Queue({ caption, heads, empty, children }: { caption: string; heads: readonly string[]; empty?: string | undefined; children: ReactNode }) {
-  return (
-    <div className="lims-data-table"><div className="lims-table-scroll">
-      <table className="lims-table">
-        <caption className="lims-visually-hidden">{caption}</caption>
-        <thead>
-          <tr>{heads.map((h) => <th key={h} scope="col">{h}</th>)}</tr>
-        </thead>
-        <tbody>
-          {empty ? <EmptyRow colSpan={heads.length}><EmptyState title={empty} /></EmptyRow> : children}
-        </tbody>
-        {empty ? <PlaceholderRows colSpan={heads.length} /> : null}
-      </table>
-    </div></div>
-  );
+/** T0D-UISCAN-1 (LD-353 rule 5) + T0D-UIX-3 (LD-442): the queue is the kit DataTable, header row always drawn, the EmptyState in the body. */
+function Queue<R extends { s: Specimen }>({ caption, columns, rows, empty }: { caption: string; columns: readonly ColumnDef<R>[]; rows: readonly R[]; empty: string }) {
+  return <DataTable caption={caption} columns={columns} rows={rows} getRowId={(r) => r.s.id} emptyState={{ title: empty }} />;
 }
 
 function Screen() {
@@ -140,23 +126,19 @@ function CollectPanel({ rows, setRows }: { rows: PickRow[]; setRows: Setter<Pick
     <div onKeyDown={(e) => { if (enterOnEmptyBox(e)) void collect(); }}>
       {/* T0D-UISCAN-1 (LD-353 template 3): scan input, last result card, queue table */}
       <Panel label="Scan barcode or enter registration number" name="scan" pattern={REGISTRATION} onScan={onScan} result={msg}>
-        <Queue caption="Specimens to collect" heads={['Barcode', 'Type', 'Tests']} empty={rows.length === 0 ? 'Scan a label to start.' : undefined}>
-          {rows.map(({ s, picked, done, note }) => (
-            <tr key={s.id}>
-              <td>
-                <Checkbox
-                  label={s.barcode}
-                  isSelected={picked}
-                  isDisabled={!!done}
-                  onChange={(v) => setRows((p) => p.map((x) => (x.s.id === s.id ? { ...x, picked: v } : x)))}
-                  {...(done || note ? { description: done ? 'Collected' : (note as string) } : {})}
-                />
-              </td>
-              <td>{s.specimen_type_code} <PendingSyncBadge id={s.id} /></td>
-              <td>{s.tests.map((t) => t.test_code).join(', ')}</td>
-            </tr>
-          ))}
-        </Queue>
+        <Queue caption="Specimens to collect" rows={rows} empty="Scan a label to start." columns={[
+          { id: 'barcode', header: 'Barcode', isRowHeader: true, cell: ({ s, picked, done, note }: PickRow) => (
+            <Checkbox
+              label={s.barcode}
+              isSelected={picked}
+              isDisabled={!!done}
+              onChange={(v) => setRows((p) => p.map((x) => (x.s.id === s.id ? { ...x, picked: v } : x)))}
+              {...(done || note ? { description: done ? 'Collected' : (note as string) } : {})}
+            />
+          ) },
+          { id: 'type', header: 'Type', cell: ({ s }: PickRow) => <>{s.specimen_type_code} <PendingSyncBadge id={s.id} /></> },
+          { id: 'tests', header: 'Tests', cell: ({ s }: PickRow) => s.tests.map((t) => t.test_code).join(', ') },
+        ]} />
       </Panel>
       {rows.length ? (
         <Button variant="primary" shortcut="Enter" isLoading={busy} isDisabled={selected.length === 0} onPress={() => void collect()}>
@@ -223,16 +205,12 @@ function DispatchPanel({ rows, setRows }: { rows: BatchRow[]; setRows: Setter<Ba
     <div>
       {/* T0D-UISCAN-1 (LD-353 template 3): scan input, last result card, queue table */}
       <Panel label="Scan barcode" name="dispatch-scan" onScan={onScan} result={msg}>
-        <Queue caption="Specimens to dispatch" heads={['Barcode', 'Type', 'Status', 'Note']} empty={rows.length === 0 ? 'Scan collected specimens to build a dispatch list.' : undefined}>
-          {rows.map(({ s, sent, note }) => (
-            <tr key={s.id}>
-              <td>{s.barcode}</td>
-              <td>{s.specimen_type_code}</td>
-              <td>{statusText(s.status)}</td>
-              <td>{sent ? 'Dispatched' : (note ?? issue(s) ?? '')}</td>
-            </tr>
-          ))}
-        </Queue>
+        <Queue caption="Specimens to dispatch" rows={rows} empty="Scan collected specimens to build a dispatch list." columns={[
+          { id: 'barcode', header: 'Barcode', isRowHeader: true, cell: ({ s }: BatchRow) => s.barcode },
+          { id: 'type', header: 'Type', cell: ({ s }: BatchRow) => s.specimen_type_code },
+          { id: 'status', header: 'Status', cell: ({ s }: BatchRow) => statusText(s.status) },
+          { id: 'note', header: 'Note', cell: ({ s, sent, note }: BatchRow) => (sent ? 'Dispatched' : (note ?? issue(s) ?? '')) },
+        ]} />
       </Panel>
       {rows.length ? (
         <>

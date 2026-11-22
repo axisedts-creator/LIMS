@@ -6,6 +6,7 @@ import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@lims/ui/components/Button';
 import { Checkbox } from '@lims/ui/components/Checkbox';
+import { DescriptionList } from '@lims/ui/components/DescriptionList';
 import { Dialog } from '@lims/ui/components/Dialog';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { RadioGroup } from '@lims/ui/components/RadioGroup';
@@ -91,18 +92,19 @@ export function IngestExceptionDetail({ exception: e, permissions, discardReason
   return (
     <section aria-label="Instrument exception">
       <PageHeader title="Instrument exception" helpKey="lab.ingest_exceptions" />
-      <dl>
-        <dt>Reason</dt><dd>{REASON_TEXT[e.reason] ?? e.reason}</dd>
-        <dt>Status</dt><dd>{e.status}{e.resolution ? ` (${e.resolution})` : ''}</dd>
-        <dt>Barcode</dt><dd>{e.sample_barcode ?? ''}</dd>
-        <dt>Instrument code</dt><dd>{e.instrument_analyte_code ?? ''}</dd>
-        <dt>Instrument</dt><dd>{e.instrument_id ?? ''}</dd>
-        <dt>Received</dt><dd>{when(e.created_at)}</dd>
-        {e.resolved_at ? <><dt>Resolved</dt><dd>{when(e.resolved_at)}</dd></> : null}
-        <dt>Value</dt><dd>{e.raw_value ?? ''}</dd>
-        <dt>Unit</dt><dd>{e.unit_raw ?? ''}</dd>
-        <dt>Instrument flags</dt><dd>{(e.raw_flags ?? []).join(', ')}</dd>
-      </dl>
+      {/* T0D-UIX-3 (LD-442): label and value pairs are the kit DescriptionList */}
+      <DescriptionList columns={2} items={[
+        { term: 'Reason', value: REASON_TEXT[e.reason] ?? e.reason },
+        { term: 'Status', value: `${e.status}${e.resolution ? ` (${e.resolution})` : ''}` },
+        { term: 'Barcode', value: e.sample_barcode ?? '' },
+        { term: 'Instrument code', value: e.instrument_analyte_code ?? '' },
+        { term: 'Instrument', value: e.instrument_id ?? '' },
+        { term: 'Received', value: when(e.created_at) },
+        ...(e.resolved_at ? [{ term: 'Resolved', value: when(e.resolved_at) }] : []),
+        { term: 'Value', value: e.raw_value ?? '' },
+        { term: 'Unit', value: e.unit_raw ?? '' },
+        { term: 'Instrument flags', value: (e.raw_flags ?? []).join(', ') },
+      ]} />
       {e.reason === 'result_locked' ? <p>{LOCKED_COPY}</p> : null}
       {msg ? <p role="status">{msg}</p> : null}
       {dialog === null ? errBox : null}

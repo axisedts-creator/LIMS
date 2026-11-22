@@ -1,7 +1,6 @@
 // Shared bits of the C5 lab screens. Merge of T-11 helpers (collect / dispatch / receive; was shared.ts) and
 // T-26 worklist / pending / worksheet bits (04-UI-UX §3.4, §3.5, §3.15). Text only: no colour- or icon-only meaning.
-import type { ReactNode } from 'react';
-import { EmptyRow, PlaceholderRows } from '@lims/ui/components/DataTable';
+import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
 import { EmptyState } from '@lims/ui/components/EmptyState';
 import { ErrorState } from '@lims/ui/components/ErrorState';
 import type { ActionResult } from '../server/types';
@@ -69,24 +68,16 @@ export function Failure({ r, onRetry }: { r: Extract<ActionResult<unknown>, { ok
 
 export type Fail = Extract<ActionResult<unknown>, { ok: false }>;
 
-/** T0D-UILIST-1, LD-353 template 1 LIST and rules 5, 6: the header row is always drawn inside the scroll box; an empty list, a failure or a
- * pending operation is ONE state in the table body. `rows` undefined = still loading (header only). Numeric th/td carry NUM. */
-export function ListTable({ caption, cols, head, rows, empty, fail, onRetry }: {
-  caption: string; cols: number; head: ReactNode; rows: readonly ReactNode[] | undefined; empty: string; fail?: Fail | undefined; onRetry?: () => void;
+/** T0D-UILIST-1, LD-353 template 1 LIST and rules 5, 6: the header row is always drawn; an empty list, a failure or a pending operation is ONE state
+ * in the table body. `rows` undefined = still loading (header only). T0D-UIX-3 (LD-442): rendered by the kit DataTable (columns config; numeric columns end aligned). */
+export function ListTable<Row>({ caption, columns, rows, getRowId, empty, fail, onRetry }: {
+  caption: string; columns: readonly ColumnDef<Row>[]; rows: readonly Row[] | undefined; getRowId: (r: Row) => string; empty: string; fail?: Fail | undefined; onRetry?: () => void;
 }) {
-  const state = fail ? <Failure r={fail} onRetry={onRetry ?? (() => undefined)} /> : rows?.length === 0 ? <EmptyState title={empty} /> : null;
+  const title = fail?.status === 403 ? NO_ACCESS : fail?.status === 404 ? NOT_VISIBLE : fail?.status === 501 && fail.code === 'operation_pending' ? 'Not available yet' : empty;
+  const isError = !!fail && title === empty;
   return (
-    <div className="lims-data-table">
-      <div className="lims-table-scroll">
-        <table className="lims-table" aria-label={caption}>
-          <thead><tr>{head}</tr></thead>
-          <tbody>{state ? <EmptyRow colSpan={cols}>{state}</EmptyRow> : rows}</tbody>
-          {state ? <PlaceholderRows colSpan={cols} /> : null}
-        </table>
-      </div>
-    </div>
+    <DataTable caption={caption} columns={columns} rows={fail ? [] : (rows ?? [])} getRowId={getRowId} isLoading={!fail && rows === undefined}
+      emptyState={title === 'Not available yet' ? { title, body: 'This part of the system is being built. It appears here once it is switched on.' } : { title }}
+      {...(isError ? { error: { title: 'Something went wrong', ...(fail.requestId ? { requestId: fail.requestId } : {}), onRetry: onRetry ?? (() => undefined) } } : {})} />
   );
 }
-
-/** Right aligned numeric column (LD-353 rules 3 and 5), the same classes the kit DataTable uses. */
-export const NUM = 'lims-align-end lims-num';

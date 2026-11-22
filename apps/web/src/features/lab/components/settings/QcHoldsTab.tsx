@@ -3,7 +3,7 @@
 // (lab.qc_hold.release; a privileged session below aal2 gets auth.mfa_required -> re-authentication hint). The API enforces the permission — the UI only hides the button.
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '@lims/ui/components/Button';
-import { EmptyRow } from '@lims/ui/components/DataTable';
+import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
 import { Dialog } from '@lims/ui/components/Dialog';
 import { listQcHoldsAction, releaseQcHoldAction } from '../../server/qc.actions';
 import type { QcHold, QcHoldStatus } from '../../server/qc.types';
@@ -47,23 +47,26 @@ export function QcHoldsTab({ canRelease }: { canRelease: boolean }) {
       {target ? null : <AlertText text={err} />}
       {/* T0D-UIGUARD-1-LAB (LD-353 rule 5): once loaded the header row stays; the empty line is a body row */}
       {rows === null ? <p role="status">Loading…</p> : (
-        <table className="lims-table">
-          <thead><tr>{['Instrument', 'Analyte', 'Status', 'Held at', 'Released at', 'Comment'].map((h) => <th key={h} scope="col">{h}</th>)}</tr></thead>
-          <tbody>
-            {rows.length ? null : <EmptyRow colSpan={6}>No QC holds.</EmptyRow>}
-            {rows.map((h) => (
-              <tr key={h.id}>
-                <td><ShortId value={h.instrument_id} /></td><td><ShortId value={h.analyte_id} /></td>
-                <td><span>{h.status === 'active' ? 'Active' : 'Released'}</span></td>
-                <td>{utc(h.held_at)}</td><td>{utc(h.released_at)}</td>
-                <td>
-                  {h.release_comment ?? null}
-                  {canRelease && h.status === 'active' ? <Button variant="secondary" size="sm" onPress={() => { setComment(''); setMsg(''); setTarget(h); }}>Release</Button> : null}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        // T0D-UIX-3 (LD-442): kit DataTable
+        <DataTable
+          caption="QC holds"
+          rows={rows}
+          getRowId={(h) => h.id}
+          emptyState={{ title: 'No QC holds.' }}
+          columns={[
+            { id: 'instrument', header: 'Instrument', isRowHeader: true, cell: (h) => <ShortId value={h.instrument_id} /> },
+            { id: 'analyte', header: 'Analyte', cell: (h) => <ShortId value={h.analyte_id} /> },
+            { id: 'status', header: 'Status', cell: (h) => (h.status === 'active' ? 'Active' : 'Released') },
+            { id: 'held', header: 'Held at', cell: (h) => utc(h.held_at) },
+            { id: 'released', header: 'Released at', cell: (h) => utc(h.released_at) },
+            { id: 'comment', header: 'Comment', cell: (h) => (
+              <>
+                {h.release_comment ?? null}
+                {canRelease && h.status === 'active' ? <Button variant="secondary" size="sm" onPress={() => { setComment(''); setMsg(''); setTarget(h); }}>Release</Button> : null}
+              </>
+            ) },
+          ] satisfies ColumnDef<QcHold>[]}
+        />
       )}
 
       <Dialog

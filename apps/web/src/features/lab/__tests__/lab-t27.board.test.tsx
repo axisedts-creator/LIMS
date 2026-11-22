@@ -77,7 +77,7 @@ describe('T-27 status board table (AC-18.1)', () => {
     await show([]);
     expect(screen.getByText('No registrations in this period.')).toBeTruthy();
     // T0D-EMPTYTBL-1 / LD-310: empty board still draws its header row.
-    expect(within(screen.getByRole('table')).getAllByRole('columnheader').length).toBeGreaterThanOrEqual(3);
+    expect(within(screen.getByRole('grid')).getAllByRole('columnheader').length).toBeGreaterThanOrEqual(3);
   });
 
   it('shows "Updated {time}" text and has no axe violations', async () => {

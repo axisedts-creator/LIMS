@@ -3,6 +3,7 @@
 import { useEffect, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { DescriptionList } from '@lims/ui/components/DescriptionList';
 
 const TICK_MS = 30_000;
 
@@ -57,14 +58,19 @@ export function OpenKey({ href, children }: { href: string | undefined; children
   return <div onKeyDown={onKeyDown}>{children}</div>;
 }
 
-/** Facts of the record (kit .lims-dl markup); a space between term and value keeps the text readable to assistive tech and copy. */
+/** Facts of the record. T0D-UIX-3 (LD-442): the kit DescriptionList replaces the raw dl. */
 export function Facts({ items }: { items: readonly (readonly [string, ReactNode])[] }) {
-  return (
-    <dl className="lims-dl lims-cols-1">
-      {items.map(([term, value]) => <div key={term} className="lims-dl-item"><dt>{term}</dt>{' '}<dd>{value}</dd>{' '}</div>)}
-    </dl>
-  );
+  return <DescriptionList items={items.map(([term, value]) => ({ term, value }))} />;
 }
+
+/** T0D-UIX-3 (LD-442): the kit Button and IconButton forward no aria-* / data-* / title, so a ref callback sets them on the element
+ * (onRow: on its table row). Pass it inline so it runs on every render; undefined removes the attribute.
+ * ponytail: DOM attributes outside React; give the kit Button pass-through props when the kit owner adds them. */
+export const domAttrs = (attrs: Record<string, string | undefined>, onRow = false) => (el: HTMLElement | null) => {
+  const t = onRow ? el?.closest('tr') : el;
+  if (!t) return;
+  for (const [k, v] of Object.entries(attrs)) if (v === undefined) t.removeAttribute(k); else t.setAttribute(k, v);
+};
 
 /** History block of the detail: a heading and one li per event (label first). */
 export function History({ events }: { events: readonly (readonly [string, string])[] }) {

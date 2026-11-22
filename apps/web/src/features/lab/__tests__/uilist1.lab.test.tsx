@@ -73,7 +73,7 @@ const SCREENS: Screen[] = [
     forbid: /rules arrive|QC module/i,
     row: { id: U(0xc1), centre_id: U(0xa1), instrument_id: U(0x1a), analyte_id: U(0xd1), control_id_raw: 'CTRL-SYN-1', control_lot_raw: 'LOT1', control_level: 'L1', value_numeric: '5.40', unit_code: 'mmol_L', instrument_result_time: AT, source: 'manual', received_at: AT },
     load: async () => (await import('@/app/(staff)/lab/qc/page')).default() },
-  { name: 'critical values', path: '/lab/critical-values', api: '/v1/lab/critical-values', marker: 'POTASSIUM_SYN', filters: 0, min: 5, loose: /no critical values/i, err: false, na: true,
+  { name: 'critical values', path: '/lab/critical-values', api: '/v1/lab/critical-values', marker: 'POTASSIUM_SYN', filters: 1, min: 5, loose: /no critical values/i, err: false, na: true,
     row: { id: U(0xe1), analyte_code: 'POTASSIUM_SYN', direction: 'high', status: 'open', detected_at: AT },
     load: async () => (await import('@/app/(staff)/lab/critical-values/page')).default(sp) },
   { name: 'ingest exceptions', path: '/lab/ingest-exceptions', api: '/v1/lab/ingest-exceptions', marker: 'E260000999', filters: 1, min: 6, loose: /no open instrument exceptions/i, err: false, na: true,

@@ -32,8 +32,8 @@ exports[`RS-C5 key screens (DOM snapshots) > collect / dispatch: tabs with count
 <div class="lims-scan-panel">
 <div class="lims-scan-input">
 <div class="lims-field lims-barcode">
-<label class="lims-label" for="_r_19_">Scan barcode or enter registration number</label>
-<input id="_r_19_" class="lims-input lims-mono" autocomplete="off" autocapitalize="characters" spellcheck="false" type="text" name="scan">
+<label class="lims-label" for="_r_1e_">Scan barcode or enter registration number</label>
+<input id="_r_1e_" class="lims-input lims-mono" autocomplete="off" autocapitalize="characters" spellcheck="false" type="text" name="scan">
 <span role="status" class="lims-visually-hidden">
 </span>
 </div>
@@ -41,18 +41,21 @@ exports[`RS-C5 key screens (DOM snapshots) > collect / dispatch: tabs with count
 <div class="lims-scan-queue">
 <div class="lims-data-table">
 <div class="lims-table-scroll">
-<table class="lims-table">
-<caption class="lims-visually-hidden">Specimens to collect</caption>
-<thead>
-<tr>
-<th scope="col">Barcode</th>
-<th scope="col">Type</th>
-<th scope="col">Tests</th>
+<template>
+</template>
+<span data-focus-scope-start="true" hidden="">
+</span>
+<table class="lims-table lims-table-regular lims-table-sticky" data-rac="" aria-label="Specimens to collect" id="ID" role="grid" tabindex="0" aria-describedby="">
+<thead role="rowgroup" class="ID" data-rac="">
+<tr role="row">
+<th tabindex="-1" data-collection="ID" data-key="barcode" id="ID" role="columnheader" aria-colindex="1" data-ID="true" class="lims-col lims-align-start" data-rac="">Barcode</th>
+<th tabindex="-1" data-collection="ID" data-key="type" id="ID" role="columnheader" aria-colindex="2" data-ID="true" class="lims-col lims-align-start" data-rac="">Type</th>
+<th tabindex="-1" data-collection="ID" data-key="tests" id="ID" role="columnheader" aria-colindex="3" data-ID="true" class="lims-col lims-align-start" data-rac="">Tests</th>
 </tr>
 </thead>
-<tbody>
-<tr class="lims-row-empty">
-<td class="lims-cell" colspan="3">
+<tbody class="ID" data-rac="" role="rowgroup" data-empty="true">
+<tr role="row">
+<td role="rowheader" colspan="3">
 <div class="lims-state">
 <svg class="lims-state-art" data-art="empty" aria-hidden="true" focusable="false" width="64" height="64" viewBox="0 0 64 64" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 <path d="M12 30h40l-6 -12H18z" stroke="var(--lims-neutral-300)">
@@ -66,28 +69,22 @@ exports[`RS-C5 key screens (DOM snapshots) > collect / dispatch: tabs with count
 </svg>
 <p class="lims-state-title">Scan a label to start.</p>
 </div>
+<div class="lims-row-placeholder" aria-hidden="true">
+</div>
+<div class="lims-row-placeholder" aria-hidden="true">
+</div>
+<div class="lims-row-placeholder" aria-hidden="true">
+</div>
+<div class="lims-row-placeholder" aria-hidden="true">
+</div>
 </td>
 </tr>
 </tbody>
-<tfoot aria-hidden="true">
-<tr class="lims-row-placeholder" aria-hidden="true">
-<td colspan="3">
-</td>
-</tr>
-<tr class="lims-row-placeholder" aria-hidden="true">
-<td colspan="3">
-</td>
-</tr>
-<tr class="lims-row-placeholder" aria-hidden="true">
-<td colspan="3">
-</td>
-</tr>
-<tr class="lims-row-placeholder" aria-hidden="true">
-<td colspan="3">
-</td>
-</tr>
-</tfoot>
 </table>
+<span data-focus-scope-end="true" hidden="">
+</span>
+</div>
+<div role="status" class="lims-visually-hidden">
 </div>
 </div>
 </div>
@@ -182,17 +179,20 @@ exports[`RS-C5 key screens (DOM snapshots) > receive: scan box, location, sessio
 </div>
 <div class="lims-data-table">
 <div class="lims-table-scroll">
-<table class="lims-table">
-<caption class="lims-visually-hidden">Session log</caption>
-<thead>
-<tr>
-<th scope="col">Barcode</th>
-<th scope="col">Outcome</th>
+<template>
+</template>
+<span data-focus-scope-start="true" hidden="">
+</span>
+<table class="lims-table lims-table-regular lims-table-sticky" data-rac="" aria-label="Session log" id="ID" role="grid" tabindex="0" aria-describedby="">
+<thead role="rowgroup" class="ID" data-rac="">
+<tr role="row">
+<th tabindex="-1" data-collection="ID" data-key="barcode" id="ID" role="columnheader" aria-colindex="1" data-ID="true" class="lims-col lims-align-start" data-rac="">Barcode</th>
+<th tabindex="-1" data-collection="ID" data-key="outcome" id="ID" role="columnheader" aria-colindex="2" data-ID="true" class="lims-col lims-align-start" data-rac="">Outcome</th>
 </tr>
 </thead>
-<tbody>
-<tr class="lims-row-empty">
-<td class="lims-cell" colspan="2">
+<tbody class="ID" data-rac="" role="rowgroup" data-empty="true">
+<tr role="row">
+<td role="rowheader" colspan="2">
 <div class="lims-state">
 <svg class="lims-state-art" data-art="empty" aria-hidden="true" focusable="false" width="64" height="64" viewBox="0 0 64 64" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 <path d="M12 30h40l-6 -12H18z" stroke="var(--lims-neutral-300)">
@@ -206,28 +206,22 @@ exports[`RS-C5 key screens (DOM snapshots) > receive: scan box, location, sessio
 </svg>
 <p class="lims-state-title">Scan a label to start</p>
 </div>
+<div class="lims-row-placeholder" aria-hidden="true">
+</div>
+<div class="lims-row-placeholder" aria-hidden="true">
+</div>
+<div class="lims-row-placeholder" aria-hidden="true">
+</div>
+<div class="lims-row-placeholder" aria-hidden="true">
+</div>
 </td>
 </tr>
 </tbody>
-<tfoot aria-hidden="true">
-<tr class="lims-row-placeholder" aria-hidden="true">
-<td colspan="2">
-</td>
-</tr>
-<tr class="lims-row-placeholder" aria-hidden="true">
-<td colspan="2">
-</td>
-</tr>
-<tr class="lims-row-placeholder" aria-hidden="true">
-<td colspan="2">
-</td>
-</tr>
-<tr class="lims-row-placeholder" aria-hidden="true">
-<td colspan="2">
-</td>
-</tr>
-</tfoot>
 </table>
+<span data-focus-scope-end="true" hidden="">
+</span>
+</div>
+<div role="status" class="lims-visually-hidden">
 </div>
 </div>
 </div>
@@ -543,61 +537,63 @@ exports[`RS-C5 key screens (DOM snapshots) > worklist: table with the right pane
 <div>
 <div class="lims-data-table">
 <div class="lims-table-scroll">
-<table class="lims-table" aria-label="Worklist">
-<thead>
-<tr>
-<th scope="col">
-<span class="lims-visually-hidden">Select</span>
-</th>
-<th scope="col">Barcode</th>
-<th scope="col">Reg no</th>
-<th scope="col">Patient</th>
-<th scope="col">Test</th>
-<th scope="col">Priority</th>
-<th scope="col">Status</th>
-<th scope="col">Received</th>
-<th scope="col">Age since received</th>
-<th scope="col">TAT target</th>
-<th scope="col">Result entry</th>
+<template>
+</template>
+<span data-focus-scope-start="true" hidden="">
+</span>
+<table class="lims-table lims-table-regular lims-table-sticky" data-rac="" aria-label="Worklist" id="ID" role="grid" tabindex="-1" aria-describedby="" data-collection="ID">
+<thead role="rowgroup" class="ID" data-rac="">
+<tr role="row">
+<th tabindex="-1" data-collection="ID" data-key="select" id="ID" role="columnheader" aria-colindex="1" data-ID="true" class="lims-col lims-align-start" data-rac="">Select</th>
+<th tabindex="-1" data-collection="ID" data-key="barcode" id="ID" role="columnheader" aria-colindex="2" data-ID="true" class="lims-col lims-align-start" data-rac="">Barcode</th>
+<th tabindex="-1" data-collection="ID" data-key="reg" id="ID" role="columnheader" aria-colindex="3" data-ID="true" class="lims-col lims-align-start" data-rac="">Reg no</th>
+<th tabindex="-1" data-collection="ID" data-key="patient" id="ID" role="columnheader" aria-colindex="4" data-ID="true" class="lims-col lims-align-start" data-rac="">Patient</th>
+<th tabindex="-1" data-collection="ID" data-key="test" id="ID" role="columnheader" aria-colindex="5" data-ID="true" class="lims-col lims-align-start" data-rac="">Test</th>
+<th tabindex="-1" data-collection="ID" data-key="priority" id="ID" role="columnheader" aria-colindex="6" data-ID="true" class="lims-col lims-align-start" data-rac="">Priority</th>
+<th tabindex="-1" data-collection="ID" data-key="status" id="ID" role="columnheader" aria-colindex="7" data-ID="true" class="lims-col lims-align-start" data-rac="">Status</th>
+<th tabindex="-1" data-collection="ID" data-key="received" id="ID" role="columnheader" aria-colindex="8" data-ID="true" class="lims-col lims-align-start" data-rac="">Received</th>
+<th tabindex="-1" data-collection="ID" data-key="age" id="ID" role="columnheader" aria-colindex="9" data-ID="true" class="lims-col lims-align-end lims-num" data-rac="">Age since received</th>
+<th tabindex="-1" data-collection="ID" data-key="tat" id="ID" role="columnheader" aria-colindex="10" data-ID="true" class="lims-col lims-align-start" data-rac="">TAT target</th>
+<th tabindex="-1" data-collection="ID" data-key="entry" id="ID" role="columnheader" aria-colindex="11" data-ID="true" class="lims-col lims-align-start" data-rac="">Result entry</th>
 </tr>
 </thead>
-<tbody>
-<tr>
-<td>
+<tbody class="ID" data-rac="" role="rowgroup">
+<tr data-row-id="01a1a98a-ac40-7000-8000-000000000257" data-row-index="0" class="lims-row" style="--table-row-level: 1;" data-rac="" role="row" tabindex="-1" data-collection="ID" data-key="01a1a98a-ac40-7000-8000-000000000257" id="ID" aria-labelledby="ID" data-level="1">
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="gridcell" data-column-index="0" data-level="1">
 <input aria-label="Select E2600000101 CBC" type="checkbox">
 </td>
-<td>E2600000101</td>
-<td>R2611050001</td>
-<td>Synthetic Patient 1 <span class="lims-muted">34Y/F</span>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="rowheader" data-column-index="1" data-level="1">E2600000101</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="gridcell" data-column-index="2" data-level="1">R2611050001</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="gridcell" data-column-index="3" data-level="1">Synthetic Patient 1 <span class="lims-muted">34Y/F</span>
 </td>
-<td>CBC</td>
-<td>★ Urgent</td>
-<td>In process</td>
-<td>2026-11-05 04:15 UTC</td>
-<td>220:45</td>
-<td>—</td>
-<td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="gridcell" data-column-index="4" data-level="1">CBC</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="gridcell" data-column-index="5" data-level="1">★ Urgent</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="gridcell" data-column-index="6" data-level="1">In process</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="gridcell" data-column-index="7" data-level="1">2026-11-05 04:15 UTC</td>
+<td class="lims-cell lims-align-end lims-num" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="gridcell" data-column-index="8" data-level="1">220:45</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="gridcell" data-column-index="9" data-level="1">—</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="0" data-collection="ID" data-key="ID" id="ID" role="gridcell" data-column-index="10" data-level="1">
 <button class="lims-btn lims-btn-ghost lims-btn-sm" data-rac="" type="button" tabindex="0" data-ID="true" id="ID" data-hovered="true">
 <span class="lims-btn-label">Enter results E2600000101 CBC</span>
 </button>
 </td>
 </tr>
-<tr>
-<td>
+<tr data-row-id="01a1a98a-ac40-7000-8000-000000000258" data-row-index="1" class="lims-row" style="--table-row-level: 1;" data-rac="" role="row" tabindex="-1" data-collection="ID" data-key="01a1a98a-ac40-7000-8000-000000000258" id="ID" aria-labelledby="ID" data-level="1">
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="gridcell" data-column-index="0" data-level="1">
 <input aria-label="Select E2600000102 CBC" type="checkbox">
 </td>
-<td>E2600000102</td>
-<td>R2611050002</td>
-<td>Synthetic Patient 2 <span class="lims-muted">34Y/F</span>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="rowheader" data-column-index="1" data-level="1">E2600000102</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="gridcell" data-column-index="2" data-level="1">R2611050002</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="gridcell" data-column-index="3" data-level="1">Synthetic Patient 2 <span class="lims-muted">34Y/F</span>
 </td>
-<td>CBC</td>
-<td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="gridcell" data-column-index="4" data-level="1">CBC</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="gridcell" data-column-index="5" data-level="1">
 </td>
-<td>In process</td>
-<td>2026-11-05 04:15 UTC</td>
-<td>220:45</td>
-<td>—</td>
-<td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="gridcell" data-column-index="6" data-level="1">In process</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="gridcell" data-column-index="7" data-level="1">2026-11-05 04:15 UTC</td>
+<td class="lims-cell lims-align-end lims-num" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="gridcell" data-column-index="8" data-level="1">220:45</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="gridcell" data-column-index="9" data-level="1">—</td>
+<td class="lims-cell lims-align-start" data-rac="" tabindex="-1" data-collection="ID" data-key="ID" id="ID" role="gridcell" data-column-index="10" data-level="1">
 <button class="lims-btn lims-btn-ghost lims-btn-sm" data-rac="" type="button" tabindex="0" data-ID="true" id="ID">
 <span class="lims-btn-label">Enter results E2600000102 CBC</span>
 </button>
@@ -605,6 +601,10 @@ exports[`RS-C5 key screens (DOM snapshots) > worklist: table with the right pane
 </tr>
 </tbody>
 </table>
+<span data-focus-scope-end="true" hidden="">
+</span>
+</div>
+<div role="status" class="lims-visually-hidden">
 </div>
 </div>
 </div>
@@ -613,14 +613,20 @@ exports[`RS-C5 key screens (DOM snapshots) > worklist: table with the right pane
 <div class="lims-card-head">
 <h2 class="lims-card-title">Result entry</h2>
 </div>
-<dl>
+<dl class="lims-dl lims-cols-1">
+<div class="lims-dl-item">
 <dt>Reg no</dt>
 <dd>R2611050001</dd>
+</div>
+<div class="lims-dl-item">
 <dt>Patient</dt>
 <dd>Synthetic Patient 1 <span class="lims-muted">34Y/F</span>
 </dd>
+</div>
+<div class="lims-dl-item">
 <dt>Test</dt>
 <dd>CBC</dd>
+</div>
 </dl>
 <p>1 of 3 resulted</p>
 <a href="/lab/orders/01a1a98a-ac40-7000-8000-000000000513/results">Open result entry</a>

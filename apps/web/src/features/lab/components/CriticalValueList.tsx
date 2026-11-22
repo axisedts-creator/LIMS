@@ -7,8 +7,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { EmptyRow, PlaceholderRows } from '@lims/ui/components/DataTable';
-import { EmptyState } from '@lims/ui/components/EmptyState';
+import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
 import { FilterBar } from '@lims/ui/components/FilterBar';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { SplitConsole } from '@lims/ui/components/SplitConsole';
@@ -18,7 +17,7 @@ import type { CriticalValueRow as ServerRow } from '../server/adminpages.server'
 
 // C5 05-SCHEMA critical log column, shown as the time to acknowledge when the API sends it. Typed here because features/lab/server is pinned by rs-c5.static (LD-140).
 type CriticalValueRow = ServerRow & { first_confirmed_notification_at?: string };
-import { Facts, History, OpenBar, OpenKey, hhmm, itemProps, oldest, useNow, when } from './consoleParts';
+import { Facts, History, OpenBar, OpenKey, hhmm, oldest, useNow, when } from './consoleParts';
 
 const DIRECTION: Record<CriticalValueRow['direction'], string> = { high: 'Critical high', low: 'Critical low', abnormal: 'Abnormal' };
 const STATUS: Record<CriticalValueRow['status'], string> = { open: 'Open', notified: 'Notified', closed: 'Closed' };
@@ -39,25 +38,17 @@ export function CriticalValueList({ items, status, nextCursor }: { items: readon
   const more = `/lab/critical-values?${new URLSearchParams({ ...(status ? { status } : {}), ...(nextCursor ? { cursor: nextCursor } : {}) })}`;
   const goStatus = (v: string | undefined) => router.push(v ? `${pathname}?${new URLSearchParams({ status: v })}` : pathname);
 
+  // T0D-UIX-3 (LD-442): the queue is the kit DataTable; consoleSelection keeps the SplitConsole row selection (data-console-item, aria-selected).
+  const columns: ColumnDef<CriticalValueRow>[] = [
+    { id: 'age', header: HEADERS[0]!, numeric: true, cell: (r) => <span suppressHydrationWarning>{hhmm(age(r))}</span> },
+    { id: 'detected', header: HEADERS[1]!, cell: (r) => when(r.detected_at) },
+    { id: 'analyte', header: HEADERS[2]!, isRowHeader: true, cell: (r) => <Link href={href(r.id)}>{r.analyte_code}</Link> },
+    { id: 'direction', header: HEADERS[3]!, cell: (r) => DIRECTION[r.direction] ?? r.direction },
+    { id: 'status', header: HEADERS[4]!, cell: (r) => STATUS[r.status] ?? r.status },
+  ];
   const list = (
-    <div className="lims-data-table"><div className="lims-table-scroll">
-      <table className="lims-table" aria-label={title}>
-        <thead><tr>{HEADERS.map((h) => <th key={h} scope="col">{h}</th>)}</tr></thead>
-        <tbody>
-          {rows.length === 0 ? <EmptyRow colSpan={HEADERS.length}><EmptyState title="No critical values." /></EmptyRow> : null}
-          {rows.map((r) => (
-            <tr key={r.id} {...itemProps(r.id, selectedId, setSelectedId)}>
-              <td suppressHydrationWarning>{hhmm(age(r))}</td>
-              <td>{when(r.detected_at)}</td>
-              <td><Link href={href(r.id)}>{r.analyte_code}</Link></td>
-              <td>{DIRECTION[r.direction] ?? r.direction}</td>
-              <td>{STATUS[r.status] ?? r.status}</td>
-            </tr>
-          ))}
-        </tbody>
-        {rows.length === 0 ? <PlaceholderRows colSpan={HEADERS.length} /> : null}
-      </table>
-    </div></div>
+    <DataTable caption={title} columns={columns} rows={rows} getRowId={(r) => r.id} emptyState={{ title: 'No critical values.' }}
+      consoleSelection={{ selectedId, onSelect: setSelectedId }} />
   );
 
   const ack = sel?.first_confirmed_notification_at;

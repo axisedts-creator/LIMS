@@ -6,7 +6,6 @@ import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { Badge } from '@lims/ui/components/Badge';
 import { Button } from '@lims/ui/components/Button';
-import { BarChart } from '@lims/ui/components/BarChart';
 import { ChartCard } from '@lims/ui/components/ChartCard';
 import { Checkbox } from '@lims/ui/components/Checkbox';
 import { StatTile, StatTileRow } from '@lims/ui/components/StatTile';
@@ -19,7 +18,7 @@ import { StatusChip } from '@lims/ui/components/StatusChip';
 import { TextArea } from '@lims/ui/components/TextArea';
 import { Tooltip } from '@lims/ui/components/Tooltip';
 import { usePolled } from '../components/polling';
-import { ConnectionLost, UpdatedAt, qs } from '../components/Shared';
+import { ChartTable, ConnectionLost, UpdatedAt, qs } from '../components/Shared';
 import { FormDialog, err, useSetupAction } from '../forms/fields';
 import type { ListPage, TatAlert } from '../types';
 import { acknowledgeTatAction, pollTatAction } from './actions';
@@ -42,6 +41,14 @@ export function TatView({ page, generatedAt, sp, canAck, departments = [], centr
   const rows = data.rows;
   const level = (l: string) => rows.filter((r) => r.alert_level === l).length;
   const escalated = level('escalated');
+  // T0D-BUILD-5 (LD-455): listTatAlerts has no total/count field (notes/T0D-BUILD-5-left.md); with a next page the counts are a lower bound.
+  // A later page (cursor set) is not the whole list either (T0D-BUILD-5 review item 1).
+  const more = !!data.next || !!sp['cursor'];
+  const shown = (n: number) => (more ? `at least ${n}` : String(n));
+  // T0D-BUILD-5: names from the lookups the page already loads (listDepartments, listCentres); the id only when the name is unknown.
+  const deptName = new Map(departments.map((o) => [o.value, o.label]));
+  const centreName = new Map(centres.map((o) => [o.value, o.label]));
+  const named = (names: Map<string, string>, v: string | null | undefined) => (v ? names.get(v) ?? <IdText value={v} /> : '—');
 
   // Live region: announces only a change of the escalated count, never a plain refresh (04-UI-UX §4).
   const [announce, setAnnounce] = useState('');
@@ -80,9 +87,9 @@ export function TatView({ page, generatedAt, sp, canAck, departments = [], centr
       ),
     },
     { id: 'test', header: 'Test', isRowHeader: true, cell: (r) => r.test_code },
-    { id: 'department', header: 'Department', hideBelow: 'lg', cell: (r) => <IdText value={r.department_id} /> },
+    { id: 'department', header: 'Department', hideBelow: 'lg', cell: (r) => named(deptName, r.department_id) },
     { id: 'priority', header: 'Priority', cell: (r) => (r.priority === 'urgent' ? <Badge tone="danger">Urgent</Badge> : 'Routine') },
-    { id: 'centre', header: 'Centre', hideBelow: 'lg', cell: (r) => <IdText value={r.centre_id} /> },
+    { id: 'centre', header: 'Centre', hideBelow: 'lg', cell: (r) => named(centreName, r.centre_id) },
     {
       id: 'segment', header: 'Segment',
       cell: (r) => (
@@ -136,10 +143,10 @@ export function TatView({ page, generatedAt, sp, canAck, departments = [], centr
       <Checkbox label="Acknowledged only" isSelected={sp['acknowledged'] === 'true'} onChange={(on) => go({ acknowledged: on ? 'true' : undefined })} />
       {/* T0D-UIDASH-1, LD-353 template 5: tiles and the bar count the alerts of this page (no new operation) */}
       <StatTileRow>
-        {LEVEL_OPTIONS.map((l) => <StatTile key={l.value} label={l.label} value={` ${level(l.value)}`} />)}
+        {LEVEL_OPTIONS.map((l) => <StatTile key={l.value} label={l.label} value={` ${shown(level(l.value))} `} />)}
       </StatTileRow>
-      <ChartCard title="Alerts by level" isEmpty={rows.length === 0}>
-        <BarChart title="Alerts by level" valueFormat="integer" categories={LEVEL_OPTIONS.map((l) => l.label)} series={[{ id: 'n', label: 'Alerts', values: LEVEL_OPTIONS.map((l) => level(l.value)) }]} />
+      <ChartCard title="Alerts by level" isEmpty={rows.length === 0} {...(more ? { note: 'Counts of this page only: there are at least this many, other pages hold more.' } : {})}>
+        <ChartTable title="Alerts by level" label="Level" valueHeader="Alerts" rows={LEVEL_OPTIONS.map((l) => ({ label: l.label, value: level(l.value) }))} />
       </ChartCard>
       <div onKeyDown={onKeyDown}>
         <DataTable<TatAlert>

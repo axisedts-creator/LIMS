@@ -229,6 +229,13 @@ describe('(3) secondary (the default variant): accent.subtle fill, accent text, 
       for (const s of BOX) { const b = side(m, s); expect(b === null || /neutral/.test(b.c), `${state} border-${s} ${b?.c}`).toBe(true); }
     }
   });
+  it('native disabled without data-disabled (kit DataTable pager) keeps neutral.100 / neutral.500 on hover too', () => {
+    for (const state of ['rest', 'hover'] as const) {
+      const m = R(btn('lims-btn-secondary lims-btn-sm', 'disabled'), state);
+      expect(bg(m), `${state} fill`).toBe('var(--lims-neutral-100)');
+      expect(fg(m), `${state} text`).toBe('var(--lims-neutral-500)');
+    }
+  });
   it('small secondary (pagination Previous / Next) keeps the tint and 24px height', () => {
     const m = R(btn('lims-btn-secondary lims-btn-sm'));
     expect(bg(m)).toBe('var(--lims-accent-subtle)');

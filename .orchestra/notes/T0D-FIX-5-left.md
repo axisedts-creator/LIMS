@@ -6,3 +6,4 @@ Reason: each moves money, calls a provider or stores a credential (LD-310 founde
 - putMerchantAccount, testMerchantAccount: gateway credentials and a live provider probe (founder decision).
 - launchEsewaPayment, esewaSuccessCallback, esewaFailureCallback, khaltiReturnCallback: callback service + adapters + paymentCallback resolver (PG-T09).
 Web: refund request / approve, run reconciliation and gateway save buttons answer 503 until these are wired.
+- LD-449 (b) service name: loadPaymentsConfig has no service-name input; the message names the variable, the value it has, the value it expects and the fix (same value on web, api and worker). Adding a name needs a LIMS_CORE_SERVICE_NAME-style input (CR).

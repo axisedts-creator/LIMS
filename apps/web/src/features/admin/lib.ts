@@ -23,6 +23,13 @@ export const CONFLICT_COPY = 'This record was changed by someone else. Reload to
 export const MFA_REQUIRED_COPY = 'This action needs two-step verification. Log in again with your authenticator code.';
 export const SAVED_COPY = 'Saved. Other screens update within 30 seconds.';
 export const RANGE_COPY = 'Choose 31 days or fewer';
+// T0D-FIX-10 (LD-455 (a), D-219): the emailed invite link is a GoTrue link that lives GOTRUE_MAILER_OTP_EXP=3600 s
+// (services/api/src/modules/identity/gotrue/mapping.md). The 72 h invitation record (expires_at) is admin-side only; never show it as the link lifetime.
+// GOTRUE_MAILER_OTP_EXP / 60 — the ONE web source of this number.
+export const INVITE_LINK_MINUTES = 60;
+/** Same confirm dialog on /admin/users (row action) and the user detail Actions menu (T0D-FIX-10). */
+export const RESEND_DIALOG = { title: 'Resend invitation?', body: 'A new invitation email is sent; the old link stops working.', label: 'Resend', msg: 'Invitation sent.' } as const;
+export const INVITE_LINK_COPY = `Invitation links work for about ${INVITE_LINK_MINUTES} minutes. If one has expired, use Resend invitation.`;
 
 /** Error code → user copy (04-UI-UX §3: codes are never shown raw). Unknown codes get the generic line. */
 const COPY: Record<string, string> = {

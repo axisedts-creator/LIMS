@@ -61,6 +61,7 @@ const IMPLEMENTED: readonly string[] = [
   // T0B-MSGDESK-1 (LD-321)
   'listPartnerTickets', 'createPartnerTicket', 'getPartnerTicket', 'replyPartnerTicket', 'closePartnerTicket', 'reopenPartnerTicket',
   'listMyPartnerTickets', 'createMyPartnerTicket', 'getMyPartnerTicket', 'replyMyPartnerTicket',
+  'updatePartnerSettings', // T0D-BUILD-2 (LD-447): real handler replaces the T01 stub
 ];
 
 const FAKE_REQ = { params: {}, query: {}, headers: {}, body: {} };

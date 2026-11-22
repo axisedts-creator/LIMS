@@ -36,7 +36,10 @@ function refused(o: Outcome, codes: readonly string[], path?: string): LimsError
   expect(o.reply, `expected one of ${codes.join('|')} but got ${o.reply?.status} ${JSON.stringify(o.reply?.body)?.slice(0, 200)}`).toBeUndefined();
   expect(o.error, 'expected a LimsError').toBeInstanceOf(LimsError);
   expect(codes, `${(o.error as any)?.message}`).toContain(codeOf(o));
-  if (path) expect(((o.error as any).errors ?? []).map((e: { path?: string }) => e.path), `errors[] must name ${path}`).toContain(path);
+  const paths = ((o.error as any).errors ?? []).map((e: { path?: string }) => e.path);
+  // '*' = any field path (kit convention, partners/__tests__/sales/helpers.ts); errors[].path is a JSON Pointer (02-CONVENTIONS.md:415, :427)
+  if (path === '*') expect(paths.some((p: unknown) => typeof p === 'string' && p.startsWith('/')), 'errors[] must carry a JSON Pointer path').toBe(true);
+  else if (path) expect(paths, `errors[] must name ${path}`).toContain(path);
   expect(o.probe.writes, 'a refused request writes nothing').toEqual([]);
   return o.error as LimsError;
 }

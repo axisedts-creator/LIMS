@@ -206,12 +206,12 @@ describe('read-only and cheap', () => {
     for (const s of e.db.stmts.filter((x) => x.tenantId === TENANT_A)) expect(s.text).toMatch(/^\s*SELECT/i);
     expect(events(e.db)).toHaveLength(0); expect(e.db.revisionOf(TENANT_A)).toBe(417);
   });
-  it('statement budget: at most 4 statements for a full page (no per-row lookups for department code / panel kind)', { timeout: T }, async () => {
+  it('statement budget: at most 5 statements for a full page (one tenant-scoped default-price read; no per-row lookups for department code / panel kind / price)', { timeout: T }, async () => {
     const many = Array.from({ length: 30 }, (_, i) => (i % 3 ? test(`BUD${i}`, `Budget ${i}`, {}, i % 2 ? HAEM.id : BIOC.id) : panel(`BUD${i}`, `Budget ${i}`, { panel_kind: i % 2 ? 'clinical' : 'package' })));
     const e = seed(many);
     const r = await search(e, { q: 'bud', limit: 20 });
     expect(r.data).toHaveLength(20);
-    expect(e.db.stmts.filter((s) => s.tenantId === TENANT_A).length).toBeLessThanOrEqual(4);
+    expect(e.db.stmts.filter((s) => s.tenantId === TENANT_A).length).toBeLessThanOrEqual(5);
   });
   it('a quiet query on an empty catalog is an empty list, not an error', { timeout: T }, async () => {
     const e = seed([]);

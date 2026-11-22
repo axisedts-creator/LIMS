@@ -1,0 +1,8 @@
+APPROVE
+Reviewed 2109ee577..HEAD (ee8c11e95). Scope: c2.ts, Rail.tsx, GlobalSearch.tsx, 2 test files, test config, notes. All in apps/web/src/core (C0) + .orchestra/notes. 6 source/test files, inside the 12-file budget. No limiter, pipeline or contract edit (LD-455 (b), LD-237, SEC-ABUSE-1).
+- done_when (1): burst test measures 1 resolve per document request; 8 parallel serverFetch add 0 resolves. Fan-out source = next/link prefetch, recorded in -left.md.
+- done_when (2): prefetch={false} on all 4 rail/search <Link>s. No request memo added; justified, middleware already resolves once and the test proves it. touch true/false unchanged, also on the retry (tested).
+- done_when (3): one retry on 429 only, Retry-After capped at 1 s (date/junk/missing = 1 s), same body, cookie and BFF key. A second 429 becomes 429 problem+json common.rate_limited with no session headers and no redirect (tested). 401/403/5xx/timeout are not retried (tested).
+- done_when (4): -left.md has 10/s, burst 20, before 1 and after 1 resolves, a per-cookie-hash recommendation for the BFF key, and follow-up lists for C2/C5/C13. Matches the arbiter ruling.
+- Names verbatim (common.rate_limited, RESOLVE_SESSION_PATH, X-Lims-Bff-Key). No PHI or secrets; synthetic key and ids only. No RLS or permission surface touched.
+Checks run: fix12 config 32/32 pass. Plain `vitest run` on core/session, shell and api reports 113 failures. They come from the environment, not this diff: "React is not defined" in .tsx tests and an unresolved `@/` alias, because apps/web has no vitest config. The writer reported 409/409 under a JSX config. I did not rerun that.

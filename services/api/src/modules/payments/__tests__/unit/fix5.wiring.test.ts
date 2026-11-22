@@ -67,6 +67,16 @@ function makeRig(op: string, who: Who = {}): Rig {
         const row = { tenant_id: values[0], refund_two_person_threshold_paisa: values[1], purchase_order_label: values[2], reconciliation_enabled: values[3], version: 1 };
         return { rows: [row], rowCount: 1 };
       }
+      if (/^\s*UPDATE payments\.reconciliation_findings/i.test(text)) {       // resolve: only tenant B's seeded open finding exists; $6 is the tenant, $7 the id
+        const cur = values[5] === TENANT_B ? SEED_B['payments.reconciliation_findings']!.find((r) => r['id'] === values[6]) : undefined;
+        const row = cur ? { ...cur, status: 'resolved', resolution_code: values[0], note: values[1], resolved_by: values[2], resolved_at: values[3], version: Number(cur['version']) + 1 } : undefined;
+        return { rows: row ? [row] : [], rowCount: row ? 1 : 0 };
+      }
+      if (/^\s*INSERT INTO payments\.static_qr_reconciliations/i.test(text)) {  // create: id, tenant, date, centre, entries, system, statement, ref, status, note, by
+        const row = { id: values[0], tenant_id: values[1], business_date: values[2], centre_id: values[3], system_entries: values[4], system_total_paisa: values[5], statement_total_paisa: values[6],
+          difference_paisa: Number(values[6]) - Number(values[5]), statement_reference: values[7], status: values[8], note: values[9], reconciled_by: values[10], created_at: D };
+        return { rows: [row], rowCount: 1 };
+      }
       if (table === 'billing.v_pub_payment_collection') return { rows: [values[0] === TENANT_B ? { entries: '3', total: '90000' } : { entries: '0', total: '0' }], rowCount: 1 };
       const rows = values[0] === TENANT_B ? (SEED_B[table] ?? []) : [];
       return { rows, rowCount: rows.length };
@@ -286,6 +296,71 @@ describe('(2c) access / audit log entries the neighbouring code and contract dec
     expect(code(o)).toBe('common.validation_failed');
     expect(o.access).toEqual([]);
     expect(o.stmts.filter((s) => /^\s*(INSERT|UPDATE)/i.test(s.text))).toEqual([]);
+  });
+  // reviewer item 1 (T0D-FIX-5-review.md): the success path and the log entry of the two wired write operations, through the real manifest.
+  const portCalls = (rig: Rig): string[] => {
+    const calls: string[] = [];
+    for (const [pn, port] of Object.entries(rig.ctx.ports as Record<string, Record<string, unknown>>)) {
+      for (const fn of Object.keys(port)) if (fn !== 'assertRole') port[fn] = async () => { calls.push(`${pn}.${fn}`); throw new Error('no port call expected'); };
+    }
+    return calls;
+  };
+  const runB = async (op: string, req: Record<string, unknown>) => {
+    const rig = makeRig(op, { tenant: TENANT_B });
+    const calls = portCalls(rig);
+    try { return { ...rig, calls, res: await (manifest.handlers as Record<string, any>)[op](reqFor(op, req), rig.ctx) } as Out & { calls: string[] }; } catch (err) { return { ...rig, calls, err } as Out & { calls: string[] }; }
+  };
+  const FINDING = { findingId: U(104) };
+  it('resolveReconciliationFinding: open finding, If-Match "1" -> 200, one payment_intent.resolve access row with the resolution code only (never the note), UPDATE scoped to the tenant', async () => {
+    const o = await runB('resolveReconciliationFinding', { params: { finding_id: FINDING.findingId }, headers: { 'if-match': '"1"' }, body: { resolution_code: 'escalated_to_provider', note: 'syn-note-must-not-be-logged' } });
+    expect(o.err, String(o.err)).toBeUndefined();
+    expect(o.res.status).toBe(200);
+    expect(o.res.body).toMatchObject({ id: U(104), status: 'resolved', resolution_code: 'escalated_to_provider', version: 2 });
+    expect(o.access).toHaveLength(1);
+    expect(o.access[0]).toMatchObject({ action: 'payment_intent.resolve', entityType: 'reconciliation_finding', outcome: 'allowed', detail: { resolution_code: 'escalated_to_provider' } });
+    expect(JSON.stringify(o.access[0])).not.toContain('syn-note-must-not-be-logged');
+    const upd = o.stmts.find((s) => /^\s*UPDATE payments\.reconciliation_findings/i.test(s.text))!;
+    expect(upd, 'the finding is updated').toBeDefined();
+    const at = Number(/tenant_id\s*=\s*\$(\d+)/.exec(upd.text)?.[1]);
+    expect(upd.values[at - 1], 'tenant_id in the UPDATE WHERE is the caller\'s tenant').toBe(TENANT_B);
+    expect(o.calls, 'no port is called').toEqual([]);
+    expect(o.asserts[0]?.permission).toBe('payments.intent.resolve');
+    expect(o.asserts[0]!.at, 'permission checked before any statement').toBe(0);
+  });
+  it('resolveReconciliationFinding: no If-Match -> common.precondition_required, no access row, no UPDATE', async () => {
+    const o = await runB('resolveReconciliationFinding', { params: { finding_id: FINDING.findingId }, headers: {}, body: { resolution_code: 'escalated_to_provider' } });
+    expect(code(o)).toBe('common.precondition_required');
+    expect(o.access).toEqual([]);
+    expect(o.stmts.filter((s) => /^\s*UPDATE/i.test(s.text))).toEqual([]);
+  });
+  it('resolveReconciliationFinding: stale If-Match -> common.version_conflict; another tenant\'s finding -> common.not_found; neither logs', async () => {
+    const stale = await runB('resolveReconciliationFinding', { params: { finding_id: FINDING.findingId }, headers: { 'if-match': '"9"' }, body: { resolution_code: 'escalated_to_provider' } });
+    expect(code(stale)).toBe('common.version_conflict');
+    expect(stale.access).toEqual([]);
+    const other = await run('resolveReconciliationFinding', { tenant: TENANT_A }, { params: { finding_id: FINDING.findingId }, body: { resolution_code: 'escalated_to_provider' } });
+    expect(code(other)).toBe('common.not_found');
+    expect(other.access).toEqual([]);
+  });
+  it('createStaticQrReconciliation: valid body -> 201, row inserted for the caller\'s tenant, no access row (row trigger only, D-112), no port call', async () => {
+    const o = await runB('createStaticQrReconciliation', { headers: {}, body: { business_date: '2026-11-20', statement_total_paisa: 90000, statement_reference: 'STMT-SYN-FIX5' } });
+    expect(o.err, String(o.err)).toBeUndefined();
+    expect(o.res.status).toBe(201);
+    expect(o.res.body).toMatchObject({ business_date: '2026-11-20', statement_reference: 'STMT-SYN-FIX5', status: 'matched', system_entries: 3, statement_total: { amount_paisa: 90000, currency: 'NPR' } });
+    const ins = o.stmts.find((s) => /^\s*INSERT INTO payments\.static_qr_reconciliations/i.test(s.text))!;
+    expect(ins, 'the reconciliation is inserted').toBeDefined();
+    expect(ins.text).toMatch(/\btenant_id\b/);
+    expect(ins.values).toContain(TENANT_B);
+    expect(o.access, 'the contract declares no access row for this operation; the row trigger records it').toEqual([]);
+    expect(o.calls, 'no port is called').toEqual([]);
+    expect(o.asserts[0]?.permission).toBe('payments.intent.resolve');
+    expect(o.asserts[0]!.at).toBe(0);
+  });
+  it('createStaticQrReconciliation: difference without a note -> 400, nothing inserted; empty body -> 400', async () => {
+    const diff = await runB('createStaticQrReconciliation', { headers: {}, body: { business_date: '2026-11-20', statement_total_paisa: 1, statement_reference: 'STMT-SYN-FIX5' } });
+    expect(code(diff)).toBe('common.validation_failed');
+    expect(diff.stmts.filter((s) => /^\s*INSERT/i.test(s.text))).toEqual([]);
+    const empty = await runB('createStaticQrReconciliation', { headers: {}, body: {} });
+    expect(code(empty)).toBe('common.validation_failed');
   });
   it('putMerchantAccount (when wired): the secret never reaches the access log, an error or the response', async () => {
     if (unwired.has('putMerchantAccount')) return;

@@ -189,6 +189,7 @@ describe('updatePartnerSettings: permission, tenant, audit', () => {
   it('audit: a save writes one UPDATE row in audit.audit_log for the tenant (actor = caller, the changed columns named, not the other tenant); a refused save writes none', async () => {
     await seed(TENANT_A, { version: 1 });
     const before = (await auditOf(TENANT_A)).length;
+    const beforeB = (await auditOf(TENANT_B)).length;
     refused(await put({ ...VALID, draft_ttl_days: 0 }, ifm(1)), RANGE, '/draft_ttl_days');
     expect((await auditOf(TENANT_A)).length).toBe(before);
     ok(await put({ ...DEFAULTS, draft_ttl_days: 31 }, ifm(1)));
@@ -199,7 +200,7 @@ describe('updatePartnerSettings: permission, tenant, audit', () => {
     // trigger sub->actor_id is a C0 schema test (05-SCHEMA.md:387, §10 test 20). Claims are built by the core only (02-TRD.md:601, REQ-SEC-013).
     expect(last).toMatchObject({ action: 'UPDATE', actor_id: SYS_ACTOR, tenant_id: TENANT_A });
     expect(last.changed_columns).toContain('draft_ttl_days');
-    expect(await auditOf(TENANT_B)).toHaveLength(0);
+    expect((await auditOf(TENANT_B)).length).toBe(beforeB);
   }, T);
   it('the logs of a save carry no consent text (free text of the tenant is not logged)', async () => {
     const o = await put({ ...VALID, consent_statement: 'PLANTED-CONSENT-7f3a' }, ifm(1));

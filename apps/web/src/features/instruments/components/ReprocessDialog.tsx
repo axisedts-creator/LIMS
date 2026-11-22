@@ -5,6 +5,7 @@ import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Banner } from '@lims/ui/components/Banner';
 import { ConfirmDialog } from '@lims/ui/components/ConfirmDialog';
+import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
 import { Dialog } from '@lims/ui/components/Dialog';
 import { reprocessInstrumentMessageAction } from '../server/actions';
 import { REPROCESS_REASONS, REPROCESS_REASONS_SET, MESSAGE_REASON_TEXT_MAX, type MessageRecord, type ReprocessResult } from '../server/messages';
@@ -19,25 +20,14 @@ export function messageProblemText(code: string, what: string): string {
 
 /** Record barcode + C5 port outcome text per record (the same table for reprocess and re-match). */
 export function OutcomeTable({ records }: { records: readonly Pick<MessageRecord, 'id' | 'sample_barcode' | 'instrument_analyte_code' | 'port_outcome' | 'port_reason_code'>[] }) {
-  // T0D-UIGUARD-1-INSTRUMENTS (LD-353 rule 5): the header row stays when the list is empty; the empty text is the one body row.
-  return (
-    <table className="lims-table">
-      <caption className="lims-visually-hidden">Outcome per record</caption>
-      <thead>
-        <tr><th scope="col">Barcode</th><th scope="col">Code</th><th scope="col">Outcome</th></tr>
-      </thead>
-      <tbody>
-        {records.length === 0 ? <tr><td colSpan={3}>No records were produced.</td></tr> : null}
-        {records.map((r) => (
-          <tr key={r.id}>
-            <td className="lims-mono">{r.sample_barcode ?? '—'}</td>
-            <td>{r.instrument_analyte_code ?? '—'}</td>
-            <td>{portOutcomeText(r)}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  );
+  // T0D-UIX-4 (LD-442): the kit DataTable; the header row stays when the list is empty (LD-353 rule 5).
+  type Rec = (typeof records)[number];
+  const columns: ColumnDef<Rec>[] = [
+    { id: 'barcode', header: 'Barcode', isRowHeader: true, cell: (r) => <span className="lims-mono">{r.sample_barcode ?? '—'}</span> },
+    { id: 'code', header: 'Code', cell: (r) => r.instrument_analyte_code ?? '—' },
+    { id: 'outcome', header: 'Outcome', cell: (r) => portOutcomeText(r) },
+  ];
+  return <DataTable<Rec> caption="Outcome per record" columns={columns} rows={records} getRowId={(r) => r.id} density="regular" emptyState={{ title: 'No records were produced.' }} />;
 }
 
 /** Same request content → same Idempotency-Key (a retry is a replay); changed content → a fresh key, so an edited retry is not a key conflict. */

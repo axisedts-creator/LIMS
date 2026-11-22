@@ -11,7 +11,9 @@ import { Button } from '@lims/ui/components/Button';
 import { Card } from '@lims/ui/components/Card';
 import { Combobox } from '@lims/ui/components/Combobox';
 import { ConfirmDialog } from '@lims/ui/components/ConfirmDialog';
+import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
 import { DateTimePicker, type DateTimePickerProps } from '@lims/ui/components/DateTimePicker';
+import { DescriptionList } from '@lims/ui/components/DescriptionList';
 import { FileUpload } from '@lims/ui/components/FileUpload';
 import { IconButton } from '@lims/ui/components/IconButton';
 import { IntegerField } from '@lims/ui/components/IntegerField';
@@ -23,6 +25,7 @@ import { PageHeader } from '@lims/ui/components/PageHeader';
 import { RadioGroup } from '@lims/ui/components/RadioGroup';
 import { Select } from '@lims/ui/components/Select';
 import { Switch } from '@lims/ui/components/Switch';
+import { Tabs } from '@lims/ui/components/Tabs';
 import { TextArea } from '@lims/ui/components/TextArea';
 import { TextField } from '@lims/ui/components/TextField';
 import { useToast } from '@lims/ui/components/Toast';
@@ -68,6 +71,18 @@ const COLLECTION = [{ value: 'walk_in', label: 'Walk-in' }, { value: 'centre', l
 const SEARCH_BY = [{ value: 'name', label: 'Name' }, { value: 'code', label: 'Short name' }, { value: 'both', label: 'Both' }] as const;
 const TRF_TYPES = ['application/pdf', 'image/jpeg', 'image/png'] as const;
 const KIND: Record<string, string> = { test: 'Test', panel: 'Panel' };
+const TEST_TABS = [{ id: 'all', label: 'All tests' }, { id: 'favourites', label: 'Favourites' }] as const;
+const BILL_COLUMNS: ColumnDef<Quote['lines'][number]>[] = [
+  { id: 'code', header: 'Code', cell: (l) => l.code },
+  { id: 'name', header: 'Name', isRowHeader: true, cell: (l) => l.name },
+  { id: 'unit', header: 'Unit price', numeric: true, cell: (l) => plain(l.unit_price.amount_paisa) },
+  { id: 'discount', header: 'Discount', numeric: true, cell: (l) => plain(l.discount.amount_paisa) },
+  { id: 'tax', header: 'Tax', numeric: true, cell: (l) => plain(l.vat.amount_paisa + l.other_tax.amount_paisa) },
+  { id: 'net', header: 'Net', numeric: true, cell: (l) => plain(l.net.amount_paisa) },
+];
+/** T0D-UIX-4 (LD-442): the kit Button has no aria-expanded / aria-pressed prop, so a toggle sets them on the DOM button through its ref
+ *  (same pattern as the kit DataTable cellTitle). Attribute values only, never markup. */
+const ariaRef = (attrs: Record<string, string>) => (el: HTMLButtonElement | null) => { if (el) for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v); };
 const npr = (paisa: number): Money => ({ amountPaisa: paisa, currency: 'NPR' });
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const BUSY = 'Billing is busy, press Ctrl+Enter to retry';
@@ -561,8 +576,8 @@ function Registration({ centres, permissions, defaultCentreId, consentTextVersio
   const paidNow = billing === 'cash' ? sum : 0;
   // Summary amounts are a mirror of the Bill/Payment panels: split into two spans so the existing single-match text queries (fd-t13) still find the Bill panel value once.
   const sumMoney = (paisa: number) => <span className="lims-money"><span>Rs.</span> <span>{plain(paisa)}</span></span>;
-  const total = (label: string, m?: { amount_paisa: number }) => (m ? <div key={label} className="lims-total-row"><dt className="lims-label">{label}</dt><dd><MoneyText value={npr(m.amount_paisa)} /></dd></div> : null);
-  const sumRow = (label: string, paisa: number, cls = '') => <div className={`lims-reg-summary-row ${cls}`.trim()}><dt>{label}</dt><dd>{sumMoney(paisa)}</dd></div>;
+  const total = (term: string, m?: { amount_paisa: number }) => (m ? [{ term, value: <MoneyText value={npr(m.amount_paisa)} /> }] : []);
+  const sumRow = (term: string, paisa: number) => ({ term, value: sumMoney(paisa) });
 
   return (
     <section ref={root} aria-label="New registration" className="lims-reg">
@@ -636,7 +651,7 @@ function Registration({ centres, permissions, defaultCentreId, consentTextVersio
                     <TextField label="Next bill receipt number" name="next_receipt_number" maxLength={64} isReadOnly value={preview?.next_receipt_no ?? ''} />
                   </div>
                   {preview ? <p className="lims-reg-hint">{preview.next_receipt_no_label}</p> : null}
-                  <button type="button" className="lims-reg-more" aria-expanded={moreOpen} aria-controls={moreId} onClick={() => setMoreOpen((o) => !o)}>More {moreOpen ? '▴' : '▾'}</button>
+                  <Button variant="ghost" size="sm" ref={ariaRef({ 'aria-expanded': String(moreOpen), 'aria-controls': moreId })} onPress={() => setMoreOpen((o) => !o)}>More {moreOpen ? '▴' : '▾'}</Button>
                   <div id={moreId} hidden={!moreOpen} className="lims-reg-section lims-reg-fold">
                     <TextArea label="Clinical history" name="clinical_history" maxLength={4000} rows={2} showCount={false} value={texts.clinical} onChange={(v) => setTexts((t) => ({ ...t, clinical: v }))} />
                     <TextArea label="Patient history" name="patient_history" maxLength={4000} rows={2} showCount={false} value={texts.history} onChange={(v) => setTexts((t) => ({ ...t, history: v }))} />
@@ -665,28 +680,24 @@ function Registration({ centres, permissions, defaultCentreId, consentTextVersio
               <Card title="Tests">
                 <div className="lims-reg-section lims-reg-fill">
                   <RadioGroup label="Search tests by" name="test_search_by" orientation="horizontal" value={searchBy} onChange={(v) => { setSearchBy(v); setTestKey((k) => k + 1); }} options={SEARCH_BY} />
-                  <div role="tablist" aria-label="Test lists" className="lims-reg-tabs">
-                    {(['all', 'favourites'] as const).map((tb) => (
-                      <button key={tb} type="button" role="tab" id={`${moreId}-tab-${tb}`} aria-selected={testTab === tb} aria-controls={tb === 'favourites' ? `${moreId}-favs` : undefined} className="lims-reg-tab" onClick={() => setTestTab(tb)}>
-                        {tb === 'all' ? 'All tests' : 'Favourites'}
-                      </button>
-                    ))}
-                  </div>
+                  {/* T0D-UIX-4 (LD-442): the kit Tabs (underline tabs) replace the raw role=tab buttons; the search stays under them for both tabs. */}
+                  <Tabs aria-label="Test lists" items={TEST_TABS} selectedId={testTab} onChange={(id) => setTestTab(id as 'all' | 'favourites')}>
+                    {testTab === 'favourites' ? (
+                      <div className="lims-reg-favs">
+                        {favs.size === 0 ? <p className="lims-reg-hint">No favourite tests yet. Star a test in the cart to add it.</p> : (
+                          <div role="list" aria-label="Favourite tests" className="lims-reg-fav-list">
+                            {[...favs].flatMap((id) => (known[id] ? [known[id]] : [])).map((o) => (
+                              <div role="listitem" key={o.id}><Button variant="ghost" size="sm" onPress={() => addItem(o)}><strong>{o.code}</strong> {o.name}</Button></div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ) : null}
+                  </Tabs>
                   <div data-field="tests" onKeyDownCapture={enterPicksFirst}>
                     <Combobox<OrderableSummary> key={testKey} label="Search tests or packages" name="test_search" debounceMs={150} loadOptions={loadOrderables} getKey={(o) => o.id} renderValue={(o) => o.name} onChange={addItem}
                       renderOption={(o) => <span><strong>{o.code}</strong> {o.name} <small>{KIND[o.kind] ?? o.kind}</small></span>} />
                   </div>
-                  {testTab === 'favourites' ? (
-                    <div role="tabpanel" id={`${moreId}-favs`} aria-labelledby={`${moreId}-tab-favourites`} className="lims-reg-favs">
-                      {favs.size === 0 ? <p className="lims-reg-hint">No favourite tests yet. Star a test in the cart to add it.</p> : (
-                        <div role="list" aria-label="Favourite tests" className="lims-reg-fav-list">
-                          {[...favs].flatMap((id) => (known[id] ? [known[id]] : [])).map((o) => (
-                            <div role="listitem" key={o.id}><button type="button" className="lims-reg-fav" onClick={() => addItem(o)}><strong>{o.code}</strong> {o.name}</button></div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ) : null}
                   <div className="lims-reg-tests-list">
                     {items.length === 0 ? <p>No tests selected yet. Press F4 to search.</p> : (
                       <table aria-label="Selected tests">
@@ -698,9 +709,9 @@ function Registration({ centres, permissions, defaultCentreId, consentTextVersio
                             return (
                               <tr key={i.orderable.id} tabIndex={0} onKeyDown={(e) => rowKey(e, i.orderable.id)}>
                                 <td>
-                                  <button type="button" className="lims-reg-star" aria-pressed={favs.has(i.orderable.id)} aria-label={`Favourite ${i.orderable.code}`} onClick={() => void toggleFav(i.orderable.id)}>
+                                  <Button variant="ghost" size="sm" ref={ariaRef({ 'aria-pressed': String(favs.has(i.orderable.id)), 'aria-label': `Favourite ${i.orderable.code}` })} onPress={() => void toggleFav(i.orderable.id)}>
                                     <span aria-hidden="true">{favs.has(i.orderable.id) ? '★' : '☆'}</span>
-                                  </button>
+                                  </Button>
                                 </td>
                                 <td>{i.orderable.code}</td><td>{i.orderable.name}</td><td>{KIND[i.orderable.kind] ?? i.orderable.kind}</td>
                                 <td>{effectivePriority(i, urgentAll) === 'urgent' ? 'Urgent' : 'Routine'}</td>
@@ -770,10 +781,10 @@ function Registration({ centres, permissions, defaultCentreId, consentTextVersio
                         <TextField label="Client label" name="client_label" maxLength={160} isRequired value={clientLabel} onChange={(v) => { setClientLabel(v); setFieldErr((e) => ({ ...e, clientLabel: undefined as never })); }} {...(fieldErr.clientLabel ? { error: fieldErr.clientLabel } : {})} />
                       </div>
                       {party?.credit_limit_paisa !== undefined || party?.outstanding ? (
-                        <dl className="lims-reg-credit">
-                          {party.credit_limit_paisa !== undefined ? <div className="lims-total-row"><dt className="lims-label">Credit limit</dt><dd><MoneyText value={npr(party.credit_limit_paisa)} /></dd></div> : null}
-                          {party.outstanding ? <div className="lims-total-row"><dt className="lims-label">Consumed</dt><dd><MoneyText value={npr(party.outstanding.amount_paisa)} /></dd></div> : null}
-                        </dl>
+                        <DescriptionList columns={2} items={[
+                          ...(party.credit_limit_paisa !== undefined ? [{ term: 'Credit limit', value: <MoneyText value={npr(party.credit_limit_paisa)} /> }] : []),
+                          ...(party.outstanding ? [{ term: 'Consumed', value: <MoneyText value={npr(party.outstanding.amount_paisa)} /> }] : []),
+                        ]} />
                       ) : null}
                       {creditState ? <p>Credit status: <Badge tone={creditState === 'ok' ? 'success' : 'danger'}>{creditState === 'ok' ? 'OK' : creditState === 'locked' ? 'Locked' : 'Over limit'}</Badge></p> : null}
                     </>
@@ -782,19 +793,13 @@ function Registration({ centres, permissions, defaultCentreId, consentTextVersio
                     {qs.status === 'pending' ? (<><p>Prices updating…</p><LoadingSkeleton variant="detail" rows={3} /></>) : null}
                     {quote ? (
                       <>
-                        <table aria-label="Bill lines">
-                          <thead><tr><th scope="col">Code</th><th scope="col">Name</th><th scope="col">Unit price</th><th scope="col">Discount</th><th scope="col">Tax</th><th scope="col">Net</th></tr></thead>
-                          <tbody>
-                            {quote.lines.map((l) => (
-                              <tr key={l.line_ref}><td>{l.code}</td><td>{l.name}</td><td>{plain(l.unit_price.amount_paisa)}</td><td>{plain(l.discount.amount_paisa)}</td><td>{plain(l.vat.amount_paisa + l.other_tax.amount_paisa)}</td><td>{plain(l.net.amount_paisa)}</td></tr>
-                            ))}
-                          </tbody>
-                        </table>
-                        <dl>
-                          {total('Gross', quote.totals.gross)}{total('Discount', quote.totals.discount)}{total('Exempt', quote.totals.exempt)}{total('Taxable', quote.totals.taxable)}
-                          {total('VAT', quote.totals.vat)}{total('Other tax', quote.totals.other_tax)}
-                          <div className="lims-total-row lims-total-net"><dt className="lims-label">Net</dt><dd><MoneyText value={npr(net)} /></dd></div>
-                        </dl>
+                        {/* T0D-UIX-4 (LD-442): kit DataTable (numbers end aligned) and DescriptionList for the totals. */}
+                        <DataTable caption="Bill lines" columns={BILL_COLUMNS} rows={quote.lines} getRowId={(l) => l.line_ref} emptyState={{ title: 'No bill lines' }} />
+                        <DescriptionList items={[
+                          ...total('Gross', quote.totals.gross), ...total('Discount', quote.totals.discount), ...total('Exempt', quote.totals.exempt), ...total('Taxable', quote.totals.taxable),
+                          ...total('VAT', quote.totals.vat), ...total('Other tax', quote.totals.other_tax),
+                          { term: 'Net', value: <MoneyText value={npr(net)} /> },
+                        ]} />
                       </>
                     ) : null}
                   </div>
@@ -873,22 +878,16 @@ function Registration({ centres, permissions, defaultCentreId, consentTextVersio
           <aside className="lims-reg-summary" aria-label="Registration summary">
             {/* T0D-UIGUARD-1-FRONTDESK (LD-436 R7): no raw h2/ul/li here; heading and list keep their roles (same pattern as the BILLING print headings). */}
             <p role="heading" aria-level={2} className="lims-reg-summary-title">Summary</p>
-            <dl className="lims-reg-summary-list">
-              <div className="lims-reg-summary-row">
-                <dt>Tests</dt>
-                <dd>{items.length === 0 ? 'None yet' : `${items.length} selected`}{items.length ? <div role="list" className="lims-reg-summary-tests">{items.map((i) => <div role="listitem" key={i.orderable.id}>{i.orderable.name}</div>)}</div> : null}</dd>
-              </div>
-              {sumRow('Total', net + (quote?.totals.discount.amount_paisa ?? 0))}
-              {sumRow('Net', net)}
-              {sumRow('Paid', paidNow)}
-              {sumRow('Balance', Math.max(0, net - paidNow), 'lims-reg-summary-balance')}
-              {sumRow('Refund', 0)}
-              {sumRow('Billed', net)}
-              <div className="lims-reg-summary-row">
-                <dt>Discount authority</dt>
-                <dd>{quote ? `Limit ${quote.discount_evaluation.limit_percent_bp / 100}%${needsApproval ? ' · approval required' : ''}` : '—'}</dd>
-              </div>
-            </dl>
+            <DescriptionList items={[
+              { term: 'Tests', value: <>{items.length === 0 ? 'None yet' : `${items.length} selected`}{items.length ? <div role="list" className="lims-reg-summary-tests">{items.map((i) => <div role="listitem" key={i.orderable.id}>{i.orderable.name}</div>)}</div> : null}</> },
+              sumRow('Total', net + (quote?.totals.discount.amount_paisa ?? 0)),
+              sumRow('Net', net),
+              sumRow('Paid', paidNow),
+              sumRow('Balance', Math.max(0, net - paidNow)),
+              sumRow('Refund', 0),
+              sumRow('Billed', net),
+              { term: 'Discount authority', value: quote ? `Limit ${quote.discount_evaluation.limit_percent_bp / 100}%${needsApproval ? ' · approval required' : ''}` : '—' },
+            ]} />
             <Button variant="ghost" isDisabled={!canDraft} onPress={() => void saveDraft()}>Save as draft</Button>
             <Button variant="ghost" onPress={() => setDraftsOpen(true)}>Drafts</Button>
             <Button variant="primary" type="submit" shortcut="Ctrl+Enter" isDisabled={!canRegister} isLoading={submitting} onPress={submit}>Register &amp; print</Button>

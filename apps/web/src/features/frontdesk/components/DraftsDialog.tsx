@@ -3,8 +3,8 @@
 // A dialog, not part of the page flow (one screen at 1366x768). The table header is always drawn, also when empty (founder rule 2026-11-17).
 import { useEffect, useState } from 'react';
 import { Button } from '@lims/ui/components/Button';
+import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
 import { Dialog } from '@lims/ui/components/Dialog';
-import { VisuallyHidden } from '@lims/ui/components/VisuallyHidden';
 import { parseDraftPayload, type DraftPayload } from '../forms/draft';
 import { deleteDraftAction, getDraftAction, getPatientSummaryAction, listDraftsAction } from '../server/actions';
 import type { Centre, DraftRecordSummary, PatientSummary } from '../server/types';
@@ -45,24 +45,27 @@ export function DraftsDialog({ centres, onClose, onOpen }: {
     if (r.ok || r.status === 404) drop(id); else setMsg(r.title ?? 'The draft could not be deleted');
   };
   const centre = (id: string) => centres.find((c) => c.id === id)?.name ?? '—';
+  const columns: ColumnDef<DraftRecordSummary>[] = [
+    { id: 'saved', header: 'Saved', cell: (d) => when(d.updated_at) },
+    { id: 'centre', header: 'Laboratory', cell: (d) => centre(d.centre_id), isRowHeader: true },
+    { id: 'expires', header: 'Expires', cell: (d) => when(d.expires_at) },
+    { id: 'actions', header: 'Actions', cell: (d) => <><Button variant="ghost" onPress={() => void open(d.id)}>Open</Button> <Button variant="ghost" onPress={() => void remove(d.id)}>Delete</Button></> },
+  ];
 
   return (
     <Dialog title="Drafts" isOpen onClose={onClose} size="lg">
       <div role="status" aria-live="polite">{msg ? <p>{msg}</p> : null}</div>
       {loadErr ? <p>{loadErr} <Button variant="ghost" onPress={() => setNonce((n) => n + 1)}>Retry</Button></p> : null}
       <div className="lims-reg-drafts">
-        <table aria-label="Saved drafts">
-          <thead><tr><th scope="col">Saved</th><th scope="col">Laboratory</th><th scope="col">Expires</th><th scope="col"><VisuallyHidden>Actions</VisuallyHidden></th></tr></thead>
-          <tbody>
-            {rows?.length === 0 ? <tr><td colSpan={4}>No saved drafts</td></tr> : null}
-            {(rows ?? []).map((d) => (
-              <tr key={d.id}>
-                <td>{when(d.updated_at)}</td><td>{centre(d.centre_id)}</td><td>{when(d.expires_at)}</td>
-                <td><Button variant="ghost" onPress={() => void open(d.id)}>Open</Button> <Button variant="ghost" onPress={() => void remove(d.id)}>Delete</Button></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        {/* T0D-UIX-4 (LD-442): kit DataTable; the header stays when there are no drafts. */}
+        <DataTable
+          caption="Saved drafts"
+          columns={columns}
+          rows={rows ?? []}
+          getRowId={(d) => d.id}
+          isLoading={rows === undefined && !loadErr}
+          emptyState={{ title: 'No saved drafts' }}
+        />
       </div>
     </Dialog>
   );

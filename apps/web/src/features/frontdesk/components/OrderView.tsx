@@ -8,7 +8,8 @@ import { Banner } from '@lims/ui/components/Banner';
 import { Button } from '@lims/ui/components/Button';
 import { Card } from '@lims/ui/components/Card';
 import { ConfirmDialog } from '@lims/ui/components/ConfirmDialog';
-import { EmptyRow, PlaceholderRows } from '@lims/ui/components/DataTable';
+import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
+import { DescriptionList } from '@lims/ui/components/DescriptionList';
 import { Dialog } from '@lims/ui/components/Dialog';
 import { Form } from '@lims/ui/components/Form';
 import { MoneyField, type Money as FieldMoney } from '@lims/ui/components/MoneyField';
@@ -71,14 +72,15 @@ export function OrderView({ order, billing, permissions, cancelReasons, removalR
         status={<Status status={order.status} />}
         actions={canCancel ? <><Button variant="danger" isDisabled={cancelGate.disabled} onPress={() => openDialog({ kind: 'cancel' })}>Cancel order</Button>{cancelGate.reason ? <span className="lims-description">{cancelGate.reason}</span> : null}</> : null}
       />
-      <dl className="lims-order-header">
-        <div><dt>Patient</dt><dd><a className="lims-link" href={`/frontdesk/patients/${order.patient.id}`}>{order.patient.full_name}</a> ({order.patient.patient_code}, {humanize(order.patient.sex)}{order.patient.age_at_order ? `, ${order.patient.age_at_order}` : ''})</dd></div>
-        <div><dt>Visit type</dt><dd>{order.visit_type.toUpperCase()}</dd></div>
-        <div><dt>Billing mode</dt><dd>{humanize(order.billing_mode)}</dd></div>
-        {order.referrer_name ? <div><dt>Referrer</dt><dd>{order.referrer_name}</dd></div> : null}
-        {order.registered_at ? <div><dt>Registered</dt><dd><BsAd utc={order.registered_at} /></dd></div> : null}
-        {order.flags.length ? <div><dt>Flags</dt><dd>{order.flags.map((f) => <span key={f.id} className="lims-chip lims-chip-gap">{humanize(f.kind)} ({f.status})</span>)}</dd></div> : null}
-      </dl>
+      {/* T0D-UIX-4 (LD-442): the order header fields are the kit DescriptionList. */}
+      <DescriptionList columns={3} items={[
+        { term: 'Patient', value: <><a className="lims-link" href={`/frontdesk/patients/${order.patient.id}`}>{order.patient.full_name}</a> ({order.patient.patient_code}, {humanize(order.patient.sex)}{order.patient.age_at_order ? `, ${order.patient.age_at_order}` : ''})</> },
+        { term: 'Visit type', value: order.visit_type.toUpperCase() },
+        { term: 'Billing mode', value: humanize(order.billing_mode) },
+        ...(order.referrer_name ? [{ term: 'Referrer', value: order.referrer_name }] : []),
+        ...(order.registered_at ? [{ term: 'Registered', value: <BsAd utc={order.registered_at} /> }] : []),
+        ...(order.flags.length ? [{ term: 'Flags', value: order.flags.map((f) => <span key={f.id} className="lims-chip lims-chip-gap">{humanize(f.kind)} ({f.status})</span>) }] : []),
+      ]} />
 
       {notice ? <div role="alert"><Banner tone="danger" title={notice} /></div> : null}
       {booked ? <Banner tone="info" title="Booked — confirm on arrival" /> : null}
@@ -88,18 +90,20 @@ export function OrderView({ order, billing, permissions, cancelReasons, removalR
         {tab === 'items' ? (
           <>
             {editable ? <Button variant="primary" onPress={() => openDialog({ kind: 'add' })}>Add tests</Button> : null}
-            <table>
-              <caption>Order items</caption>
-              <thead><tr><th scope="col">Code</th><th scope="col">Name</th><th scope="col">Priority</th><th scope="col">Status</th><th scope="col" className="lims-cell-end">Price</th><th scope="col">Actions</th></tr></thead>
-              <tbody>
-                {order.items.map((i) => (
-                  <tr key={i.id}>
-                    <td>{i.code}</td><td>{i.name}</td><td>{humanize(i.priority)}</td><td>{humanize(i.status)}</td><td className="lims-cell-end">{npr(i.unit_price)}</td>
-                    <td>{editable && !GONE.includes(i.status) ? <Button size="sm" onPress={() => openDialog({ kind: 'remove', item: i })}>Remove</Button> : null}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <DataTable
+              caption="Order items"
+              rows={order.items}
+              getRowId={(i) => i.id}
+              emptyState={{ title: 'No tests on this order.' }}
+              columns={[
+                { id: 'code', header: 'Code', cell: (i) => i.code },
+                { id: 'name', header: 'Name', isRowHeader: true, cell: (i) => i.name },
+                { id: 'priority', header: 'Priority', cell: (i) => humanize(i.priority) },
+                { id: 'status', header: 'Status', cell: (i) => humanize(i.status) },
+                { id: 'price', header: 'Price', numeric: true, cell: (i) => npr(i.unit_price) },
+                { id: 'actions', header: 'Actions', cell: (i) => (editable && !GONE.includes(i.status) ? <Button size="sm" onPress={() => openDialog({ kind: 'remove', item: i })}>Remove</Button> : null) },
+              ] satisfies ColumnDef<OrderItem>[]}
+            />
           </>
         ) : null}
         {tab === 'billing' && billing ? <BillingTab billing={billing} permissions={permissions} onPay={() => openDialog({ kind: 'pay' })} /> : null}
@@ -112,21 +116,20 @@ export function OrderView({ order, billing, permissions, cancelReasons, removalR
               </>
             ) : null}
             {/* T0D-UIGUARD-1-FRONTDESK (LD-353 rule 5): the table keeps its header when there are no attachments. */}
-            <table>
-              <caption>Test request forms</caption>
-              <thead><tr><th scope="col">File</th><th scope="col">Scan</th><th scope="col">Uploaded by</th><th scope="col">Uploaded</th><th scope="col">Actions</th></tr></thead>
-              <tbody>
-                {order.trf_attachments.map((a) => (
-                  <tr key={a.id}>
-                    <td>{a.original_filename ?? humanize(a.mime_type)}</td><td>{SCAN_TEXT[a.scan_state] ?? humanize(a.scan_state)}</td><td>{a.uploaded_by?.display_name ?? '—'}</td><td><BsAd utc={a.created_at} /></td>
-                    {/* Preview goes through the BFF content route only; a Storage URL never reaches the browser (07-SECURITY). */}
-                    <td>{a.scan_state === 'clean' ? <a className="lims-link" href={`/frontdesk/trf-attachments/${a.id}/content`}>Preview</a> : null}</td>
-                  </tr>
-                ))}
-                {order.trf_attachments.length ? null : <EmptyRow colSpan={5}>No attachments.</EmptyRow>}
-              </tbody>
-              {order.trf_attachments.length ? null : <PlaceholderRows colSpan={5} />}
-            </table>
+            <DataTable
+              caption="Test request forms"
+              rows={order.trf_attachments}
+              getRowId={(a) => a.id}
+              emptyState={{ title: 'No attachments.' }}
+              columns={[
+                { id: 'file', header: 'File', isRowHeader: true, cell: (a) => a.original_filename ?? humanize(a.mime_type) },
+                { id: 'scan', header: 'Scan', cell: (a) => SCAN_TEXT[a.scan_state] ?? humanize(a.scan_state) },
+                { id: 'by', header: 'Uploaded by', cell: (a) => a.uploaded_by?.display_name ?? '—' },
+                { id: 'at', header: 'Uploaded', cell: (a) => <BsAd utc={a.created_at} /> },
+                // Preview goes through the BFF content route only; a Storage URL never reaches the browser (07-SECURITY).
+                { id: 'actions', header: 'Actions', cell: (a) => (a.scan_state === 'clean' ? <a className="lims-link" href={`/frontdesk/trf-attachments/${a.id}/content`}>Preview</a> : null) },
+              ] satisfies ColumnDef<Order['trf_attachments'][number]>[]}
+            />
           </>
         ) : null}
       </Tabs>
@@ -174,29 +177,34 @@ function BillingTab({ billing, permissions, onPay }: { billing: OrderBilling; pe
       <p>Invoiced {npr(b.invoiced)} · Paid {npr(b.paid)} · Credited {npr(b.credited)} · Balance due <strong>{npr(b.balance_due)}</strong></p>
       <p>{BASIS_TEXT(billing.eligibility.release_eligible, billing.eligibility.release_basis)}</p>
       {hasPerm(permissions, 'billing.payment.record') ? <Button variant="primary" onPress={onPay}>Record payment</Button> : null}
-      <table>
-        <caption>Invoices</caption>
-        <thead><tr><th scope="col">Invoice no</th><th scope="col">Date</th><th scope="col">Net</th><th scope="col">Status</th><th scope="col">Prints</th></tr></thead>
-        <tbody>
-          {billing.invoices.map((i) => (
-            <tr key={i.id}>
-              {/* Printing and copies live on the invoice page (billing.invoice.reprint is enforced there). */}
-              <td><a className="lims-link" href={`/billing/invoices/${i.id}`}>{i.invoice_no}</a></td><td><BsAd bs={i.invoice_date_bs} utc={i.issued_at} /></td><td>{npr(i.net)}</td><td>{humanize(i.status)}</td><td>{i.print_count ?? 0}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      <table>
-        <caption>Payments and ledger</caption>
-        <thead><tr><th scope="col">Receipt no</th><th scope="col">Kind</th><th scope="col">Method</th><th scope="col">Amount</th><th scope="col">By</th><th scope="col">Time</th></tr></thead>
-        <tbody>
-          {billing.ledger_entries.map((l) => (
-            <tr key={l.id}>
-              <td>{l.receipt_no ?? '—'}</td><td>{humanize(l.entry_kind)}</td><td>{l.method_code ? humanize(l.method_code) : '—'}</td><td>{npr(l.amount)}</td><td>{l.collected_by?.display_name ?? '—'}</td><td><BsAd utc={l.created_at} withTime /></td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      {/* Printing and copies live on the invoice page (billing.invoice.reprint is enforced there). */}
+      <DataTable
+        caption="Invoices"
+        rows={billing.invoices}
+        getRowId={(i) => i.id}
+        emptyState={{ title: 'No invoices yet.' }}
+        columns={[
+          { id: 'no', header: 'Invoice no', isRowHeader: true, cell: (i) => <a className="lims-link" href={`/billing/invoices/${i.id}`}>{i.invoice_no}</a> },
+          { id: 'date', header: 'Date', cell: (i) => <BsAd bs={i.invoice_date_bs} utc={i.issued_at} /> },
+          { id: 'net', header: 'Net', numeric: true, cell: (i) => npr(i.net) },
+          { id: 'status', header: 'Status', cell: (i) => humanize(i.status) },
+          { id: 'prints', header: 'Prints', numeric: true, cell: (i) => i.print_count ?? 0 },
+        ] satisfies ColumnDef<OrderBilling['invoices'][number]>[]}
+      />
+      <DataTable
+        caption="Payments and ledger"
+        rows={billing.ledger_entries}
+        getRowId={(l) => l.id}
+        emptyState={{ title: 'No payments yet.' }}
+        columns={[
+          { id: 'receipt', header: 'Receipt no', isRowHeader: true, cell: (l) => l.receipt_no ?? '—' },
+          { id: 'kind', header: 'Kind', cell: (l) => humanize(l.entry_kind) },
+          { id: 'method', header: 'Method', cell: (l) => (l.method_code ? humanize(l.method_code) : '—') },
+          { id: 'amount', header: 'Amount', numeric: true, cell: (l) => npr(l.amount) },
+          { id: 'by', header: 'By', cell: (l) => l.collected_by?.display_name ?? '—' },
+          { id: 'time', header: 'Time', cell: (l) => <BsAd utc={l.created_at} withTime /> },
+        ] satisfies ColumnDef<OrderBilling['ledger_entries'][number]>[]}
+      />
       {/* T0D-UIGUARD-1-FRONTDESK (LD-436 R7, LD-439): finance sections are kit Cards with a title row; the items keep list semantics. */}
       {billing.open_credit_note_tasks.length ? <Card title="Open tasks" region><div role="list">{billing.open_credit_note_tasks.map((t) => <div role="listitem" key={t.id}>Credit note needed — {humanize(t.cause)}</div>)}</div></Card> : null}
       {billing.refund_requests.length ? <Card title="Refunds" region><div role="list">{billing.refund_requests.map((r) => <div role="listitem" key={r.id}><span>{npr(r.refund_amount)}</span> by {humanize(r.method_code)} — <span>{humanize(r.status)}</span></div>)}</div></Card> : null}

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Button } from '@lims/ui/components/Button';
 import { Card } from '@lims/ui/components/Card';
 import { ConfirmDialog } from '@lims/ui/components/ConfirmDialog';
+import { DescriptionList } from '@lims/ui/components/DescriptionList';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { useToast } from '@lims/ui/components/Toast';
 import { PasswordField } from '../auth/PasswordField';
@@ -35,13 +36,14 @@ export function MyAccount({ me, sessions, factors, mfaRequired }: { me: Me; sess
       <PageHeader title="My account" helpKey="admin.me" />
       <Tabs items={['Profile', 'Security', 'Sessions']} selected={tab} onChange={setTab} label="Account sections">
         {tab === 'Profile' ? (
-          <dl className="lims-dl">
-            <dt>Name</dt><dd>{me.display_name}</dd>
-            <dt>Email</dt><dd>{me.email}</dd>
-            <dt>Roles</dt><dd>{me.roles.map((r) => r.name).join(', ') || '—'}</dd>
-            <dt>Centre access</dt><dd>{me.centre_scope.all ? 'All centres' : `${me.centre_scope.centre_ids.length} selected centres`}</dd>
-            <dt>Last login</dt><dd>{fmt(me.last_login_at)}</dd>
-          </dl>
+          // T0D-UIX-4 (LD-442): label and value pairs are the kit DescriptionList
+          <DescriptionList items={[
+            { term: 'Name', value: me.display_name },
+            { term: 'Email', value: me.email },
+            { term: 'Roles', value: me.roles.map((r) => r.name).join(', ') || '—' },
+            { term: 'Centre access', value: me.centre_scope.all ? 'All centres' : `${me.centre_scope.centre_ids.length} selected centres` },
+            { term: 'Last login', value: fmt(me.last_login_at) },
+          ]} />
         ) : null}
         {tab === 'Security' ? <Security me={me} factors={factors} mfaRequired={mfaRequired} /> : null}
         {tab === 'Sessions' ? (Array.isArray(sessions)

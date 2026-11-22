@@ -3,6 +3,7 @@
 // preview (MarkdownPreview) rendered by the SAME safe renderer as the API and the patient app (./safeMarkdown, a copy of the API file). No raw HTML:
 // the shared validator's verdict is shown at once as an alert, and anything it refuses is escaped to plain text in the preview.
 import { useId, useRef } from 'react';
+import { Button } from '@lims/ui/components/Button';
 import { t } from '@/core/i18n/messages';
 import { MarkdownPreview } from '@/app/(staff)/engagement/content/MarkdownPreview';
 import { bodyError } from './content-model';
@@ -45,9 +46,10 @@ export function MarkdownEditor({ value, onChange, isReadOnly }: { value: string;
       <label className="lims-label" htmlFor={id}>{t('engagement.content.field.body')}</label>
       <div role="toolbar" aria-label={t('engagement.content.form.toolbar')} aria-controls={id} className="lims-inline lims-md-toolbar">
         {TOOLS.map((tool) => (
-          <button key={tool} type="button" className="lims-btn lims-btn-ghost lims-btn-sm" disabled={isReadOnly} onClick={() => press(tool)}>
+          // T0D-UIX-4 (LD-442): toolbar actions are kit ghost Buttons
+          <Button key={tool} variant="ghost" size="sm" isDisabled={!!isReadOnly} onPress={() => press(tool)}>
             {t(`engagement.content.tool.${tool}`)}
-          </button>
+          </Button>
         ))}
       </div>
       <textarea

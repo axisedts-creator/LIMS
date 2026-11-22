@@ -4,6 +4,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import { Banner } from '@lims/ui/components/Banner';
 import { Button } from '@lims/ui/components/Button';
 import { Card } from '@lims/ui/components/Card';
+import { DescriptionList } from '@lims/ui/components/DescriptionList';
 import { MoneyText } from '@lims/ui/components/MoneyText';
 import { InvoicePrintFrame } from '@/features/billing/components/print/InvoicePrintView';
 import { ReceiptPrintFrame } from '@/features/billing/components/print/ReceiptPrintView';
@@ -119,10 +120,11 @@ export function SuccessPanel({ result, onNew, onOpenOrder, retryLabelsRef, offli
           </p>
         ) : null}
         {paid && due ? (
-          <dl className="lims-reg-paid-due">
-            <div><dt>Paid</dt><dd><MoneyText value={{ amountPaisa: paid.amount_paisa, currency: 'NPR' }} /></dd></div>
-            <div><dt>Due</dt><dd><MoneyText value={{ amountPaisa: due.amount_paisa, currency: 'NPR' }} /></dd></div>
-          </dl>
+          // T0D-UIX-4 (LD-442): kit DescriptionList, two columns keep paid and due side by side
+          <DescriptionList columns={2} items={[
+            { term: 'Paid', value: <MoneyText value={{ amountPaisa: paid.amount_paisa, currency: 'NPR' }} /> },
+            { term: 'Due', value: <MoneyText value={{ amountPaisa: due.amount_paisa, currency: 'NPR' }} /> },
+          ]} />
         ) : null}
         {sms ? <p>{sms}</p> : null}
         {labels.s === 'preparing' ? <p>Preparing labels…</p> : labels.s === 'ready' ? <p>Labels ready — printing</p> : null}

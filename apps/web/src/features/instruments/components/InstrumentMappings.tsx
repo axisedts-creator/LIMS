@@ -2,7 +2,7 @@
 // SCR-08 Mappings (04-UI-UX §3; data owned by C3 — X4). Observed codes (E32) for every reader; the C3 Mappings panel, editor
 // and "Copy from instrument…" only with catalog.instrument_code_map.manage (D-39) — the gate is re-checked here even if a
 // caller passes maps. All writes go through server actions (the BFF adds the JWT; this file never sees it).
-// [CONV] plain <table>s instead of DataTable: the panels carry per-row buttons and the copy outcome must be a real table.
+// T0D-UIX-4 (LD-442): the three tables are the kit DataTable (per-row buttons sit in an Actions column).
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { Banner } from '@lims/ui/components/Banner';
@@ -14,7 +14,7 @@ import { DateText } from '@lims/ui/components/DateText';
 import { DecimalField } from '@lims/ui/components/DecimalField';
 import { Dialog } from '@lims/ui/components/Dialog';
 import { Drawer } from '@lims/ui/components/Drawer';
-import { EmptyRow, PlaceholderRows } from '@lims/ui/components/DataTable';
+import { DataTable } from '@lims/ui/components/DataTable';
 import { EmptyState } from '@lims/ui/components/EmptyState';
 import { KeyValueListEditor, type KeyValueRow } from '@lims/ui/components/KeyValueListEditor';
 import { PageHeader } from '@lims/ui/components/PageHeader';
@@ -58,7 +58,7 @@ const flagRows = (t?: string): KeyValueRow[] => Object.entries(parseFlagMap(t) ?
 const flagText = (rows: readonly KeyValueRow[]) => (rows.length ? JSON.stringify(Object.fromEntries(rows.map((r) => [r.key, r.value]))) : undefined);
 const unitText = (m: InstrumentCodeMap) => (m.unit_from_raw && m.unit_to_code && m.unit_factor ? `${m.unit_from_raw} → ${m.unit_to_code} × ${m.unit_factor}` : '—');
 /** Cell with a trailing space: row text reads as separate words (row names, copy/paste). */
-const Td = ({ children }: { children: ReactNode }) => <td>{children} </td>;
+const sp = (v: ReactNode) => <>{v} </>;
 const failText = (what: string, code: string) => `Could not ${what} (${code})`;
 
 /** Idempotency-Key kept across the step-up retry only; any other answer starts a new request (02-CONVENTIONS §4.5). */
@@ -121,65 +121,47 @@ export function InstrumentMappings({ instrument, observed, maps = [], tests = {}
           <Card title="Observed codes">
           <Switch label="Unmapped only" isSelected={unmappedOnly} onChange={setUnmappedOnly} />
           {/* T0D-EMPTYTBL-2 (LD-310, LD-336): both tables are always drawn; the empty message is the one body row, four placeholder rows follow. */}
-          <table className="lims-table">
-              <caption className="lims-visually-hidden">Observed codes</caption>
-              <thead>
-                <tr><th scope="col">Code</th><th scope="col">Class</th><th scope="col">Seen count</th><th scope="col">Last seen</th><th scope="col">Mapping status</th>{manage ? <th scope="col"><VisuallyHidden>Actions</VisuallyHidden></th> : null}</tr>
-              </thead>
-              <tbody>
-                {observed.length === 0 ? <EmptyRow colSpan={manage ? 6 : 5}><EmptyState title="No codes seen yet. Codes appear here after the instrument sends results in commissioning." /></EmptyRow> : null}
-                {rows.map((o) => (
-                  <tr key={`${o.record_class}:${o.instrument_analyte_code}`}>
-                    <Td>{o.instrument_analyte_code}</Td>
-                    <Td>{CLASS[o.record_class] ?? o.record_class}</Td>
-                    <Td>{o.seen_count}</Td>
-                    <Td><DateText value={o.last_seen_at as never} withTime /></Td>
-                    <Td>{o.last_mapping_status === 'mapped' ? 'Mapped' : 'Unmapped'}</Td>
-                    {manage ? (
-                      <td>
-                        <Button size="sm" variant="ghost" onPress={() => setEditor({ mode: 'create', code: o.instrument_analyte_code })}>
-                          Map…<VisuallyHidden>{` ${o.instrument_analyte_code}`}</VisuallyHidden>
-                        </Button>
-                      </td>
-                    ) : null}
-                  </tr>
-                ))}
-              </tbody>
-              {observed.length === 0 ? <PlaceholderRows colSpan={manage ? 6 : 5} /> : null}
-            </table>
+          <DataTable<ObservedCode>
+            caption="Observed codes" density="regular" rows={rows} getRowId={(o) => `${o.record_class}:${o.instrument_analyte_code}`}
+            emptyState={{ title: observed.length === 0 ? 'No codes seen yet. Codes appear here after the instrument sends results in commissioning.' : 'No unmapped codes.' }}
+            columns={[
+              { id: 'code', header: 'Code', isRowHeader: true, cell: (o) => sp(o.instrument_analyte_code) },
+              { id: 'class', header: 'Class', cell: (o) => sp(CLASS[o.record_class] ?? o.record_class) },
+              { id: 'seen', header: 'Seen count', numeric: true, cell: (o) => sp(o.seen_count) },
+              { id: 'last', header: 'Last seen', cell: (o) => sp(<DateText value={o.last_seen_at as never} withTime />) },
+              { id: 'status', header: 'Mapping status', cell: (o) => sp(o.last_mapping_status === 'mapped' ? 'Mapped' : 'Unmapped') },
+              ...(manage ? [{ id: 'actions', header: 'Actions', cell: (o: ObservedCode) => (
+                <Button size="sm" variant="ghost" onPress={() => setEditor({ mode: 'create', code: o.instrument_analyte_code })}>
+                  Map…<VisuallyHidden>{` ${o.instrument_analyte_code}`}</VisuallyHidden>
+                </Button>
+              ) }] : []),
+            ]}
+          />
           </Card>
         </section>
 
         {manage ? (
           <section aria-label="Mappings" className="lims-col-7">
             <Card title="Mappings">
-            <table className="lims-table">
-                <caption className="lims-visually-hidden">Mappings</caption>
-                <thead>
-                  <tr><th scope="col">Direction</th><th scope="col">Instrument code</th><th scope="col">Test</th><th scope="col">Analyte</th><th scope="col">Unit conversion</th><th scope="col">Flag map count</th><th scope="col">Active</th><th scope="col"><VisuallyHidden>Actions</VisuallyHidden></th></tr>
-                </thead>
-                <tbody>
-                  {maps.length === 0 ? (
-                    <EmptyRow colSpan={8}><EmptyState title="No mappings yet." action={{ label: 'Add mapping', onPress: () => setEditor({ mode: 'create', code: '' }) }} /></EmptyRow>
-                  ) : null}
-                  {maps.map((m) => (
-                    <tr key={m.id}>
-                      <Td>{DIRECTION[m.direction] ?? m.direction}</Td>
-                      <Td>{m.instrument_code}</Td>
-                      <Td>{testName(m)}</Td>
-                      <Td>{analyteName(m)}</Td>
-                      <Td>{unitText(m)}</Td>
-                      <Td>{flagCount(m.flag_map)}</Td>
-                      <Td>{m.is_active ? 'Active' : 'Inactive'}</Td>
-                      <td>
-                        <Button size="sm" variant="ghost" onPress={() => setEditor({ mode: 'edit', map: m })}>Edit<VisuallyHidden>{` ${m.instrument_code}`}</VisuallyHidden></Button>
-                        {m.is_active ? <Button size="sm" variant="ghost" onPress={() => setDeactivating(m)}>Deactivate<VisuallyHidden>{` ${m.instrument_code}`}</VisuallyHidden></Button> : null}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-                {maps.length === 0 ? <PlaceholderRows colSpan={8} /> : null}
-              </table>
+            <DataTable<InstrumentCodeMap>
+              caption="Mappings" density="regular" rows={maps} getRowId={(m) => m.id}
+              emptyState={{ title: 'No mappings yet.', action: { label: 'Add mapping', onPress: () => setEditor({ mode: 'create', code: '' }) } }}
+              columns={[
+                { id: 'direction', header: 'Direction', cell: (m) => sp(DIRECTION[m.direction] ?? m.direction) },
+                { id: 'code', header: 'Instrument code', isRowHeader: true, cell: (m) => sp(m.instrument_code) },
+                { id: 'test', header: 'Test', cell: (m) => sp(testName(m)) },
+                { id: 'analyte', header: 'Analyte', cell: (m) => sp(analyteName(m)) },
+                { id: 'unit', header: 'Unit conversion', cell: (m) => sp(unitText(m)) },
+                { id: 'flags', header: 'Flag map count', numeric: true, cell: (m) => sp(flagCount(m.flag_map)) },
+                { id: 'active', header: 'Active', cell: (m) => sp(m.is_active ? 'Active' : 'Inactive') },
+                { id: 'actions', header: 'Actions', cell: (m) => (
+                  <>
+                    <Button size="sm" variant="ghost" onPress={() => setEditor({ mode: 'edit', map: m })}>Edit<VisuallyHidden>{` ${m.instrument_code}`}</VisuallyHidden></Button>
+                    {m.is_active ? <Button size="sm" variant="ghost" onPress={() => setDeactivating(m)}>Deactivate<VisuallyHidden>{` ${m.instrument_code}`}</VisuallyHidden></Button> : null}
+                  </>
+                ) },
+              ]}
+            />
             </Card>
           </section>
         ) : (
@@ -439,15 +421,16 @@ function CopyDialog({ instrumentId, sources, onClose, onCopied }: { instrumentId
       <Select<string> label="Source instrument" name="source_instrument" options={sources.map((s) => ({ value: s.id, label: `${s.instrument_code} — ${s.display_name}` }))} {...(source ? { value: source } : {})} onChange={pick} />
       {rows ? <p>{rows.length > BULK_MAX ? `${rows.length} active mappings; the first ${BULK_MAX} are copied.` : `${rows.length} active mappings to copy.`}</p> : null}
       {results ? (
-        <table className="lims-table">
-          <caption>Copy result</caption>
-          <thead><tr><th scope="col">Instrument code</th><th scope="col">Direction</th><th scope="col">Outcome</th><th scope="col">Error</th></tr></thead>
-          <tbody>
-            {results.map((x, i) => (
-              <tr key={i}><Td>{x.instrument_code}</Td><Td>{DIRECTION[x.direction] ?? x.direction}</Td><Td>{x.outcome}</Td><Td>{x.error_code ?? ''}</Td></tr>
-            ))}
-          </tbody>
-        </table>
+        <DataTable<CodeMapResult & { i: number }>
+          caption="Copy result" density="regular" rows={results.map((x, i) => ({ ...x, i }))} getRowId={(x) => String(x.i)}
+          emptyState={{ title: 'No mappings were copied.' }}
+          columns={[
+            { id: 'code', header: 'Instrument code', isRowHeader: true, cell: (x) => sp(x.instrument_code) },
+            { id: 'direction', header: 'Direction', cell: (x) => sp(DIRECTION[x.direction] ?? x.direction) },
+            { id: 'outcome', header: 'Outcome', cell: (x) => sp(x.outcome) },
+            { id: 'error', header: 'Error', cell: (x) => sp(x.error_code ?? '') },
+          ]}
+        />
       ) : null}
       <Button variant="primary" isDisabled={!rows?.length || !!results} isLoading={busy} onPress={() => void copy()}>Copy</Button>
     </Dialog>

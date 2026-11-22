@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Banner } from '@lims/ui/components/Banner';
 import { Button } from '@lims/ui/components/Button';
 import { Card } from '@lims/ui/components/Card';
+import { DescriptionList } from '@lims/ui/components/DescriptionList';
 import { Checkbox } from '@lims/ui/components/Checkbox';
 import { Dialog } from '@lims/ui/components/Dialog';
 import { Menu } from '@lims/ui/components/Menu';
@@ -221,12 +222,13 @@ export function ReportDetailView({ report, permissions }: ReportDetailViewProps)
       ) : null}
       {/* T0D-UIGUARD-1-REPORTING (LD-436 Card title rows, LD-439 a): Report, Items, Versions, Deliveries are kit Cards with a title row. */}
       <Card title="Report">
-        <dl className="lims-dl">
-          <dt>Patient</dt><dd>{report.patient_display_name}{report.age_display ? `, ${report.age_display}` : ''}{report.sex ? ` ${report.sex}` : ''}</dd>
-          <dt>Centre</dt><dd>{report.centre_code ?? '—'}</dd>
-          <dt>Referrer</dt><dd>{report.referrer_name ?? 'SELF'}</dd>
-          <dt>Registered</dt><dd><When value={report.registered_at} /></dd>
-        </dl>
+        {/* T0D-UIX-4 (LD-442): label and value pairs are the kit DescriptionList */}
+        <DescriptionList items={[
+          { term: 'Patient', value: <>{report.patient_display_name}{report.age_display ? `, ${report.age_display}` : ''}{report.sex ? ` ${report.sex}` : ''}</> },
+          { term: 'Centre', value: report.centre_code ?? '—' },
+          { term: 'Referrer', value: report.referrer_name ?? 'SELF' },
+          { term: 'Registered', value: <When value={report.registered_at} /> },
+        ]} />
       </Card>
       <Card title="Items">
         <SimpleTable caption="Report items" columns={itemCols} rows={report.items} getRowId={(i) => i.order_item_id} empty={{ title: 'No items.' }} />

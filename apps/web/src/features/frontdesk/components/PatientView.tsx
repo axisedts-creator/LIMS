@@ -7,7 +7,8 @@ import { Banner } from '@lims/ui/components/Banner';
 import { Button } from '@lims/ui/components/Button';
 import { Card } from '@lims/ui/components/Card';
 import { Checkbox } from '@lims/ui/components/Checkbox';
-import { EmptyRow, PlaceholderRows } from '@lims/ui/components/DataTable';
+import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
+import { DescriptionList } from '@lims/ui/components/DescriptionList';
 import { Dialog } from '@lims/ui/components/Dialog';
 import { Form } from '@lims/ui/components/Form';
 import { PageHeader } from '@lims/ui/components/PageHeader';
@@ -19,6 +20,12 @@ import { Ad, Status, errorText, hasPerm, humanize } from './format';
 
 const FIELDS = [['full_name', 'Full name'], ['phone_e164', 'Phone'], ['email', 'Email'], ['address_text', 'Address']] as const;
 type Field = (typeof FIELDS)[number][0];
+const VISIT_COLUMNS: ColumnDef<OrderSummary>[] = [
+  { id: 'registration_no', header: 'Registration no', isRowHeader: true, cell: (o) => <a className="lims-link" href={`/frontdesk/orders/${o.id}`}>{o.registration_no}</a> },
+  { id: 'date', header: 'Date', cell: (o) => <Ad value={o.registered_at} /> },
+  { id: 'source', header: 'Source', cell: (o) => humanize(o.source) },
+  { id: 'status', header: 'Status', cell: (o) => <Status status={o.status} /> },
+];
 const CONSENT_LABELS: readonly [keyof Omit<Consents, 'consent_text_version'>, string][] = [['processing', 'Data processing'], ['sms', 'SMS'], ['whatsapp', 'WhatsApp'], ['email', 'Email'], ['share_with_referrer', 'Share with referrer']];
 
 export function PatientView({ patient, orders, permissions }: { patient: Patient; orders: readonly OrderSummary[]; permissions: readonly string[] }) {
@@ -50,12 +57,13 @@ export function PatientView({ patient, orders, permissions }: { patient: Patient
 
       {/* T0D-UIGUARD-1-FRONTDESK (LD-436 R7, LD-439): page sections are kit Cards with a title row (region), not raw h2/ul. */}
       <Card title="Demographics" region>
-        <dl>
-          <div><dt>Patient code</dt><dd>{patient.patient_code}</dd></div>
-          <div><dt>Sex</dt><dd>{humanize(patient.sex)}</dd></div>
-          <div><dt>Age</dt><dd>{patient.age_display}</dd></div>
-          {anonymised ? null : <div><dt>Phone</dt><dd>{patient.phone_masked}</dd></div>}
-        </dl>
+        {/* T0D-UIX-4 (LD-442): label and value fields are the kit DescriptionList. */}
+        <DescriptionList columns={2} items={[
+          { term: 'Patient code', value: patient.patient_code },
+          { term: 'Sex', value: humanize(patient.sex) },
+          { term: 'Age', value: patient.age_display },
+          ...(anonymised ? [] : [{ term: 'Phone', value: patient.phone_masked }]),
+        ]} />
         {editing ? <EditForm patient={patient} onClose={() => setEditing(false)} onDone={() => { setEditing(false); toast.show({ tone: 'success', title: 'Patient updated.' }); router.refresh(); }} onFail={fail} /> : null}
       </Card>
 
@@ -67,20 +75,8 @@ export function PatientView({ patient, orders, permissions }: { patient: Patient
       </Card>
 
       <Card title="Visits" region>
-        {/* LD-353 rule 5: the table keeps its header when there are no visits. */}
-        <table>
-          <caption>Visits</caption>
-          <thead><tr><th scope="col">Registration no</th><th scope="col">Date</th><th scope="col">Source</th><th scope="col">Status</th></tr></thead>
-          <tbody>
-            {orders.map((o) => (
-              <tr key={o.id}>
-                <td><a className="lims-link" href={`/frontdesk/orders/${o.id}`}>{o.registration_no}</a></td><td><Ad value={o.registered_at} /></td><td>{humanize(o.source)}</td><td><Status status={o.status} /></td>
-              </tr>
-            ))}
-            {orders.length ? null : <EmptyRow colSpan={4}>No visits yet</EmptyRow>}
-          </tbody>
-          {orders.length ? null : <PlaceholderRows colSpan={4} />}
-        </table>
+        {/* LD-353 rule 5 / T0D-UIX-4 (LD-442): kit DataTable, the header stays when there are no visits. */}
+        <DataTable caption="Visits" columns={VISIT_COLUMNS} rows={orders} getRowId={(o) => o.id} emptyState={{ title: 'No visits yet' }} />
       </Card>
 
       {canAnonymise ? (

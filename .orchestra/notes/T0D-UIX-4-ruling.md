@@ -8,3 +8,6 @@ Reasons:
 - packages/ui/src/components/DataTable/DataTable.tsx:2,228,238: kit DataTable gives sort on the column header (E23 sort value via onSortChange) and keyboard navigation; the behaviour (sort=-last_message_at, links to SCR-07/SCR-08) is kept.
 - Items under "Not from this task" (PC.session, timeouts, static baselines, web-t03 card, regscreen1 Favourites) are not ruled here; the writer lists them in notes/T0D-UIX-4-left.md.
 - No spec contradiction, so no CR.
+
+## LEAD ITEM LD-443 (11:20 NPT)
+Snapshots under __snapshots__ are writer or reviewer owned, never tester owned (LD-440, LD-443). Tester: do not run vitest -u, only name stale snapshots in your tests note. Writer or reviewer: regenerate a stale rs-cN screens snapshot with -u after reading the diff, only when the diff is markup (table, dl, button, kit classes, react-aria ids) and no text or data changes. A stale snapshot is not a test dispute.

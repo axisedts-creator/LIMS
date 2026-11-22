@@ -1,0 +1,11 @@
+CHANGES
+
+Range `1d482f59e..HEAD` is empty (HEAD = 1d482f59e), so the review covers the task commits 374816897, 9d4f4332c, 08389fa4a, 92162beb6, b68d214bb, 1d482f59e against done_when (1)-(7).
+Clean: no route, permission, contract, operation or API change in the feature diffs; no CSS or tokens edited; no PHI, no secrets; uix4.markup.test.ts passes (9/9, run 11:40 NPT).
+
+1. `.orchestra/notes/T0D-UIX-4-screens.md` is missing. done_when (4) asks for it. Fix: writer adds it, one line per changed screen (27 component files in 9d4f4332c plus RegistrationForm.tsx from 08389fa4a).
+2. `.orchestra/notes/T0D-UIX-4-left.md` is missing. The ruling (T0D-UIX-4-ruling.md, "Not from this task") and T0D-UIX-4-tests.md:9 both say the writer lists the leftover red tests there. Fix: writer adds it and lists rs-c7.behaviour.test.tsx:93 "one row per instrument", rs-c7.static.test.ts:101, the rs-c4.static.test.ts baselines (5 failures: billing discount files, permission codes and routes from other merged tasks), and regscreen1.items / regscreen2.drafts Favourites (`expected undefined to be false`).
+3. Stale DOM snapshots, still red at HEAD: rs-c2.screens.test.tsx:390 "centres drawer" (1), rs-c4.screens.test.tsx (4), rs-c7.screens.test.tsx:43 and :50 (2). The `.snap` files are unchanged since fbecce765, and the working-tree edits to them are line endings only. Fix (LD-443): writer runs `vitest -u` on these three screens files only, after reading the diff. Commit only if the diff is markup (table to grid role, kit class names, react-aria ids) with no text or data change, and state that in the writer note. Otherwise fix the screen.
+4. Files left outside owned paths: untracked `apps/web/uix4-after.txt` and `apps/web/vitest.tmp-uix4.config.ts`. Fix: delete both (scratch output and a temporary config, not deliverables).
+
+Not counted as defects (load-sensitive, rerun when the host is quiet): uiguard1.instruments.test.tsx:21 timed out at 30 s, and the second test then found two grids because the first one never cleaned up. regscreen2.patient timed out (fetch to api.test). web-t04.components "expected 'h' to be 'hemo'" happened during the same heavy run. If it reproduces on a quiet run, it is a writer defect in InstrumentMappings.tsx.

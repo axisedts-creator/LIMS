@@ -23,6 +23,9 @@ export interface paths {
   "/v1/analytics/freshness": {
     get: operations["getAnalyticsFreshness"];
   };
+  "/v1/analytics/mis-reports/{report_code}": {
+    get: operations["getMisReportPage"];
+  };
   "/v1/analytics/referrers/search": {
     post: operations["searchAnalyticsReferrers"];
   };
@@ -2857,6 +2860,161 @@ export interface operations {
         };
       };
       422: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      429: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      500: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+    };
+  };
+  getMisReportPage: {
+    parameters: {
+      query: {
+        business_date_from: string;
+        business_date_to: string;
+        centre_id?: string[];
+        party_id?: string[];
+        representative_id?: string[];
+        referrer_id?: string[];
+        department_id?: string[];
+        collector_id?: string[];
+        visit_type?: "opd" | "ipd";
+        min_repeat_count?: number;
+        limit?: number;
+        cursor?: string;
+      };
+      header?: never;
+      path: {
+        report_code: "bill_of_the_day" | "two_level_commission" | "sales_representative" | "consultant" | "collection_boy" | "repeated_patient" | "repeated_test" | "ipd_opd" | "tds" | "party_billing" | "outsource";
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/json": {
+            columns: ({
+              key: string;
+              label: string;
+              kind: "text" | "paisa" | "count" | "bp";
+            })[];
+            rows: Record<string, unknown>[];
+            totals: Record<string, number>;
+            next_cursor?: string;
+          };
+        };
+      };
+      400: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      401: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      403: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      404: {
         headers: { [name: string]: unknown };
         content: {
           "application/problem+json": {

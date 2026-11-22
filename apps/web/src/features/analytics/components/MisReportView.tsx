@@ -2,8 +2,11 @@
 // T0D-MISREPORTS-1 (LD-321, LD-342 / A39, LD-353 LIST template): one frame for the ten MIS catalogue reports and Bill of the Day. Props are the plain JSON
 // view model of server/mis-page.tsx; filter state lives in the URL (a change = router.push, the server page re-reads). No fetch here: the CSV is built by the
 // server export (createAnalyticsExport via ExportDialog), the schedule by the existing editor. Ids never reach the screen (07-SECURITY).
-// OPEN CR (notes/T0D-MISREPORTS-1-cr-needed.md): no read operation exists for the definitions, so the body is the header row plus an empty state.
+// T0D-BUILD-4 (LD-447): the rows, the totals row (the response totals = the whole filtered set) and cursor paging come from getMisReportPage (server page).
+// Payment mode totals: no definition returns a payment mode column, so that block stays "Not available yet" (LD-436; gap in notes/T0D-BUILD-4-left.md).
 import { useState } from 'react';
+import { DateText } from '@lims/ui/components/DateText';
+import { formatNpr } from '@/features/billing/components/format';
 import { useRouter } from 'next/navigation';
 import { Banner } from '@lims/ui/components/Banner';
 import { BarChart } from '@lims/ui/components/BarChart';
@@ -28,9 +31,25 @@ export type MisVM =
   | {
       state: 'open'; code: string; title: string; basePath: string; oneDay: boolean; params: readonly string[]; columns: readonly MisColumn[]; query: MisQuery;
       centres: Opt[]; departments: Opt[]; canExport: boolean; canSchedule: boolean; pdfEnabled: boolean;
+      cursor?: string | undefined; page: MisPageBody;
     };
+type Cell = string | number | null;
+/** getMisReportPage 200 body as the screen uses it (columns come from the definition, the same keys). */
+export interface MisPageBody { rows: Record<string, Cell>[]; totals: Record<string, number>; next_cursor?: string }
 
 const NUMERIC = new Set(['integer', 'integer_paisa', 'basis_points']);
+const TOTALLED = new Set(['integer', 'integer_paisa']); // brief: totals of integer_paisa and integer columns; no rate, text or date total
+const TOTAL_ID = '__total';
+
+/** One cell by contract type: money from paisa (lakh, two decimals, NPR), count plain, bp as percent, date / datetime DD/MM/YYYY (Asia/Kathmandu). */
+function cellOf(type: string, v: Cell | undefined) {
+  if (v === null || v === undefined || v === '') return '—';
+  if (type === 'integer_paisa') return typeof v === 'number' ? formatNpr(v) : '—';
+  if (type === 'integer') return String(v);
+  if (type === 'basis_points') return typeof v === 'number' ? `${v / 100}%` : '—';
+  if (type === 'date' || type === 'datetime') return <DateText value={String(v) as never} withTime={type === 'datetime'} />;
+  return String(v);
+}
 const ID_FILTERS: Record<string, string> = { party_id: 'analytics.mis.filter.party', representative_id: 'analytics.mis.filter.representative', collector_id: 'analytics.mis.filter.collector' };
 // LD-353: controls hidden and rows kept whole on paper; one page for Bill of the Day (compact table, no shell chrome)
 const PRINT_CSS = '@media print { .mis-noprint, nav, header button { display: none !important; } .mis-sheet tr { break-inside: avoid; } .mis-sheet { font-size: 10pt; } }';
@@ -45,7 +64,7 @@ function toSearch(q: MisQuery) {
 const listOf = (q: MisQuery, k: string) => ((q.filters?.[k] as string[] | undefined) ?? []);
 
 type Ref = { id: string; label: string; isActive: boolean };
-type Row = { id: string };
+type Row = { id: string; total?: boolean; v: Record<string, Cell> };
 
 export function MisReportView({ vm }: { vm: MisVM }) {
   if (vm.state !== 'open') {
@@ -81,7 +100,18 @@ function OpenView({ vm }: { vm: Extract<MisVM, { state: 'open' }> }) {
   ];
   const fv = { centre_id: q.centre_id ?? [], department_id: listOf(q, 'department_id'), visit_type: (q.filters?.['visit_type'] as string | undefined) ?? 'all' };
 
-  const columns: ColumnDef<Row>[] = vm.columns.map((c, i) => ({ id: c.name, header: c.title, cell: () => '—', isRowHeader: i === 0,...(NUMERIC.has(c.type) ? { align: 'end' as const, numeric: true } : {}) }));
+  // ids are never printed (07-SECURITY): the *_id columns are not drawn
+  const shown = vm.columns.filter((c) => !c.name.endsWith('_id'));
+  const columns: ColumnDef<Row>[] = shown.map((c, i) => ({
+    id: c.name, header: c.title, isRowHeader: i === 0, ...(NUMERIC.has(c.type) ? { align: 'end' as const, numeric: true } : {}),
+    // the leading space keeps cells apart in copied text (a row copied to a sheet or read as one string); HTML collapses it on screen
+    cell: (r: Row) => <>{' '}{r.total ? (i === 0 ? t('analytics.mis.total') : TOTALLED.has(c.type) && typeof r.v[c.name] === 'number' ? cellOf(c.type, r.v[c.name]) : '') : cellOf(c.type, r.v[c.name])}</>,
+  }));
+  const { rows: data, totals, next_cursor } = vm.page;
+  const rows: Row[] = data.map((v, i) => ({ id: String(i), v }));
+  if (rows.length) rows.push({ id: TOTAL_ID, total: true, v: totals });
+  const tot = (k: string) => (rows.length && typeof totals[k] === 'number' ? formatNpr(totals[k]) : '—');
+  const pager = { hasNext: !!next_cursor, hasPrevious: !!vm.cursor, limit: 50, onNext: () => go({ cursor: next_cursor }), onPrevious: () => go({ cursor: undefined }) };
   const empty = { title: t('analytics.mis.empty'), body: t('analytics.mis.empty_hint') };
   const title = vm.oneDay ? t('billing.botd.title') : vm.title;
   const centres = (q.centre_id ?? []).map((id) => vm.centres.find((c) => c.value === id)?.label).filter((x): x is string => !!x);
@@ -105,7 +135,7 @@ function OpenView({ vm }: { vm: Extract<MisVM, { state: 'open' }> }) {
           </span>
         }
       />
-      <p>{vm.oneDay ? q.business_date_from : `${q.business_date_from} – ${q.business_date_to}`}</p>
+      <p>{vm.oneDay ? <DateText value={q.business_date_from as never} /> : <><DateText value={q.business_date_from as never} /> – <DateText value={q.business_date_to as never} /></>}</p>
       {/* T0D-UIREPORT-2 (LD-353 template 5): one period control (.lims-period) and ONE FilterBar; the row wrapper is no second .lims-filter-bar */}
       <div className="mis-noprint lims-period-custom">
         <div className="lims-period lims-period-custom">
@@ -170,18 +200,20 @@ function OpenView({ vm }: { vm: Extract<MisVM, { state: 'open' }> }) {
         ) : null}
       </div>
       {vm.oneDay ? (
-        // T0D-UIREPORT-2 (LD-353 template 5, rule 10): no read operation exists yet (open CR), so the tiles show "—" and both frames say "No data yet"
+        // T0D-UIREPORT-2 (LD-353 template 5, rule 10) + T0D-BUILD-4: the tiles show the response totals (the whole day); an empty day keeps "—"
         <>
-          <StatTileRow>{['Gross', 'Net', 'Paid', 'Due'].map((l) => <StatTile key={l} label={l} value="—" />)}</StatTileRow>
+          <StatTileRow>{([['Gross', 'gross_paisa'], ['Net', 'net_paisa'], ['Paid', 'paid_paisa'], ['Due', 'due_paisa']] as const).map(([l, k]) => <StatTile key={l} label={l} value={tot(k)} />)}</StatTileRow>
           <div className="lims-dash-charts">
+            {/* ponytail: the chart stays empty; the table already lists each bill's net. Feed it the page rows if users ask for the picture */}
             <ChartCard title="Net by bill" isEmpty><BarChart title="Net by bill" categories={[]} series={[{ id: 'net', label: 'Net', values: [] }]} valueFormat="money" /></ChartCard>
             <ChartCard title="Amount by payment mode" isEmpty><BarChart title="Amount by payment mode" categories={[]} series={[{ id: 'amount', label: t('billing.botd.amount'), values: [] }]} valueFormat="money" /></ChartCard>
           </div>
         </>
       ) : null}
-      <DataTable<Row> columns={columns} rows={[]} getRowId={(r) => r.id} density="compact" stickyHeader caption={title} emptyState={empty} />
+      {/* ponytail: Previous returns to the first page (the API has no backward cursor); a cursor stack in the URL if users page deep */}
+      <DataTable<Row> columns={columns} rows={rows} getRowId={(r) => r.id} density="compact" stickyHeader caption={title} emptyState={empty} page={pager} />
       {vm.oneDay ? (
-        <DataTable<Row>
+        <DataTable<{ id: string }>
           caption={t('billing.botd.by_mode')} density="compact" rows={[]} getRowId={(r) => r.id} emptyState={{ title: t('billing.botd.by_mode_empty') }}
           columns={[{ id: 'mode', header: t('billing.botd.mode'), cell: () => '—', isRowHeader: true }, { id: 'amount', header: t('billing.botd.amount'), cell: () => '—', align: 'end', numeric: true }]}
         />

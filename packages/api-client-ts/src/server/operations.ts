@@ -61637,6 +61637,123 @@ export interface Operations {
       };
     };
   };
+  getMisReportPage: {
+    params: {
+      report_code: "bill_of_the_day" | "two_level_commission" | "sales_representative" | "consultant" | "collection_boy" | "repeated_patient" | "repeated_test" | "ipd_opd" | "tds" | "party_billing" | "outsource";
+    };
+    query: {
+      business_date_from: string;
+      business_date_to: string;
+      centre_id?: string[];
+      party_id?: string[];
+      representative_id?: string[];
+      referrer_id?: string[];
+      department_id?: string[];
+      collector_id?: string[];
+      visit_type?: "opd" | "ipd";
+      min_repeat_count?: number;
+      limit?: number;
+      cursor?: string;
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        columns: ({
+          key: string;
+          label: string;
+          kind: "text" | "paisa" | "count" | "bp";
+        })[];
+        rows: Record<string, unknown>[];
+        totals: Record<string, number>;
+        next_cursor?: string;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   getMyAccount: {
     params: Record<string, never>;
     query: Record<string, never>;

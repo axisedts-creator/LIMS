@@ -17,8 +17,13 @@ const TOTALS_CHUNK = 1000; // runMisReport's own max page; the row cap (<= 5000)
 
 export const getMisReportPage: Handler = async (req, ctx) => {
   const code = (req.params as { report_code?: unknown } | undefined)?.report_code as string;
-  const report = getReport(code); // unknown / prototype keys -> 404 analytics.report_unknown
-  if (!isMisCode(code)) throw new LimsError('operation_pending'); // a registered report without an MIS read (the core renders 501)
+  if (!isMisCode(code)) {
+    // permission first (REQ-SEC-062): a code that is not an MIS definition asks the contract x-permission before it answers 404 / 501
+    await authorise(ctx, 'analytics.dashboard.read');
+    getReport(code); // unknown / prototype keys -> 404 analytics.report_unknown
+    throw new LimsError('operation_pending'); // a registered report without an MIS read (the core renders 501)
+  }
+  const report = getReport(code);
   const c = await authorise(ctx, report.permission as AnalyticsPermission);
   const { audit, ports } = c as unknown as Gated;
   if (report.flag) {

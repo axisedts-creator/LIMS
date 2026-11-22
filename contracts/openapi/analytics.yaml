@@ -3905,6 +3905,297 @@ paths:
           $ref: _common.yaml#/components/responses/TooManyRequests
         "500":
           $ref: _common.yaml#/components/responses/Internal
+  # T0D-BUILD-4 (LD-447; closes CR item 8 of .orchestra/notes/T0D-MISREPORTS-1-cr-needed.md): the HTTP read of the MIS report definitions.
+  /v1/analytics/mis-reports/{report_code}:
+    get:
+      operationId: getMisReportPage
+      tags:
+        - analytics
+      summary: "Get one page of an MIS report (T0D-BUILD-4)"
+      description: >-
+        The HTTP read of the MIS report definitions (x-report-definitions): the columns of the definition, the rows of one page, totals over
+        the WHOLE filtered set (every integer_paisa and integer column, not only the page) and an opaque next_cursor (absent on the last page).
+        Same gates as the export of the code: x-permission is the base read and the handler asserts the permission of the definition; the tenant
+        flag of the definition (403 common.feature_disabled); the two money codes of x-report-definitions keep the A39 / LD-342 gate
+        (referralIncentiveReportEnabled, analytics.referral_report.read, aal2, access log action referral_report.view per served page).
+        Range inclusive, both ends required; Bill of the Day is one business day (both ends equal). No new permission.
+      security:
+        - bearerJwt: []
+      x-permission: analytics.dashboard.read
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - common.invalid_cursor
+        - analytics.report_unknown
+        - common.feature_disabled
+        - auth.mfa_required
+        - common.not_found
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+      parameters:
+        - name: report_code
+          in: path
+          required: true
+          schema:
+            type: string
+            maxLength: 32
+            enum:
+              - bill_of_the_day
+              - two_level_commission
+              - sales_representative
+              - consultant
+              - collection_boy
+              - repeated_patient
+              - repeated_test
+              - ipd_opd
+              - tds
+              - party_billing
+              - outsource
+        - name: business_date_from
+          in: query
+          required: true
+          description: First business day, inclusive.
+          schema:
+            type: string
+            format: date
+            maxLength: 10
+        - name: business_date_to
+          in: query
+          required: true
+          description: Last business day, inclusive.
+          schema:
+            type: string
+            format: date
+            maxLength: 10
+        - name: centre_id
+          in: query
+          required: false
+          style: form
+          explode: false
+          schema:
+            type: array
+            maxItems: 20
+            items:
+              $ref: _common.yaml#/components/schemas/Uuid
+        - name: party_id
+          in: query
+          required: false
+          style: form
+          explode: false
+          schema:
+            type: array
+            maxItems: 20
+            items:
+              $ref: _common.yaml#/components/schemas/Uuid
+        - name: representative_id
+          in: query
+          required: false
+          style: form
+          explode: false
+          schema:
+            type: array
+            maxItems: 20
+            items:
+              $ref: _common.yaml#/components/schemas/Uuid
+        - name: referrer_id
+          in: query
+          required: false
+          style: form
+          explode: false
+          schema:
+            type: array
+            maxItems: 20
+            items:
+              $ref: _common.yaml#/components/schemas/Uuid
+        - name: department_id
+          in: query
+          required: false
+          style: form
+          explode: false
+          schema:
+            type: array
+            maxItems: 20
+            items:
+              $ref: _common.yaml#/components/schemas/Uuid
+        - name: collector_id
+          in: query
+          required: false
+          style: form
+          explode: false
+          schema:
+            type: array
+            maxItems: 20
+            items:
+              $ref: _common.yaml#/components/schemas/Uuid
+        - name: visit_type
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 3
+            enum:
+              - opd
+              - ipd
+        - name: min_repeat_count
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 2
+            maximum: 1000
+            default: 2
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 50
+        - name: cursor
+          in: query
+          required: false
+          description: Opaque; the next_cursor of the previous page.
+          schema:
+            type: string
+            maxLength: 512
+            pattern: ^[A-Za-z0-9_-]+$
+      responses:
+        "200":
+          description: OK.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                  - columns
+                  - rows
+                  - totals
+                properties:
+                  columns:
+                    type: array
+                    maxItems: 64
+                    items:
+                      type: object
+                      additionalProperties: false
+                      required:
+                        - key
+                        - label
+                        - kind
+                      properties:
+                        key:
+                          type: string
+                          maxLength: 64
+                        label:
+                          type: string
+                          maxLength: 128
+                        kind:
+                          type: string
+                          maxLength: 5
+                          enum:
+                            - text
+                            - paisa
+                            - count
+                            - bp
+                  rows:
+                    type: array
+                    maxItems: 200
+                    description: One object per row; its keys are the column keys of this response (the columns of the definition).
+                    items:
+                      type: object
+                  totals:
+                    type: object
+                    description: Sum over the whole filtered set of every paisa and count column, keyed by column key.
+                    additionalProperties:
+                      type: integer
+                      minimum: -9007199254740991
+                      maximum: 9007199254740991
+                  next_cursor:
+                    type: string
+                    maxLength: 512
+              examples:
+                synthetic:
+                  value:
+                    columns:
+                      - key: invoice_id
+                        label: Invoice id
+                        kind: text
+                      - key: invoice_number
+                        label: Invoice number
+                        kind: text
+                      - key: billed_at
+                        label: Billed at
+                        kind: text
+                      - key: business_date
+                        label: Business date
+                        kind: text
+                      - key: centre_id
+                        label: Centre
+                        kind: text
+                      - key: party_id
+                        label: Party
+                        kind: text
+                      - key: gross_paisa
+                        label: Gross
+                        kind: paisa
+                      - key: discount_paisa
+                        label: Discount
+                        kind: paisa
+                      - key: net_paisa
+                        label: Net
+                        kind: paisa
+                      - key: paid_paisa
+                        label: Paid
+                        kind: paisa
+                      - key: due_paisa
+                        label: Due
+                        kind: paisa
+                    rows:
+                      - invoice_id: 0193c4a0-0000-7000-8000-000000000201
+                        invoice_number: SYN-0001
+                        billed_at: 2026-11-17T04:30:00.000Z
+                        business_date: 2026-11-17
+                        centre_id: 0193c4a0-0000-7000-8000-000000000101
+                        party_id: null
+                        gross_paisa: 180000
+                        discount_paisa: 0
+                        net_paisa: 180000
+                        paid_paisa: 180000
+                        due_paisa: 0
+                      - invoice_id: 0193c4a0-0000-7000-8000-000000000202
+                        invoice_number: SYN-0002
+                        billed_at: 2026-11-17T04:10:00.000Z
+                        business_date: 2026-11-17
+                        centre_id: 0193c4a0-0000-7000-8000-000000000101
+                        party_id: 0193c4a0-0000-7000-8000-000000000301
+                        gross_paisa: 50000
+                        discount_paisa: 5000
+                        net_paisa: 45000
+                        paid_paisa: 20000
+                        due_paisa: 25000
+                    totals:
+                      gross_paisa: 230000
+                      discount_paisa: 5000
+                      net_paisa: 225000
+                      paid_paisa: 200000
+                      due_paisa: 25000
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
 # T0C-MISREPORTS-1 (LD-321): the missing ElabAssist MIS reports as ROWS of the existing report catalogue (no 31 fixed screens,
 # no new route). Each entry is a components.schemas.ReportDefinition; the code is a row of analytics.g_cs_report_codes
 # (migration 20261117230000_analytics__add_mis_report_support.sql), so createAnalyticsExport and createReportSchedule accept it.

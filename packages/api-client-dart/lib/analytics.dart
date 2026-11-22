@@ -67,6 +67,10 @@ class AnalyticsApi {
   Future<Object?> getInterfacesReport({Map<String, Object?>? query}) =>
       _send('GET', '/v1/analytics/reports/interfaces', query: query);
 
+  /// GET /v1/analytics/mis-reports/{report_code}
+  Future<Object?> getMisReportPage({required String reportCode, Map<String, Object?>? query}) =>
+      _send('GET', '/v1/analytics/mis-reports/${Uri.encodeComponent(reportCode)}', query: query);
+
   /// GET /v1/analytics/reports/pending-tests/summary
   Future<Object?> getPendingTestsSummary({Map<String, Object?>? query}) =>
       _send('GET', '/v1/analytics/reports/pending-tests/summary', query: query);

@@ -61,7 +61,12 @@ const statusAllowed = (module: string, operationId: unknown, path: string) =>
   STATUS_ALLOWLIST.some((e) => e.module === module && e.operationId === operationId && e.path === path.replace(/^.*\[\]\./, ""));
 // LD-119 (2026-11-12): rule 3 exception, exactly ONE entry (LD-78 opaque signed bytes), keyed by module + operationId +
 // response status + property path (never the name alone). Exempts only additionalProperties: false; all other rules apply.
-const OPEN_OBJECT_ALLOWLIST = [{ module: "instruments", operationId: "getAgentConfig", status: "200", path: "document" }] as const;
+// T0D-BUILD-4 [CONV]: getMisReportPage rows (keys = the definition's columns, varies per report_code) and totals (map column key -> integer).
+const OPEN_OBJECT_ALLOWLIST = [
+  { module: "instruments", operationId: "getAgentConfig", status: "200", path: "document" },
+  { module: "analytics", operationId: "getMisReportPage", status: "200", path: "rows[]" },
+  { module: "analytics", operationId: "getMisReportPage", status: "200", path: "totals" },
+] as const;
 type OpCtx = { operationId: unknown; status: string };
 const openObjectAllowed = (module: string, op: OpCtx | undefined, path: string) =>
   !!op && OPEN_OBJECT_ALLOWLIST.some((e) => e.module === module && e.operationId === op.operationId && e.status === op.status && e.path === path);

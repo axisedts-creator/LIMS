@@ -4,6 +4,7 @@
 // access_log rows stay one insert per visit: the core writer (core/audit/access.ts) has no batch API (LD-156 "if the core writer allows it").
 // Barcodes come from LabPort.lookupSpecimens on EVERY changed pull and are never stored or logged (review #2); no fallback to a read model. Logs carry codes only (REQ-SEC-081).
 import { LimsError } from '../../core/errors.js';
+import { toDate } from '../../core/clock.js'; // T0D-FIX-6 (LD-448)
 import { decodeCursor, encodeCursor, cursorsEqual } from './domain/cursor.js';
 import { APP_VERSION, bad, belowMin, deviceIdOf, isObj, noExtra } from './device.service.js';
 import { HOMECOLLECTION_PERMISSIONS } from './permissions.js';
@@ -75,7 +76,7 @@ async function todayOf(ctx: Ctx): Promise<string> {
   let tz = DEFAULT_TZ;
   try { const t = (await ctx.ports.IdentityPort.getTenantSettings(ctx, { keys: ['timezone'] }))['timezone']; if (typeof t === 'string' && t !== '') tz = t; }
   catch (e) { ctx.log.warn({ code: code(e) }, 'homecollection.timezone_unavailable'); }
-  const fmt = (z: string): string => new Intl.DateTimeFormat('en-CA', { timeZone: z, year: 'numeric', month: '2-digit', day: '2-digit' }).format(ctx.now());
+  const fmt = (z: string): string => new Intl.DateTimeFormat('en-CA', { timeZone: z, year: 'numeric', month: '2-digit', day: '2-digit' }).format(toDate(ctx.now()));
   try { return fmt(tz); } catch { return fmt(DEFAULT_TZ); }
 }
 
@@ -143,7 +144,7 @@ export async function getSyncSnapshot(hctx: unknown, params: unknown, headers: u
   const settings = await settingsOf(ctx);
   assertAppVersion(headers, settings);
 
-  const now = ctx.now();
+  const now = toDate(ctx.now());
   const today = await todayOf(ctx);
   const routes = await permittedRoutes(ctx, membershipId, today);  const cursor = encodeCursor({ d: today, r: routes.map((r) => [r['id'], Number(r['version'])] as const), s: Number(settings['version']), w: String(device['status']) });
   const deviceCommand = device['status'] === 'wipe_requested' ? 'wipe' : 'none';
@@ -262,7 +263,7 @@ export async function ackSync(hctx: unknown, headers: unknown, body: unknown): P
   if (wipeCompleted !== undefined && typeof wipeCompleted !== 'boolean') throw bad('/wipe_completed');
   sameDevice(headers, deviceId);
 
-  const now = ctx.now();   // the server clock is the authority (S-6): applied_at_device and max_device_seq_acked are validated, not stored
+  const now = toDate(ctx.now());   // the server clock is the authority (S-6): applied_at_device and max_device_seq_acked are validated, not stored
   for (let attempt = 0; attempt < 5; attempt++) {   // a concurrent writer (ack, wipe request, sign-off) bumps the version: re-read and decide again
     const device = await boundDevice(ctx, deviceId, membershipId);
     assertAppVersion(headers, await settingsOf(ctx));

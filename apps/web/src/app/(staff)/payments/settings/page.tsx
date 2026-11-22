@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation';
 import { ApiError } from '@/core/api/server-fetch';
 import { PermissionDenied } from '@/core/errors/PermissionDenied';
 import { getShellSession } from '@/core/session/server';
-import { loadOr } from '@/core/shell/NotAvailable';
+import { loadOr, NotAvailable } from '@/core/shell/NotAvailable';
 import { SettingsView } from '@/features/payments/components/SettingsView';
 import { getPaymentSettings, listMerchantAccounts } from '@/features/payments/server/read.server';
 
@@ -12,7 +12,10 @@ export default async function PaymentSettingsPage() {
   const permissions = (await getShellSession())?.actor.permissions ?? [];
   if (!permissions.includes('payments.merchant_config.read')) notFound();
   const environment = process.env['LIMS_PAYMENTS_GATEWAY_ENV'];
-  if (environment !== 'uat' && environment !== 'production') throw new Error('LIMS_PAYMENTS_GATEWAY_ENV must be "uat" or "production"');
+  // T0D-FIX-5 (LD-447 done_when 4): a missing or invalid value is a deploy gap, not a crash. The check stays exactly uat | production; nothing is read.
+  if (environment !== 'uat' && environment !== 'production') {
+    return <NotAvailable title="Payment gateways" body="Payments are not configured on this server. The gateway environment comes from the deployment (uat or production), not from this page." />;
+  }
   // T0D-UISETTINGS-1 (LD-353 rule 6): 501 → NotAvailable, 5xx → ErrorState in the page (title, reference, Retry); the rest render error.tsx.
   return loadOr('Payment gateways', undefined, async () => {
     try {

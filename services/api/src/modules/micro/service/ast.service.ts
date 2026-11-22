@@ -24,7 +24,7 @@ import * as sets from '../repository/codedsets.repo.js';
 import * as cultureRepo from '../repository/cultures.repo.js';
 import * as isolateRepo from '../repository/isolates.repo.js';
 import { answer } from './isolate.service.js';
-import { bad, code, conflict, guarded, isObj, needVersion, nowOf, str, strictKeys, uuid, WORK, type WriteCtx } from './culture.service.js';
+import { bad, code, conflict, guarded, isObj, needVersion, clockOf, str, strictKeys, uuid, WORK, type WriteCtx } from './culture.service.js';
 
 type Obj = Record<string, any>;
 type Out = { body: Obj; version?: number; status?: number };
@@ -149,7 +149,7 @@ export async function recordAstResults(c: WriteCtx, input: { params: unknown; bo
   const catalog: InterpretationCatalog = entries.some((e) => e.category_code !== undefined)
     ? { interpretations: (await repo.catalogInterpretations(tx)) as any, restrictions: (await repo.catalogRestrictions(tx)) as any } : { interpretations: [], restrictions: [] };
 
-  const now = nowOf(c);
+  const now = clockOf(c);
   const membershipId = c.actor.membershipId ?? null;
   const results: Obj[] = [];
   for (const [i, e] of entries.entries()) {

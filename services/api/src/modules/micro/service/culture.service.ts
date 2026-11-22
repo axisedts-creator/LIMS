@@ -2,6 +2,7 @@
 // this file opens no transaction and publishes no event (C10 produces none). Tenant comes from ctx.tenantId only; a foreign-tenant envelope is refused before any I/O.
 // [CONV] a LabPort/CatalogPort failure rejects, so the job retries and dead-letters; "cannot place" (ambiguity) and "nothing to do" resolve.
 import { LimsError } from '../../../core/errors.js';
+import { toDate } from '../../../core/clock.js';
 import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';
 import { assertCultureChildEditable, nextCultureStatus, type CultureStatus } from '../domain/culture.state.js';
 import { finalDueAt, hoursSincePlanting, nextReadDueAt } from '../domain/schedule.js';
@@ -126,7 +127,8 @@ export function strictKeys(o: Obj, allowed: readonly string[]): void {
 }
 export const conflict = (): never => { throw new LimsError('common.version_conflict'); };
 export const needVersion = (v: number | undefined): number => { if (v === undefined) throw new LimsError('common.precondition_required'); return v >= 1 ? v : bad('/If-Match'); };
-export const nowOf = (c: WriteCtx): Date => (typeof c.now === 'function' ? c.now() : new Date());
+// T0D-FIX-6 (LD-448): the pipeline's ctx.now() is an ISO string, unit fakes return a Date; toDate takes both (bad value -> LimsError).
+export const clockOf = (c: WriteCtx): Date => (typeof c.now === 'function' ? toDate(c.now()) : new Date());
 
 /** DB-raised P0001 (05-SCHEMA triggers) -> registry codes (02-TRD §12); the service pre-checks the same rules, the trigger is the backstop. */
 export async function guarded<T>(fn: () => Promise<T>): Promise<T> {
@@ -182,7 +184,7 @@ export async function setupCulture(c: WriteCtx, input: { params: unknown; ifMatc
   strictKeys(b, ['plating_protocol_id', 'specimen_site_code', 'planted_at', 'plates']);
   const protocolId = b['plating_protocol_id'] === undefined ? undefined : uuid(b['plating_protocol_id'], '/plating_protocol_id');
   const siteCode = b['specimen_site_code'] === undefined ? undefined : code(b['specimen_site_code'], '/specimen_site_code');
-  const now = nowOf(c);
+  const now = clockOf(c);
   const plantedAt = b['planted_at'] === undefined ? now : instant(b['planted_at'], '/planted_at');
   if (plantedAt.getTime() > now.getTime() || plantedAt.getTime() < now.getTime() - 72 * HOUR_MS) bad('/planted_at');   // 02-TRD §4.1 [CONV]: [now - 72 h, now]
   const given = b['plates'] === undefined ? undefined : parsePlates(b['plates']);
@@ -239,7 +241,7 @@ export async function addCulturePlate(c: WriteCtx, input: { params: unknown; bod
   const incubation = b['incubation_text'] === undefined ? null : str(b['incubation_text'], '/incubation_text', 120);
   const parentId = b['parent_plate_id'] === undefined ? null : uuid(b['parent_plate_id'], '/parent_plate_id');
   const isolateId = b['source_isolate_id'] === undefined ? null : uuid(b['source_isolate_id'], '/source_isolate_id');
-  const plantedAt = b['planted_at'] === undefined ? nowOf(c) : instant(b['planted_at'], '/planted_at');
+  const plantedAt = b['planted_at'] === undefined ? clockOf(c) : instant(b['planted_at'], '/planted_at');
 
   assertCultureChildEditable(row['status'] as CultureStatus);                                    // AC-04.5: final -> report_final_locked, cancelled -> invalid
   if (row['status'] === 'awaiting_setup') throw new LimsError('micro.culture_invalid_transition');   // [CONV] plates enter through setup (M3)
@@ -284,7 +286,7 @@ export async function recordCultureObservation(c: WriteCtx, input: { params: unk
   const finding = b['finding_text'] === undefined ? (isRead ? null : bad('/finding_text')) : str(b['finding_text'], '/finding_text', 2000);
   const quantity = b['quantity_text'] === undefined ? null : str(b['quantity_text'], '/quantity_text', 80);
   const correctsId = b['corrects_observation_id'] === undefined ? null : uuid(b['corrects_observation_id'], '/corrects_observation_id');
-  const now = nowOf(c);
+  const now = clockOf(c);
   const observedAt = b['observed_at'] === undefined ? now : instant(b['observed_at'], '/observed_at');
 
   const status = row['status'] as CultureStatus;

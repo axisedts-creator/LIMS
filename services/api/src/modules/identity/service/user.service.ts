@@ -3,6 +3,7 @@
 // addressed: partner / patient ids behave as not found. Every membership write is ONE version-guarded UPDATE (`updateMembership`, bumps version).
 // Sessions revoked in the request tx get an identity.gotrue_signout job committed with it (SS9).
 import { LimsError, type FieldError } from '../../../core/errors.js';
+import { toDate } from '../../../core/clock.js'; // T0D-FIX-6 (LD-448)
 // [CONV] relative import until @lims/shared-ts is a services/api dependency (same as role.service).
 import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';
 import type { GoTrueGateway } from '../gotrue/gateway.js';
@@ -316,7 +317,7 @@ export function createUserService(deps: {
   }
   async function invite(ctx: UserCtx, s: Scope, membershipId: string, userId: string, email: string) {
     const id = newId();
-    await repo.insertInvitation(s.tx, s.tenantId, { id, membershipId, userId, email, expiresAt: new Date(nowOf(ctx).getTime() + INVITE_TTL_MS), actorId: s.actorId });
+    await repo.insertInvitation(s.tx, s.tenantId, { id, membershipId, userId, email, expiresAt: new Date(toDate(nowOf(ctx)).getTime() + INVITE_TTL_MS), actorId: s.actorId });
     await repo.enqueue(s.tx, SEND_INVITATION, { tenant_id: s.tenantId, invitation_id: id }, `invite:${id}:1`);
   }
   async function checkRoles(s: Scope, roleIds: string[]): Promise<Role[]> {
@@ -407,7 +408,7 @@ export function createUserService(deps: {
           id: g.userId, displayName: i['displayName'] as string, emailNormalized: email, emailHmac: need(deps.emailHmac)(email),
           ...(i['phoneE164'] === undefined ? {} : { phoneE164: i['phoneE164'] as string }), actorId: s.actorId,
         });
-        await repo.insertMembership(s.tx, s.tenantId, { id: membershipId, userId: g.userId, allCentres: sc.all, invitedAt: nowOf(ctx).toISOString(), actorId: s.actorId });
+        await repo.insertMembership(s.tx, s.tenantId, { id: membershipId, userId: g.userId, allCentres: sc.all, invitedAt: toDate(nowOf(ctx)).toISOString(), actorId: s.actorId });
       } catch (e) {
         if ((e as { code?: unknown })?.code === '23505') throw new LimsError('identity.user_exists');   // race with a concurrent invite
         throw e;
@@ -495,7 +496,7 @@ export function createUserService(deps: {
       selfGuard(ctx, m);   // AC-B4.3, before last-admin
       if (m.locked_at) throw conflict();
       await guardLastAdmin(s, m.id, false);
-      await write(s, m.id, v, { locked_at: nowOf(ctx).toISOString(), locked_by: s.actorId, lock_reason_code: r.reasonCode, lock_reason_text: r.reasonText ?? null });
+      await write(s, m.id, v, { locked_at: toDate(nowOf(ctx)).toISOString(), locked_by: s.actorId, lock_reason_code: r.reasonCode, lock_reason_text: r.reasonText ?? null });
       await signOut(s, m, 'lock');
       return fresh(s, m.id);
     },
@@ -519,7 +520,7 @@ export function createUserService(deps: {
       if (m.status === 'deactivated') throw conflict();
       await guardLastAdmin(s, m.id, false);
       // reason_text has no membership column; the request is in the row audit (05-SCHEMA §3.3).
-      await write(s, m.id, v, { status: 'deactivated', deactivated_at: nowOf(ctx).toISOString(), deactivated_by: s.actorId, deactivation_reason_code: r.reasonCode });
+      await write(s, m.id, v, { status: 'deactivated', deactivated_at: toDate(nowOf(ctx)).toISOString(), deactivated_by: s.actorId, deactivation_reason_code: r.reasonCode });
       if (m.status === 'invited') await repo.revokeOpenInvitations(s.tx, s.tenantId, m.id, s.actorId);   // M3
       await signOut(s, m, 'deactivate');
       return fresh(s, m.id);

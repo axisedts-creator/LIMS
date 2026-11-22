@@ -4,6 +4,7 @@
 // service checks the status FIRST and throws common.immutable_record itself; publish retires the key's published row BEFORE publishing the new one (one published per tenant+key).
 // No submitted value is echoed in an error and nothing is logged (REQ-SEC-098). The caller's transaction (requestTx) rolls back on any throw, so the two-row publish is atomic.
 import { LimsError, type FieldError } from '../../../core/errors.js';
+import { toDate } from '../../../core/clock.js'; // T0D-FIX-6 (LD-448)
 import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';
 import { bad, isObj, strict, UUID } from './case.service.js';
 import { ifMatch } from './config.service.js';
@@ -128,7 +129,7 @@ export async function publishTemplate(hctx: unknown, params: unknown, headers: u
   const cur = await load(c, params);
   if (cur['status'] !== 'draft') throw new LimsError('common.immutable_record');
   if (ver(cur) !== version) throw new LimsError('common.version_conflict');
-  const now = c.now().toISOString();
+  const now = toDate(c.now()).toISOString();
   for (const prev of (await ofKey(c, cur['template_key'])).filter((r) => r['status'] === 'published' && r['id'] !== cur['id'])) { // at most one; retire it first or the partial unique index fails
     await patchRow(c, prev, { status: 'retired', retired_at: now });
   }
@@ -142,7 +143,7 @@ export async function retireTemplate(hctx: unknown, params: unknown, headers: un
   const cur = await load(c, params);
   if (cur['status'] !== 'published') throw new LimsError('anatomic.template_not_published');
   if (ver(cur) !== version) throw new LimsError('common.version_conflict');
-  return { status: 200, body: fullDto(await patchRow(c, cur, { status: 'retired', retired_at: c.now().toISOString() })) };
+  return { status: 200, body: fullDto(await patchRow(c, cur, { status: 'retired', retired_at: toDate(c.now()).toISOString() })) };
 }
 
 // ---- K19 ----

@@ -1,6 +1,7 @@
 // T-24 QC hold (03-IC §4.5 holdResultsSince; 02-TRD §6.1; PRD AC-19.4; 01 §2.5). Runs in the caller's tx (ctx.tx); tenant from ctx only.
 // Idempotent on (tenant, qcRunId): the INSERT ... ON CONFLICT DO NOTHING is the gate. A concurrent second call waits on the unique index until the first commits and then reads the stored lists,
 // so each result is written once. Result rows are locked in id order (02-TRD §3.2). Approved rows are never changed except qc_review_required (lab.enforce_result_lock allows it).
+import { toDate } from '../../../core/clock.js'; // T0D-FIX-6 (LD-448): toDate(ctx.now()) is an ISO string in the pipeline, a Date in unit fakes
 import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';
 import { LimsError } from '../../../core/errors.js';
 import { first, isUuid, query, type RepoCtx } from '../repository/base.repo.js';
@@ -146,7 +147,7 @@ export async function captureQcResult(c: unknown, body: unknown): Promise<Result
     const row = await first(repoCtx(ctx), `INSERT INTO lab.qc_results (id, tenant_id, centre_id, instrument_id, analyte_id, control_id_raw, control_lot_raw, control_level, value_raw, value_numeric, unit_code,
         instrument_result_time, received_at, source, idempotency_key, entered_by_membership_id, created_by)
       VALUES ($2, $1, $3, $4, $5, $6, $7, $8, $9::text, $9::text::numeric, $10, $11::timestamptz, $12::timestamptz, 'manual', $13, $14, $15) RETURNING ${QC_COLS}`,
-    [rid, centreId, instrumentId, analyteId, control, lot, level, value, opt(unit), rt, ctx.now().toISOString(), `manual:${rid}`, membership, ctx.actor.id]);
+    [rid, centreId, instrumentId, analyteId, control, lot, level, value, opt(unit), rt, toDate(ctx.now()).toISOString(), `manual:${rid}`, membership, ctx.actor.id]);
     return { status: 201, body: qcDto(row as Obj) };
   } catch (e) {
     if ((e as { code?: unknown } | null)?.code === '23503') throw new LimsError('common.not_found');   // a centre of another tenant: indistinguishable from unknown (P-01)
@@ -183,7 +184,7 @@ export async function releaseQcHold(c: unknown, params: unknown, body: unknown):
   if (!membership) throw new LimsError('auth.forbidden');
   const rc = repoCtx(ctx);
   const row = await first(rc, `UPDATE lab.qc_holds SET status = 'released', released_at = $3::timestamptz, released_by_membership_id = $4, release_comment = $5, version = version + 1, updated_at = now(), updated_by = $6
-      WHERE tenant_id = $1 AND id = $2 AND status = 'active' RETURNING ${HOLD_COLS}`, [id, ctx.now().toISOString(), membership, comment, ctx.actor.id]);
+      WHERE tenant_id = $1 AND id = $2 AND status = 'active' RETURNING ${HOLD_COLS}`, [id, toDate(ctx.now()).toISOString(), membership, comment, ctx.actor.id]);
   if (!row) {
     if (!(await first(rc, 'SELECT 1 AS x FROM lab.qc_holds WHERE tenant_id = $1 AND id = $2', [id]))) throw new LimsError('common.not_found');
     throw new LimsError('common.version_conflict');   // already released; 409 not yet declared on #46 in lab.yaml (.orchestra/cr/C5.T-25.md)

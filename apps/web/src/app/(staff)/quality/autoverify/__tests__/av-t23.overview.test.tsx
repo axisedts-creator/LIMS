@@ -48,9 +48,12 @@ describe('access and errors', () => {
     expect(btn(/new version/i)).not.toBeNull();
     expect(screen.queryByText(/couldn't load/i)).toBeNull();
   });
-  it('API 5xx rejects so error.tsx takes over', async () => {
-    routes[`GET ${AV}/rule-set`] = () => problem('common.internal', 500);
-    expect(await showOrThrown(PAGE)).toBeTruthy();
+  // T0D-BUILD-5 (LD-455, founder 2026-11-22 22:06 NPT) replaces "API 5xx rejects so error.tsx takes over": a failed call is shown inside the page
+  // (kit inline error with the reference), never as a thrown page or an empty section. The 404 / other-failure matrix is in features/quality/__tests__/t0dbuild5.pages.test.tsx.
+  it('API 5xx: the page renders the kit inline error with the reference instead of throwing', async () => {
+    routes[`GET ${AV}/rule-set`] = () => problem('common.internal', 500, { request_id: '01a20347-aa1c-7818-bbaa-bbbbbbbbbbbb' });
+    expect(await showOrThrown(PAGE)).toBeUndefined();
+    expect(pageText()).toMatch(/Reference:\s*01a20347-aa1c-7818-bbaa-bbbbbbbbbbbb/);
   });
 });
 

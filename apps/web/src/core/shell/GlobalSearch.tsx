@@ -84,7 +84,7 @@ export function GlobalSearch({ canPatients, canSpecimens }: { canPatients: boole
           <ul>
             {result.items.map((p) => (
               <li key={p.id}>
-                <Link href={`/frontdesk/patients/${encodeURIComponent(p.id)}`} onClick={() => setResult(null)}>
+                <Link href={`/frontdesk/patients/${encodeURIComponent(p.id)}`} prefetch={false} onClick={() => setResult(null)}>
                   <span>{p.name}</span> <span className="lims-search-code">{p.code}</span>
                 </Link>
               </li>

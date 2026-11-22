@@ -84,7 +84,7 @@ export function Rail({ groups, tenant, user, logoSrc, navId, drawerOpen, onClose
             const only = g.items[0];
             return (
               <div key={g.id} role="group" aria-label={g.label} data-group={g.id} className="lims-rail-group lims-rail-direct">
-                <Link href={only.path} className="lims-rail-header lims-rail-direct-link" aria-current={only.current ? 'page' : undefined} data-chord={only.chord} data-entry-id={only.id} onClick={onClose}>
+                <Link href={only.path} prefetch={false} className="lims-rail-header lims-rail-direct-link" aria-current={only.current ? 'page' : undefined} data-chord={only.chord} data-entry-id={only.id} onClick={onClose}>
                   <NavIcon name={GROUP_ICON[g.id]} />
                   <span className="lims-rail-group-label">{only.label}</span>
                 </Link>
@@ -109,14 +109,14 @@ export function Rail({ groups, tenant, user, logoSrc, navId, drawerOpen, onClose
                   return [
                     sub ? <li key={`${e.id}#s`} className="lims-rail-subheading" data-subheading="">{sub}</li> : null,
                     <li key={e.id} className="lims-rail-item" data-entry-id={e.id}>
-                      <Link href={e.path} className="lims-rail-link" aria-current={e.current ? 'page' : undefined} data-chord={e.chord} onClick={onClose}>
+                      <Link href={e.path} prefetch={false} className="lims-rail-link" aria-current={e.current ? 'page' : undefined} data-chord={e.chord} onClick={onClose}>
                         <NavIcon name={e.icon} />
                         <span className="lims-rail-label" title={e.label}>{e.label}</span>
                       </Link>
                       {e.badge !== undefined ? <span className="lims-rail-badge" data-badge="">{e.badge}</span> : null}
                       {e.viewOnly ? <span className="lims-rail-viewonly" data-view-only="">{t('core.nav.view_only')}</span> : null}
                       {expanded && e.createPath && e.createLabel ? (
-                        <Link href={e.createPath} className="lims-rail-create" data-create="" aria-label={e.createLabel} onClick={onClose}>
+                        <Link href={e.createPath} prefetch={false} className="lims-rail-create" data-create="" aria-label={e.createLabel} onClick={onClose}>
                           <NavIcon name="plus" />
                         </Link>
                       ) : null}

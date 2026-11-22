@@ -42,6 +42,7 @@ x-api: &api
     LIMS_CORE_JWT_KEY_FILE: /run/secrets/lims/lims_core_jwt_key
     LIMS_CORE_RATELIMIT_KEY_FILE: /run/secrets/lims/lims_core_ratelimit_key
     LIMS_INSTRUMENTS_RELEASES_DIR: /run/lims/agent-releases  # api-a/b only (02-TRD s7.4)
+    LIMS_QUALITY_ENABLED: "true"  # operator decision 2026-11-22 (demo tenant): Quality HTTP routes on, screens show empty states; every other LIMS_QUALITY_* keeps its default
   mem_limit: ${LIMS_API_MEM_LIMIT:-2g}
   cpus: 2
   pids_limit: 512
@@ -95,6 +96,7 @@ x-web: &web
   environment:
     LIMS_WEB_API_BASE_URL: http://api:8080
     LIMS_WEB_BFF_KEY_FILE: /run/secrets/bff/staff_web
+    LIMS_PAYMENTS_GATEWAY_ENV: uat  # operator decision 2026-11-22: exactly uat for the demo, never production on this host (the /payments/settings page throws without it)
   volumes:
     - /run/lims/secrets/web/bff_key_staff_web:/run/secrets/bff/staff_web:ro
   networks:

@@ -197,7 +197,8 @@ describe('/billing/dues (template 5 REPORT)', () => {
       const th = [...container.querySelectorAll('[role="columnheader"], th')].find((h) => norm(h.textContent) === name && !h.closest('.lims-chart-card'))!;
       expect(th.className, name).toMatch(/lims-align-end/);
     }
-    expect(screen.getByText('NPR 630.00')).toBeTruthy();
+    // T0D-FIX-11 (done_when 1): NPR now also appears in the aging chart, so the value may occur more than once.
+    expect(screen.getAllByText('NPR 630.00').length).toBeGreaterThanOrEqual(1);
     expect(screen.getByRole('link', { name: 'REG-900001' }).getAttribute('href')).toBe(`/frontdesk/orders/${U(501)}?tab=billing`);
   });
 

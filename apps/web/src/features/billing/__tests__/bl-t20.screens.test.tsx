@@ -249,7 +249,8 @@ describe('§8.4 DuesList', () => {
     const dues = [{ order_id: ORDER, registration_no: 'REG-000123', patient_display: 'S*** B***', centre_id: CENTRE, invoiced: npr(113000), paid: npr(50000), credited: npr(0), balance_due: npr(63000), oldest_invoice_at: '2026-10-01T04:00:00.000Z' }];
     const a = wrap(<DuesList dues={dues as never} />);
     for (const h of ['Registration no', 'Patient', 'Centre', 'Invoiced', 'Paid', 'Credited', 'Due', 'Oldest invoice age']) expect(screen.getByRole('columnheader', { name: new RegExp(h, 'i') })).toBeTruthy();
-    expect(screen.getByText('NPR 630.00')).toBeTruthy();
+    // T0D-FIX-11 (done_when 1): NPR now also appears in the aging chart, so the value may occur more than once.
+    expect(screen.getAllByText('NPR 630.00').length).toBeGreaterThanOrEqual(1);
     expect(screen.getByRole('link', { name: 'REG-000123' })).toBeTruthy(); // opens order billing tab
     a.unmount();
     wrap(<DuesList dues={[]} />);

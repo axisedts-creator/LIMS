@@ -53,10 +53,11 @@ describe('access order (US-07.1; CV §10.1)', () => {
     expect(calls).toHaveLength(0);
   });
 
-  it('API 403 common.feature_disabled (flag off): full-page EmptyState "This report is not enabled for your lab." and no figures, no error code', async () => {
+  // T0D-FIX-11 / LD-455 (done_when 3): the flag-off text is now "This report is switched off for your lab."
+  it('API 403 common.feature_disabled (flag off): full-page EmptyState "This report is switched off for your lab." and no figures, no error code', async () => {
     routes[`GET ${PATH}`] = () => problem('common.feature_disabled', 403);
     await show(PAGE);
-    expect(screen.getByText('This report is not enabled for your lab.')).toBeTruthy();
+    expect(screen.getByText('This report is switched off for your lab.')).toBeTruthy();
     expect(screen.queryAllByRole('grid')).toHaveLength(0);
     expect(pageText()).not.toMatch(/feature_disabled|flag|referral_incentive_report/i);
     expect(screen.queryByRole('button', { name: /export/i })).toBeNull();
@@ -71,15 +72,20 @@ describe('access order (US-07.1; CV §10.1)', () => {
   });
 
   // T0D-UIREPORT-2 (LD-353 rule 6): a 5xx no longer throws to error.tsx; the page keeps its title and shows ErrorState (reference + Retry) in the page.
-  // A 403 other than the two states above still rejects. No figures leak in either case.
-  it('any other 403 (auth.forbidden) rejects so error.tsx handles it; a 5xx shows ErrorState in the page; no figures leak', async () => {
-    routes[`GET ${PATH}`] = () => problem('auth.forbidden', 403);
-    expect(await showOrThrown(PAGE)).toBeTruthy();
-    routes[`GET ${PATH}`] = () => problem('common.internal', 500, { request_id: '01933b6f-0a11-7e2b-8c55-1d2e3f405162' });
-    const { container } = await show(PAGE);
-    expect(container.querySelectorAll('h1')).toHaveLength(1);
-    expect(container.querySelectorAll('.lims-state.lims-tone-danger')).toHaveLength(1);
-    expect(pageText()).not.toMatch(/Dr Synthetic|12,34,567/);
+  // T0D-FIX-11 (LD-455 rule 3; done_when 3, 4): a 403 other than the two states above no longer rejects to error.tsx either; it shows the kit inline error WITH the reference in the page.
+  // No figures leak in either case.
+  it('any other 403 (auth.forbidden) and a 5xx show the kit inline error with the reference in the page (title kept); no figures leak', async () => {
+    const REF = '01933b6f-0a11-7e2b-8c55-1d2e3f405162';
+    for (const [status, code] of [[403, 'auth.forbidden'], [500, 'common.internal']] as const) {
+      routes[`GET ${PATH}`] = () => problem(code, status, { request_id: REF });
+      const { container } = await show(PAGE);
+      expect(container.querySelectorAll('h1')).toHaveLength(1);
+      const err = container.querySelectorAll('.lims-state.lims-tone-danger');
+      expect(err, `${status} inline error`).toHaveLength(1);
+      expect(norm(err[0]!.querySelector('.lims-state-ref')?.textContent), `${status} reference`).toContain(REF);
+      expect(pageText()).not.toMatch(/Dr Synthetic|12,34,567/);
+      cleanup();
+    }
   });
 });
 

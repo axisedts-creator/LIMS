@@ -61,10 +61,14 @@ describe('/lab/status-board page', () => {
     expect(boardCalls()[0]!.headers.get('authorization')).toBe('Bearer jwt-synthetic');
   });
 
-  it('board read refused (403) → the page still renders the screen with no rows (no crash)', async () => {
+  // T0D-FIX-11 / LD-455 rule 3 (done_when 4): a refused board read is shown (kit inline error, <LoadError>), never an empty board.
+  it('board read refused (403) → the page renders the inline error state (LoadError), not the board with no rows, and does not throw', async () => {
     api.use(http.get(`${LAB}/status-board`, async ({ request }) => { await rec(request); return problem(403, 'auth.forbidden', 'Forbidden'); }));
     const el = await render();
-    expect((el.props as { initialRows: unknown[] }).initialRows).toEqual([]);
+    const { LoadError } = await import('@/core/shell/LoadError');
+    const { StatusBoard } = await import('../components/StatusBoard');
+    expect(el.type).toBe(LoadError);
+    expect(el.type).not.toBe(StatusBoard);
   });
 
   it('identity centres read refused → centres is an empty list, not an exception', async () => {

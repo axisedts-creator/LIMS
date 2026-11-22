@@ -137,10 +137,13 @@ describe('QC results list — #43 (04-UI-UX §3.12)', () => {
     expect(screen.queryByRole('button', { name: /load more/i })).toBeNull();
   });
 
-  it('a failing list shows its problem title in an alert and does not crash', async () => {
+  it('a failing list shows the ErrorState (danger tone, Retry) and does not crash', async () => {
+    // Ruling round 2 point 1: spec C5 04-UI-UX.md:58 specifies ErrorState + "Retry", no alert role.
     listReply = () => problem(500, 'common.internal', 'Something went wrong');
     await open();
-    expect((await screen.findByRole('alert')).textContent).toMatch(/something went wrong/i);
+    const state = (await screen.findByText(/something went wrong/i)).closest('.lims-state.lims-tone-danger') as HTMLElement | null;
+    expect(state).not.toBeNull();
+    expect(within(state!).getByRole('button', { name: /retry/i })).toBeTruthy();
   });
 
   it('without lab.qc.capture there is no "Add QC result" control', async () => {

@@ -324,3 +324,48 @@ a.lims-menuitem { display: block; color: inherit; text-decoration: none; }
 .lims-na { margin: 0; }
 /* T0D-UIGUARD-1-PARTNERS (LD-436 rule 7): the sales manager tree is ARIA roles on div (no raw ul); each team keeps its indent. Tokens only. */
 .lims-tree-group { padding-inline-start: var(--lims-space-4); }
+
+/* T0D-UIX-1 (LD-442 values from LD-436-mock-worklist; LD-436, LD-437, LD-438): the staff web look layer. Tokens only, scoped to .lims-shell so the
+   auth pages and the kit base (pill buttons, 48/46/40 controls, kit.css unchanged) stay as they are. Mock hex mapped to the nearest token:
+   hairline neutral.200, row line neutral.100, secondary border neutral.300, text neutral.900/700/600, primary accent. 8px = radius-sm. */
+/* (1) buttons: 30 high, radius 8, base size, weight 500; the sidebar close button keeps its own look (:where keeps the variants able to win) */
+.lims-shell .lims-btn:where(:not(.lims-rail-close)) { box-sizing: border-box; height: 30px; min-height: 30px; padding: 0 var(--lims-space-3); border: 1px solid var(--lims-neutral-300); border-radius: var(--lims-radius-sm); background: var(--lims-neutral-0); color: var(--lims-neutral-700); font-size: var(--lims-font-size-base-size); font-weight: var(--lims-font-weight-medium); }
+.lims-shell .lims-btn-primary { border: 0; background: var(--lims-accent); color: var(--lims-accent-fg); }
+.lims-shell .lims-btn-danger { border: 0; background: var(--lims-tone-danger-fg); color: var(--lims-neutral-0); }
+.lims-shell .lims-btn-ghost { padding: 0 var(--lims-space-2); border: 0; background: transparent; color: var(--lims-accent); }
+.lims-shell .lims-btn-sm { height: 24px; min-height: 24px; padding: 0 var(--lims-space-2); }
+.lims-shell .lims-icon-btn { justify-content: center; width: 30px; min-width: 30px; padding: 0; border: 1px solid var(--lims-neutral-200); background: var(--lims-neutral-0); color: var(--lims-neutral-700); }
+/* (2) form controls: 30 high, 0 8px, 1px neutral.200, radius 8, white, neutral.700, base size; multi-line text and the sidebar field excluded */
+.lims-shell .lims-input:where(:not(textarea, .lims-rte-surface, .lims-rail-search)) { box-sizing: border-box; height: 30px; min-height: 30px; padding: 0 var(--lims-space-2); border: 1px solid var(--lims-neutral-200); border-radius: var(--lims-radius-sm); background: var(--lims-neutral-0); color: var(--lims-neutral-700); font-size: var(--lims-font-size-base-size); }
+.lims-shell .lims-input:disabled, .lims-shell .lims-input[data-disabled] { background: var(--lims-neutral-100); }
+.lims-shell .lims-input:focus, .lims-shell .lims-input:focus-visible { border-color: var(--lims-accent); outline: 2px solid var(--lims-accent); outline-offset: 0; }
+.lims-shell .lims-search .lims-search-input { padding-inline-end: var(--lims-space-8); }
+.lims-shell .lims-label { color: var(--lims-neutral-600); font-size: var(--lims-font-size-xs-size); font-weight: var(--lims-font-weight-medium); }
+/* the calendar button sits inside the date input at its right edge, no box of its own */
+.lims-shell .lims-date-field .lims-input-group { position: relative; }
+.lims-shell .lims-date-field .lims-input { padding-inline-end: var(--lims-space-8); }
+.lims-shell .lims-date-field .lims-input-group > .lims-icon-btn { position: absolute; right: var(--lims-space-1); top: 50%; transform: translateY(-50%); width: 24px; min-width: 24px; height: 24px; min-height: 24px; border: 0; background: transparent; color: var(--lims-neutral-600); }
+/* (3) filter bar: one row, labels above controls, bottoms aligned */
+.lims-shell .lims-filter-bar { display: flex; align-items: flex-end; gap: var(--lims-space-2); }
+.lims-shell .lims-date-range .lims-inline { display: flex; align-items: flex-end; gap: var(--lims-space-2); }
+/* (4) tables: start aligned headers (lims-align-start had no rule, so th fell back to centre), neutral.50 header band, one row height */
+.lims-shell .lims-table th { padding: 0 var(--lims-space-3); border-bottom: 1px solid var(--lims-neutral-200); background: var(--lims-neutral-50); color: var(--lims-neutral-600); font-size: var(--lims-font-size-xs-size); font-weight: var(--lims-font-weight-medium); line-height: 14px; text-align: start; white-space: nowrap; }
+.lims-shell .lims-table td { padding: 0 var(--lims-space-3); border-bottom: 1px solid var(--lims-neutral-100); font-size: var(--lims-font-size-base-size); }
+.lims-align-start, .lims-shell .lims-table .lims-align-start { text-align: start; }
+.lims-shell .lims-table .lims-align-end { text-align: end; }
+.lims-shell .lims-table .lims-align-center { text-align: center; }
+.lims-shell .lims-table-regular tr { height: 40px; min-height: 40px; }
+.lims-shell .lims-table-compact tr { height: 32px; min-height: 32px; }
+.lims-shell .lims-card .lims-data-table { margin-inline: calc(-1 * var(--lims-space-3)); }
+.lims-shell .lims-table .lims-row-empty > td { padding: 0; text-align: start; white-space: normal; }
+/* (5) tabs: underline, 32 high, 2px accent under the selected tab, 1px neutral.200 strip hairline */
+.lims-shell .lims-tablist { gap: 0; border-bottom: 1px solid var(--lims-neutral-200); }
+.lims-shell .lims-tab { height: 32px; min-height: 32px; margin-bottom: -1px; padding: 0 var(--lims-space-3); border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: transparent; color: var(--lims-neutral-600); }
+.lims-shell .lims-tab[data-selected], .lims-shell .lims-tab[aria-selected='true'] { border-bottom-color: var(--lims-accent); background: transparent; color: var(--lims-accent); font-weight: var(--lims-font-weight-medium); }
+.lims-shell .lims-tab-badge { background: var(--lims-neutral-100); color: var(--lims-neutral-700); font-size: var(--lims-font-size-xs-size); font-weight: var(--lims-font-weight-medium); }
+/* (6) DescriptionList: 2 columns, 3 from 80rem, label above value, a neutral.100 hairline under each pair */
+.lims-shell .lims-dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 var(--lims-space-6); }
+@media (min-width: 80rem) { .lims-shell .lims-dl { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.lims-shell .lims-dl-item { display: flex; flex-direction: column; gap: var(--lims-space-1); margin: 0; padding: var(--lims-space-2) 0; border-bottom: 1px solid var(--lims-neutral-100); }
+.lims-shell .lims-dl dt { display: block; color: var(--lims-neutral-600); font-size: var(--lims-font-size-xs-size); font-weight: var(--lims-font-weight-medium); }
+.lims-shell .lims-dl dd { display: block; margin: 0; color: var(--lims-neutral-900); font-size: var(--lims-font-size-base-size); font-weight: var(--lims-font-weight-regular); }

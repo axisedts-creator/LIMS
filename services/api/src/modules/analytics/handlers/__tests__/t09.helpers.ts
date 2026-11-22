@@ -45,6 +45,10 @@ export const FINANCE_A1 = 'A:user:financea1';      // same, restricted to {A1}
 export const LAB_MANAGER = 'A:user:labmanager';    // analytics.dashboard.read only (no collections, no schedule.manage, no cash report)
 export const COLL_NO_CASH = 'A:user:collnocash';   // lab_manager + analytics.collections.read, NO billing.cash_report.read
 export const OWNER_ALL09 = 'A:user:ownerall';
+// T0D-DASHCARDS-1: lab_manager (analytics.dashboard.read only) plus ONE or BOTH billing source permissions of the two new dashboard tiles
+export const DASH_ACCT = 'A:user:dashacct';       // + billing.account.read    -> outstanding_paisa only
+export const DASH_CASH = 'A:user:dashcash';       // + billing.cash_report.read -> cash_in_drawer_paisa only
+export const DASH_BOTH = 'A:user:dashboth';       // + both                    -> both tiles
 export const OWNER_A109 = 'A:user:ownera1';
 const member = (persona: string, n: number, roles: string[], centreScope: MembershipRow['centreScope'], extra: string[] = []): MembershipRow => ({
   id: idFor(SEED, 0xa00 + n), tenantId: TENANTS.A, actorId: actorIdFor('A', 'user', persona), actorType: 'user',
@@ -57,6 +61,8 @@ const MEMBERS = [
   member('ownermulti', 3, ['owner_viewer'], { all: false, centreIds: [A1, A2] }),
   member('finance', 4, ['finance'], ALLC), member('financea1', 5, ['finance'], { all: false, centreIds: [A1] }),
   member('labmanager', 6, ['lab_manager'], ALLC), member('collnocash', 7, ['lab_manager'], ALLC, ['analytics.collections.read']),
+  member('dashacct', 8, ['lab_manager'], ALLC, ['billing.account.read']), member('dashcash', 9, ['lab_manager'], ALLC, ['billing.cash_report.read']),
+  member('dashboth', 10, ['lab_manager'], ALLC, ['billing.account.read', 'billing.cash_report.read']),
 ];
 
 // ------------------------------------------------------------------ world

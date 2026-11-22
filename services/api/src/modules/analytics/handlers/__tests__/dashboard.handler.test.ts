@@ -46,7 +46,8 @@ describe('US-01.1 — default period = Today (Asia/Kathmandu); tiles M04 M12 M42
   it('the tile key set is exactly the contract set (collections tile included for a holder)', async () => {
     const { ctx } = await makeCtx14(OWNER_ALL09);
     const body = await dash(ctx);
-    expect(Object.keys(body.tiles).sort()).toEqual([...TILE_KEYS].sort());
+    // T0D-DASHCARDS-1 (LD-447): owner_viewer holds billing.cash_report.read (not billing.account.read) -> cash_in_drawer_paisa joins the set, outstanding_paisa does not
+    expect(Object.keys(body.tiles).sort()).toEqual([...TILE_KEYS, 'cash_in_drawer_paisa'].sort());
     expect(Object.keys(body).sort()).toEqual(['department_top', 'freshness', 'generated_at', 'period', 'report_code', 'scope', 'series', 'tiles'].sort());
   });
 
@@ -177,7 +178,7 @@ describe('collections tile (X1 / CR-C8-001) — omitted, not 403, without analyt
   it('every other tile is unchanged for the lab_manager', async () => {
     const full = await dash((await makeCtx14(ADMIN)).ctx);
     const part = await dash((await makeCtx14(LAB_MANAGER)).ctx);
-    const { net_collected_paisa: _x, ...rest } = full.tiles;
+    const { net_collected_paisa: _x, outstanding_paisa: _o, cash_in_drawer_paisa: _c, ...rest } = full.tiles; // T0D-DASHCARDS-1: ADMIN also holds the two billing source permissions
     expect(part.tiles).toEqual(rest);
   });
 });

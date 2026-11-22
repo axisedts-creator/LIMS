@@ -164,7 +164,7 @@ describe('S9 Receive (AC-10.2, AC-10.3)', () => {
     const dlg = await open();
     expect((recv(dlg) as HTMLInputElement).value).toBe('100');
     expect(within(dlg).getByRole('button', { name: /discrepancy/i })).toBeTruthy();
-    expect(hit('GET', /coded-sets\/transfer_discrepancy$/).length).toBeGreaterThan(0);
+    expect(hit('GET', /coded-sets\/reasons$/).some((h) => new URLSearchParams(h.search).get('reason_group') === 'transfer_discrepancy')).toBe(true);
   });
 
   it('AC-10.2: receiving 98 of 100 without a reason sends nothing (reason required when less)', async () => {

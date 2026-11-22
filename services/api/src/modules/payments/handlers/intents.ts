@@ -104,9 +104,10 @@ export function createIntentHandlers(deps: PaymentsDeps) {
 
   // ------------------------------------------------------------------------------------------------ P1
   const csv = (v: unknown, allowed: readonly string[] | RegExp, path: string): string[] => {
-    if (typeof v !== 'string') return invalid(path);
-    const items = [...new Set(v.split(','))];
-    if (items.length > 20 || !items.every((x) => (Array.isArray(allowed) ? allowed.includes(x) : (allowed as RegExp).test(x)))) return invalid(path);
+    // LD-455 / T0D-FIX-7: payments.yaml declares status and gateway as arrays (form, explode false), so the validator may hand an array; accept both forms.
+    const raw = typeof v === 'string' ? v.split(',') : Array.isArray(v) && v.every((x) => typeof x === 'string') ? (v as string[]) : invalid(path);
+    const items = [...new Set(raw)];
+    if (items.length === 0 || items.length > 20 || !items.every((x) => (Array.isArray(allowed) ? allowed.includes(x) : (allowed as RegExp).test(x)))) return invalid(path);
     return items;
   };
   const when = (v: unknown, path: string): Date => (typeof v === 'string' && ISO.test(v) && !Number.isNaN(Date.parse(v)) ? new Date(v) : invalid(path));

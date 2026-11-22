@@ -29,6 +29,7 @@ async function collection(sp: Record<string, string | string[] | undefined>, per
   const centreId = asked ?? centres[0]?.id ?? '';
   // T0D-FINCTRL-1 (LD-321): the cash sessions of that centre and day carry Previous Outstanding Cash and Deposit (getDailyCash needs
   // billing.cash_report.read; a refused read passes null and the figures show "—", never invented 0.00 — review fix).
+  // T0D-FIX-9 (LD-455): a refusal (403) keeps the dash; any other failure is shown in the section with its reference (sessionsError).
   const [summary, sessions] = centreId
     ? await Promise.all([getDailyCollectionSummary(centreId, day).then((r) => ({ r }), (e: unknown) => ({ r: null, err: refOf(e) })), getDailyCash({ date: day, centreId }).then((r) => ({ s: r.sessions ?? [] }), (e: unknown) => (e instanceof ApiError && e.status === 403 ? { s: null } : { s: null, err: refOf(e) }))])
     : [{ r: null }, { s: [] }];

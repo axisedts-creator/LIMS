@@ -8,6 +8,7 @@ import { Card } from '@lims/ui/components/Card';
 import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
 import { DateText, type DateTextProps } from '@lims/ui/components/DateText';
 import { DescriptionList } from '@lims/ui/components/DescriptionList';
+import { EmptyState } from '@lims/ui/components/EmptyState';
 import { Dialog } from '@lims/ui/components/Dialog';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { RadioGroup } from '@lims/ui/components/RadioGroup';
@@ -52,6 +53,8 @@ export function OverviewView({ ruleSet, settings, canManage }: { ruleSet: RuleSe
       {settings ? (
         <Banner tone={settings.auto_verification_enabled ? 'success' : 'warning'} title={`Auto-verification is ${settings.auto_verification_enabled ? 'ON' : 'OFF'} for your lab (Admin › Tenant settings)`} />
       ) : null}
+      {/* T0D-BUILD-5 (LD-455): getAutoverifyRuleSet 404 = no rule set yet -> the kit empty state. Auto-verification stays OFF by design; only "New version" (manage) stays. */}
+      {ruleSet === null ? <EmptyState title="No auto-verification rules yet." body="Rules are written in a version. Auto-verification does nothing until a version is activated." /> : <>
       <Card title="Active version">
         {active ? (
           <>
@@ -72,6 +75,7 @@ export function OverviewView({ ruleSet, settings, canManage }: { ruleSet: RuleSe
       <Card title="Versions">
         <DataTable<VersionSummary> columns={columns} rows={versions} getRowId={(v) => v.id} density="compact" caption="Versions" emptyState={{ title: 'No versions yet.', body: 'Create the first version to start writing rules.' }} />
       </Card>
+      </>}
       {creating ? <NewVersionDialog key={creating} ruleSet={ruleSet} /> : null}
     </>
   );

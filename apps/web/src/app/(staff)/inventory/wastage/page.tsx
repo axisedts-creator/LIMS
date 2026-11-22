@@ -4,7 +4,8 @@
 import { PermissionDenied } from '@/core/errors/PermissionDenied';
 import { getShellSession } from '@/core/session/server';
 import { WastageView } from '@/features/inventory/components/WastageView';
-import { FORBIDDEN, guarded, listCodedSet, listStock, listStores, soft } from '@/features/inventory/server/read.server';
+import { Banner } from '@lims/ui/components/Banner';
+import { FORBIDDEN, guarded, listCodedSet, listStock, listStores, softOr } from '@/features/inventory/server/read.server';
 import { UUID_RE } from '@/features/inventory/server/types';
 
 type SP = Record<string, string | string[] | undefined>;
@@ -24,7 +25,20 @@ export default async function WastagePage({ searchParams }: { searchParams: Prom
 
   const base = await guarded(() => Promise.all([listStock({ storeId }), listStock({ storeId, expiredOnly: true })]));
   if (base === FORBIDDEN) return <PermissionDenied />;
-  const [wastage, adjustment] = await Promise.all([soft(() => listCodedSet('wastage'), []), canAdjust ? soft(() => listCodedSet('adjustment'), []) : []]);
+  // T0D-FIX-9 (LD-455): a failed reason read is shown with its reference, never an empty reason list
+  const [wastage, adjustment] = await Promise.all([softOr(() => listCodedSet('wastage'), []), canAdjust ? softOr(() => listCodedSet('adjustment'), []) : { value: [] as Awaited<ReturnType<typeof listCodedSet>>, failed: undefined }]);
+  const failed = [wastage, adjustment].find((r) => r.failed !== undefined)?.failed;
 
-  return <WastageView stores={stores.data} storeId={storeId} balances={base[0].data} expired={base[1].data} wastageReasons={wastage} adjustmentReasons={adjustment} canAdjust={canAdjust} />;
+  return (
+    <>
+      {failed !== undefined ? (
+        <div role="alert">
+          <Banner tone="danger" title="The reason lists could not be loaded. Saving needs a reason, so try again.">
+            {failed ? <p>{`Reference: ${failed}`}</p> : null}
+          </Banner>
+        </div>
+      ) : null}
+      <WastageView stores={stores.data} storeId={storeId} balances={base[0].data} expired={base[1].data} wastageReasons={wastage.value} adjustmentReasons={adjustment.value} canAdjust={canAdjust} />
+    </>
+  );
 }

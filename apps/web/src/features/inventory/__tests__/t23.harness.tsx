@@ -127,6 +127,8 @@ export const api = setupServer(
   http.get(`${ORIGIN}/v1/inventory/items`, () => page([1, 2].map((n) => ({ id: ID(10 + n), item_code: `TIPS-${n}`, name: `Synthetic pipette tips ${n}`, category: 'consumable', base_uom_code: 'piece', is_lot_tracked: true, requires_expiry: true, is_active: true, version: 1 })))),
   http.get(`${ORIGIN}/v1/inventory/lots`, () => page([1, 2].map((n) => ({ id: ID(20 + n), item_id: ID(10 + n), lot_no: `SYNLOT-00${n}`, expiry_on: inDays(200), status: 'available', version: 1 })))),
   http.get(`${ORIGIN}/v1/inventory/settings`, () => HttpResponse.json({ backdate_max_days: 7, count_locks_store: false, version: 1 })),
+  // T0D-FIX-9 ruling: contract set_name is uom | reasons | tax_codes; reason lists are keyed by query reason_group.
+  http.get(`${ORIGIN}/v1/inventory/coded-sets/reasons`, ({ request }) => page(codedSets[new URL(request.url).searchParams.get('reason_group') ?? ''] ?? [])),
   http.get(`${ORIGIN}/v1/inventory/coded-sets/:set`, ({ params }) => page(codedSets[String(params['set'])] ?? [])),
   http.get(`${ORIGIN}/v1/catalog/departments`, () => page([{ id: ID(60), code: 'BIOCHEM', name: 'Biochemistry', is_active: true, version: 1 }, { id: ID(61), code: 'HAEM', name: 'Haematology', is_active: true, version: 1 }])),
   http.get(`${ORIGIN}/v1/catalog/tests`, () => page([{ id: ID(70), code: 'GLU', name: 'Glucose', is_active: true, version: 1 }, { id: ID(71), code: 'CREA', name: 'Creatinine', is_active: true, version: 1 }])),

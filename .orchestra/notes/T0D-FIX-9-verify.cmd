@@ -1,0 +1,1 @@
+pnpm --dir services/api exec vitest run src/modules/inventory/handlers/__tests__/fix9.movements.test.ts src/modules/billing/handlers/__tests__/fix9.dailycash.test.ts src/modules/reporting/__tests__/printcfg/fix9.preview-500.test.ts && pnpm --dir apps/web exec vitest run --config src/__tests__/vitest.fix9.config.ts

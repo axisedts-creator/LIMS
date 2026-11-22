@@ -15,6 +15,13 @@ function bffKey(): string {
   return (cachedKey = readBffKey()); // LD-174
 }
 
+const MAX_RETRY_WAIT_MS = 1_000; // T0D-FIX-12 (LD-455): wait at most 1 second
+/** Retry-After in seconds (RFC 9110 delta-seconds); an HTTP date, junk or missing waits the cap. */
+function retryDelayMs(v: string | null): number {
+  const s = v?.trim() ?? '';
+  return /^\d+$/.test(s) ? Math.min(Number(s) * 1000, MAX_RETRY_WAIT_MS) : MAX_RETRY_WAIT_MS;
+}
+
 const unavailable = () => ({ ok: false, status: 503, problem: problem('common.dependency_unavailable', 'Dependency unavailable', 503) }) as const;
 
 interface C2Resolved {
@@ -30,22 +37,30 @@ export const c2Resolver: SessionResolver = {
     const origin = process.env.LIMS_ORIGIN_API;
     if (!origin) throw new Error('LIMS_ORIGIN_API is not set');
     const client = await clientContextHeaders(); // LD-296: real client address + browser user agent; {} outside a request scope
+    const call = () => fetch(new URL(RESOLVE_SESSION_PATH, origin), {
+      method: 'POST',
+      headers: {
+        ...client,
+        'content-type': 'application/json',
+        accept: 'application/json',
+        'X-Lims-Bff-Key': bffKey(),
+        cookie: `${SESSION_COOKIE}=${encodeURIComponent(sessionId)}`,
+      },
+      body: JSON.stringify({ touch }),
+      cache: 'no-store',
+      redirect: 'error',
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+    });
     let res: Response;
     try {
-      res = await fetch(new URL(RESOLVE_SESSION_PATH, origin), {
-        method: 'POST',
-        headers: {
-          ...client,
-          'content-type': 'application/json',
-          accept: 'application/json',
-          'X-Lims-Bff-Key': bffKey(),
-          cookie: `${SESSION_COOKIE}=${encodeURIComponent(sessionId)}`,
-        },
-        body: JSON.stringify({ touch }),
-        cache: 'no-store',
-        redirect: 'error',
-        signal: AbortSignal.timeout(TIMEOUT_MS),
-      });
+      res = await call();
+      // T0D-FIX-12 (LD-455): a 429 is retried ONCE after Retry-After (capped at 1 s; junk/missing = 1 s), same body and identity.
+      // A second 429 is relayed below as the typed problem; the middleware fails the whole request with it (no partial data).
+      if (res.status === 429) {
+        await res.body?.cancel().catch(() => undefined);
+        await new Promise((r) => setTimeout(r, retryDelayMs(res.headers.get('retry-after'))));
+        res = await call();
+      }
     } catch {
       // T0D-WAKE-1 (LD-277, RS-07): no answer (timeout / connection failure) = the API is likely waking up; HTTP answers never carry it.
       return { ...unavailable(), waking: true };

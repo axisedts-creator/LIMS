@@ -41,7 +41,8 @@ const NEEDS_VERSION = new Set<UserOp>(['lock', 'unlock', 'deactivate', 'reactiva
 export async function userAction(id: string, op: UserOp, version: number, reason?: { reason_code?: string; reason_text?: string }) {
   if (!OPS.includes(op)) return bad<{ version?: number }>();
   const body = op === 'lock' || op === 'deactivate' ? only(reason ?? {}, ['reason_code', 'reason_text']) : op === 'reset-mfa' ? only(reason ?? {}, ['reason_text']) : undefined;
-  return on(id, (s) => call<{ version?: number }>('POST', `${ID}/users/${s}/${op}`, { ...(body ? { body } : {}), ...(NEEDS_VERSION.has(op) ? { version } : {}) }));
+  // T0D-FIX-10 (LD-455): resendInvitation is x-idempotency: optional — send one key per confirmed resend so a retried request is not a second email.
+  return on(id, (s) => call<{ version?: number }>('POST', `${ID}/users/${s}/${op}`, { ...(body ? { body } : {}), ...(NEEDS_VERSION.has(op) ? { version } : {}), ...(op === 'resend-invitation' ? { idempotent: true } : {}) }));
 }
 export async function uploadUserSignature(id: string, form: FormData) {
   const f = form.get('file');

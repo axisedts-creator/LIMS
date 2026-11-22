@@ -30,13 +30,18 @@ type Props = {
   session: ShellSession;
   pathname: string;
   centres?: ShellCentres;
-  /** optional count badge per entry id */
-  counts?: Readonly<Record<string, number>>;
+  /** optional count badge per entry id; a string (e.g. '50+', T0D-BUILD-5) draws as is, blank = none */
+  counts?: Readonly<Record<string, number | string>>;
   /** entry ids shown with the "view only" tag */
   viewOnly?: readonly string[];
   /** LD-340: 'elab' = ElabAssist menu (the staff layout); default 'modules' = the 14 module groups */
   menu?: 'modules' | 'elab';
   children: ReactNode;
+};
+
+const badgeOf = (counts: Props['counts'], id: string): number | string | undefined => {
+  const v = counts && Object.hasOwn(counts, id) ? counts[id] : undefined;
+  return typeof v === 'number' ? (Number.isFinite(v) ? v : undefined) : typeof v === 'string' && v.trim() ? v.trim() : undefined;
 };
 
 export function AppShell({ session, pathname, centres, counts, viewOnly, menu = 'modules', children }: Props) {
@@ -52,7 +57,7 @@ export function AppShell({ session, pathname, centres, counts, viewOnly, menu = 
     ...(section ? { section: t(section) } : {}),
     ...(e.createPath && e.createLabel && e.createPermission && hasPermission(perms, e.createPermission)
       ? { createPath: e.createPath, createLabel: t(e.createLabel) } : {}),
-    ...(counts && Object.hasOwn(counts, e.id) && Number.isFinite(counts[e.id]) ? { badge: counts[e.id]! } : {}),
+    ...(badgeOf(counts, e.id) !== undefined ? { badge: badgeOf(counts, e.id)! } : {}),
     ...(viewOnly?.includes(e.id) ? { viewOnly: true } : {}),
   });
   const permitted = navEntries.filter((e) => hasPermission(perms, e.permission));

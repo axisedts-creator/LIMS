@@ -37,7 +37,7 @@ const fieldsOf = (p: PrintProfile): PrintProfileFields => {
 /** Profile of one key (the lab default when branch is undefined), for every recipient. */
 const find = (all: readonly PrintProfile[], kind: DocumentKind, branch?: string) => all.find((p) => p.document_kind === kind && p.branch_id === branch && !p.recipient_type);
 
-type Preview = { state: 'idle' | 'rendering' } | { state: 'ready'; id: string } | { state: 'failed' };
+type Preview = { state: 'idle' | 'rendering' } | { state: 'ready'; id: string } | { state: 'failed'; requestId?: string | undefined };
 
 export function PrintStationery({ permissions, initialKind }: { permissions: readonly string[]; initialKind: DocumentKind }) {
   const toast = useToast();
@@ -90,7 +90,7 @@ export function PrintStationery({ permissions, initialKind }: { permissions: rea
       setPreview({ state: 'rendering' });
       const r = await previewPrintProfileAction(previewInput, newKey()).catch(() => null);
       if (!alive) return;
-      if (!r?.ok) { setPreview({ state: 'failed' }); return; }
+      if (!r?.ok) { setPreview({ state: 'failed', requestId: r?.requestId }); return; }   // T0D-FIX-9 (LD-455): keep the reference
       let state = r.data.state;
       for (let n = 0; alive && state !== 'ready' && state !== 'failed' && n < POLL_MAX; n++) {
         await new Promise((res) => setTimeout(res, POLL_MS));
@@ -141,7 +141,12 @@ export function PrintStationery({ permissions, initialKind }: { permissions: rea
       <section aria-label="Preview" className="lims-card">
         <p role="heading" aria-level={3} className="lims-card-title">Preview</p>
         {preview.state === 'ready' ? <iframe title="A4 preview with sample data" src={`/reporting/prints/${preview.id}/pdf`} className="pcfg-preview-frame" />
-          : preview.state === 'failed' ? <p role="alert" className="lims-error">Could not prepare the preview. Your changes are not lost; edit or save as usual.</p>
+          : preview.state === 'failed' ? (
+            <div role="alert" className="lims-error">
+              <p>Could not prepare the preview. Your changes are not lost; edit or save as usual.</p>
+              {preview.requestId ? <p>{`Reference: ${preview.requestId}`}</p> : null}
+            </div>
+          )
             : canEdit ? <p className="lims-description">Preparing preview…</p> : <p className="lims-description">The preview needs the permission to change these settings.</p>}
       </section>
     </div>

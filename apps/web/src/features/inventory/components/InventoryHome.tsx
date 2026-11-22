@@ -26,7 +26,8 @@ export interface HomeProps {
   canNewPo: boolean;
   canReceive: boolean;
   rows: readonly HomeAlertRow[];
-  checklist: readonly { label: string; done: boolean }[];
+  /** failed = the probe failed (request id, '' when none): the step shows the failure, not "To do". */
+  checklist: readonly { label: string; done: boolean; failed?: string | undefined }[];
 }
 
 const OFF_COPY = 'Automatic consumption is off. Stock is not deducted for tests, QC or reruns until a manager turns it on in Settings.';
@@ -92,12 +93,23 @@ export function InventoryHome(p: HomeProps) {
         {allDone ? null : (
           <Card title="Set-up checklist">
             <Stack gap={2}>
-              {p.checklist.map((c) => (
-                <Inline key={c.label} justify="between">
-                  <span>{c.label}</span>
-                  <Chip tone={c.done ? 'success' : 'neutral'} label={c.done ? 'Done' : 'To do'} />
-                </Inline>
-              ))}
+              {p.checklist.map((c) =>
+                // T0D-FIX-9 (LD-455): a probe that failed is shown with its reference, never as a plain "To do"
+                c.failed !== undefined ? (
+                  <div key={c.label} role="alert">
+                    <Inline justify="between">
+                      <span>{c.label}</span>
+                      <Chip tone="danger" label="Could not check" />
+                    </Inline>
+                    {c.failed ? <p className="lims-description">{`Reference: ${c.failed}`}</p> : null}
+                  </div>
+                ) : (
+                  <Inline key={c.label} justify="between">
+                    <span>{c.label}</span>
+                    <Chip tone={c.done ? 'success' : 'neutral'} label={c.done ? 'Done' : 'To do'} />
+                  </Inline>
+                ),
+              )}
             </Stack>
           </Card>
         )}

@@ -117,7 +117,8 @@ export function DailyCollectionScreen({ summary, centres, centreId, day, particu
         <p className="lims-inline"><span>{D('carried_forward')}</span><strong>{noSessions || summaryError ? '—' : formatNpr(carried)}</strong></p>
       </div>
       {sessionsError ? (
-        <ErrorState title={D('load_failed')}{...(sessionsError.requestId ? { requestId: sessionsError.requestId } : {})} />
+        // T0D-FIX-9 (LD-455): a failed read is shown with its reference, never a silent dash
+        <div role="alert"><ErrorState title={D('load_failed')} {...(sessionsError.requestId ? { requestId: sessionsError.requestId } : {})} /></div>
       ) : sessions === null ? <p className="lims-description">{D('sessions_unavailable')}</p> : null}
       <div className="lims-inline">
         <TextField label={D('deposit')} name="deposit" inputMode="decimal" maxLength={17} value={deposit} isDisabled={!!blocked} onChange={(v) => { setDeposit(v); setError(undefined); }} {...(error ? { error } : {})} />

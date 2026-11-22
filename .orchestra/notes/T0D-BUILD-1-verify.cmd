@@ -1,0 +1,1 @@
+cd /d C:\LIMS-lanes\C0-0Q && "C:\Program Files\Git\bin\bash.exe" tests/billing/T0D-BUILD-1.pg.sh && pnpm --dir apps/web run build:nav && pnpm --dir apps/web exec vitest run --config src/__tests__/vitest.build1.config.ts

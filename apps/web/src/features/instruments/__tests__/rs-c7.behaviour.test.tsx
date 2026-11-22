@@ -90,7 +90,8 @@ describe('A1 SCR-05 instruments: table with header row (LD-353 template 1 LIST, 
       expect(t, code).toContain('SV-100');
       expect(t, code).toMatch(/ASTM/);
       expect(t, code).toContain('SYN-AGENT-1');
-      expect(t, code).toMatch(/\bup\b/);
+      // kit DataTable adds no trailing space per cell (old native table did), so match the Link state cell, not a word in the row text
+      expect(within(card).getAllByRole('gridcell').some((c) => c.textContent?.trim() === 'up'), code).toBe(true);
     }
     expect(within(screen.getByRole('grid', { name: /^instruments$/i })).getByRole('columnheader', { name: /link state/i })).toBeTruthy();
     // driver status stays a word, never colour only

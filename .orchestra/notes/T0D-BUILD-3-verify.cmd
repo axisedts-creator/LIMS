@@ -1,0 +1,1 @@
+pnpm --dir services/api exec vitest run src/modules/identity/__tests__/build3.access-review.test.ts src/modules/identity/__tests__/fix2.access-review-pending.test.ts && pnpm --dir apps/web exec vitest run -c src/features/admin/__tests__/vitest.t20.config.ts t20.build3-access-review t20.audit-sessions

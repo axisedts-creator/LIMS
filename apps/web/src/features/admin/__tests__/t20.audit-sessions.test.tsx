@@ -404,18 +404,8 @@ describe('AD-15 Access review (US-G1)', () => {
     await showOrThrown('access-review');
     expect(calls).toEqual([]);
   });
-  // LD-301 (T0D-WEBFIX-1): listAccessReviews/recordAccessReview are notImplemented in the API (500 common.internal), so the page says so
-  // plainly and calls nothing. The users table, review banners and the record-review dialog tests are retired until the API exists.
-  it('LD-301: a holder of identity.user.read sees a plain "not available yet" message, no error reference, no table, no Record button, and NO API call', async () => {
-    await show('access-review');
-    expect(pageText()).toMatch(/not available yet/i);
-    expect(pageText()).not.toMatch(/reference|something went wrong|could not load/i);
-    expect(screen.queryByRole('grid')).toBeNull();
-    expect(screen.queryByRole('button', { name: /record review completed|export|download|csv/i })).toBeNull();
-    expect(callsTo('GET', R)).toEqual([]);
-    expect(callsTo('POST', R)).toEqual([]);
-    expect(calls).toEqual([]);
-  });
+  // T0D-BUILD-3 (LD-447): the LD-301 "not available yet" test was retired here because the API operations are built and the screen shows the review
+  // history; the screen is pinned in t20.build3-access-review.test.tsx. Only the a11y check stays (it now renders the real screen).
   it('a11y', async () => { await show('access-review'); await axeClean(); });
 });
 

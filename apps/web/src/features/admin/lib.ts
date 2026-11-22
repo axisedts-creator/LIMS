@@ -90,6 +90,8 @@ export interface Centre { centre_id: string; code: string; name: string; branch_
 export interface UserSummary { membership_id: string; display_name: string; email_masked: string; status: 'invited' | 'active' | 'deactivated'; is_locked: boolean; roles: RoleRef[]; all_centres: boolean; centre_count: number; mfa_enrolled: boolean; last_login_at?: string; version: number }
 export interface UserDetail extends UserSummary { phone_masked?: string; branch_ids?: string[]; centre_ids?: string[]; signatory?: { display_title?: string; registration_no?: string; signature_asset_id?: string } }
 export interface SessionSummary { session_id: string; membership_id?: string; display_name?: string; state: string; aal: string; created_at: string; last_seen_at?: string; idle_expires_at?: string; absolute_expires_at?: string; client_ip_masked?: string; user_agent_family?: string; is_support: boolean }
+/** identity.yaml AccessReview (T0D-BUILD-3). */
+export interface Review { access_review_id: string; reviewed_by_membership_id: string; memberships_reviewed: number; reviewed_at: string; notes?: string }
 export interface Page<T> { data: T[]; page?: { limit?: number; next_cursor?: string } }
 
 export const STATUS_LABEL: Record<string, string> = { invited: 'Invited', active: 'Active', deactivated: 'Deactivated' };

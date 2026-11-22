@@ -156,6 +156,33 @@ export async function outstanding(tx: Tx, p: Party): Promise<string> {
     WHERE e.tenant_id = $1 AND e.party_kind = $2 AND e.party_id = $3 AND e.status <> 'held'`, [p.tenantId, p.partyKind, p.partyId])).rows[0].s;
 }
 
+/**
+ * T0D-BUILD-1 (LD-447, LD-358) listAccountSummaries: one set based read. Parties = the PARTY_SQL tables (credit_party, franchise, laboratory); the balance is the
+ * `outstanding` sum (status <> 'held') grouped per party. [CONV] user_pocket is not listed: its party is a membership OR a centre (no name column of its own) — notes/T0D-BUILD-1-left.md.
+ * Order (party_name, party_kind, party_id); the keyset cursor names a party (kind + id) and the page starts after that party's position. q is an ILIKE pattern already escaped by the service.
+ */
+export interface SummaryFilter { tenantId: string; partyKind?: string; like?: string; blockedOnly: boolean; outstandingOnly: boolean; after?: { kind: string; id: string }; limit: number }
+export async function listSummaries(tx: Tx, f: SummaryFilter): Promise<Row[]> {
+  return (await tx.query(`WITH parties AS (
+      SELECT 'credit_party'::text AS party_kind, c.credit_party_id AS party_id, c.party_display_name AS party_name, c.credit_limit_paisa::text AS credit_limit_paisa, c.is_locked
+        FROM billing.credit_accounts c WHERE c.tenant_id = $1
+      UNION ALL SELECT 'franchise', cc.id, cc.name, NULL::text, false FROM core.collection_centres cc WHERE cc.tenant_id = $1 AND cc.centre_kind = 'franchise'
+      UNION ALL SELECT 'laboratory', b.id, b.name, NULL::text, false FROM core.branches b WHERE b.tenant_id = $1
+    ), bal AS (
+      SELECT e.party_kind, e.party_id, SUM(CASE e.entry_type WHEN 'credit' THEN e.amount_paisa ELSE -e.amount_paisa END) AS s
+        FROM billing.account_ledger_entries e WHERE e.tenant_id = $1 AND e.status <> 'held' GROUP BY e.party_kind, e.party_id
+    ), r AS (
+      SELECT p.party_kind, p.party_id, p.party_name, p.credit_limit_paisa, p.is_locked, COALESCE(b.s, 0) AS s
+        FROM parties p LEFT JOIN bal b ON b.party_kind = p.party_kind AND b.party_id = p.party_id
+    )
+    SELECT r.party_kind, r.party_id, r.party_name, r.credit_limit_paisa, r.is_locked, r.s::text AS balance FROM r
+    WHERE ($2::text IS NULL OR r.party_kind = $2) AND ($3::text IS NULL OR r.party_name ILIKE $3 ESCAPE '\\')
+      AND (NOT $4::boolean OR r.is_locked) AND (NOT $5::boolean OR r.s <> 0)
+      AND ($6::text IS NULL OR (r.party_name, r.party_kind, r.party_id) > (SELECT c.party_name, c.party_kind, c.party_id FROM r c WHERE c.party_kind = $6 AND c.party_id = $7::uuid))
+    ORDER BY r.party_name, r.party_kind, r.party_id LIMIT $8`,
+  [f.tenantId, opt(f.partyKind), opt(f.like), f.blockedOnly, f.outstandingOnly, opt(f.after?.kind), opt(f.after?.id), f.limit])).rows;
+}
+
 // ---------------------------------------------------------------- T0B-FINCTRL-1 (LD-321) hold / release
 /** The tenant ledger lock of nextReceiptSeq: a hold / release and a reversal of the same entry never interleave. */
 export async function lockLedger(tx: Tx, tenantId: string): Promise<void> {

@@ -13,7 +13,7 @@ export const manifest: ModuleManifest = {
   produces: ['billing.invoice.issued.v1', 'billing.invoice.cancelled.v1', 'billing.balance.changed.v1'],
   // LD-325 (T0B-BOOTGATE-1): T0B-ACCT-2 implemented its 12 operations and removed them; no billing operation is pending.
   pendingOperations: [
-    'listAccountSummaries', // LD-358 (T0C-ACCTLIST-1): until T0B-ACCTLIST-1 writes its handler.
+    // T0D-BUILD-1 (LD-447, CR DEPLOY-AXIS-012 item 8): listAccountSummaries has its handler and left this line.
     // LD-321 / LD-325(b): T0B-FINCTRL-1 implemented the 16 T0C-FINCTRL-1 operations and removed them.
   ], // 501 operation_pending until the handler task removes the id
 };

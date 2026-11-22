@@ -35,6 +35,8 @@ const OPERATION_IDS = [
   'listDiscountReasons', 'createDiscountReason', 'updateDiscountReason', 'listPartyDiscountSlabs', 'createPartyDiscountSlab', 'updatePartyDiscountSlab',
   'deactivatePartyDiscountSlab', 'resolveDiscountSlab', 'listUserDiscountLimits', 'setUserDiscountLimit', 'listDiscountAuthorities', 'createDiscountAuthority',
   'deactivateDiscountAuthority', 'getMyDiscountPolicy', 'holdLedgerEntry', 'releaseLedgerEntry',
+  // T0D-BUILD-1 (LD-447, LD-358): left manifest.pendingOperations.
+  'listAccountSummaries',
 ] as const;
 
 export const handlers: Readonly<Record<(typeof OPERATION_IDS)[number], Handler>> = Object.freeze({
@@ -124,4 +126,5 @@ export const handlers: Readonly<Record<(typeof OPERATION_IDS)[number], Handler>>
   getMyDiscountPolicy: discountPolicyHandlers['getMyDiscountPolicy']!,
   holdLedgerEntry: accountsHandlers['holdLedgerEntry']!,
   releaseLedgerEntry: accountsHandlers['releaseLedgerEntry']!,
+  listAccountSummaries: accountsHandlers['listAccountSummaries']!,
 });

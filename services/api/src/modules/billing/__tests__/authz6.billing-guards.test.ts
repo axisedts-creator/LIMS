@@ -269,7 +269,8 @@ describe('SEC-AUTHZ-6 billing: refund, payment reverse, invoice cancel and disco
 });
 
 describe('SEC-AUTHZ-6 billing: stubs stay refusals (never a 2xx, never a read)', () => {
-  it.each(['createPaymentIntent', 'verifyPaymentIntent', 'listAccountSummaries'])('%s refuses and reads nothing', async (op) => {
+  // T0D-BUILD-1 (LD-447): listAccountSummaries is a real read handler now (guard order + no data before the guard: accounts/summaries.guard.test.ts); it leaves this stub list.
+  it.each(['createPaymentIntent', 'verifyPaymentIntent'])('%s refuses and reads nothing', async (op) => {
     const h = (handlers as Record<string, any>)[op];
     if (typeof h !== 'function') return; // no handler registered: the core stub answers
     const r = rig('user', async () => undefined);

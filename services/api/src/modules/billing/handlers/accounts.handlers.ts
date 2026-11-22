@@ -61,6 +61,8 @@ const accountsHandlersRaw: Readonly<Record<string, Handler>> = Object.freeze({
   }),
   getAccountStatement: bind(async (ctx, req) => ({ status: 200, body: await service().statement(ctx, req.query) })),
   getAccountSummary: bind(async (ctx, req) => ({ status: 200, body: await service().summary(ctx, req.query) })),
+  // T0D-BUILD-1 (LD-447, LD-358): read only list of every party's summary.
+  listAccountSummaries: bind(async (ctx, req) => ({ status: 200, body: await service().summaries(ctx, req.query) })),
 });
 
 // SEC-AUTHZ-6 (LD-189 AUTH-SENSITIVE, LD-261; SEC-AUTHZ-1.1): the contract x-permission is asked FIRST, before the wrapped handler reads or writes anything.
@@ -78,6 +80,7 @@ export const accountsHandlers: Readonly<Record<string, Handler>> = Object.freeze
   reverseAccountLedgerEntry: guarded('billing.account_entry.reverse', accountsHandlersRaw['reverseAccountLedgerEntry']!),
   getAccountStatement: guarded('billing.account.read', accountsHandlersRaw['getAccountStatement']!),
   getAccountSummary: guarded('billing.account.read', accountsHandlersRaw['getAccountSummary']!),
+  listAccountSummaries: guarded('billing.account.read', accountsHandlersRaw['listAccountSummaries']!),
   holdLedgerEntry: guarded('billing.account.manage', accountsHandlersRaw['holdLedgerEntry']!),
   releaseLedgerEntry: guarded('billing.account.manage', accountsHandlersRaw['releaseLedgerEntry']!),
 });

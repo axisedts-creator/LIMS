@@ -186,7 +186,8 @@ describe('/billing/accounts/summary', () => {
     expectHeader(container, P);
     expectFilterBars(container, P, 1);
     expect(q(container, '.lims-filter-bar .lims-filter-search input').length, `${P}: a search field in the FilterBar`).toBe(1);
-    expectTable(container, P, { min: 10, headers: ['Client Name', /^Credit Limit\b/i, /^Outstanding Amount\b/i, 'Is Blocked'] });
+    // T0D-BUILD-1 (LD-447): the summary table is now the 5 column list of build1.accountsummaries.test.tsx (name, kind, credit limit, outstanding, blocked); the 13 column party-detail layout is retired.
+    expectTable(container, P, { min: 5, headers: [/name/i, /^Credit Limit\b/i, /^Outstanding\b/i, /blocked/i] });
     expectEmptyState(container, P);
     expect(seen, 'one list read (LD-358), not one account-summary call per party').toContain('/v1/billing/account-summaries');
     expect(seen).not.toContain('/v1/billing/account-summary');

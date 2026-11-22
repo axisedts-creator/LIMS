@@ -16,6 +16,7 @@ import { getReferralIncentiveReport } from './getReferralIncentiveReport.js';
 import { getTatReport } from './getTatReport.js';
 import { getAnalyticsDashboard, getAnalyticsFreshness, requestAnalyticsRefresh } from './getAnalyticsDashboard.js';
 import { getPendingTestsSummary, listPendingTests } from './getPendingTests.js';
+import { getMisReportPage } from './getMisReportPage.js';
 import { createAnalyticsExport, downloadAnalyticsExport, getAnalyticsExport, listAnalyticsExports } from './exports.js';
 import {
   createReportSchedule, deactivateReportSchedule, getReportRun, getReportSchedule, listReportSchedules, updateReportSchedule,
@@ -28,7 +29,7 @@ const OPERATION_IDS = [
   'getAnalyticsFilterOptions', 'searchAnalyticsReferrers', 'getAnalyticsFreshness', 'requestAnalyticsRefresh',
   'createAnalyticsExport', 'listAnalyticsExports', 'getAnalyticsExport', 'downloadAnalyticsExport', 'listReportSchedules',
   'createReportSchedule', 'getReportSchedule', 'updateReportSchedule', 'deactivateReportSchedule', 'getReportRun',
-  'getCollectionsFilterOptions',
+  'getCollectionsFilterOptions', 'getMisReportPage', // T0D-BUILD-4 (LD-447)
 ] as const;
 
 export type AnalyticsOperationId = (typeof OPERATION_IDS)[number];
@@ -46,6 +47,7 @@ const implemented: Partial<Record<AnalyticsOperationId, Handler>> = {
   getPendingTestsSummary, listPendingTests,
   createAnalyticsExport, listAnalyticsExports, getAnalyticsExport, downloadAnalyticsExport,
   listReportSchedules, createReportSchedule, getReportSchedule, updateReportSchedule, deactivateReportSchedule, getReportRun,
+  getMisReportPage,
 };
 
 export const handlers: Readonly<Record<AnalyticsOperationId, Handler>> = Object.freeze(

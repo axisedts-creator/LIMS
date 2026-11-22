@@ -1,0 +1,5 @@
+# T0D-BUILD-4 dispute (writer, 2026-11-22 14:38 NPT)
+Test: services/api/src/modules/analytics/handlers/__tests__/misReportPage.handler.test.ts:155-161, `describe.each(MONEY_CODES)` > "each served page writes its own entry (page 2 too)", case **tds** only (two_level_commission passes).
+Why wrong: the fixture FACTS holds ONE tds row on 2026-11-17 (line 50). With limit 1 the first page is the last page, so `next_cursor` is absent by the brief ("next_cursor ... absent on the last page") and by the test's own fakeRun (`after + limit < rows.length`). `expect(p1.next_cursor).toBeTruthy()` can never hold for tds without breaking the paging tests.
+Fix (tester): add a second synthetic tds fact on 2026-11-17 (e.g. party p2, ord 2) — check the totals expectations that read tds still hold — or run that case on two_level_commission only.
+State: handler written (handlers/getMisReportPage.ts, registered in handlers/index.ts, uncommitted); 91/92 of the file pass. Contract, codegen, authz classification and web NOT started — stopped per the writer rule.

@@ -153,7 +153,7 @@ describe('Complete test list (item 6)', () => {
   it('keeps the first five columns and adds Short name, Category and Price (NPR, 2 decimals)', async () => {
     await show('tests');
     await screen.findByText('Hemoglobin');
-    const h = heads(screen.getByRole('table'));
+    const h = heads(screen.getByRole('grid'));
     expect(h.slice(0, 5)).toEqual(['Code', 'Name', 'Department', 'Workflow type', 'Status']);
     for (const c of ['Short name', 'Category', 'Price']) expect(h, c).toContain(c);
     const row = screen.getByText('Hemoglobin').closest('tr')!;
@@ -276,7 +276,7 @@ describe('light on low end PCs, no new heavy library (item 7)', () => {
     loadTests(...Array.from({ length: 60 }, (_, i) => testDetail(200 + i, `C${String(i + 1).padStart(3, '0')}`, `Synthetic test ${i + 1}`)));
     await show('tests');
     await screen.findByText('Synthetic test 1');
-    expect(within(screen.getByRole('table')).getAllByRole('row').length).toBeLessThanOrEqual(26);
+    expect(within(screen.getByRole('grid')).getAllByRole('row').length).toBeLessThanOrEqual(26);
   });
 });
 void HAEM; void MANAGE;

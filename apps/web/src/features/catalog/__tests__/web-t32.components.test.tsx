@@ -112,7 +112,7 @@ describe('SCR-06 Analytes tab', () => {
     const { AnalytesTab } = await load('AnalytesTab');
     wrap(<AnalytesTab testId={TEST_ID} analytes={rows} permissions={MANAGE} />);
     const body = screen.getAllByRole('row').slice(1);
-    const codes = body.map((r) => within(r).getAllByRole('cell').map((c) => c.textContent).find((t) => ['HB', 'RBC', 'MENTZER'].includes(t ?? '')));
+    const codes = body.map((r) => [...r.querySelectorAll('td')].map((c) => c.textContent) /* T0D-UIX-2: kit DataTable cells are gridcell / rowheader, not role cell */.find((t) => ['HB', 'RBC', 'MENTZER'].includes(t ?? '')));
     expect(codes).toEqual(['HB', 'RBC', 'MENTZER']);
     expect(screen.getAllByText('RBC parameters').length).toBeGreaterThan(0);
     expect(screen.getByText('Special parameters')).toBeTruthy();

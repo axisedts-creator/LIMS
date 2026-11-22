@@ -91,8 +91,8 @@ async function show() {
 }
 const newButtons = () => screen.queryAllByRole('button', { name: /^new unit$/i });
 const enabled = (b: HTMLElement) => !b.hasAttribute('disabled') && b.getAttribute('aria-disabled') !== 'true';
-const headers = () => within(screen.getByRole('table')).getAllByRole('columnheader').map((h) => h.textContent!.trim()).filter(Boolean);
-const bodyRows = () => [...screen.getByRole('table').querySelectorAll<HTMLTableRowElement>('tbody tr')];
+const headers = () => within(screen.getByRole('grid')).getAllByRole('columnheader').map((h) => h.textContent!.trim()).filter(Boolean);
+const bodyRows = () => [...screen.getByRole('grid').querySelectorAll<HTMLTableRowElement>('tbody tr')];
 const rowOf = (code: string) => bodyRows().find((r) => r.cells[0]?.textContent?.trim() === code)!;
 const noAxeViolations = async () => {
   const r = await axe.run(document.body, { rules: { 'color-contrast': { enabled: false }, region: { enabled: false } } });
@@ -135,7 +135,7 @@ describe('the page loads (root cause: value-sets was asked with is_active)', () 
   it('403 on the read shows the no-access page, not an error', async () => {
     api.use(http.get(`${ORIGIN}/v1/catalog/units`, () => prob(403, 'auth.forbidden')));
     await show();
-    expect(screen.queryByRole('table')).toBeNull();
+    expect(screen.queryByRole('grid')).toBeNull();
     expect(document.body.textContent).toMatch(/permission|access/i);
   });
 });

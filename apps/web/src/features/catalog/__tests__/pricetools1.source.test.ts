@@ -120,10 +120,13 @@ describe('T0D-PRICETOOLS-1 client components', () => {
     const t = COMPONENTS.map(read).join('\n');
     expect(t).toMatch(/type=["']date["']/);
   });
-  it('tables of the tools use the compact table class and the empty-row kit parts (headers always drawn, LD-336)', () => {
+  it('tables of the tools are kit DataTables, density regular, with an emptyState (headers always drawn, LD-336; T0D-UIX-2 / LD-442 done_when 1)', () => {
     const t = clientFiles.map(read).join('\n');
-    expect(t).toMatch(/lims-table-compact/);
-    expect(t).toMatch(/EmptyRow|PlaceholderRows/);
+    expect(t).toMatch(/<DataTable\b/);
+    expect(t).toMatch(/density="regular"/);
+    expect(t).not.toMatch(/density="compact"/);
+    expect(t).toMatch(/emptyState=/);
+    expect(t).not.toMatch(/<table\b/);
   });
   it('money is integer paisa: no parseFloat, toFixed or float division in the price tool files', () => {
     for (const f of [...serverFiles, ...clientFiles]) {

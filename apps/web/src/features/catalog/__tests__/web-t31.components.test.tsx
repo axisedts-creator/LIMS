@@ -214,7 +214,7 @@ describe('SCR-02 DepartmentsList (AC-01.1, AC-01.2, AC-01.4, AC-01.6)', () => {
 
   it('read-only with only catalog.test.read: table shown, no New / Edit buttons, no form inputs (AC permission-denied behaviour)', async () => {
     await show(DEPTS, READ);
-    expect(screen.getByRole('table')).toBeTruthy();
+    expect(screen.getByRole('grid')).toBeTruthy();
     expect(screen.queryByRole('button', { name: /new department|edit/i })).toBeNull();
     expect(screen.queryByRole('dialog')).toBeNull();
   });
@@ -818,7 +818,7 @@ describe('pages (server components via the BFF) and segment files', () => {
       api.use(http.get(`${ORIGIN}/v1/catalog/${PAGES[name].api}`, () => prob(403, 'auth.forbidden')));
       await run(name);
       expect(await screen.findByText("You don't have access to this part of the catalog")).toBeTruthy();
-      expect(screen.queryByRole('table')).toBeNull();
+      expect(screen.queryByRole('grid')).toBeNull();
       expect(screen.getAllByRole('link').length).toBeGreaterThan(0); // nav link back
     });
 

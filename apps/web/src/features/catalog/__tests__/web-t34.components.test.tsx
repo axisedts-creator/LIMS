@@ -103,7 +103,15 @@ const noAxeViolations = async () => {
   const r = await axe.run(document.body, { rules: { 'color-contrast': { enabled: false } } });
   expect(r.violations.map((v) => `${v.id}: ${v.nodes[0]?.html}`)).toEqual([]);
 };
-const rowOf = (text: string | RegExp) => screen.getByRole('row', { name: typeof text === 'string' ? new RegExp(`\\b${text}\\b`) : text });
+// T0D-UIX-2: rows of the kit DataTable (react-aria grid) have no accessible name, so they are found by their text content; exactly one row must match
+const rowOf = (text: string | RegExp) => {
+  const re = typeof text === 'string' ? new RegExp(`\\b${text}\\b`) : text;
+  const named = screen.queryAllByRole('row', { name: re });
+  if (named.length > 0) return screen.getByRole('row', { name: re }); // unchanged behaviour for rows that do have a name (raw tables, EditableGrid)
+  const hits = screen.getAllByRole('row').filter((r) => re.test(r.textContent ?? '') && r.querySelector('td'));
+  if (hits.length !== 1) throw new Error(`rowOf(${re}) matched ${hits.length} rows`);
+  return hits[0]!;
+};
 const dialog = () => screen.getByRole('dialog');
 const press = async (name: RegExp, root: HTMLElement = document.body) => userEvent.click(within(root).getAllByRole('button', { name })[0]!);
 const choose = async (root: HTMLElement, label: RegExp, option: string | RegExp) => { await userEvent.click(within(root).getByLabelText(label)); await userEvent.click(await screen.findByRole('option', { name: option })); };
@@ -144,7 +152,7 @@ describe('SCR-13 PriceListsList (AC-13.6 default list; 03-APP-FLOW §5)', () => 
 
   it('read-only (catalog.price_list.read): table only — no New / Edit controls', async () => {
     await show(LISTS, READ);
-    expect(screen.getByRole('table')).toBeTruthy();
+    expect(screen.getByRole('grid')).toBeTruthy();
     expect(screen.queryByRole('button', { name: /new price list|edit|save/i })).toBeNull();
   });
 
@@ -610,7 +618,7 @@ describe('SCR-15 PriceSimulator (AC-14.1, AB-10, REQ-SEC-046, AC-15.4)', () => {
     await show();
     await fill();
     await press(/get price/i);
-    const table = await screen.findByRole('table');
+    const table = await screen.findByRole('grid');
     for (const h of ['Orderable', 'Price list used', 'Source', 'Version', 'Unit price', 'Urgent surcharge', 'VAT', 'Other tax', 'HS code', 'Error']) expect(within(table).getByRole('columnheader', { name: new RegExp(`^${h}`, 'i') })).toBeTruthy();
     const ok = within(table).getByRole('row', { name: /CBC/ });
     expect(text(ok)).toMatch(/Hospital/i);
@@ -629,7 +637,7 @@ describe('SCR-15 PriceSimulator (AC-14.1, AB-10, REQ-SEC-046, AC-15.4)', () => {
     await show();
     await fill();
     await press(/get price/i);
-    const table = await screen.findByRole('table');
+    const table = await screen.findByRole('grid');
     expect(text(within(table).getByRole('row', { name: /CBC/ }))).toMatch(/catalog\.tax_config_missing|tax/i);
     const r = within(table).getByRole('row', { name: /FBS/ });
     expect(text(r)).toMatch(/Default/);
@@ -642,7 +650,7 @@ describe('SCR-15 PriceSimulator (AC-14.1, AB-10, REQ-SEC-046, AC-15.4)', () => {
     await show();
     await fill();
     await press(/get price/i);
-    const table = await screen.findByRole('table');
+    const table = await screen.findByRole('grid');
     const note = screen.getAllByText(DISCLAIMER).find((n) => table.compareDocumentPosition(n) & Node.DOCUMENT_POSITION_FOLLOWING);
     expect(note, 'disclaimer after the table').toBeTruthy();
   });
@@ -693,7 +701,7 @@ describe('SCR-16 SurchargeRulesScreen (AC-14.1…14.5, 03-APP-FLOW §5)', () => 
 
   it('read-only: no New rule / End rule', async () => {
     await show(RULES, READ);
-    expect(screen.getByRole('table')).toBeTruthy();
+    expect(screen.getByRole('grid')).toBeTruthy();
     expect(screen.queryByRole('button', { name: /new rule|end rule/i })).toBeNull();
   });
 

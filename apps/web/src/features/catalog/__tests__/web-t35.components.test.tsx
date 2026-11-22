@@ -127,7 +127,7 @@ describe('SCR-18 ImportsScreen', () => {
     expect(document.querySelector('input[type=file]')).toBeNull();
     expect(screen.queryByRole('button', { name: /^upload/i })).toBeNull();
     expect(screen.queryAllByRole('link', { name: /download blank template/i }).concat(screen.queryAllByRole('button', { name: /download (blank template|current data)/i }))).toHaveLength(0);
-    expect(screen.getAllByRole('table').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByRole('grid').length).toBeGreaterThanOrEqual(1);
     expect(text()).toContain('prices-q4.xlsx');
   });
 
@@ -261,11 +261,11 @@ describe('SCR-18 ImportsScreen', () => {
 
   it('History table: Started · Kind · Target · File name · Status · Errors/Warnings · By; status as text; row links to SCR-19; Kind + Status filters', async () => {
     await show({ imports: [imp(1, { status: 'committed' }), imp(2, { status: 'invalid', summary: { ...SUMMARY, errors: 3, warnings: 2 }, file_name: 'bad.xlsx' }), imp(3, { status: 'quarantined', file_name: 'evil.xlsx' }), imp(4, { kind: 'referrers', target_price_list_id: undefined, file_name: 'docs.xlsx', status: 'commit_failed' })] });
-    const table = screen.getAllByRole('table')[0]!;
+    const table = screen.getAllByRole('grid')[0]!;
     for (const h of ['Started', 'Kind', 'Target', 'File name', 'Status', 'By']) expect(within(table).getByRole('columnheader', { name: new RegExp(`^${h}`, 'i') }), h).toBeTruthy();
     expect(within(table).getByRole('columnheader', { name: /errors\s*\/\s*warnings/i })).toBeTruthy();
     for (const s of ['Committed', 'Invalid', 'Quarantined', 'Commit failed']) expect(within(table).getAllByText(s).length, s).toBeGreaterThan(0);
-    const bad = within(table).getByRole('row', { name: /bad\.xlsx/ });
+    const bad = within(table).getAllByRole('row').filter((r) => /bad\.xlsx/.test(r.textContent ?? '') && r.querySelector('td'))[0]!; // T0D-UIX-2: DataTable rows carry no accessible name
     expect(bad.textContent).toMatch(/3\D+2/);
     expect(within(bad).getByRole('link', { name: /bad\.xlsx/ }).getAttribute('href')).toBe(`/catalog/imports/${ID(2)}`);
     expect(screen.getAllByLabelText(/^kind$/i).length + screen.getAllByLabelText(/^status$/i).length).toBeGreaterThanOrEqual(2);
@@ -273,7 +273,7 @@ describe('SCR-18 ImportsScreen', () => {
 
   it('exports table: Download only when ready; queued/building rows show status text; expired shows no link', async () => {
     await show({ exports: [exp(1), exp(2, { status: 'queued', file_name: undefined }), exp(3, { status: 'expired', file_name: 'old.xlsx' })] });
-    const tables = screen.getAllByRole('table');
+    const tables = screen.getAllByRole('grid');
     const t = tables[tables.length - 1]!;
     expect(within(t).getAllByText(/^(Ready|Queued|Expired)$/i).length).toBe(3);
     const dl = [...t.querySelectorAll('a,button')].filter((e) => /^download$/i.test(e.textContent?.trim() ?? ''));
@@ -332,14 +332,15 @@ describe('SCR-19 ImportDetail', () => {
       issue(1), issue(2, { issue_code: 'row.orderable_unknown', row_no: 9, column: 'code' }),
       issue(3, { severity: 'warning', issue_code: 'row.orderable_inactive', row_no: 11, column: 'code' }), issue(4, { issue_code: 'row.some_future_code', message: 'Server fallback text.' }),
     ] });
-    const t = screen.getAllByRole('table').find((x) => within(x).queryByRole('columnheader', { name: /severity/i }))!;
+    const t = screen.getAllByRole('grid').find((x) => within(x).queryByRole('columnheader', { name: /severity/i }))!;
     for (const h of ['Severity', 'Sheet', 'Row', 'Column', 'Issue']) expect(within(t).getByRole('columnheader', { name: new RegExp(`^${h}`, 'i') }), h).toBeTruthy();
     expect(within(t).getByText('Price has more than 2 decimal places.')).toBeTruthy();
     expect(within(t).getByText('No test or panel with this code.')).toBeTruthy();
     expect(within(t).queryByText('Synthetic API text')).toBeNull();
     expect(within(t).getByText('Server fallback text.')).toBeTruthy(); // unknown code → API template text
-    expect(within(within(t).getByRole('row', { name: /No test or panel/ })).getByText(/^Error$/i)).toBeTruthy(); // severity as text
-    expect(within(within(t).getByRole('row', { name: /inactive|row\.orderable_inactive/i })).getByText(/^Warning$/i)).toBeTruthy();
+    const rowWith = (re: RegExp) => within(t).getAllByRole('row').filter((r) => re.test(r.textContent ?? '') && r.querySelector('td'))[0]!; // T0D-UIX-2: DataTable rows carry no accessible name
+    expect(within(rowWith(/No test or panel/)).getByText(/^Error$/i)).toBeTruthy(); // severity as text
+    expect(within(rowWith(/inactive|row\.orderable_inactive/i)).getByText(/^Warning$/i)).toBeTruthy();
   });
 
   it('filter Errors / Warnings narrows the issue rows', async () => {
@@ -380,7 +381,7 @@ describe('SCR-19 ImportDetail', () => {
   it('commit_failed: banner + the new issues (file.draft_exists) are shown; Commit again is possible with "Replace open drafts" (AC-16.6)', async () => {
     await show({ row: imp(1, { status: 'commit_failed', summary: { ...SUMMARY, errors: 1 } }), issues: [issue(1, { sheet: '_meta', issue_code: 'file.draft_exists', column: undefined, row_no: undefined, message: 'x' })] });
     expect(screen.getAllByText('Commit failed').length).toBeGreaterThan(0);
-    expect(screen.getAllByRole('table').some((t) => /draft/i.test(t.textContent ?? ''))).toBe(true);
+    expect(screen.getAllByRole('grid').some((t) => /draft/i.test(t.textContent ?? ''))).toBe(true);
   });
 
   it('Commit dialog fields + defaults: Effective from, Change reason (required), "Publish immediately" ON, "Replace open drafts" OFF, typed confirmation (price lists)', async () => {

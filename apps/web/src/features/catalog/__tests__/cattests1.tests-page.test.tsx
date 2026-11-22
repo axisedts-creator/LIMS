@@ -154,9 +154,10 @@ const pagerOn = (name: RegExp) => {
   const el = screen.queryByRole('link', { name }) ?? screen.queryByRole('button', { name });
   return !!el && !el.hasAttribute('disabled') && el.getAttribute('aria-disabled') !== 'true';
 };
-const bodyRows = () => [...screen.getByRole('table').querySelectorAll<HTMLTableRowElement>('tbody tr')];
+// T0D-UIX-2 (LD-442): the kit DataTable is a react-aria grid (role=grid), so the list is queried by role grid
+const bodyRows = () => [...screen.getByRole('grid').querySelectorAll<HTMLTableRowElement>('tbody tr')];
 const codes = () => bodyRows().map((r) => r.cells[0]!.textContent!.trim());
-const headers = () => within(screen.getByRole('table')).getAllByRole('columnheader').map((h) => h.textContent!.trim());
+const headers = () => within(screen.getByRole('grid')).getAllByRole('columnheader').map((h) => h.textContent!.trim());
 const newButtons = () => screen.queryAllByRole('button', { name: /new test/i });
 const enabled = (b: HTMLElement) => !b.hasAttribute('disabled') && b.getAttribute('aria-disabled') !== 'true';
 const noAxeViolations = async () => {
@@ -240,7 +241,7 @@ describe('New test button by permission', () => {
     expect(newButtons().filter(enabled)).toEqual([]);
     expect(screen.queryByRole('dialog')).toBeNull();
     expect(document.body.textContent).toMatch(/permission/i); // visible text explaining why
-    expect(screen.getByRole('table')).toBeTruthy(); // the list itself still works
+    expect(screen.getByRole('grid')).toBeTruthy(); // the list itself still works
   });
 
   it('read-only actor and zero rows: the first row says No tests yet; its New test control is not enabled', async () => {
@@ -254,7 +255,7 @@ describe('New test button by permission', () => {
   it('no catalog.test.read: no table, no New test, and the tests API is never called', async () => {
     session.permissions = [];
     await show();
-    expect(screen.queryByRole('table')).toBeNull();
+    expect(screen.queryByRole('grid')).toBeNull();
     expect(newButtons()).toEqual([]);
     expect(listCalls).toEqual([]);
   });
@@ -496,7 +497,7 @@ describe('page text is English from the message catalogue (CV §13), no raw keys
     expect(own.length).toBeGreaterThanOrEqual(8);
     expect(own.filter((k) => real(k) === k)).toEqual([]); // every key used is defined in the English catalogue
     const text = document.body.textContent ?? '';
-    expect(text).toMatch(/Tests/);
+    expect(screen.getByRole('grid', { name: t('catalog.tests.list_label') })).toBeTruthy(); // T0D-UIX-2: the caption is now the grid's accessible name (aria-label), not text content
     expect(text).not.toMatch(/[ऀ-ॿ]/); // English page: no Devanagari
   });
 });

@@ -308,6 +308,6 @@ describe('accessibility', () => {
   it('the table has a caption or accessible name', async () => {
     twoPages();
     await openLists(URLQ);
-    expect(within(document.body).getByRole('table', { name: /.+/ }) ?? null).toBeTruthy();
+    expect(within(document.body).getByRole('grid', { name: /.+/ }) ?? null).toBeTruthy();
   });
 });

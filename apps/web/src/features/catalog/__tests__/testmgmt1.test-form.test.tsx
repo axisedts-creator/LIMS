@@ -136,9 +136,9 @@ describe('live report preview (item 3)', () => {
     const prev = within(dlg).getByRole('region', { name: /report preview/i });
     expect(prev.textContent).toMatch(/sample|synthetic|demo/i);
     await userEvent.type(within(dlg).getByLabelText(/^name/i), 'Ferritin');
-    await waitFor(() => expect(within(prev).getByRole('table').textContent).toMatch(/Ferritin/));
+    await waitFor(() => expect(within(prev).getByRole('grid').textContent).toMatch(/Ferritin/));
     await userEvent.type(within(dlg).getByLabelText(/^display name/i), 'Serum ferritin');
-    await waitFor(() => expect(within(prev).getByRole('table').textContent).toMatch(/Serum ferritin/));
+    await waitFor(() => expect(within(prev).getByRole('grid').textContent).toMatch(/Serum ferritin/));
   });
 });
 

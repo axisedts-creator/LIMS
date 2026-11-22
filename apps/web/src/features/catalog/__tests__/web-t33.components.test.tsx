@@ -141,7 +141,7 @@ describe('SCR-09 PanelsList (AC-07.1, 07.2, 07.6)', () => {
 
   it('read-only (catalog.test.read): table only — no New / Edit controls', async () => {
     await show(PANELS, TEST_READ);
-    expect(screen.getByRole('table')).toBeTruthy();
+    expect(screen.getByRole('grid')).toBeTruthy();
     expect(screen.queryByRole('button', { name: /new panel|edit|save/i })).toBeNull();
   });
 

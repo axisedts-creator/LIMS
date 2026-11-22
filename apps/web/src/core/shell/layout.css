@@ -1,0 +1,43 @@
+/* T0D-UIX-5 (LD-442, LD-436, LD-437, LD-438): staff web PAGE LAYOUT. Tokens only, loaded right after shell.css.
+   Owns page padding and gaps, PageHeader, equal height cards and stat tiles, compact calm states, one-row banners.
+   Buttons, tables, tabs, fields and description lists belong to shell.css (T0D-UIX-1). !important only where shell.css uses it. */
+
+/* ---- page body (done_when 2) ---- */
+.lims-shell-main { display: flex; flex-direction: column; gap: var(--lims-space-3); min-width: 0; padding: var(--lims-space-4) !important; }
+.lims-page-header { margin: 0 0 var(--lims-space-3); }
+.lims-page-header-row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--lims-space-3); }
+.lims-page-heading { display: flex; flex-direction: column; min-width: 0; }
+.lims-page-title { margin: 0; font-size: 1rem !important; font-weight: var(--lims-font-weight-semibold); color: var(--lims-accent); }
+.lims-page-caption { margin: 0; font-size: var(--lims-font-size-xs-size); color: var(--lims-neutral-500); }
+
+/* ---- cards and stat tiles (done_when 3) ---- */
+.lims-grid { align-items: stretch; }
+.lims-grid > .lims-card { height: 100%; box-sizing: border-box; }
+.lims-stat-row { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); align-items: stretch; gap: var(--lims-space-3); }
+.lims-stat-row > .lims-stat { height: 100%; box-sizing: border-box; }
+@media (max-width: 64rem) { .lims-stat-row { grid-auto-flow: row; grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.lims-card-head { display: flex; justify-content: space-between; align-items: baseline; }
+.lims-card-title { font-size: var(--lims-font-size-base-size) !important; font-weight: var(--lims-font-weight-medium); }
+.lims-card-caption { color: var(--lims-neutral-500); font-size: var(--lims-font-size-xs-size); white-space: nowrap; }
+
+/* ---- block ErrorState and Banner: one row, 36px (done_when 5). Comes before the card/table rules so a state inside a card stays compact and centred. ---- */
+.lims-state.lims-tone-danger, .lims-state[data-tone='danger'] { display: flex; flex-direction: row; align-items: center; gap: var(--lims-space-2); height: 2.25rem; box-sizing: border-box; padding: 0 var(--lims-space-3); text-align: start; background: var(--lims-tone-danger-bg); border: 0.0625rem solid var(--lims-tone-danger-border); border-radius: var(--lims-radius-md); }
+.lims-state.lims-tone-danger .lims-state-art, .lims-state[data-tone='danger'] .lims-state-art { display: none; }
+.lims-state.lims-tone-danger > .lims-btn, .lims-state[data-tone='danger'] > .lims-btn { margin-inline-start: auto; background-color: transparent; border-width: 0; color: var(--lims-accent); }
+.lims-banner { display: flex; flex-direction: row; align-items: center; gap: var(--lims-space-2); height: 2.25rem; box-sizing: border-box; padding: 0 var(--lims-space-3); text-align: start; }
+.lims-banner.lims-tone-danger { background: var(--lims-tone-danger-bg); border: 0.0625rem solid var(--lims-tone-danger-border); }
+.lims-banner-text { display: flex; align-items: baseline; gap: var(--lims-space-2); min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.lims-banner-title { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.lims-banner .lims-btn { margin-inline-start: auto; background-color: transparent; border-width: 0; color: var(--lims-accent); }
+
+/* ---- several Not available yet cards stacked: one-row variant, 40px (done_when 4). Higher specificity than the card rules below. ---- */
+.lims-card:has(> .lims-state > .lims-state-art[data-art='not-available']) ~ .lims-card > .lims-state:has(> .lims-state-art[data-art='not-available']),
+.lims-card:has(> .lims-state > .lims-state-art[data-art='not-available']):has(~ .lims-card > .lims-state > .lims-state-art[data-art='not-available']) > .lims-state { flex-direction: row; align-items: center; justify-content: flex-start; gap: var(--lims-space-2); height: 2.5rem; box-sizing: border-box; padding-block: 0; }
+.lims-card:has(> .lims-state > .lims-state-art[data-art='not-available']) ~ .lims-card .lims-state-art[data-art='not-available'],
+.lims-card:has(> .lims-state > .lims-state-art[data-art='not-available']):has(~ .lims-card > .lims-state > .lims-state-art[data-art='not-available']) .lims-state-art[data-art='not-available'] { display: none; }
+
+/* ---- EmptyState, ErrorState, NotAvailable inside a card or a table: compact and centred (done_when 4) ---- */
+.lims-card .lims-state, .lims-data-table .lims-state, .lims-table .lims-state, td .lims-state { flex-direction: column; align-items: center; height: auto; min-height: 0; padding: var(--lims-space-6) var(--lims-space-4); text-align: center; }
+.lims-card .lims-state .lims-state-art, .lims-data-table .lims-state .lims-state-art, .lims-table .lims-state .lims-state-art, td .lims-state .lims-state-art { display: block; width: var(--lims-space-10); height: var(--lims-space-10); }
+.lims-card .lims-state-title, .lims-card .lims-state-body, .lims-data-table .lims-state-title, .lims-data-table .lims-state-body, .lims-table .lims-state-title, .lims-table .lims-state-body, td .lims-state-title, td .lims-state-body { max-width: 100%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.lims-card .lims-state > .lims-btn, .lims-data-table .lims-state > .lims-btn, .lims-table .lims-state > .lims-btn, td .lims-state > .lims-btn { margin-inline-start: 0; }

@@ -3,4 +3,4 @@
 - [CONV] Every DataTable has one isRowHeader column. ListTable: 403/404/501 to emptyState, else error; rows undefined = isLoading. StatusBoard toggles: kit Button + ref for aria-pressed. PendingPage: kit Switch.
 - Round 2 (after tester revision): QueueScreen bulk-select keys (§3.8) restored: Space / Shift+ArrowDown read in onKeyDownCapture above the grid (react-aria cells eat them), box onFocus stops propagation so the row does not take focus back. c5-t21 35/35.
 - Tests now: uix3 11/11; green: adminpage-lab-1, c5-t18/20/21/23/33, lab-t10/11/26/27/29/30, verlevel1, uiscan1, uiconsole1 (259), uiconsole2 (133), uidash1 (95). tsc: no lab errors.
-- Red: lab-t25.qc:140 (contradicts uilist1:158), uilist1 4 pre-existing pins, rs-c5 3 snapshots (regen per ruling 4). See T0D-UIX-3-dispute.md.
+- Round 3 (ruling 2 point 2b): IngestExceptionList adds an Instrument column (IdText of instrument_id). Green: uilist1 76/76, uix3 11/11, lab-t25 37/37. Red: uiconsole1.lab:146/:227 pin the old 5 headers (2 tests); rs-c5 snapshots wait for the reviewer. See T0D-UIX-3-dispute.md.

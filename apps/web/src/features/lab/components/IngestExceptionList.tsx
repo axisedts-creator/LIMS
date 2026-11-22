@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
 import { FilterBar, type FilterValue } from '@lims/ui/components/FilterBar';
+import { IdText } from '@lims/ui/components/IdText';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { SplitConsole } from '@lims/ui/components/SplitConsole';
 import { StatTile, StatTileRow } from '@lims/ui/components/StatTile';
@@ -18,7 +19,7 @@ import { Facts, History, OpenBar, OpenKey, hhmm, oldest, useNow, when } from './
 
 export interface IngestExceptionListProps { items: readonly IngestException[]; permissions?: readonly string[]; status?: string; nextCursor?: string }
 
-const HEADERS = ['Age', 'Barcode', 'Reason', 'Instrument code', 'Status'];
+const HEADERS = ['Age', 'Barcode', 'Reason', 'Instrument code', 'Instrument', 'Status'];
 const href = (id: string) => `/lab/ingest-exceptions/${encodeURIComponent(id)}`;
 const reasonText = (r: string) => REASON_TEXT[r] ?? r;
 
@@ -47,7 +48,9 @@ export function IngestExceptionList({ items, status = 'open', nextCursor }: Inge
     { id: 'barcode', header: HEADERS[1]!, isRowHeader: true, cell: (e) => <Link href={href(e.id)}>{e.sample_barcode ?? 'No barcode'}</Link> },
     { id: 'reason', header: HEADERS[2]!, cell: (e) => reasonText(e.reason) },
     { id: 'code', header: HEADERS[3]!, cell: (e) => e.instrument_analyte_code ?? '' },
-    { id: 'status', header: HEADERS[4]!, cell: (e) => e.status },
+    // T0D-UIX-3 ruling round 2 point 2b (04-UI-UX §3.10 "C7 name or IdText"): display only, from the existing instrument_id.
+    { id: 'instrument', header: HEADERS[4]!, cell: (e) => (e.instrument_id ? <IdText value={e.instrument_id} /> : '') },
+    { id: 'status', header: HEADERS[5]!, cell: (e) => e.status },
   ];
   const list = (
     <DataTable caption={title} columns={columns} rows={items} getRowId={(e) => e.id} emptyState={{ title: `No ${status} instrument exceptions.` }}

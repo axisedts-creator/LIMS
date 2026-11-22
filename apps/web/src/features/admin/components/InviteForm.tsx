@@ -4,7 +4,8 @@ import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@lims/ui/components/Button';
 import { inviteUser } from '../actions';
-import { E164_RE, EMAIL_RE, codesOf, isHubLabPermission, type Branch, type Centre, type Role } from '../lib';
+import { useToast } from '@lims/ui/components/Toast';
+import { E164_RE, EMAIL_RE, INVITE_LINK_COPY, codesOf, isHubLabPermission, type Branch, type Centre, type Role } from '../lib';
 import { ErrorSummary, Field, Picker, focusFirstInvalid, useFailure } from '../ui';
 import { CentreScope, type Scope } from './CentreScope';
 
@@ -12,6 +13,7 @@ const IDS = { email: 'inv-email', name: 'inv-name', phone: 'inv-phone', roles: '
 
 export function InviteForm({ roles, centres, branches }: { roles: Role[]; centres: Centre[]; branches: Branch[] }) {
   const router = useRouter();
+  const toast = useToast();
   const form = useRef<HTMLFormElement>(null);
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
@@ -42,7 +44,8 @@ export function InviteForm({ roles, centres, branches }: { roles: Role[]; centre
       ...(!scope.all ? { centre_ids: scope.centres } : {}), ...(scope.branches.length ? { branch_ids: scope.branches } : {}),
     });
     setBusy(false);
-    if (r.ok) router.push('/admin/users');
+    // T0D-FIX-10 (LD-455, D-219): the success message says how long the emailed link works (INVITE_LINK_COPY), then back to the list.
+    if (r.ok) { toast.show({ tone: 'success', title: 'Invitation sent.', description: INVITE_LINK_COPY }); router.push('/admin/users'); }
     else failure.set(r);
   };
 

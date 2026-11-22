@@ -13,7 +13,7 @@ import { useToast } from '@lims/ui/components/Toast';
 import { revokeSession, setUserCentreScope, setUserRoles, updateUser, uploadUserSignature, userAction, userHistory, type UserOp } from '../actions';
 import { Badge, Grid, Time } from '../Grid';
 import { Alert, Field, Picker, Tabs, useFailure } from '../ui';
-import { E164_RE, SESSION_WARNING, STATUS_LABEL, codesOf, copyFor, fmt, isHubLabPermission, qs, type Branch, type Centre, type Role, type SessionSummary, type UserDetail } from '../lib';
+import { E164_RE, INVITE_LINK_COPY, RESEND_DIALOG, SESSION_WARNING, STATUS_LABEL, codesOf, copyFor, fmt, isHubLabPermission, qs, type Branch, type Centre, type Role, type SessionSummary, type UserDetail } from '../lib';
 import { CentreScope, type Scope } from './CentreScope';
 import { SessionsGrid } from './SessionsGrid';
 
@@ -60,6 +60,8 @@ export function UserDetailView({ user: initial, perms, roles, centres, branches,
       <PageHeader title={user.display_name} helpKey="admin.user-detail"
         status={<><Badge text={STATUS_LABEL[user.status] ?? user.status} />{user.is_locked ? <> <Badge text="Locked" /></> : null}</>}
         {...(items.length ? { actions: <Menu trigger={<Button>Actions</Button>} items={items} onAction={(k) => setDialog(k as UserOp)} /> } : {})} />
+      {/* T0D-FIX-10 (LD-455, D-219): the emailed link lives about INVITE_LINK_MINUTES, not the invitation record expires_at */}
+      {user.status === 'invited' ? <p className="lims-description">{INVITE_LINK_COPY}</p> : null}
       <Tabs items={tabs} selected={tab} onChange={setTab} label="User sections">
         {tab === 'Profile' ? <ProfileTab user={user} manage={manage} onSaved={applied} /> : null}
         {tab === 'Roles' ? <RolesTab user={user} roles={roles} manage={manage} onSaved={applied} /> : null}
@@ -88,7 +90,7 @@ function ActionDialogs({ op, user, onClose, onDone }: { op: UserOp | null; user:
   const simple: Partial<Record<UserOp, { title: string; body: string; label: string; msg: string }>> = {
     unlock: { title: 'Unlock user?', body: 'The user can log in again.', label: 'Unlock', msg: 'User unlocked.' },
     reactivate: { title: 'Reactivate user?', body: 'The user regains access with their current roles.', label: 'Reactivate', msg: 'User reactivated.' },
-    'resend-invitation': { title: 'Resend invitation?', body: 'A new invitation email is sent; the old link stops working.', label: 'Resend', msg: 'Invitation sent.' },
+    'resend-invitation': RESEND_DIALOG, // T0D-FIX-10: one dialog shared with the /admin/users row action
     'revoke-sessions': { title: 'Log out all sessions?', body: 'The user is logged out on every device.', label: 'Log out all', msg: 'Sessions logged out.' },
   };
   const s = op ? simple[op] : undefined;

@@ -37,6 +37,7 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
       {r.ok ? (
         <UsersTable
           rows={r.data.data}
+          canManage={perms.has('identity.user.manage')}
           {...(r.data.page?.next_cursor ? { moreHref: `/admin/users${qs({ ...f, cursor: r.data.page.next_cursor })}` } : {})}
         />
       ) : (

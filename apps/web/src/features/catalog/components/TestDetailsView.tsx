@@ -124,7 +124,7 @@ export function TestDetailsView({ tests, selected, permissions }: { tests: reado
         {/* LD-442 (T0D-UIX-2): kit DataTable; a click or Enter on a row opens that test (consoleSelection marks it aria-selected). */}
         <DataTable
           caption="Tests"
-          density="compact"
+          density="regular"
           columns={TEST_COLS}
           rows={paged}
           getRowId={(t) => t.id}
@@ -169,7 +169,7 @@ export function TestDetailsView({ tests, selected, permissions }: { tests: reado
         >
           <DataTable
             caption={selected ? `Parameters of ${selected.name}` : 'Parameters'}
-            density="compact"
+            density="regular"
             columns={PARAM_COLS}
             rows={params}
             getRowId={(a) => a.id}

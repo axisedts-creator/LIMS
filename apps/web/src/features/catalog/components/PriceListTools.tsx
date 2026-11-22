@@ -173,7 +173,7 @@ export function UploadAndCheck({ priceList, manage, tpl, sectionRef }: {
       <DescriptionList columns={3} items={counts.map(([l, v]) => ({ term: l, value: v ?? '—' }))} />
       <DataTable<ErrRow>
         caption={t('catalog.price_tools.errors.caption')}
-        density="compact"
+        density="regular"
         rows={errors.map((e, i) => ({ ...e, i }))}
         getRowId={(e) => String(e.i)}
         virtualize={false}
@@ -221,7 +221,7 @@ export function ImportHistory({ priceListId, history }: { priceListId: string; h
         // T0D-UIX-2 (LD-442): kit DataTable
         <DataTable<PriceImportBatch>
           caption={t('catalog.price_tools.history.title')}
-          density="compact"
+          density="regular"
           rows={history}
           getRowId={(b) => b.id}
           emptyState={{ title: t('catalog.price_tools.history.empty') }}

@@ -132,7 +132,7 @@ export function ReportPreview({ title, rows }: { title?: string | undefined; row
       <DescriptionList columns={2} items={PREVIEW_HEADER} />
       <DataTable
         caption="Report preview"
-        density="compact"
+        density="regular"
         columns={PREVIEW_COLS}
         rows={all}
         getRowId={(r) => String(all.indexOf(r))}

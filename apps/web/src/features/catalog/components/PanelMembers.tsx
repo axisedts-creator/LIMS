@@ -58,7 +58,7 @@ export function MembersEditor({ members, info, onAdd, onRemove, canEdit, keepOne
       {/* T0D-UIX-2 (LD-442): the kit DataTable, compact; order = row order */}
       <DataTable<PanelMember>
         caption={`Members (${members.length})`}
-        density="compact"
+        density="regular"
         rows={members}
         getRowId={(m) => m.orderable_id}
         emptyState={{ title: 'No members.' }}

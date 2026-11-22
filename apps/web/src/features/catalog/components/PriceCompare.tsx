@@ -53,6 +53,7 @@ export function PriceCompare({ lists, a, b, state, rows: first, next: firstNext,
   const [fail, setFail] = useState(firstFail);
   const [busy, setBusy] = useState(false);
   const inflight = useRef(false);
+  const doneAt = useRef(0);
   const options = versionOptions(lists);
 
   const go = (va: string | undefined, vb: string | undefined) =>
@@ -78,7 +79,8 @@ export function PriceCompare({ lists, a, b, state, rows: first, next: firstNext,
     return acc;
   };
   const guarded = (f: () => Promise<void>) => async () => {
-    if (inflight.current) return;
+    // [CONV] as PriceListTools: a press while one runs, or within 500 ms after one ends (the second half of a double click), is ignored.
+    if (inflight.current || Date.now() - doneAt.current < 500) return;
     inflight.current = true;
     setBusy(true);
     setFail(undefined);
@@ -86,6 +88,7 @@ export function PriceCompare({ lists, a, b, state, rows: first, next: firstNext,
       await f();
     } finally {
       inflight.current = false;
+      doneAt.current = Date.now();
       setBusy(false);
     }
   };
@@ -117,7 +120,7 @@ export function PriceCompare({ lists, a, b, state, rows: first, next: firstNext,
       {/* T0D-UIX-2 (LD-442): kit DataTable; every loaded row is drawn (print) */}
       <DataTable<PriceComparisonRow>
         caption={k('caption')}
-        density="compact"
+        density="regular"
         rows={rows}
         getRowId={(r) => r.orderable_id}
         virtualize={false}

@@ -139,7 +139,7 @@ export function BulkUpdateDialog({ versionId, rows, departments, onClose }: {
         <p aria-hidden="true">{k('bulk.preview')}</p>
         <DataTable<BulkRow & { next: number }>
           caption={k('bulk.preview')}
-          density="compact"
+          density="regular"
           rows={plan.changed.slice(0, PREVIEW_MAX)}
           getRowId={(r) => r.id}
           emptyState={{ title: emptyText }}

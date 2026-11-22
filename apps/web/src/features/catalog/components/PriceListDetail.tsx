@@ -177,13 +177,15 @@ function Assignments({ priceList, ownerLabels, manage, canCentres }: { priceList
   const [fail, setFail] = useState<Fail>();
   const [busy, setBusy] = useState(false);
   const inflight = useRef(false);
+  const doneAt = useRef(0);
   const dirty = ids.length !== original.length || ids.some((id, i) => id !== original[i]);
   const full = ids.length >= MAX_ASSIGNMENTS;
   const badRange = !!from && !!to && to <= from;
   const k = kind as Exclude<PriceOwnerKind, 'default'>;
 
   const save = async () => {
-    if (inflight.current || badRange) return;
+    // [CONV] as PriceListTools: a press while one runs, or within 500 ms after one ends (the second half of a double click), is ignored.
+    if (inflight.current || badRange || Date.now() - doneAt.current < 500) return;
     inflight.current = true;
     setBusy(true);
     setFail(undefined);
@@ -195,6 +197,7 @@ function Assignments({ priceList, ownerLabels, manage, canCentres }: { priceList
       else setFail(r);
     } finally {
       inflight.current = false;
+      doneAt.current = Date.now();
       setBusy(false);
     }
   };
@@ -232,7 +235,7 @@ function Assignments({ priceList, ownerLabels, manage, canCentres }: { priceList
       {/* T0D-UIX-2 (LD-442): kit DataTable */}
       <DataTable<string>
         caption={`Assigned (${ids.length})`}
-        density="compact"
+        density="regular"
         rows={ids}
         getRowId={(id) => id}
         emptyState={{ title: t('catalog.price_tools.assign.empty') }}

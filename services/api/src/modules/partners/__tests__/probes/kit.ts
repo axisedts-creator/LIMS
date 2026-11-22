@@ -22,7 +22,8 @@ export const PARTNER_OPS = ALL.filter((o) => !o.staff);
 export const STAFF_OPS = ALL.filter((o) => o.staff);
 /** Operations that still have no owning task in 06-IMPLEMENTATION-PLAN (settings SA11/SA12): stubs that must fail closed. Move out of this list when implemented. */
 // T0B-MSGDESK-1 (T0C-MSGDESK-1 ruling item 4): the 10 ticket ids have real handlers now, so they are removed from this list and the ST1-ST4 / not-found probes cover them.
-export const UNOWNED_STUBS = ['getPartnerSettings', 'updatePartnerSettings'];
+// T0D-BUILD-2 (LD-447): getPartnerSettings and updatePartnerSettings are built now, so they leave this list and join the ST1-ST4 / not-found matrices (settings/settings.test.ts pins their behaviour).
+export const UNOWNED_STUBS: string[] = [];
 
 const UUID = '01940e00-0000-7000-8000-c13220000001';
 /** a path-param-complete request whose ids exist nowhere */

@@ -63,6 +63,7 @@ async function listView(sp: Sp, permissions: readonly string[]) {
     department_id: idOf(one(sp, 'department_id')),
     specimen_type_id: idOf(one(sp, 'specimen_type_id')),
     is_active: status === 'true' || status === 'false' ? status : '',
+    ...(one(sp, 'retired') === '1' ? { retired: '1' as const } : {}),
   };
   const manage = permissions.includes(MANAGE);
   const openNew = manage && one(sp, 'new') === '1';
@@ -83,6 +84,9 @@ async function listView(sp: Sp, permissions: readonly string[]) {
   const needle = filters.q.toLowerCase();
   let rows = needle ? all.filter((x) => x.code.toLowerCase().includes(needle) || x.name.toLowerCase().includes(needle)) : all;
   if (filters.specimen_type_id) rows = await testsWithSpecimen(rows, filters.specimen_type_id);
+  // T0D-FIX-4 (LD-446, CR DEPLOY-AXIS-012 item 7c): no Status filter = active only; the Show retired switch (retired=1) adds the retired ones.
+  const retiredCount = rows.filter((x) => !x.is_active).length;
+  if (!filters.is_active && !filters.retired) rows = rows.filter((x) => x.is_active);
 
   const pages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
   const askedPage = /^\d{1,5}$/.test(one(sp, 'page')) ? Number(one(sp, 'page')) : 1;
@@ -99,6 +103,7 @@ async function listView(sp: Sp, permissions: readonly string[]) {
     <Notes missing={missing} />
     <TestsList
       rows={shown}
+      retiredCount={retiredCount}
       filters={filters}
       page={page}
       pages={pages}

@@ -1,6 +1,6 @@
-# T0D-UIX-3 tests (tester)
-- apps/web/src/features/lab/__tests__/uix3.markup.test.ts: greps non-test lab .tsx for raw `<table`, `<dl`, `<button` (comments skipped); exceptions map is empty (no native file input, EditableGrid internals live in packages/ui).
-- Also asserts: DataTable / DescriptionList / Button imported from @lims/ui; the 14 former table files, 4 dl files and 3 button files use the kit tag; notes/T0D-UIX-3-screens.md exists; no CSS file under features/lab.
-- apps/web/src/features/lab/__tests__/vitest.uix3.config.ts: test-only config (node env).
-- Run: `.orchestra\notes\T0D-UIX-3-verify.cmd` (pnpm --dir apps/web exec vitest run --config src/features/lab/__tests__/vitest.uix3.config.ts).
-- Expected now: raw-tag tests, kit-usage tests and screens.md test FAIL (raw tags remain, notes missing); finds-files and exceptions tests pass.
+# T0D-UIX-3 tests (tester), revised per T0D-UIX-3-ruling.md
+- apps/web/src/features/lab/__tests__/uix3.markup.test.ts: greps non-test lab .tsx for raw `<table`, `<dl`, `<button`; exceptions map empty. PendingPage now accepts kit `<Switch` (ruling 1). Run: `.orchestra\notes\T0D-UIX-3-verify.cmd` (11/11 green).
+- Ruling 2 (role table/cell -> grid/gridcell, data rows exclude header and EmptyState row): verlevel1.queues/.settings, c5-t21.queues, lab-t25.holds/.qc, lab-t26.worklists, lab-t27.board, lab-t30.detail, adminpage-lab-1.critical-values, rs-c5.behaviour. Same idea in uidash1.lab (Switch is input[type=checkbox][role=switch]) and uiconsole1.lab (DescriptionList text has no spaces, no \b).
+- Ruling 3 (Tab into grid, then arrows): adminpage-lab-1.worklists, adminpage-lab-1.critical-values, rs-c5.behaviour. Ruling 4: rs-c5.screens.test.tsx.snap regenerated with -u; diff read: only table/dl markup, kit classes, react-aria ids, no text or data change. Reviewer to confirm.
+- Run each lab config: `pnpm --dir apps/web exec vitest run --config src/features/lab/__tests__/vitest.<name>.config.ts`; uiconsole1/2, uidash1, uilist1 use src/__tests__/vitest.<name>.config.ts.
+- STILL RED, not in the ruling, need a lead decision (see T0D-UIX-3-tester-open.md): c5-t21.queues keyboard Space; uiconsole2.queues j/k; lab-t25.qc "failing list shows alert"; uilist1.lab 4 tests (filters 0 / min 5-6 pins).

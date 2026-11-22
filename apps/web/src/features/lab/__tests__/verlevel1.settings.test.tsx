@@ -229,7 +229,7 @@ describe('Verification levels tab — form (levels, flags, scope)', () => {
     deptReply = () => problem(403, 'auth.forbidden', 'You do not have permission');
     testReply = () => problem(403, 'auth.forbidden', 'You do not have permission');
     await open();
-    const t = screen.getByRole('table');
+    const t = screen.getByRole('grid');
     expect(overrideRows(t)).toHaveLength(2);
     expect(t.textContent).toContain(D_BIO.slice(0, 8));
   });
@@ -286,7 +286,7 @@ describe('Verification levels tab — read only mode (REQ-SEC-062: the API still
     expect(disabled(enterer())).toBe(true);
     expect(screen.queryByRole('button', { name: /save policy/i })).toBeNull();
     expect(ops('put')).toHaveLength(0);
-    expect(overrideRows(screen.getByRole('table'))).toHaveLength(2);
+    expect(overrideRows(screen.getByRole('grid'))).toHaveLength(2);
   });
 
   it('lab.config.manage alone does NOT make the policy editable', async () => {
@@ -310,7 +310,7 @@ describe('Verification levels tab — table of overrides (T0D-EMPTYTBL-1 rule)',
 
   it('lists the department and test overrides (not the lab policy) with scope, resolved name, level, Yes/No flags and the update time', async () => {
     await open();
-    const t = screen.getByRole('table');
+    const t = screen.getByRole('grid');
     expect(heads(t)).toEqual(expect.arrayContaining(HEADERS));
     const [dept, test] = overrideRows(t);
     expect(overrideRows(t)).toHaveLength(2);
@@ -327,7 +327,7 @@ describe('Verification levels tab — table of overrides (T0D-EMPTYTBL-1 rule)',
   it('empty overrides: the column names still show, one message row inside the table, four inert placeholder rows below it', async () => {
     listReply = () => HttpResponse.json({ data: [LAB] });
     await open();
-    const t = screen.getByRole('table');
+    const t = screen.getByRole('grid');
     expect(heads(t)).toEqual(expect.arrayContaining(HEADERS));
     expect(overrideRows(t)).toHaveLength(1); // the message row
     expect(overrideRows(t)[0]!.textContent).toMatch(/no overrides|no policies|nothing set/i);
@@ -342,7 +342,7 @@ describe('Verification levels tab — table of overrides (T0D-EMPTYTBL-1 rule)',
   it('an inactive override is not listed (deactivated policies no longer apply)', async () => {
     listReply = () => HttpResponse.json({ data: [LAB, { ...DEPT, active: false }, TEST] });
     await open();
-    const rows = overrideRows(screen.getByRole('table'));
+    const rows = overrideRows(screen.getByRole('grid'));
     expect(rows).toHaveLength(1);
     expect(rows[0]!.textContent).toContain('Creatinine');
   });

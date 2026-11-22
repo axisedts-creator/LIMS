@@ -151,7 +151,7 @@ describe('10-DESIGN-SYSTEM s4 — worklist: table with a right panel for result 
 
   it('the table stays; the right panel (complementary "Result entry") is present and empty until a row is chosen', async () => {
     await showWorklist();
-    await screen.findByRole('table', { name: /worklist/i });
+    await screen.findByRole('grid', { name: /worklist/i }); // Ruling T0D-UIX-3: kit DataTable is a grid
     expect(screen.getAllByRole('row').length).toBe(3); // header + 2 samples
     const panel = screen.getByRole('complementary', { name: /result entry/i });
     expect(panel.textContent).toContain('Select a sample to enter results');
@@ -174,7 +174,11 @@ describe('10-DESIGN-SYSTEM s4 — worklist: table with a right panel for result 
     await showWorklist();
     const user = userEvent.setup({ delay: null });
     const btn = await rowButton();
-    for (let i = 0; i < 40 && document.activeElement !== btn; i++) await user.tab();
+    // Ruling T0D-UIX-3 (04-UI-UX:35 DataTable keyboard row navigation): Tab enters the grid once, then the arrow keys reach the row button.
+    const grid = screen.getByRole('grid', { name: /worklist/i });
+    for (let i = 0; i < 40 && !grid.contains(document.activeElement); i++) await user.tab();
+    expect(grid.contains(document.activeElement), 'Tab reaches the grid').toBe(true);
+    for (let i = 0; i < 40 && document.activeElement !== btn; i++) await user.keyboard('{ArrowRight}');
     expect(document.activeElement).toBe(btn);
     await user.keyboard('{Enter}');
     const panel = screen.getByRole('complementary', { name: /result entry/i });

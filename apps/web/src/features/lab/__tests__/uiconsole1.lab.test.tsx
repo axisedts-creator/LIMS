@@ -84,7 +84,7 @@ describe('/lab/critical-values detail, History, bar and security', () => {
     const d = pickItem(container, CV(2));
     const text = norm(d.textContent);
     expect(text).toMatch(/critical high/i);
-    expect(text).toMatch(/\bopen\b/i);
+    expect(text).toMatch(/status\s*open/i); // the kit DescriptionList joins term and value, and value and next term, without a space in textContent (no \b)
     expect(text).toContain('16 Nov 2026');
     expect(text).toMatch(/time to acknowledge/i);
     expect(historyLabels(d)).toEqual(['Detected']);

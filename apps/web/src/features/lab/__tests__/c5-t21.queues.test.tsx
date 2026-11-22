@@ -88,8 +88,9 @@ afterAll(() => api.close());
 // (just "Verify (V)" at 0), "Return for repeat (R)" and "Hold (H)". A registration with a flag cannot be ticked; it is opened and acted on from its detail. Every assertion of the
 // old flat table is kept and asked of the console markup.
 const wrap = (ui: ReactNode) => render(<ToastProvider>{ui}</ToastProvider>);
-const queueTable = () => screen.getByRole('table', { name: /queue/i });
-const resultsTable = () => screen.getByRole('table', { name: 'Results' });
+// Ruling T0D-UIX-3: the kit DataTable (DONE WHEN 1) is a react-aria grid, so the tables are queried by role grid.
+const queueTable = () => screen.getByRole('grid', { name: /queue/i });
+const resultsTable = () => screen.getByRole('grid', { name: 'Results' });
 const rowOf = (reg: string) => {
   const r = within(queueTable()).getAllByRole('row').find((x) => x.textContent?.includes(reg));
   if (!r) throw new Error(`no row for ${reg}`);

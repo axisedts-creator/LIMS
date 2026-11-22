@@ -65,9 +65,10 @@ describe('T0D-UIX-3 lab screens: no raw table / dl / button in non-test .tsx', (
     expect(missing).toEqual([]);
   });
 
-  it('former raw-button screens now render Button or IconButton (QueueScreen, StatusBoard, PendingPage)', () => {
+  it('former raw-button screens now render Button, IconButton or (PendingPage) the kit Switch (QueueScreen, StatusBoard, PendingPage)', () => {
+    // Ruling T0D-UIX-3: PendingPage's old raw button was role="switch" aria-checked; the kit Switch keeps that role, a Button would drop aria-checked.
     const files = ['components/QueueScreen.tsx', 'components/StatusBoard.tsx', 'components/pending/PendingPage.tsx'];
-    const missing = files.filter((f) => !/<(Icon)?Button\b/.test(read(join(LAB, f))));
+    const missing = files.filter((f) => !/<(Icon)?Button\b|<Switch\b/.test(read(join(LAB, f))));
     expect(missing).toEqual([]);
   });
 

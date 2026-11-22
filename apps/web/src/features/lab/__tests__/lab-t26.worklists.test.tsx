@@ -93,6 +93,8 @@ const openPending = async () => { const PendingPage = (await load('pending', 'Pe
 const openSheet = async () => { const WorksheetPrintPage = (await load('worksheets', 'WorksheetPrintPage')).WorksheetPrintPage!; return render(<ToastProvider><WorksheetPrintPage worksheetId={WS} /></ToastProvider>); };
 const openSheets = async () => { const WorksheetListPage = (await load('worksheets', 'WorksheetListPage')).WorksheetListPage!; return render(<ToastProvider><WorksheetListPage permissions={['lab.worklist.read']} /></ToastProvider>); };
 const rowsOf = () => screen.getAllByRole('row').slice(1);
+// Ruling T0D-UIX-3: the kit DataTable keeps its header row when empty and shows the EmptyState / ErrorState in one body row; data rows are the rows that are neither.
+const dataRows = () => screen.queryAllByRole('row').filter((r) => r.querySelector('[role="columnheader"]') === null && r.querySelector('.lims-state') === null);
 
 describe('AC-07.1 — worklist of one department, urgent first with "★ Urgent" text', () => {
   it('asks #18 for the department only (default sort / status: no overrides) and lists the rows in the order the API gave them; barcode, reg no, patient, test shown', async () => {
@@ -162,7 +164,7 @@ describe('AC-07.5 — no access / failure states', () => {
     await openWorklist();
     expect(await screen.findByText("You don't have access to this screen.")).toBeTruthy();
     expect(screen.queryByRole('button', { name: /retry/i })).toBeNull();
-    expect(screen.queryAllByRole('row')).toHaveLength(0);
+    expect(dataRows()).toHaveLength(0);
   });
   it('500 from #18: ErrorState "Something went wrong" with the request_id and Retry', async () => {
     worklistReply = () => problem('common.internal', 500);
@@ -314,14 +316,14 @@ describe('AC-07.4 — worksheets list (#21): title, created at, row count, link 
     sheetsReply = () => page([]);
     await openSheets();
     expect(await screen.findByText(/No worksheets/i)).toBeTruthy();
-    expect(screen.queryAllByRole('row').length).toBeLessThanOrEqual(1);                   // header row at most
+    expect(dataRows()).toHaveLength(0);                                                   // header row and the EmptyState row only
   });
   it('403 from #21: "You don\'t have access to this screen." without Retry and no row data', async () => {
     sheetsReply = () => problem('auth.forbidden', 403);
     await openSheets();
     expect(await screen.findByText("You don't have access to this screen.")).toBeTruthy();
     expect(screen.queryByRole('button', { name: /retry/i })).toBeNull();
-    expect(screen.queryAllByRole('row')).toHaveLength(0);
+    expect(dataRows()).toHaveLength(0);
   });
   it('500 from #21: ErrorState "Something went wrong" with the request_id and Retry', async () => {
     sheetsReply = () => problem('common.internal', 500);
@@ -372,7 +374,7 @@ describe('AC-07.4 / §3.15 — worksheet print view: a snapshot, rendered from #
     expect(heads.some((h) => /Remarks/.test(h))).toBe(true);
     const resultIdx = heads.findIndex((h) => /^Result$/.test(h.trim())), remarksIdx = heads.findIndex((h) => /^Remarks$/.test(h.trim()));
     for (const r of rows) {
-      const cells = within(r).getAllByRole('cell');
+      const cells = [...r.querySelectorAll<HTMLElement>('[role="gridcell"], [role="rowheader"]')]; // kit DataTable: the first column is the row header
       expect((cells[resultIdx]?.textContent ?? '').trim()).toBe('');
       expect((cells[remarksIdx]?.textContent ?? '').trim()).toBe('');
     }

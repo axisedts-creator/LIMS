@@ -91,7 +91,7 @@ describe('QC holds tab — #45 (listQcHolds)', () => {
   it('lists the active holds: instrument + analyte (first 8 chars), Status "Active", held at; columns as specified', async () => {
     await open();
     await holdsTab();
-    await screen.findByRole('table');
+    await screen.findByRole('grid');
     expect(screen.getAllByRole('columnheader').map((h) => h.textContent?.trim())).toEqual(['Instrument', 'Analyte', 'Status', 'Held at', 'Released at', 'Comment']);
     const rows = rowsOf();
     expect(rows).toHaveLength(2);
@@ -101,7 +101,7 @@ describe('QC holds tab — #45 (listQcHolds)', () => {
   it('the Status select switches to released holds (GET ?status=released): released_at, comment and "Released" text; no Release button on released rows', async () => {
     await open();
     const user = await holdsTab();
-    await screen.findByRole('table');
+    await screen.findByRole('grid');
     await user.selectOptions(screen.getByLabelText(/^status/i), 'Released');
     await waitFor(() => expect(holdGets().at(-1)!.url.searchParams.get('status')).toBe('released'));
     await waitFor(() => expect(within(rowsOf()[0]!).getByText(REL.instrument_id.slice(0, 8))).toBeTruthy());
@@ -130,19 +130,19 @@ describe('Release a hold — #46 (S-16)', () => {
   it('only holders of lab.qc_hold.release see "Release", one per ACTIVE row', async () => {
     await open(NO_RELEASE);
     await holdsTab();
-    await screen.findByRole('table');
+    await screen.findByRole('grid');
     expect(screen.queryAllByRole('button', { name: /^release/i })).toHaveLength(0);
     cleanup();
     await open(MANAGE);
     await holdsTab();
-    await screen.findByRole('table');
+    await screen.findByRole('grid');
     expect(screen.getAllByRole('button', { name: /^release/i })).toHaveLength(2);
   });
 
   it('Release -> dialog -> comment -> POST /v1/lab/qc-holds/{id}/release with body exactly { comment }; closes and reloads the list', async () => {
     await open();
     const user = await holdsTab();
-    await screen.findByRole('table');
+    await screen.findByRole('grid');
     await user.click(within(rowsOf()[0]!).getByRole('button', { name: /^release/i }));
     const dlg = await screen.findByRole('dialog');
     const box = within(dlg).getByLabelText(/comment/i) as HTMLTextAreaElement;
@@ -165,7 +165,7 @@ describe('Release a hold — #46 (S-16)', () => {
   it('an empty comment sends nothing and shows an alert (the API requires 1..500 characters)', async () => {
     await open();
     const user = await holdsTab();
-    await screen.findByRole('table');
+    await screen.findByRole('grid');
     await user.click(within(rowsOf()[0]!).getByRole('button', { name: /^release/i }));
     const dlg = await screen.findByRole('dialog');
     await user.click(within(dlg).getByRole('button', { name: /release hold/i }));
@@ -177,7 +177,7 @@ describe('Release a hold — #46 (S-16)', () => {
     releaseReply = () => HttpResponse.json({ ...HOLD1, status: 'released' });
     await open();
     const user = await holdsTab();
-    await screen.findByRole('table');
+    await screen.findByRole('grid');
     await user.click(within(rowsOf()[0]!).getByRole('button', { name: /^release/i }));
     const dlg = await screen.findByRole('dialog');
     await user.type(within(dlg).getByLabelText(/comment/i), 'once');
@@ -194,7 +194,7 @@ describe('Release a hold — #46 (S-16)', () => {
     releaseReply = () => problem(status as number, code as string, title as string);
     await open();
     const user = await holdsTab();
-    await screen.findByRole('table');
+    await screen.findByRole('grid');
     await user.click(within(rowsOf()[0]!).getByRole('button', { name: /^release/i }));
     const dlg = await screen.findByRole('dialog');
     await user.type(within(dlg).getByLabelText(/comment/i), 'try');
@@ -207,7 +207,7 @@ describe('Release a hold — #46 (S-16)', () => {
     releaseReply = () => problem(403, 'auth.mfa_required', 'Multi-factor authentication required');
     await open();
     const user = await holdsTab();
-    await screen.findByRole('table');
+    await screen.findByRole('grid');
     await user.click(within(rowsOf()[0]!).getByRole('button', { name: /^release/i }));
     const dlg = await screen.findByRole('dialog');
     await user.type(within(dlg).getByLabelText(/comment/i), 'try');
@@ -218,7 +218,7 @@ describe('Release a hold — #46 (S-16)', () => {
   it('has no axe violations (tab + release dialog)', async () => {
     await open();
     const user = await holdsTab();
-    await screen.findByRole('table');
+    await screen.findByRole('grid');
     await user.click(within(rowsOf()[0]!).getByRole('button', { name: /^release/i }));
     await screen.findByRole('dialog');
     const res = await axe.run(document.body, { rules: { 'color-contrast': { enabled: false } } });

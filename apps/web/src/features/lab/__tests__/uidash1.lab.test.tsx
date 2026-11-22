@@ -158,7 +158,8 @@ describe('/lab/pending (template 5 REPORT)', () => {
     expect(filterBars(container)).toHaveLength(1);
     const sw = within(filterBars(container)[0] as HTMLElement).getByRole('switch', { name: /over target only/i });
     expect(sw).toBeTruthy();
-    expect(container.querySelector('input[type="checkbox"]'), 'no bare checkbox is left').toBeNull();
+    // Ruling T0D-UIX-3: the kit Switch is an input[type=checkbox] with role=switch; a checkbox without that role is the bare one.
+    expect(container.querySelector('input[type="checkbox"]:not([role="switch"])'), 'no bare checkbox is left').toBeNull();
     expect(headerCells(container).length).toBeGreaterThanOrEqual(6);
     expect(headerCells(container)).toEqual(expect.arrayContaining(['Reg no', 'Patient', 'Test', 'Status', 'Priority', 'TAT target']));
   });

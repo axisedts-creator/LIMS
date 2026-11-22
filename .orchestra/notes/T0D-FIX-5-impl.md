@@ -1,0 +1,8 @@
+# T0D-FIX-5 impl (writer)
+Files: payments/handlers/index.ts (wires 17 real ops: intents list/get/codes/cancel-reasons, refunds list/get, recon runs list/get, findings list/resolve, static QR list/preview/create, merchant list, settings get/update, result page), payments/index.ts (config + handlers from handlers/index.ts, one load), payments/config.ts (LD-449 b message), apps/web payments/settings/page.tsx (Not configured panel), infra/compose/lims/compose.app.yml (one shared uat in x-core-env, web aliases it), notes/T0D-FIX-5-left.md.
+[CONV] config is loaded once in handlers/index.ts (index.ts re-exports it): an import cycle index <-> handlers would leave config in TDZ.
+[CONV] unwired deps (adapters, jobs, events) are fail-closed stubs (gateway_not_available / service_unavailable); no wired op reaches them.
+[CONV] If-Match absent -> undefined handed to the service (it decides 428 vs first-save), malformed -> 400.
+Left (notes/T0D-FIX-5-left.md): 16 ops that move money, call a provider or store credentials stay 503 (LD-310 exclusions; no jobs/adapters runtime).
+Checks: verify.cmd set green (API 130, web 13); payments unit + authz6 1004/1005 (manifest PHASE_STUBS test fails, core phase-stubs, not touched); web pg-t18 89, pg-t19 224, rs-c15 41 green; api tsc 0 errors.
+Open: payments integration suites (merchant/recon/staticqr service-direct, ctx without IdentityPort -> auth.unauthenticated) fail 200 tests; services not edited, base run not compared (git writes needed approval). Boot error cannot name the service (no input).

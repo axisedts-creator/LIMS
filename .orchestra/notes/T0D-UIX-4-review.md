@@ -1,9 +1,7 @@
-CHANGES
+APPROVE
 
-Range `1d482f59e..HEAD` (152bed252 reviewer note, aed85074c writer review fixes): notes plus three regenerated snapshots, no source change.
-Clean: earlier items 1, 2 and 4 are fixed (screens.md and left.md exist; apps/web/uix4-after.txt and vitest.tmp-uix4.config.ts are gone). No route, permission, contract, API, CSS or tokens change. No PHI, no secrets. Only owned paths.
-LD-443 snapshot check (reviewer, read-only): I stripped tags and attributes from the rs-c2, rs-c4 and rs-c7 `.snap` files at 1d482f59e and at HEAD and compared the text word by word. The result is 0 differences in all three, so the diff is markup only and the -u regeneration is valid.
-Runs (12:27 to 12:33 NPT, per-task configs): uix4 9/9, rs-c2 74/74, rs-c4 32/37, rs-c7 33/35.
-Not from this task: rs-c4.static has 5 failures, all ADDITIONS by other merged tasks (billing discounts files, permission codes, routes). rs-c7.static:101 fails on an extra `instruments.nav.settings`, which comes from nav.manifest.ts:10 and InstrumentSettingsForm.tsx:127 (neither is a task file).
-
-1. `apps/web/src/features/instruments/__tests__/rs-c7.behaviour.test.tsx:93` is red BECAUSE OF this task, and `.orchestra/notes/T0D-UIX-4-left.md:2` wrongly lists it as "not from this task". The old native table added a trailing `{' '}` to every cell. The kit DataTable does not, so the row text is now `...Genericup07/11/2026...` and `/\bup\b/` cannot match. The data is still there (the Link state cell renders `up`). The test pins the old markup, which LD-442 and done_when (6) allow the tester to change. Fix (tester): at :93 replace `expect(t, code).toMatch(/\bup\b/);` with `expect(within(card).getAllByRole('gridcell').some((c) => c.textContent?.trim() === 'up'), code).toBe(true);`. Fix (writer): in left.md:2, move this item out of "not from this task" and note "tester change, pins old cell spacing".
+Range `1d482f59e..HEAD`; new since last review: d0c28268f (tester) and 6e13b9a2d (writer).
+Item 1 fixed: rs-c7.behaviour.test.tsx:93 now asserts a gridcell with text `up`, exactly as asked (pins old cell spacing only, data still asserted). left.md moves it to "From this task (tester change done)"; impl.md checks updated.
+LD-443 snapshot check from the prior review stands (rs-c2, rs-c4, rs-c7 diffs are markup only, 0 word differences). No snapshot changed since.
+No route, permission, contract, API, CSS or tokens change. No PHI, no secrets. Only owned paths.
+Runs (12:36 NPT, per-task configs): uix4 9/9; rs-c7 34/35. The only red is rs-c7.static:101 (`instruments.nav.settings` from nav.manifest.ts:10 and InstrumentSettingsForm.tsx:127, not task files). rs-c4.static's 5 baseline reds were already shown in the prior review to come from other merged tasks.

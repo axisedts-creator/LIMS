@@ -1,5 +1,5 @@
 // C12.T-09 request validation for #30-#39 (contracts/openapi/inventory.yaml; 02-TRD §5.2). Strict like items.schemas.ts: unknown key -> 400, runs before any DB access.
-// Query values arrive typed (numbers, booleans); a csv (#35 movement_kind) is a string.
+// Query values arrive typed (numbers, booleans); a csv (#35 movement_kind) is an array (validator) or a comma string.
 import { isValidYmd } from '../domain/ymd.js';
 import { isUuid } from '../repository/_base.js';
 import { bool, CATEGORIES, int, oneOf, parse, pat, posDec, text, type Obj, type Rule } from './items.schemas.js';
@@ -15,7 +15,12 @@ const pageOf = (o: Obj): PageQuery => ({ ...(o['cursor'] === undefined ? {} : { 
 const MOVEMENT_KINDS = ['receive', 'opening_balance', 'supplier_return', 'issue', 'return_to_store', 'transfer_out', 'transfer_in', 'consume_test', 'consume_analyte', 'consume_rerun', 'consume_qc',
   'consume_calibration', 'consume_fixed', 'consume_reversal', 'wastage', 'expiry_writeoff', 'adjust_in', 'adjust_out', 'count_adjust_in', 'count_adjust_out'];
 const DOC_TYPES = ['goods_receipt', 'stock_document', 'transfer', 'stock_count', 'consumption_fact'];
-const csvOf = (allowed: readonly string[]): Rule => (v) => typeof v === 'string' && v.length <= 400 && v.split(',').every((k) => allowed.includes(k));
+// T0D-FIX-9 (LD-455): the contract declares movement_kind as array (form, explode false); the request validator hands over an ARRAY, direct callers a comma string. Both are accepted.
+const listOf = (v: unknown): string[] | undefined => (Array.isArray(v) ? v : typeof v === 'string' && v.length <= 400 ? v.split(',') : undefined);
+const csvOf = (allowed: readonly string[]): Rule => (v) => {
+  const l = listOf(v);
+  return !!l && l.length >= 1 && l.length <= 20 && l.every((k) => typeof k === 'string' && allowed.includes(k));
+};
 const only = <T extends Obj>(o: Obj, keys: readonly string[]): T => Object.fromEntries(keys.filter((k) => o[k] !== undefined).map((k) => [k, o[k]])) as T;
 
 export interface LotListQuery extends PageQuery { item_id: string; status?: string; expiring_before?: string }
@@ -51,7 +56,7 @@ export function parseMovementQuery(query: unknown): MovementQuery {
     instrument_id: isUuid, attributed_test_id: isUuid, sort: oneOf('-occurred_at'), cursor, limit,
   });
   return { ...pageOf(o), ...only<Obj>(o, ['store_id', 'item_id', 'lot_id', 'occurred_at_from', 'occurred_at_to', 'doc_type', 'doc_id', 'instrument_id', 'attributed_test_id']),
-    ...(o['movement_kind'] === undefined ? {} : { movement_kind: (o['movement_kind'] as string).split(',') }) } as MovementQuery;
+    ...(o['movement_kind'] === undefined ? {} : { movement_kind: listOf(o['movement_kind'])! }) } as MovementQuery;
 }
 
 export interface FefoQuery { store_id: string; item_id: string; qty_base: string }

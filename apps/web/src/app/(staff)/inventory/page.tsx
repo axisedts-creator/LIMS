@@ -5,7 +5,7 @@ import { PermissionDenied } from '@/core/errors/PermissionDenied';
 import { pendingOr } from '@/core/shell/NotAvailable';
 import { getShellSession } from '@/core/session/server';
 import { InventoryHome, type HomeAlertRow } from '@/features/inventory/components/InventoryHome';
-import { FORBIDDEN, getItem, getSettings, guarded, listAlerts, listBindings, listItems, listOpeningMovements, listRules, listStores, listUnresolvedFacts, lotsByItems, soft } from '@/features/inventory/server/read.server';
+import { FORBIDDEN, getItem, getSettings, guarded, listAlerts, listBindings, listItems, listOpeningMovements, listRules, listStores, listUnresolvedFacts, lotsByItems, soft, softOr } from '@/features/inventory/server/read.server';
 import type { Alert, AlertKind, Binding, ItemSummary, Page, Store } from '@/features/inventory/server/types';
 
 const NEWEST = 10;
@@ -20,7 +20,7 @@ async function checklist(consumptionOn: boolean) {
     soft(() => listItems({ isActive: 'true', limit: 1 }), empty<ItemSummary>()),
     soft(() => listRules({ limit: 1 }), empty<{ id: string }>()),
     soft(listBindings, empty<Binding>()),
-    soft(listOpeningMovements, empty<{ id: string }>()),
+    softOr(listOpeningMovements, empty<{ id: string }>()), // T0D-FIX-9 (LD-455): a failed probe is shown, not a silent "To do"
   ]);
   const first = items.data[0];
   const packs = first ? await soft(async () => ((await getItem(first.id)).packs?.length ?? 0) > 0, false) : false;
@@ -30,7 +30,7 @@ async function checklist(consumptionOn: boolean) {
     { label: 'Packs', done: packs },
     { label: 'Rules', done: rules.data.length > 0 },
     { label: 'Analyser bindings', done: bindings.data.length > 0 },
-    { label: 'Opening balances', done: opening.data.length > 0 },
+    { label: 'Opening balances', done: opening.value.data.length > 0, failed: opening.failed },
     { label: 'Consumption switched on', done: consumptionOn },
   ];
 }

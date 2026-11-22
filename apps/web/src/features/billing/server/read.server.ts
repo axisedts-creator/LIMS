@@ -44,7 +44,8 @@ export const getMyCashSession = () => serverFetch<CashSession>('/v1/billing/cash
   if (e instanceof ApiError && e.status === 404) return null; // no open shift
   throw e;
 });
-export const getDailyCash = (q: { date?: string; centreId?: string; actorMembershipId?: string } = {}) => serverFetch<DailyCash>(`/v1/billing/daily-cash${qs({ date: q.date, centre_id: q.centreId, actor_membership_id: q.actorMembershipId }, { date: ISO_DATE_RE, centre_id: UUID_RE, actor_membership_id: UUID_RE })}`);
+export const getDailyCash = (q: { date?: string; centreId?: string; actorMembershipId?: string } = {}) => // T0D-FIX-9 (LD-455): the contract names are business_date and collected_by_membership_id (was date / actor_membership_id -> 400 on the live tenant).
+  serverFetch<DailyCash>(`/v1/billing/daily-cash${qs({ business_date: q.date, centre_id: q.centreId, collected_by_membership_id: q.actorMembershipId }, { business_date: ISO_DATE_RE, centre_id: UUID_RE, collected_by_membership_id: UUID_RE })}`);
 export const listCreditParties = (f: { cursor?: string; limit?: number } = {}) => serverFetch<Page<CreditParty>>(`/v1/billing/credit-parties${qs({ cursor: f.cursor, limit: limitOf(f.limit) })}`);
 export const getCreditParty = (partyId: string) => serverFetch<CreditParty>(`/v1/billing/credit-parties/${id(partyId)}`);
 export const listCreditCharges = (partyId: string) => serverFetch<Page<Charge>>(`/v1/billing/credit-parties/${id(partyId)}/charges`);

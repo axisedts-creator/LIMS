@@ -2,7 +2,7 @@
 // Type-only + constants: safe to import from client components (no server-only, no secrets).
 export const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export interface Page<T> { data: T[]; page: { limit: number; next_cursor?: string } }
-export type ActionResult<T> = { ok: true; data: T } | { ok: false; status: number; code: string; extra?: Record<string, unknown> };
+export type ActionResult<T> = { ok: true; data: T } | { ok: false; status: number; code: string; requestId?: string; extra?: Record<string, unknown> };
 export interface Centre { id: string; name: string }
 export interface CodedOption { code: string; display: string; sort_order?: number }
 

@@ -29,6 +29,25 @@ async function assertBilling(c: PrintProfileCtx): Promise<void> {
   if (typeof idp?.assertRole !== 'function') throw new LimsError('common.internal');   // fail closed
   await idp.assertRole(c, { permission: BILLING_PERMISSION });
 }
+/**
+ * T0D-FIX-9 (LD-455): the real request context (core/pipeline buildCtx) carries no centre, so the old `c.centreId ?? c.actor.centreId` threw common.internal on every live call.
+ * [CONV] the preview job's centre: an explicit ctx centre, else the caller's first scoped centre (IdentityPort.getActor().centreScope, as patient.service), else for an
+ * all-centres caller the tenant's first active centre (RLS print_jobs__insert__tenant_centre admits it). No centre at all -> typed 4xx, never 500.
+ */
+async function previewCentre(c: PrintProfileCtx): Promise<string> {
+  const own = c.centreId ?? c.actor.centreId;
+  if (typeof own === 'string' && own !== '') return own;
+  const idp = c.ports?.['IdentityPort'];
+  if (typeof idp?.getActor !== 'function') throw new LimsError('common.internal');   // fail closed: wiring fault
+  const s = (await idp.getActor(c))?.centreScope as { all?: boolean; centreIds?: readonly string[] } | undefined;
+  const first = s?.centreIds?.find((x) => typeof x === 'string' && UUID.test(x));
+  if (first) return first;
+  if (s?.all !== true) throw new LimsError('auth.forbidden');   // no centre in scope: the caller may not create a centre-scoped print job
+  const { rows } = await c.tx.query('SELECT id FROM core.collection_centres WHERE tenant_id = $1 AND is_active ORDER BY id LIMIT 1', [c.tenantId]);
+  const id = (rows as Array<{ id?: unknown }>)[0]?.id;
+  if (typeof id !== 'string') throw new LimsError('common.not_found');   // tenant has no active centre yet
+  return id;
+}
 const isForbidden = (e: unknown) => (e as { code?: string })?.code === 'auth.forbidden';
 
 export function toPrintProfile(r: Record<string, any>) {
@@ -80,8 +99,7 @@ export function createPrintProfileService(deps: PrintProfileDeps = {}) {
       const id = uuidv7(); const now = Date.parse(typeof c.now === 'function' ? c.now() : new Date().toISOString());
       const expiresAt = new Date(now + TTL_MS).toISOString();
       // like previewReportTemplate: the pollable reporting.print_jobs row needs the caller's working centre (RLS print_jobs__insert__tenant_centre); none -> fail closed
-      const centreId = c.centreId ?? c.actor.centreId;
-      if (typeof centreId !== 'string' || centreId === '') throw new LimsError('common.internal');
+      const centreId = await previewCentre(c);
       await printRepo.insertPrint(c.tx, { id, tenantId: c.tenantId, centreId, kind: 'template_preview', versionIds: [], excludedIds: [], templateVersionId: null, variant: 'plain', copies: 1,
         draftWatermark: false, state: 'rendering', expiresAt, actorId: c.actor.id });
       // the draft profile travels in the job payload (validated above); the worker renders it over the renderer's synthetic sample (render.ts template-preview).

@@ -14,7 +14,8 @@ async function run<T>(f: () => Promise<T>): Promise<ActionResult<T>> {
   } catch (e) {
     if (e instanceof ApiError) {
       const { balance_due_paisa, release_basis } = e.problem as unknown as Record<string, unknown>;
-      return { ok: false, status: e.status, code: e.problem.code, ...(balance_due_paisa !== undefined || release_basis !== undefined ? { extra: { balance_due_paisa, release_basis } } : {}) };
+      // T0D-FIX-9 (LD-455): the request id travels so a failure can be shown with its reference
+      return { ok: false, status: e.status, code: e.problem.code, ...(e.problem.request_id ? { requestId: e.problem.request_id } : {}), ...(balance_due_paisa !== undefined || release_basis !== undefined ? { extra: { balance_due_paisa, release_basis } } : {}) };
     }
     throw e;
   }

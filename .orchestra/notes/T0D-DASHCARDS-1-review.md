@@ -1,0 +1,16 @@
+CHANGES
+
+1. services/api/src/modules/analytics/service/dashboard.service.ts:452-455 (CASH_SQL) + :480 — cash_in_drawer_paisa is always 0 in production.
+   `billing.cash_sessions.expected` is NULL while a session is open: insertCashSession (billing/repository/cashSessions.repo.ts:25-38) does not set it, and only closeCashSession (cashSessions.repo.ts:52) writes it. CASH_SQL keeps only `status = 'open'` rows and sums their stored `expected`, so it sums nothing. The tile shows "Rs. 0.00" for every real tenant, which is a wrong figure, not an honest empty state.
+   getDailyCash cannot be reused as is: for an open session, cashSessionDto (billing/service/ledgerDto.ts:69) also reads the stored `expected`, so its open-session rows are empty. The only live expected is cash.service `expectedOf` (cash.service.ts:49), and getDailyCash does not expose it.
+   Fix, per done_when 2 ("If a source cannot be reused as is, write notes/T0D-DASHCARDS-1-left.md and keep that tile on Not available yet"):
+   - Stop emitting cash_in_drawer_paisa: remove CASH_SQL, the `cashTimezone` arg, and the `holds('billing.cash_report.read')` / tenantTimezone lookup in handlers/getAnalyticsDashboard.ts:410-415,424.
+   - Keep the optional contract field, so the change stays additive. The web cell already falls back to "Not available yet" when the field is absent.
+   - Add an item to notes/T0D-DASHCARDS-1-left.md: the open session's expected is not stored, and getDailyCash has no live expected. Needs a CR, either to expose live expected (expectedOf) through a port or through getDailyCash, or to add a running expected column.
+   - Do NOT switch to expectedOf yourself. The ruling requires the figure to equal getDailyCash, and expectedOf does not.
+
+2. services/api/src/modules/analytics/__tests__/dashcards1.live.test.ts:64-68 — the fixture inserts an OPEN session with `expected` set (`$8::jsonb` whatever the status). The app never produces that state, so the equality test passed on data that cannot exist and hid item 1.
+   Fix (tester): insert open sessions with `expected = NULL` and `counted = NULL`, as insertCashSession does. Then assert the tile is omitted, or that the tile and getDailyCash both lack the figure, matching the fix in item 1. Update dashcards1.handler.test.ts, dashboard.handler.test.ts:365,374 and the web dashcards1 cash tile expectations to match (cash tile = "Not available yet").
+
+Checked, no defect: names verbatim (billing.account.read = listAccountSummaries x-permission, billing.cash_report.read = getDailyCash x-permission; field names as in the brief). Contract change is additive and optional, with the description updated and the generated clients consistent. outstanding_paisa SQL mirrors accounts.repo listSummaries (same parties, status <> 'held', |balance|; inner JOIN = LEFT JOIN COALESCE 0 for the sum). Both tiles are omitted, not 403, and the source is not read without the permission. Explicit tenant predicate; centre filter cast `::uuid[]`. Read only. No PHI or secrets. Charts gated on net_sales_paisa (LD-353); stale state + refresh (no second Alt+R); dates DD/MM/YYYY; money via MoneyText. Gaps for dept counts and series "billed" are recorded in the left note.
+Note (non-blocking): the diff touches 21 non-note files, against the brief's budget of "at most 14 files in all".

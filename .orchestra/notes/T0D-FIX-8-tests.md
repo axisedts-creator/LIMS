@@ -1,0 +1,5 @@
+T0D-FIX-8 tests (tester). No implementation touched, no snapshots touched.
+- NEW services/api/src/modules/analytics/handlers/__tests__/misReportPage.minrepeat.test.ts: all 11 report codes with dates + validator defaults (min_repeat_count=2, limit=50) -> 200; min_repeat_count dropped before filters reach runMisReport for the 9 non-taking codes (any value: 1, 1001, 7, 'abc'); bill_of_the_day as the web sends it; repeated_patient/repeated_test accept 2, 5, 1000 and reject 1, 1001, 0, -1, 2.5, 'two' (400 common.validation_failed); limit default audit; permission-first check.
+- Existing misReportPage.handler.test.ts is included in verify.cmd as the regression guard.
+- Run: .orchestra\notes\T0D-FIX-8-verify.cmd (from lane root), or `pnpm --dir services/api exec vitest run src/modules/analytics/handlers/__tests__/misReportPage.minrepeat.test.ts`.
+- Audit (analytics only): min_repeat_count is the only shared-list default rejected per report; limit=50 default is accepted everywhere (guard test). Nothing outside analytics found, so no T0D-FIX-8-left.md.

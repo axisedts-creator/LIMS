@@ -293,9 +293,12 @@ export function QueueScreen({ mode, items, permissions, onStepUp, currentUserId,
       return (
         <>
           <input type="checkbox" aria-label={`Select ${g.no}`} data-queue-tick={g.no} checked={tickable(g) && ticked.has(g.no)} disabled={!tickable(g)} {...(!tickable(g) ? { title: !canAct ? c.denied : dim ? MINE : 'Flagged: open it and review each result' } : {})} onChange={(e) => toggleTick(g.no, e.target.checked)} onFocus={(e) => e.stopPropagation()} />{' '}
-          <Button variant="ghost" size="sm" ref={domAttrs({ 'data-console-item': g.no })} onPress={() => setSelNo(g.no)}>
-            <span ref={domAttrs({ 'aria-selected': String(selNo === g.no), 'data-selected': selNo === g.no ? 'true' : undefined, 'aria-disabled': dim ? 'true' : undefined, style: dim ? 'opacity: 0.55' : undefined }, true)}>{g.no}</span>
-          </Button>
+          {/* T0D-UIX-3 review: same for the item button, so SplitConsole j / k keep the focus they move */}
+          <span onFocus={(e) => e.stopPropagation()}>
+            <Button variant="ghost" size="sm" ref={domAttrs({ 'data-console-item': g.no })} onPress={() => setSelNo(g.no)}>
+              <span ref={domAttrs({ 'aria-selected': String(selNo === g.no), 'data-selected': selNo === g.no ? 'true' : undefined, 'aria-disabled': dim ? 'true' : undefined, style: dim ? 'opacity: 0.55' : undefined }, true)}>{g.no}</span>
+            </Button>
+          </span>
         </>
       );
     } },

@@ -5,5 +5,5 @@ Files (10): kit BarChart.tsx (opt-in `formatValue`, hidden data table class lims
 [CONV] analytics report-page wraps loadOr so 4xx (not only 5xx) is inline on hub, report tabs, collections, referral; feature_disabled stays the calm EmptyState "This report is switched off for your lab.".
 [CONV] Daily cash: the collections table sits in a Card titled "Collections by staff and method" (the test reads the visible text; DataTable caption is aria-label only).
 Also: core/i18n/messages.ts key billing.daily_summary.load_failed (acct2 no-literal rule); rs-c8.screens snapshot regenerated (hidden chart table class only). fix11 27/27 green.
-OPEN (tester/lead): 6 existing tests contradict done_when 1/3/4 — see notes/T0D-FIX-11-dispute.md. Pre-existing reds untouched: an-t18.states x2, an-t18.page "Tests by department".
+RE-RUN after ruling (no source change needed): fix11 config 113/113 green (incl. re-pinned an-t20/lab-t27/uidash1/bl-t20); build4 29/29, misreports1 141/141, uireport2.mis 7/7. Still red, not this task: an-t18.states x2 + an-t18.page "Tests by department" (pre-existing), rs-c8.static (lead re-baseline, see left.md), printcfg1 signatories + invoice "print history" (screens not touched; base not re-run).
 OPEN: packages/ui suite has pre-existing unrelated reds (fonts/flutter assets, density row 40 vs 28 px, no-raw-style scan); not touched here.

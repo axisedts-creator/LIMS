@@ -3,12 +3,12 @@
    Buttons, tables, tabs, fields and description lists belong to shell.css (T0D-UIX-1). !important only where shell.css uses it. */
 
 /* ---- page body (done_when 2) ---- */
-.lims-shell-main { display: flex; flex-direction: column; gap: var(--lims-space-3); min-width: 0; padding: var(--lims-space-4) !important; }
+.lims-shell-main { display: flex; flex-direction: column; gap: var(--lims-space-3); min-width: 0; padding: var(--lims-space-4) !important; background: var(--lims-neutral-50); }
 .lims-page-header { margin: 0 0 var(--lims-space-3); }
 .lims-page-header-row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--lims-space-3); }
 .lims-page-heading { display: flex; flex-direction: column; min-width: 0; }
-.lims-page-title { margin: 0; font-size: 1rem !important; font-weight: var(--lims-font-weight-semibold); color: var(--lims-accent); }
-.lims-page-caption { margin: 0; font-size: var(--lims-font-size-xs-size); color: var(--lims-neutral-500); }
+.lims-page-title { margin: 0; font-size: 1rem !important; font-weight: var(--lims-font-weight-semibold); color: var(--lims-accent); letter-spacing: -0.015em; }
+.lims-page-caption { margin: 0; font-size: var(--lims-font-size-xs-size); color: var(--lims-neutral-500); letter-spacing: 0.01em; }
 
 /* ---- cards and stat tiles (done_when 3) ---- */
 .lims-grid { align-items: stretch; }
@@ -17,8 +17,17 @@
 .lims-stat-row > .lims-stat { height: 100%; box-sizing: border-box; }
 @media (max-width: 64rem) { .lims-stat-row { grid-auto-flow: row; grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .lims-card-head { display: flex; justify-content: space-between; align-items: baseline; }
-.lims-card-title { font-size: var(--lims-font-size-base-size) !important; font-weight: var(--lims-font-weight-medium); }
+.lims-card-title { font-size: var(--lims-font-size-base-size) !important; font-weight: var(--lims-font-weight-semibold); color: var(--lims-neutral-900); }
 .lims-card-caption { color: var(--lims-neutral-500); font-size: var(--lims-font-size-xs-size); white-space: nowrap; }
+
+/* ---- Axis Hub pack style: Stat tiles ---- */
+.lims-stat { display: flex; flex-direction: column; gap: var(--lims-space-1); padding: var(--lims-space-3); border: 0.0625rem solid var(--lims-neutral-200); border-radius: var(--lims-radius-md); background: var(--lims-neutral-0); box-shadow: var(--lims-elevation-1); }
+.lims-stat-label, .lims-stat-title { font-size: var(--lims-font-size-xs-size); color: var(--lims-neutral-500); font-weight: var(--lims-font-weight-medium); letter-spacing: 0.04em; text-transform: uppercase; }
+.lims-stat-value { font-size: var(--lims-font-size-xl-size); font-weight: var(--lims-font-weight-semibold); color: var(--lims-neutral-900); font-variant-numeric: tabular-nums; letter-spacing: -0.015em; }
+.lims-stat-delta { border-radius: var(--lims-radius-full); font-size: var(--lims-font-size-xs-size); font-weight: var(--lims-font-weight-medium); padding: 0.0625rem var(--lims-space-2); font-variant-numeric: tabular-nums; }
+
+/* ---- Axis Hub pack style: Status chips and pills ---- */
+.lims-chip { border-radius: var(--lims-radius-full); font-variant-numeric: tabular-nums; letter-spacing: 0.02em; }
 
 /* ---- block ErrorState and Banner: one row, 36px (done_when 5). Comes before the card/table rules so a state inside a card stays compact and centred. ---- */
 .lims-state.lims-tone-danger, .lims-state[data-tone='danger'] { display: flex; flex-direction: row; align-items: center; gap: var(--lims-space-2); height: 2.25rem; box-sizing: border-box; padding: 0 var(--lims-space-3); text-align: start; background: var(--lims-tone-danger-bg); border: 0.0625rem solid var(--lims-tone-danger-border); border-radius: var(--lims-radius-md); }

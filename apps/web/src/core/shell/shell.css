@@ -250,17 +250,17 @@ body { margin: 0; }
 .lims-rail-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .lims-rail-user { padding: var(--lims-space-2) var(--lims-space-3) !important; font-size: var(--lims-font-size-sm-size) !important; }
 .lims-rail-user-role { font-size: var(--lims-font-size-xs-size) !important; }
-.lims-shell-top { min-height: 2.75rem !important; padding-inline: var(--lims-space-3) !important; }
+.lims-shell-top { min-height: 2.75rem; padding-inline: var(--lims-space-3) !important; background: var(--lims-neutral-0) !important; border-bottom: 0.0625rem solid var(--lims-neutral-200) !important; box-shadow: var(--lims-elevation-1) !important; }
 .lims-topbar-bell, .lims-topbar-bell:disabled { display: inline-grid !important; grid-auto-flow: row !important; place-items: center !important; min-width: 1.875rem !important; min-height: 1.875rem !important; padding: 0 !important; }
 .lims-topbar-bell:disabled { opacity: 0.55; }
 .lims-topbar-bell-note { display: none !important; }
 .lims-shell-main { padding: var(--lims-space-2) var(--lims-space-4) !important; }
-.lims-page-title { font-size: 1rem !important; line-height: 1.3 !important; }
+.lims-page-title { font-size: 1rem !important; line-height: 1.3rem; }
 .lims-card { padding: var(--lims-space-2) var(--lims-space-3) !important; }
 .lims-card-title { margin: 0 0 var(--lims-space-1-5, 0.375rem) !important; font-size: var(--lims-font-size-base-size) !important; }
 /* T0D-UIKIT-2, LD-436 R8 + LD-438 (CR-C0-0D-UIKIT2 option C): staff web card = white, 1px neutral.200 hairline, radius md, elevation.1.
    The kit base lims-card (radius 24, no border, no shadow) is unchanged; dialogs and drawers are not touched. */
-.lims-card { border: 0.0625rem solid var(--lims-neutral-200) !important; border-radius: var(--lims-radius-md) !important; box-shadow: var(--lims-elevation-1) !important; }
+.lims-card { border: 0.0625rem solid var(--lims-neutral-200) !important; border-radius: var(--lims-radius-md) !important; box-shadow: var(--lims-elevation-1) !important; background: var(--lims-neutral-0) !important; }
 .lims-card-head .lims-card-title { margin: 0 !important; }
 
 /* LD-340 (cont.): ElabAssist-style menu pieces, profile menu with Sign out */
@@ -335,11 +335,11 @@ a.lims-menuitem { display: block; color: inherit; text-decoration: none; }
    auth pages and the kit base (pill buttons, 48/46/40 controls, kit.css unchanged) stay as they are. Mock hex mapped to the nearest token:
    hairline neutral.200, row line neutral.100, secondary border neutral.300, text neutral.900/700/600, primary accent. 8px = radius-sm. */
 /* (1) buttons: 30 high, radius 8, base size, weight 500; the sidebar close button keeps its own look (:where keeps the variants able to win) */
-.lims-shell .lims-btn:where(:not(.lims-rail-close)) { box-sizing: border-box; height: 30px; min-height: 30px; padding: 0 var(--lims-space-3); border: 1px solid var(--lims-neutral-300); border-radius: var(--lims-radius-sm); background: var(--lims-neutral-0); color: var(--lims-neutral-700); font-size: var(--lims-font-size-base-size); font-weight: var(--lims-font-weight-medium); }
+.lims-shell .lims-btn:where(:not(.lims-rail-close)) { box-sizing: border-box; height: 30px; min-height: 30px; padding: 0 var(--lims-space-3); border: 1px solid var(--lims-neutral-300); border-radius: var(--lims-radius-sm); background: var(--lims-neutral-0); color: var(--lims-neutral-700); font-size: var(--lims-font-size-base-size); font-weight: var(--lims-font-weight-medium); transition: background-color var(--lims-motion-duration-fast) var(--lims-motion-easing), border-color var(--lims-motion-duration-fast) var(--lims-motion-easing), box-shadow var(--lims-motion-duration-fast) var(--lims-motion-easing); }
 /* T0D-UIX-6 (LD-444, founder 2026-11-22 11:07 NPT "colourful on every screen"): colour by role. Primary solid accent with a 1px accent border (hover
    accent.hover comes from the kit); secondary an accent tint (the kit has no tint step between accent.subtle and accent, so border and hover are
    color-mix of the two tokens); ghost accent text; danger solid; icons accent; link-buttons never underlined; one 2px focus ring, 1px offset. */
-.lims-shell .lims-btn-primary { border: 1px solid var(--lims-accent); background: var(--lims-accent); color: var(--lims-accent-fg); }
+.lims-shell .lims-btn-primary { border: 1px solid var(--lims-accent); background: var(--lims-accent); color: var(--lims-accent-fg); box-shadow: var(--lims-elevation-1); }
 .lims-shell .lims-btn-secondary { border: 1px solid color-mix(in srgb, var(--lims-accent) 30%, var(--lims-accent-subtle)); background: var(--lims-accent-subtle); color: var(--lims-accent); }
 .lims-shell .lims-btn-secondary:hover:not([data-disabled], :disabled), .lims-shell .lims-btn-secondary[data-hovered]:not([data-disabled], :disabled) { background: color-mix(in srgb, var(--lims-accent) 15%, var(--lims-accent-subtle)); color: var(--lims-accent); }
 .lims-shell .lims-btn-secondary:disabled, .lims-shell .lims-btn-secondary[data-disabled] { border-color: var(--lims-neutral-200); background: var(--lims-neutral-100); color: var(--lims-neutral-500); }
@@ -353,7 +353,7 @@ a.lims-menuitem { display: block; color: inherit; text-decoration: none; }
 .lims-shell .lims-icon-btn { justify-content: center; width: 30px; min-width: 30px; padding: 0; border: 1px solid var(--lims-neutral-200); background: var(--lims-neutral-0); color: var(--lims-accent); }
 .lims-shell .lims-btn.lims-icon-btn:hover:not([data-disabled], :disabled), .lims-shell .lims-btn.lims-icon-btn[data-hovered]:not([data-disabled], :disabled) { background: var(--lims-accent-subtle); color: var(--lims-accent); }
 /* (2) form controls: 30 high, 0 8px, 1px neutral.200, radius 8, white, neutral.700, base size; multi-line text and the sidebar field excluded */
-.lims-shell .lims-input:where(:not(textarea, .lims-rte-surface, .lims-rail-search)) { box-sizing: border-box; height: 30px; min-height: 30px; padding: 0 var(--lims-space-2); border: 1px solid var(--lims-neutral-200); border-radius: var(--lims-radius-sm); background: var(--lims-neutral-0); color: var(--lims-neutral-700); font-size: var(--lims-font-size-base-size); }
+.lims-shell .lims-input:where(:not(textarea, .lims-rte-surface, .lims-rail-search)) { box-sizing: border-box; height: 30px; min-height: 30px; padding: 0 var(--lims-space-2); border: 1px solid var(--lims-neutral-200); border-radius: var(--lims-radius-sm); background: var(--lims-neutral-0); color: var(--lims-neutral-700); font-size: var(--lims-font-size-base-size); transition: border-color var(--lims-motion-duration-fast) var(--lims-motion-easing), box-shadow var(--lims-motion-duration-fast) var(--lims-motion-easing); }
 .lims-shell .lims-input:disabled, .lims-shell .lims-input[data-disabled] { background: var(--lims-neutral-100); }
 .lims-shell .lims-input:focus, .lims-shell .lims-input:focus-visible { border-color: var(--lims-accent); outline: 2px solid var(--lims-accent); outline-offset: 0; }
 .lims-shell .lims-search .lims-search-input { padding-inline-end: var(--lims-space-8); }
@@ -366,18 +366,22 @@ a.lims-menuitem { display: block; color: inherit; text-decoration: none; }
 .lims-shell .lims-filter-bar { display: flex; align-items: flex-end; gap: var(--lims-space-2); }
 .lims-shell .lims-date-range .lims-inline { display: flex; align-items: flex-end; gap: var(--lims-space-2); }
 /* (4) tables: start aligned headers (lims-align-start had no rule, so th fell back to centre), neutral.50 header band, one row height */
-.lims-shell .lims-table th { padding: 0 var(--lims-space-3); border-bottom: 1px solid var(--lims-neutral-200); background: var(--lims-neutral-50); color: var(--lims-neutral-600); font-size: var(--lims-font-size-xs-size); font-weight: var(--lims-font-weight-medium); line-height: 14px; text-align: start; white-space: nowrap; }
-.lims-shell .lims-table td { padding: 0 var(--lims-space-3); border-bottom: 1px solid var(--lims-neutral-100); font-size: var(--lims-font-size-base-size); }
+.lims-shell .lims-table th { padding: 0 var(--lims-space-3); border-bottom: 1px solid var(--lims-neutral-200); background: var(--lims-neutral-50); color: var(--lims-neutral-600); font-size: var(--lims-font-size-xs-size); font-weight: var(--lims-font-weight-medium); letter-spacing: 0.04em; text-transform: uppercase; line-height: 14px; text-align: start; white-space: nowrap; }
+.lims-shell .lims-table td { padding: 0 var(--lims-space-3); border-bottom: 1px solid var(--lims-neutral-100); font-size: var(--lims-font-size-base-size); color: var(--lims-neutral-900); font-variant-numeric: tabular-nums; }
+.lims-shell .lims-table tbody tr { transition: background-color var(--lims-motion-duration-fast) var(--lims-motion-easing); }
+.lims-shell .lims-table tbody tr:hover { background: color-mix(in srgb, var(--lims-accent-subtle) 30%, var(--lims-neutral-0)); }
 .lims-align-start, .lims-shell .lims-table .lims-align-start { text-align: start; }
 .lims-shell .lims-table .lims-align-end { text-align: end; }
 .lims-shell .lims-table .lims-align-center { text-align: center; }
-.lims-shell .lims-table-regular tr { height: 40px; min-height: 40px; }
-.lims-shell .lims-table-compact tr { height: 32px; min-height: 32px; }
+.lims-shell:not([data-density='compact']) .lims-table-regular tr { height: 40px; min-height: 40px; }
+.lims-shell:not([data-density='compact']) .lims-table-compact tr { height: 32px; min-height: 32px; }
+[data-density='compact'] .lims-shell .lims-table tr, [data-density='compact'] .lims-table tr { height: 28px; min-height: 28px; }
 .lims-shell .lims-card .lims-data-table { margin-inline: calc(-1 * var(--lims-space-3)); }
 .lims-shell .lims-table .lims-row-empty > td { padding: 0; text-align: start; white-space: normal; }
 /* (5) tabs: underline, 32 high, 2px accent under the selected tab, 1px neutral.200 strip hairline */
 .lims-shell .lims-tablist { gap: 0; border-bottom: 1px solid var(--lims-neutral-200); }
-.lims-shell .lims-tab { height: 32px; min-height: 32px; margin-bottom: -1px; padding: 0 var(--lims-space-3); border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: transparent; color: var(--lims-neutral-600); }
+.lims-shell .lims-tab { height: 32px; min-height: 32px; margin-bottom: -1px; padding: 0 var(--lims-space-3); border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: transparent; color: var(--lims-neutral-600); transition: color var(--lims-motion-duration-fast) var(--lims-motion-easing), border-color var(--lims-motion-duration-fast) var(--lims-motion-easing); }
+.lims-shell .lims-tab:hover:not([data-selected], [aria-selected='true']) { color: var(--lims-neutral-900); }
 .lims-shell .lims-tab[data-selected], .lims-shell .lims-tab[aria-selected='true'] { border-bottom-color: var(--lims-accent); background: transparent; color: var(--lims-accent); font-weight: var(--lims-font-weight-medium); }
 .lims-shell .lims-tab-badge { background: var(--lims-neutral-100); color: var(--lims-neutral-700); font-size: var(--lims-font-size-xs-size); font-weight: var(--lims-font-weight-medium); }
 /* (6) DescriptionList: 2 columns, 3 from 80rem, label above value, a neutral.100 hairline under each pair */

@@ -366,13 +366,17 @@ a.lims-menuitem { display: block; color: inherit; text-decoration: none; }
 .lims-shell .lims-filter-bar { display: flex; align-items: flex-end; gap: var(--lims-space-2); }
 .lims-shell .lims-date-range .lims-inline { display: flex; align-items: flex-end; gap: var(--lims-space-2); }
 /* (4) tables: start aligned headers (lims-align-start had no rule, so th fell back to centre), neutral.50 header band, one row height */
-.lims-shell .lims-table th { padding: 0 var(--lims-space-3); border-bottom: 1px solid var(--lims-neutral-200); background: var(--lims-neutral-50); color: var(--lims-neutral-600); font-size: var(--lims-font-size-xs-size); font-weight: var(--lims-font-weight-medium); letter-spacing: 0.04em; text-transform: uppercase; line-height: 14px; text-align: start; white-space: nowrap; }
-.lims-shell .lims-table td { padding: 0 var(--lims-space-3); border-bottom: 1px solid var(--lims-neutral-100); font-size: var(--lims-font-size-base-size); color: var(--lims-neutral-900); font-variant-numeric: tabular-nums; }
+.lims-shell .lims-table th { padding: 0 var(--lims-space-3); border-bottom: 1px solid var(--lims-neutral-200); background: var(--lims-neutral-50); color: var(--lims-neutral-700); font-size: var(--lims-font-size-xs-size); font-weight: var(--lims-font-weight-medium); letter-spacing: 0.02em; line-height: 14px; text-align: start; white-space: nowrap; vertical-align: middle; }
+.lims-shell .lims-table td { padding: 0 var(--lims-space-3); border-bottom: 1px solid var(--lims-neutral-100); font-size: var(--lims-font-size-base-size); color: var(--lims-neutral-900); font-variant-numeric: tabular-nums; vertical-align: middle; }
 .lims-shell .lims-table tbody tr { transition: background-color var(--lims-motion-duration-fast) var(--lims-motion-easing); }
-.lims-shell .lims-table tbody tr:hover { background: color-mix(in srgb, var(--lims-accent-subtle) 30%, var(--lims-neutral-0)); }
+.lims-shell .lims-table tbody tr:hover { background: color-mix(in srgb, var(--lims-accent-subtle) 35%, var(--lims-neutral-0)); }
+.lims-shell .lims-table tbody tr[data-selected] { background: color-mix(in srgb, var(--lims-accent-subtle) 75%, var(--lims-neutral-0)); }
+.lims-shell .lims-table thead th { position: sticky; top: 0; z-index: var(--lims-z-sticky); }
 .lims-align-start, .lims-shell .lims-table .lims-align-start { text-align: start; }
 .lims-shell .lims-table .lims-align-end { text-align: end; }
 .lims-shell .lims-table .lims-align-center { text-align: center; }
+.lims-shell .lims-table td.lims-align-end, .lims-shell .lims-table th.lims-align-end { text-align: end; }
+.lims-shell .lims-table td.lims-align-center, .lims-shell .lims-table th.lims-align-center { text-align: center; }
 .lims-shell:not([data-density='compact']) .lims-table-regular tr { height: 40px; min-height: 40px; }
 .lims-shell:not([data-density='compact']) .lims-table-compact tr { height: 32px; min-height: 32px; }
 [data-density='compact'] .lims-shell .lims-table tr, [data-density='compact'] .lims-table tr { height: 28px; min-height: 28px; }

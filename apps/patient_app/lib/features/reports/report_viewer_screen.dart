@@ -71,7 +71,17 @@ class _ReportViewerScreenState extends ConsumerState<ReportViewerScreen> {
       f.writeAsBytesSync(bytes);
       setState(() => _file = f);
     } on Object catch (e) {
-      if (mounted) setState(() => _error = e is LimsException ? e.code : LimsErrorCodes.commonInternal);
+      if (mounted) {
+        String code;
+        if (e is LimsException) {
+          code = e.code;
+        } else if (e is SocketException || e is HttpException) {
+          code = 'network_error';
+        } else {
+          code = LimsErrorCodes.commonInternal;
+        }
+        setState(() => _error = code);
+      }
     } finally {
       _busy = false;
     }
@@ -122,10 +132,48 @@ class _ReportViewerScreenState extends ConsumerState<ReportViewerScreen> {
       return const Center(child: Column(mainAxisSize: MainAxisSize.min, children: [CircularProgressIndicator(), SizedBox(height: LimsTokens.space3), Text('Downloading report…')]));
     }
     return StateCard(switch (e) {
-      LimsErrorCodes.commonDependencyUnavailable => LimsErrorState(title: "The report can't be downloaded right now", message: 'Please check your connection.', onRetry: _download),
-      LimsErrorCodes.commonRateLimited => LimsErrorState(title: 'Too many downloads', message: 'You have reached the hourly download limit. Please wait before downloading again.', onRetry: _download),
-      LimsErrorCodes.commonNotFound => const LimsErrorState(title: 'Report not found', message: 'This report is no longer available.'),
-      _ => LimsErrorState(title: 'Download failed', message: 'The report could not be downloaded.', onRetry: _download),
+      LimsErrorCodes.commonDependencyUnavailable => LimsErrorState(
+        title: "The report can't be downloaded right now",
+        message: 'Storage is temporarily unavailable.',
+        onRetry: _download,
+      ),
+      LimsErrorCodes.commonServiceUnavailable => LimsErrorState(
+        title: 'Storage temporarily unavailable',
+        message: 'Report storage is currently unavailable.',
+        onRetry: _download,
+      ),
+      LimsErrorCodes.commonNotFound => const LimsErrorState(
+        title: 'Report not found',
+        message: 'This report is not available for download.',
+      ),
+      'reporting.report_not_released' || 'engagement.report_not_ready' => const LimsErrorState(
+        title: 'Report not ready',
+        message: 'This report has not been released by the laboratory yet.',
+      ),
+      LimsErrorCodes.authForbidden => const LimsErrorState(
+        title: 'Access restricted',
+        message: 'You do not have permission to view this report.',
+      ),
+      LimsErrorCodes.authUnauthenticated => LimsErrorState(
+        title: 'Session expired',
+        message: 'Your session has expired. Please sign in again.',
+        onRetry: _close,
+      ),
+      'network_error' => LimsErrorState(
+        title: 'Connection error',
+        message: 'Please check your internet connection.',
+        onRetry: _download,
+      ),
+      LimsErrorCodes.commonRateLimited => LimsErrorState(
+        title: 'Too many downloads',
+        message: 'You have reached the hourly download limit. Please wait before downloading again.',
+        onRetry: _download,
+      ),
+      _ => LimsErrorState(
+        title: 'Download failed',
+        message: 'The report could not be downloaded.',
+        onRetry: _download,
+      ),
     });
   }
 }

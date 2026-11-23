@@ -2,12 +2,22 @@
 // SIGTERM/SIGINT drain within LIMS_CORE_SHUTDOWN_GRACE_S (CR-C1-008).
 import { createWorkerRuntime, startWorker } from './core/bootstrap.js';
 import { MANIFESTS } from './manifests.js';
+import { frontdeskPort } from '../../api/src/modules/frontdesk/ports/FrontdeskPort.impl.js';
+import { manifest as identityManifest } from '../../api/src/modules/identity/index.js';
+import type { WorkerDeps } from './core/tasklist.js';
 
 const env = process.env;
 const rt = await createWorkerRuntime(env);
+const deps: WorkerDeps = {
+  ...rt.deps,
+  ports: {
+    FrontdeskPort: frontdeskPort,
+    IdentityPort: identityManifest.ports?.IdentityPort,
+  },
+};
 const metricsServer = await rt.startMetricsServer(Number(env.LIMS_CORE_METRICS_PORT ?? 9464));
 const worker = await startWorker({
-  deps: rt.deps, manifests: MANIFESTS, connectionString: rt.connectionString,
+  deps, manifests: MANIFESTS, connectionString: rt.connectionString,
   concurrency: Number(env.LIMS_CORE_WORKER_CONCURRENCY ?? 10),
 });
 

@@ -52,6 +52,13 @@ final bookingProfilesProvider = FutureProvider<List<BookingProfile>>((
   ];
 });
 
+/// Real catalog items available for booking (E30).
+final bookableItemsProvider = FutureProvider<List<Map<String, Object?>>>((ref) async {
+  final api = ref.watch(patientBookingsApiProvider);
+  final body = asMap(await api.listBookableItems(bookingKind: 'centre_visit'));
+  return mapList(body?['data']);
+});
+
 /// [CONV] The signed-in shell (not built yet) overrides this from the E1 config; until then home collection is off (the safe default).
 final bookingConfigProvider = Provider<BookingConfig>(
   (_) => const BookingConfig(homeCollection: false),

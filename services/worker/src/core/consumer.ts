@@ -62,6 +62,7 @@ function jobContext(deps: WorkerDeps, module: string, tenantId: string | undefin
     attempt: job.attempts, maxAttempts: job.max_attempts, jobId: String(job.id),
     now: () => deps.now().toISOString(),
     isNewer: (last, seq) => last === undefined || seq > last,
+    ...(deps.ports ? { ports: deps.ports } : {}),
   };
   return ctx;
 }

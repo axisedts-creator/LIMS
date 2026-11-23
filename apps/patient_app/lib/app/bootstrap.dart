@@ -12,15 +12,22 @@ Future<void> runPatientApp(Flavour flavour) async {
   WidgetsFlutterBinding.ensureInitialized();
   // LD-24 (2026-11-07, A33-1): self-hosted GlitchTip via the lims_ui wrapper; PHI scrubber in beforeSend; off when the
   // DSN is empty.
+  void runner() => runApp(ProviderScope(
+        overrides: [
+          flavourProvider.overrideWithValue(flavour),
+          // LOCAL TEST WIRING until the generated lims_api_client lands (CR-C16-016/017).
+          innerTransportProvider.overrideWithValue(buildHttpTransport(baseUrl: flavour.apiBaseUrl)),
+        ],
+        child: const PatientApp(),
+      ));
+
+  if (kErrorTrackingDsn.isEmpty) {
+    runner();
+    return;
+  }
+
   await SentryFlutter.init(
     (o) => LimsErrorTracking.configure(o, dsn: kErrorTrackingDsn, environment: flavour.env, release: kAppVersion),
-    appRunner: () => runApp(ProviderScope(
-      overrides: [
-        flavourProvider.overrideWithValue(flavour),
-        // LOCAL TEST WIRING until the generated lims_api_client lands (CR-C16-016/017).
-        innerTransportProvider.overrideWithValue(buildHttpTransport(baseUrl: flavour.apiBaseUrl)),
-      ],
-      child: const PatientApp(),
-    )),
+    appRunner: runner,
   );
 }

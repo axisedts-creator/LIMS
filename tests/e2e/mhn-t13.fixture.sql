@@ -26,17 +26,24 @@ INSERT INTO engagement.settings (
   min_app_version_android, min_app_version_ios, max_profiles_per_account, max_accounts_per_patient,
   booking_horizon_days, booking_min_lead_minutes, booking_cancel_cutoff_minutes, no_show_grace_minutes,
   max_active_bookings_per_profile, max_bookings_created_per_account_day, max_orderables_per_booking,
+  app_consent_text, app_consent_text_version, minor_age_years,
   created_by, updated_by
 ) VALUES (
   '01a1a98a-ac40-7000-8000-00000000a901',
   '01a1a98a-ac40-7000-8000-00000000a001',
   true, true, true, '01a1a98a-ac40-7000-8000-00000000a203', ARRAY['+977']::text[], 2000,
   '0.0.0', '0.0.0', 8, 3,
-  14, 120, 60, 120,
+  14, 0, 0, 120,
   5, 10, 20,
+  'By continuing, you agree to digital laboratory records and processing under Nepal Data Protection provisions.', '2026-01', 18,
   '01a1b34e-1000-7eee-9d29-d7ca59a102b5',
   '01a1b34e-1000-7eee-9d29-d7ca59a102b5'
-) ON CONFLICT (tenant_id, id) DO NOTHING;
+) ON CONFLICT (tenant_id, id) DO UPDATE SET
+  booking_min_lead_minutes = 0,
+  booking_cancel_cutoff_minutes = 0,
+  app_consent_text = EXCLUDED.app_consent_text,
+  app_consent_text_version = EXCLUDED.app_consent_text_version,
+  minor_age_years = EXCLUDED.minor_age_years;
 
 INSERT INTO engagement.booking_centres (
   id, tenant_id, centre_id, branch_id, display_name, address_text, is_active, synced_at, created_by, updated_by
@@ -92,6 +99,19 @@ INSERT INTO engagement.bookable_items (
   20000,
   ARRAY['centre_visit','home_collection']::text[],
   30,
+  true,
+  '01a1b34e-1000-7eee-9d29-d7ca59a102b5',
+  '01a1b34e-1000-7eee-9d29-d7ca59a102b5'
+), (
+  '01a1a98a-ac40-7000-8000-00000000a924',
+  '01a1a98a-ac40-7000-8000-00000000a001',
+  '01a1a98a-ac40-7000-8000-00000000a934',
+  'panel',
+  'LFT',
+  'LFT Advanced',
+  150000,
+  ARRAY['centre_visit','home_collection']::text[],
+  40,
   true,
   '01a1b34e-1000-7eee-9d29-d7ca59a102b5',
   '01a1b34e-1000-7eee-9d29-d7ca59a102b5'

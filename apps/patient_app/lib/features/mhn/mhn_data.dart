@@ -141,11 +141,11 @@ const kCategories = <MhnCategory>[
 const kTests = <MhnTest>[
   MhnTest(id: 'lft', cat: 'organs', name: 'LFT Advanced', price: 1500, fasting: noFast, report: 'Same day', age: 'Adults', desc: 'Checks how well your liver is working.'),
   MhnTest(id: 'kft', cat: 'organs', name: 'Kidney Function Test', price: 900, fasting: noFast, report: 'Same day', age: 'Adults, yearly after 40', desc: 'Urea, creatinine and electrolytes for kidney health.'),
-  MhnTest(id: 'lipid', cat: 'organs', name: 'Lipid Profile', price: 800, fasting: 'Fasting 10–12 h', report: 'Same day', age: 'Adults, every 1–2 years', desc: 'Cholesterol and triglycerides for heart risk.'),
+  MhnTest(id: 'lipid', cat: 'organs', name: 'Lipid Profile', price: 1200, fasting: 'Fasting 10–12 h', report: 'Same day', age: 'Adults, every 1–2 years', desc: 'Cholesterol and triglycerides for heart risk.'),
   MhnTest(id: 'tft', cat: 'organs', name: 'Thyroid Function Test', price: 1200, fasting: noFast, report: 'Next day', age: 'Adults', desc: 'T3, T4 and TSH for an over- or under-active thyroid.'),
-  MhnTest(id: 'fbs', cat: 'hormones', name: 'Glucose, Fasting', price: 75, fasting: 'Fasting 8–10 h', report: 'Same day', age: 'Adults', desc: 'Blood sugar after an overnight fast.'),
+  MhnTest(id: 'fbs', cat: 'hormones', name: 'Glucose, Fasting', price: 200, fasting: 'Fasting 8–10 h', report: 'Same day', age: 'Adults', desc: 'Blood sugar after an overnight fast.'),
   MhnTest(id: 'hba1c', cat: 'hormones', name: 'HbA1c', price: 1000, fasting: noFast, report: 'Same day', age: 'Adults; every 3 months if diabetic', desc: 'Average blood sugar over the last 2–3 months.'),
-  MhnTest(id: 'cbc', cat: 'hormones', name: 'Complete Blood Count (CBC)', price: 400, fasting: noFast, report: 'Same day', age: 'All ages', desc: 'Red cells, white cells and platelets.'),
+  MhnTest(id: 'cbc', cat: 'hormones', name: 'Complete Blood Count (CBC)', price: 500, fasting: noFast, report: 'Same day', age: 'All ages', desc: 'Red cells, white cells and platelets.'),
   MhnTest(id: 'hb', cat: 'hormones', name: 'Hemoglobin', price: 150, fasting: noFast, report: 'Same day', age: 'All ages', desc: 'Screens for anaemia.'),
   MhnTest(id: 'fever', cat: 'illness', name: 'Fever Panel Essential', price: 1800, fasting: noFast, report: 'Same day', age: 'All ages', desc: 'Common causes of fever, including dengue and typhoid markers.'),
   MhnTest(id: 'dengue', cat: 'illness', name: 'Dengue NS1 Antigen', price: 1200, fasting: noFast, report: 'Same day', age: 'All ages', desc: 'Early dengue detection in the first days of fever.'),
@@ -188,7 +188,7 @@ const kFaqs = <MhnFaq>[
 
 const kHero = <MhnHeroSlide>[
   MhnHeroSlide('Health packages', 'Looking for a full body checkup?', 'Five packages, from Bronze to Elite.', 'See packages', 'packages'),
-  MhnHeroSlide('At your door', 'Free home sample collection', 'A phlebotomist comes to you at the time you pick.', 'Book a test', 'tests'),
+  MhnHeroSlide('At your door', 'Home sample collection', 'A phlebotomist comes to you at the time you pick.', 'Book a test', 'tests'),
   MhnHeroSlide('Laboratory tests', 'Accurate & verified reports', 'Comprehensive test profiles with barcoded sample tracking.', 'View tests', 'tests'),
 ];
 

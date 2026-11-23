@@ -34,15 +34,16 @@ export async function supersede(tx: Q, a: { tenantId: string; userId: string; id
 }
 
 export async function insertCode(tx: Q, a: {
-  tenantId: string; userId: string; patientId: string; codeHmac: Buffer; boundPhoneHmac: Buffer; boundPhoneLast2: string; recordPhoneHmac: Buffer | null; relationship: string; consentId: string;
+  tenantId: string; userId: string; membershipId?: string; patientId: string; codeHmac: Buffer; boundPhoneHmac: Buffer; boundPhoneLast2: string; recordPhoneHmac: Buffer | null; relationship: string; consentId: string;
   displayName: string; sex: string | null; expiresAt: string; now: string;
 }): Promise<string> {
   const id = uuidv7();
+  const mid = a.membershipId ?? a.userId;
   await tx.query(
     `INSERT INTO engagement.link_codes (id, tenant_id, patient_id, code_hmac, bound_phone_hmac, bound_phone_last2, record_phone_hmac, relationship, consent_id, display_name_snapshot, sex_snapshot,
        issued_by_membership_id, status, created_at, created_by, expires_at, updated_at, updated_by)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'issued', $13, $12, $14, $13, $12)`,
-    [id, a.tenantId, a.patientId, a.codeHmac, a.boundPhoneHmac, a.boundPhoneLast2, a.recordPhoneHmac, a.relationship, a.consentId, a.displayName, a.sex, a.userId, a.now, a.expiresAt]);
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'issued', $13, $14, $15, $13, $14)`,
+    [id, a.tenantId, a.patientId, a.codeHmac, a.boundPhoneHmac, a.boundPhoneLast2, a.recordPhoneHmac, a.relationship, a.consentId, a.displayName, a.sex, mid, a.now, a.userId, a.expiresAt]);
   return id;
 }
 

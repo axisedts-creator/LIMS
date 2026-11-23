@@ -31,6 +31,7 @@ export interface JobContext {
   readonly attempt: number; readonly maxAttempts: number; readonly jobId: string;
   now(): string;
   isNewer(lastAppliedSeq: number | undefined, seq: number): boolean;
+  readonly ports?: Readonly<Record<string, any>>;
 }
 
 export const MAX_STATEMENT_TIMEOUT_MS = 300_000;                       // CR-C8-012

@@ -308,7 +308,7 @@ class _MhnHomeTabState extends ConsumerState<MhnHomeTab> {
             Expanded(
               child: _QuickAction(
                 icon: Icons.local_shipping_outlined,
-                label: 'Free Home Sample Collection',
+                label: 'Home Sample Collection',
                 onTap: () => ref.read(mhnTabProvider.notifier).go(mhnTabTests),
               ),
             ),
@@ -608,7 +608,16 @@ class _PopularRow extends ConsumerWidget {
               ),
               child: InkWell(
                 borderRadius: BorderRadius.circular(12),
-                onTap: () => ref.read(mhnProvider.notifier).toggleCart(test.id),
+                onTap: () {
+                  registerCartItem(MhnCartItem(
+                    test.id,
+                    test.name,
+                    test.price,
+                    '${test.fasting} · Report ${test.report}',
+                    test.centre,
+                  ));
+                  ref.read(mhnProvider.notifier).toggleCart(test.id);
+                },
                 child: SizedBox(
                   width: 44,
                   height: 44,

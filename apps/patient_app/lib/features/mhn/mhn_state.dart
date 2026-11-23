@@ -81,6 +81,7 @@ class MhnState {
     this.selectedSlotLabel,
     this.lastBookingNo = '',
     this.lastBooking,
+    this.isMockPrototype = false,
   });
 
   final List<String> cart;
@@ -107,6 +108,7 @@ class MhnState {
   final String? selectedSlotLabel;
   final String lastBookingNo;
   final Map<String, Object?>? lastBooking;
+  final bool isMockPrototype;
 
   bool get isMember => member != null;
   MhnPlan? get plan => member == null ? null : kPlans.firstWhere((p) => p.id == member);
@@ -116,6 +118,7 @@ class MhnState {
     String? member, String? memberId, String? memberUntil, MhnProfile? profile, List<MhnMember>? members, String? lastId, String? doneMode, String? calendar,
     String? selectedLocationLabel,
     String? selectedProfileId, String? selectedAddressId, String? selectedCentreId, String? selectedSlotStart, String? selectedSlotLabel, String? lastBookingNo, Map<String, Object?>? lastBooking,
+    bool? isMockPrototype,
   }) =>
       MhnState(
         cart: cart ?? this.cart, who: who ?? this.who, mode: mode ?? this.mode, day: day ?? this.day, slot: slot ?? this.slot,
@@ -126,6 +129,7 @@ class MhnState {
         selectedProfileId: selectedProfileId ?? this.selectedProfileId, selectedAddressId: selectedAddressId ?? this.selectedAddressId,
         selectedCentreId: selectedCentreId ?? this.selectedCentreId, selectedSlotStart: selectedSlotStart ?? this.selectedSlotStart,
         selectedSlotLabel: selectedSlotLabel ?? this.selectedSlotLabel, lastBookingNo: lastBookingNo ?? this.lastBookingNo, lastBooking: lastBooking ?? this.lastBooking,
+        isMockPrototype: isMockPrototype ?? this.isMockPrototype,
       );
 }
 
@@ -209,6 +213,7 @@ class MhnController extends Notifier<MhnState> {
         selectedSlotStart: slotStart,
         selectedSlotLabel: slotLabel,
       );
+  void setMockPrototype(bool v) => state = state.copyWith(isMockPrototype: v);
 
   void recordServerBooking(Map<String, Object?> booking) {
     final id = booking['id'] as String? ?? state.lastId;
@@ -222,13 +227,21 @@ class MhnController extends Notifier<MhnState> {
       for (final it in itemsList)
         (it['display_name'] as String?) ?? (it['orderable_id'] as String? ?? 'Test')
     ];
+    // Authoritative total calculated from server returned items
+    final serverTotalPaisa = itemsList.fold<int>(0, (sum, it) {
+      final pMap = asMap(it['indicative_price']);
+      final amount = pMap?['amount_paisa'] as num?;
+      return sum + (amount?.toInt() ?? 0);
+    });
+    final authoritativeTotal = serverTotalPaisa > 0 ? (serverTotalPaisa ~/ 100) : totals().total;
+
     final b = MhnBooking(
       id: no,
       when: when,
       items: itemNames.isNotEmpty ? itemNames : [for (final c in state.cart) cartItemOf(c).name],
       who: whoName(state.who),
       mode: mode,
-      total: totals().total,
+      total: authoritativeTotal,
       payLabel: kPays.where((p) => p.id == state.pay).firstOrNull?.label ?? 'Pay on collection',
     );
     state = state.copyWith(

@@ -4,7 +4,7 @@ import 'app/flavour.dart';
 // Android emulator host loopback; override per developer with --dart-define=API_BASE_URL=...
 Future<void> main() => runPatientApp(const Flavour(
       env: 'dev',
-      tenantCode: String.fromEnvironment('TENANT_CODE', defaultValue: 'demo_lab'),
+      tenantCode: String.fromEnvironment('TENANT_CODE', defaultValue: 'tenant_a'),
       displayName: 'Demo Lab (dev)',
       apiBaseUrl: String.fromEnvironment('API_BASE_URL', defaultValue: 'http://10.0.2.2:3000'),
       portalOrigin: String.fromEnvironment('PORTAL_ORIGIN', defaultValue: 'http://10.0.2.2:3001'),

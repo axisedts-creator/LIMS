@@ -31,6 +31,7 @@ describe('T13 Live Fastify & PostgreSQL 17 HTTP Patient Journey E2E', () => {
   let sessionToken = '';
   let accountId = '';
   let centreId = '';
+  let slotStart = '2026-11-23T08:00:00.000Z';
   let bookingId = '';
   let bookingVersion = 1;
 
@@ -191,8 +192,9 @@ describe('T13 Live Fastify & PostgreSQL 17 HTTP Patient Journey E2E', () => {
   });
 
   it('7. E32: GET /v1/engagement/me/slots returns real database slot occupancy', async () => {
+    const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
     const res = await fetch(
-      `${BASE_URL}/v1/engagement/me/slots?booking_kind=centre_visit&centre_id=${centreId}&date_from=2026-11-23&date_to=2026-11-23`,
+      `${BASE_URL}/v1/engagement/me/slots?booking_kind=centre_visit&centre_id=${centreId}&date_from=${tomorrow}&date_to=${tomorrow}`,
       {
         headers: {
           ...CLIENT_HEADERS,
@@ -206,6 +208,7 @@ describe('T13 Live Fastify & PostgreSQL 17 HTTP Patient Journey E2E', () => {
     expect(body.data.length).toBeGreaterThanOrEqual(1);
     expect(body.data[0].slot_start).toBeDefined();
     expect(body.data[0].remaining).toBeGreaterThanOrEqual(1);
+    slotStart = body.data[0].slot_start;
   });
 
   it('8. E33: POST /v1/engagement/me/bookings creates confirmed booking with Idempotency-Key', async () => {
@@ -214,7 +217,7 @@ describe('T13 Live Fastify & PostgreSQL 17 HTTP Patient Journey E2E', () => {
       profile_id: LINK_A,
       booking_kind: 'centre_visit',
       centre_id: centreId,
-      slot_start: '2026-11-23T08:00:00.000Z',
+      slot_start: slotStart,
       orderable_ids: ['01a1a98a-ac40-7000-8000-00000000a931'],
     };
 

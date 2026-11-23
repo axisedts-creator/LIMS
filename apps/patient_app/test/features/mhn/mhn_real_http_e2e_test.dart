@@ -30,6 +30,7 @@ void main() {
     String? sharedAccessToken;
     String? sharedProfileId;
     String? sharedCentreId;
+    String? sharedSlotStart;
     String? sharedBookingId;
     String? sharedBookingNo;
     int sharedBookingVersion = 1;
@@ -123,14 +124,15 @@ void main() {
       sharedCentreId = (centre['centre_id'] ?? centre['id']) as String;
 
       // E32: list slots
+      final tomorrow = DateTime.now().add(const Duration(days: 1)).toIso8601String().substring(0, 10);
       final slotsRes = await transport('GET', '/v1/engagement/me/slots', headers: {
         ...clientHeaders,
         'Authorization': 'Bearer $accessToken',
       }, query: {
         'booking_kind': 'centre_visit',
         'centre_id': sharedCentreId!,
-        'date_from': '2026-11-23',
-        'date_to': '2026-11-23',
+        'date_from': tomorrow,
+        'date_to': tomorrow,
       }) as Map<String, dynamic>;
       expect(slotsRes['data'], isA<List<dynamic>>());
       final slots = slotsRes['data'] as List<dynamic>;
@@ -138,19 +140,21 @@ void main() {
       final slot = slots.first as Map<String, dynamic>;
       expect(slot['slot_start'], isNotNull);
       expect(slot['remaining'], greaterThanOrEqualTo(1));
+      sharedSlotStart = slot['slot_start'] as String?;
     });
 
     test('3. E33 / E34 / E35 / E36 Complete Booking Lifecycle & Idempotency Replay', () async {
       final accessToken = sharedAccessToken!;
       final profileId = sharedProfileId!;
       final centreId = sharedCentreId!;
+      final slotStart = sharedSlotStart ?? '2026-11-23T08:00:00.000Z';
       final idemKey = 'flutter-mhn-booking-${DateTime.now().millisecondsSinceEpoch}';
 
       final payload = {
         'profile_id': profileId,
         'booking_kind': 'centre_visit',
         'centre_id': centreId,
-        'slot_start': '2026-11-23T08:00:00.000Z',
+        'slot_start': slotStart,
         'orderable_ids': ['01a1a98a-ac40-7000-8000-00000000a931'],
       };
 

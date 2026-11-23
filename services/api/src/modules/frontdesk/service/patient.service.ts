@@ -216,7 +216,7 @@ export async function createPatient(hctx: unknown, body: unknown): Promise<Resul
   if (typeof pattern !== 'string') throw new LimsError('common.internal');
   const seq = await nextCounterValue(c.tx, c.tenantId, 'patient_code', '', c.actor.id);
   const row = await insertPatient(c.tx, c.tenantId, {
-    id: uuidv7(), patient_code: formatNumber(pattern, { seq }), full_name: fullName, name_search: nameSearch, sex: b['sex'], ...demo, ...opt,
+    id: uuidv7(), patient_code: formatNumber(pattern, { seq, prefix: '' }), full_name: fullName, name_search: nameSearch, sex: b['sex'], ...demo, ...opt,
     source: 'front_desk', registered_centre_id: centreId, duplicate_override_reason_code: overrideCode,
   });
   const consent = await insertConsent(c.tx, c.tenantId, { id: uuidv7(), patient_id: row.id, ...consents, source: 'front_desk', captured_at: c.now() });

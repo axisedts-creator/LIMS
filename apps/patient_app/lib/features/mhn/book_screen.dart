@@ -58,6 +58,7 @@ class _MhnBookScreenState extends ConsumerState<MhnBookScreen> {
 
   Future<void> _loadInitialData() async {
     try {
+      ref.invalidate(bookingProfilesProvider);
       final api = ref.read(patientBookingsApiProvider);
       final profileId = ref.read(mhnProvider).selectedProfileId;
 
@@ -157,6 +158,14 @@ class _MhnBookScreenState extends ConsumerState<MhnBookScreen> {
     ctl.setSelectedSlot(slotStart: _selectedSlotStart, slotLabel: _selectedSlotLabel);
     ctl.setSelectedCentreId(_selectedCentreId);
     ctl.setSelectedAddressId(_selectedAddressId);
+    if (!st.isMockPrototype && st.selectedProfileId == null) {
+      final profiles = ref.read(bookingProfilesProvider).asData?.value;
+      if (profiles != null && profiles.isNotEmpty) {
+        ctl.setSelectedProfileId(profiles.first.id);
+      } else {
+        return setState(() => _err = 'No authorized patient profile found. Please link or register your profile.');
+      }
+    }
 
     mhnPush<void>(context, const MhnPayScreen());
   }

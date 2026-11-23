@@ -123,7 +123,7 @@ void main() {
     expect(find.text('Looking for a full body checkup?'), findsOneWidget);
     await t.pump(const Duration(milliseconds: 5200));
     await t.pump(const Duration(milliseconds: 500));
-    expect(find.text('Free home sample collection'), findsOneWidget);
+    expect(find.text('Home sample collection'), findsOneWidget);
     await end(t);
   });
 
@@ -150,7 +150,7 @@ void main() {
     await t.tap(find.text('View cart'));
     await t.pumpAndSettle();
     expect(find.text('Complete Blood Count (CBC)'), findsOneWidget);
-    expect(find.text('Rs 400'), findsWidgets);
+    expect(find.text('Rs 500'), findsWidgets);
     expect(find.textContaining('Members would save'), findsNothing);
     await t.tap(find.byTooltip('Remove Complete Blood Count (CBC)'));
     await t.pumpAndSettle();
@@ -190,6 +190,7 @@ void main() {
 
   testWidgets('whole booking flow: cart, date and time, review and pay, confirmed, my bookings', (t) async {
     final c = await open(t);
+    c.read(mhnProvider.notifier).setMockPrototype(true);
     c.read(mhnProvider.notifier).toggleCart('lft');
     c.read(mhnProvider.notifier).toggleCart('kft');
     await t.pump();

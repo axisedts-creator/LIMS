@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../bookings/addresses_screen.dart';
+import '../profiles/profiles_screen.dart';
+import '../../app/providers.dart';
 import 'about_screen.dart';
 import 'contact_tab.dart';
 import 'members_screen.dart';
@@ -52,6 +54,7 @@ class MhnProfileTab extends ConsumerWidget {
               ),
             ),
             _Row(icon: Icons.groups_2_outlined, title: 'Other members', trailing: st.members.isEmpty ? 'None' : '${st.members.length}', onTap: () => mhnPush<void>(context, const MhnMembersScreen())),
+            _Row(icon: Icons.badge_outlined, title: 'Lab profiles', onTap: () => mhnPush<void>(context, const ProfilesScreen())),
             _Row(icon: Icons.location_on_outlined, title: 'Saved addresses', onTap: () => mhnPush<void>(context, const AddressesScreen())),
             _Row(
               icon: Icons.calendar_today_outlined,
@@ -99,6 +102,18 @@ class MhnProfileTab extends ConsumerWidget {
             _Row(icon: Icons.flag_outlined, title: 'Report a problem', onTap: () => mhnPush<void>(context, const MhnProblemScreen())),
           ]),
         ),
+        const SizedBox(height: 16),
+        MhnCard(
+          padding: EdgeInsets.zero,
+          child: _Row(
+            icon: Icons.logout,
+            title: 'Sign out',
+            onTap: () async {
+              await ref.read(sessionControllerProvider).logout();
+            },
+          ),
+        ),
+        const SizedBox(height: 24),
       ],
     );
   }

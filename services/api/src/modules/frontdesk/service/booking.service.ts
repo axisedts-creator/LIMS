@@ -109,7 +109,7 @@ async function insertNewPatient(c: PortCtx, p: NewPatient, o: { id?: string; sou
     isDuplicateSuspect({ fullName: p.fullName, birthOn, ...(p.phoneE164 ? { phoneE164: p.phoneE164 } : {}) },
       { fullName: String(r['full_name']), birthOn: dateOnly(r['birth_on'])!, phoneE164: r['phone_e164'], anonymised: r['anonymised_at'] != null }));
   const seq = await nextCounterValue(c.tx, c.tenantId, 'patient_code', '', c.actor.id);
-  const row = await insertPatient(c.tx, c.tenantId, { id: o.id ?? uuidv7(), patient_code: formatNumber(pattern, { seq }), full_name: p.fullName, name_search: nameSearch, sex: p.sex,
+  const row = await insertPatient(c.tx, c.tenantId, { id: o.id ?? uuidv7(), patient_code: formatNumber(pattern, { seq, prefix: '' }), full_name: p.fullName, name_search: nameSearch, sex: p.sex,
     birth_on: birthOn, is_birth_on_estimated: p.birthOn === undefined, ...(p.phoneE164 ? { phone_e164: p.phoneE164 } : {}), source: o.source, ...(o.centreId ? { registered_centre_id: o.centreId } : {}) });
   await insertConsent(c.tx, c.tenantId, { id: uuidv7(), patient_id: row['id'], processing: true, sms: p.consents.sms, whatsapp: p.consents.whatsapp, email: p.consents.email,
     share_with_referrer: p.consents.shareWithReferrer, consent_text_version: p.consents.consentTextVersion, source: o.source, captured_at: o.now });

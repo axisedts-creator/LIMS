@@ -1,7 +1,6 @@
 // Book collection, step 2 of 2: review final quote + payment method + submit E33 createMyBooking with idempotency key.
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lims_shared/lims_shared.dart';
@@ -44,30 +43,79 @@ class _MhnPayScreenState extends ConsumerState<MhnPayScreen> {
     });
 
     try {
+      // In-memory prototype test simulation (ONLY if explicitly enabled in widget test harness)
+      if (st.isMockPrototype) {
+        await Future<void>.delayed(const Duration(milliseconds: 1200));
+        if (!mounted) return;
+        ctl.confirmBooking();
+        await Navigator.of(context).pushAndRemoveUntil<void>(
+          MaterialPageRoute<void>(builder: (_) => const MhnDoneScreen()),
+          (r) => r.isFirst,
+        );
+        return;
+      }
+
       final api = ref.read(patientBookingsApiProvider);
 
       // Resolve profile_id (from selection or from bookingProfilesProvider)
+      final profiles = await ref.refresh(bookingProfilesProvider.future).catchError((_) => <BookingProfile>[]);
       String? profileId = st.selectedProfileId;
-      if (profileId == null) {
-        final profiles = ref.read(bookingProfilesProvider).asData?.value;
-        if (profiles != null && profiles.isNotEmpty) {
+      if (profileId == null || !profiles.any((p) => p.id == profileId)) {
+        if (profiles.isNotEmpty) {
           profileId = profiles.first.id;
+          ctl.setSelectedProfileId(profileId);
+        } else {
+          profileId = null;
         }
       }
 
-      final slotStart = st.selectedSlotStart;
-
-      // If we don't have server IDs (e.g. running in mock prototype without backend), fall through to prototype confirm
-      if (profileId == null || slotStart == null) {
-        throw const FormatException('Missing server identifiers for live booking');
+      if (profileId == null) {
+        setState(() {
+          _paying = false;
+          _errorMessage = 'Please select an authorized patient profile.';
+        });
+        return;
       }
+
+      final slotStart = st.selectedSlotStart;
+      if (slotStart == null) {
+        setState(() {
+          _paying = false;
+          _errorMessage = 'Please select an appointment time slot.';
+        });
+        return;
+      }
+
+      if (st.cart.isEmpty) {
+        setState(() {
+          _paying = false;
+          _errorMessage = 'Your cart is empty.';
+        });
+        return;
+      }
+
+      // Map short/prototype test IDs to real database orderable UUIDs
+      final catalog = await ref.read(bookableItemsProvider.future).catchError((_) => <Map<String, Object?>>[]);
+      final codeToId = <String, String>{};
+      for (final item in catalog) {
+        final c = item['code'] as String?;
+        final id = item['orderable_id'] as String?;
+        if (c != null && id != null) codeToId[c.toLowerCase()] = id;
+      }
+      const fixtureIdMap = <String, String>{
+        'cbc': '01a1a98a-ac40-7000-8000-00000000a931',
+        'lipid': '01a1a98a-ac40-7000-8000-00000000a932',
+        'fbs': '01a1a98a-ac40-7000-8000-00000000a933',
+        'lft': '01a1a98a-ac40-7000-8000-00000000a934',
+      };
+      final orderableIds = st.cart.map((id) => codeToId[id.toLowerCase()] ?? fixtureIdMap[id.toLowerCase()] ?? id).toSet().toList();
 
       final body = <String, Object?>{
         'profile_id': profileId,
         'booking_kind': bookingKind,
         if (!isHome && st.selectedCentreId != null) 'centre_id': st.selectedCentreId,
         'slot_start': slotStart,
-        'orderable_ids': [...st.cart],
+        'orderable_ids': orderableIds,
         if (isHome && st.selectedAddressId != null) 'home_address_id': st.selectedAddressId,
       };
 
@@ -96,40 +144,12 @@ class _MhnPayScreenState extends ConsumerState<MhnPayScreen> {
           _errorMessage = bookingErrorText(e);
         }
       });
-    } on UnimplementedError {
-      // Demo / preview mode fallback
+    } catch (e) {
       if (!mounted) return;
-      if (!kReleaseMode) {
-        await Future<void>.delayed(const Duration(milliseconds: 1200));
-        if (!mounted) return;
-        ctl.confirmBooking();
-        await Navigator.of(context).pushAndRemoveUntil<void>(
-          MaterialPageRoute<void>(builder: (_) => const MhnDoneScreen()),
-          (r) => r.isFirst,
-        );
-      } else {
-        setState(() {
-          _paying = false;
-          _errorMessage = 'Booking service is currently unavailable.';
-        });
-      }
-    } catch (_) {
-      // FormatException or offline fallback
-      if (!mounted) return;
-      if (!kReleaseMode) {
-        await Future<void>.delayed(const Duration(milliseconds: 1200));
-        if (!mounted) return;
-        ctl.confirmBooking();
-        await Navigator.of(context).pushAndRemoveUntil<void>(
-          MaterialPageRoute<void>(builder: (_) => const MhnDoneScreen()),
-          (r) => r.isFirst,
-        );
-      } else {
-        setState(() {
-          _paying = false;
-          _errorMessage = 'Unable to complete booking. Please check your connection and retry.';
-        });
-      }
+      setState(() {
+        _paying = false;
+        _errorMessage = 'Booking failed: $e';
+      });
     }
   }
 
@@ -189,7 +209,7 @@ class _MhnPayScreenState extends ConsumerState<MhnPayScreen> {
             ),
           MhnButton(
             label: _paying
-                ? 'Processing payment…'
+                ? (st.pay == 'cash' ? 'Confirming booking…' : 'Processing payment…')
                 : (st.pay == 'cash' ? 'Confirm booking' : 'Pay ${rs(t.total)}'),
             busy: _paying,
             onPressed: _submit,

@@ -103,7 +103,7 @@ export function createSessionService(deps: SessionDeps) {
           clientIp: c.clientIp, userAgent: c.userAgent, requestId: c.requestId, actorId: c.actorId });
         const l: Locked = {
           tx, s, ref, load, now: clock(), ev,
-          record: (e) => (s.kind === 'platform' ? deps.events.recordTenantless(tx, e) : deps.events.recordTenant(tx, e)),
+          record: (e) => (!s.tenantId || s.kind === 'platform' ? deps.events.recordTenantless(tx, e) : deps.events.recordTenant(tx, e)),
           // platform: { user_id } only (a worker cannot read platform rows). LD-81: the patient kind has no GoTrue session -> no job.
           signOut: async (reason) => {
             if (s.kind === 'patient') return;

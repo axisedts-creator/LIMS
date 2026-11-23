@@ -94,8 +94,10 @@ class _SignInFlowState extends ConsumerState<SignInFlow> {
   }
 
   ({List<String> prefixes, String consent}) _parseConfig(Object? body) {
-    if (body case {'allowed_phone_prefixes': List<Object?> raw, 'consent': {'text': String text}}) {
+    if (body case {'allowed_phone_prefixes': List<Object?> raw}) {
       final prefixes = [for (final p in raw) if (p is String && _prefix.hasMatch(p)) p];
+      final consentMap = body['consent'];
+      final text = consentMap is Map && consentMap['text'] is String ? consentMap['text'] as String : '';
       if (prefixes.isNotEmpty) return (prefixes: prefixes, consent: text);
     }
     throw const FormatException('app config');

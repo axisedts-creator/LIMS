@@ -262,16 +262,21 @@ export function createLinkService() {
         const live = await repo.liveCodes(tx, { tenantId, patientId: v.patientId, now });
         for (const old of live.slice(0, Math.max(0, live.length - (MAX_LIVE_CODES - 1)))) await repo.supersede(tx, { tenantId, userId, id: old['id'], now });
 
-        const consentId = await consents.insertDeskConsent(tx, { tenantId, userId, patientId: v.patientId, relationship: v.relationship, consentedBy: v.consentedBy, identityCheck: v.identityCheck,
+        const membershipId = (ctx as any).membershipId ?? (ctx as any).claims?.membership_id ?? (ctx as any).actor?.membershipId
+          ?? (await tx.query('SELECT id FROM core.memberships WHERE tenant_id = $1 AND user_id = $2', [tenantId, userId])).rows[0]?.id ?? userId;
+        const consentId = await consents.insertDeskConsent(tx, { tenantId, userId, membershipId, patientId: v.patientId, relationship: v.relationship, consentedBy: v.consentedBy, identityCheck: v.identityCheck,
           consentTextVersion: s['app_consent_text_version'], now });
         const code = newCode();
         const expiresAt = new Date(Date.parse(now) + Number(s['link_code_ttl_hours']) * HOUR).toISOString();
-        const id = await repo.insertCode(tx, { tenantId, userId, patientId: v.patientId, codeHmac: linkHmac(tenantId, code), boundPhoneHmac: phoneHmac(tenantId, bound), boundPhoneLast2: bound.slice(-2),
+        const id = await repo.insertCode(tx, { tenantId, userId, membershipId, patientId: v.patientId, codeHmac: linkHmac(tenantId, code), boundPhoneHmac: phoneHmac(tenantId, bound), boundPhoneLast2: bound.slice(-2),
           recordPhoneHmac: recordPhone ? phoneHmac(tenantId, recordPhone) : null, relationship: v.relationship, consentId, displayName: String(p.fullName ?? ''), sex: typeof p.sex === 'string' ? p.sex : null, expiresAt, now });
         await ctx.audit?.access({ action: 'link_code.issue', entityType: 'patient', entityId: v.patientId, outcome: 'allowed' }); // no code, no phone
         engagementMetrics.linkEvent(ctx, 'link_code', 'issued');
         return { status: 201, body: { link_code_id: id, code, expires_at: expiresAt, bound_phone_masked: maskPhone(bound) } };
-      } catch (e) { return mapDbError(e); }
+      } catch (e) {
+        console.error('ISSUE_CATCH_ERROR:', e);
+        return mapDbError(e);
+      }
     },
 
     /**

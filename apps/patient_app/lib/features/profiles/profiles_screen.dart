@@ -8,6 +8,7 @@ import 'package:lims_shared/lims_shared.dart';
 import 'package:lims_ui/lims_ui.dart';
 
 import '../auth/auth_providers.dart';
+import '../bookings/bookings_providers.dart';
 import '../orders/status_look.dart';
 import 'link_code_screen.dart';
 import 'profile_copy.dart';
@@ -78,6 +79,7 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
 
   void _added(String profileId) {
     Navigator.of(context).pop(); // A7 / A8 / A9
+    ref.invalidate(bookingProfilesProvider);
     _load(silent: true);
     widget.onProfileAdded?.call(profileId);
   }
@@ -121,6 +123,7 @@ class _ProfilesScreenState extends ConsumerState<ProfilesScreen> {
     setState(() => _notice = null);
     try {
       await call();
+      ref.invalidate(bookingProfilesProvider);
       await _load(silent: true);
     } catch (e) {
       if (!mounted) return;

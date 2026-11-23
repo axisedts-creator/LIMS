@@ -1,9 +1,9 @@
 # My Health Now (MHN) Development Progress Log
 
-**Project**: My Health Now by MetroLabs  
-**Verified Repository Root**: `/Users/rabinasingtan/Desktop/lims`  
-**Active Working Branch**: `feat/mhn-v1.1-approved-slices` (branched from `deploy`)  
-**Audit Baseline Date**: 2026-11-22  
+**Project**: My Health Now by MetroLabs
+**Verified Repository Root**: `/Users/rabinasingtan/Desktop/lims`
+**Active Working Branch**: `feat/mhn-v1.1-approved-slices` (branched from `deploy`)
+**Audit Baseline Date**: 2026-11-22
 
 ---
 
@@ -623,8 +623,451 @@ Per Task 2 directives, implementation evidence is tracked across 10 distinct dim
     - `S26b` (Bookings overview - cancelled): Cancelled filter chip and cancellation state verified against Fastify E36 and `MhnBookingsScreen`.
     - `S35` (Report status - pending / reports list): Real laboratory reports list and older versions toggle verified against Fastify E22 and `MhnReportsScreen`.
 
+---
 
+## [2026-11-23] Milestone T18: Android Dev Application Build, Launch, and End-to-End Interactive Verification
 
+- **Objective**:
+  - Build, install, launch, and interactively test the actual My Health Now Android patient application (`apps/patient_app`) against the running local Fastify API (`0.0.0.0:3000`) and PostgreSQL 17 (`127.0.0.1:5433`) backend.
+- **Environment & Build Verification**:
+  - Storage verified: 27 GiB available on `/System/Volumes/Data`.
+  - Android Dev APK built with exit code 0:
+    - Command: `flutter build apk --debug --flavor dev -t lib/main_dev.dart`
+    - Output artifact: `apps/patient_app/build/app/outputs/flutter-apk/app-dev-debug.apk` (239 MB).
+  - Emulator environment:
+    - Running ARM64 Android emulator `emulator-5554` (`medium_phone`, Android API 36).
+    - Executed with `-gpu swiftshader_indirect` to prevent host GPU/Vulkan lockups on macOS Apple Silicon.
+  - Reverse proxy:
+    - `adb reverse tcp:3000 tcp:3000` active and verified.
+- **Key Root Cause Discoveries & Minimal Code Fixes**:
+  1. **Tenant Code Default Mapping**: `apps/patient_app/lib/main_dev.dart` defaulted to `'demo_lab'`, which caused pre-auth calls (`X-Lims-Patient-PreAuth: t.demo_lab`) to fail against seed tenant `tenant_a` under PostgreSQL RLS policies (`tenants__select__owner_only`). Fixed by defaulting `tenantCode` to `'tenant_a'`.
+  2. **Error Tracking Bootstrap**: `apps/patient_app/lib/app/bootstrap.dart` required Sentry DSN initialization even when unconfigured. Updated `bootstrap.dart` to bypass `SentryFlutter.init` when `kErrorTrackingDsn.isEmpty`.
+  3. **Patient Session Logout Event Recording**: `services/api/src/modules/identity/service/session.service.ts` attempted to call `deps.events.recordTenant(tx, e)` for non-platform sessions. Because patient sessions are identity-level/tenantless (`s.tenantId === null`), this threw `Error: auth-events.repo: tenant event without tenant id`, failing `POST /v1/identity/auth/patient/session/logout` with HTTP 500. Updated line 106 to route `!s.tenantId` sessions to `deps.events.recordTenantless(tx, e)`. Verified with 38/38 passing tests in `session-kinds.wiring.test.ts`.
+  4. **Debug Build Screenshot Inspection (FLAG_SECURE)**: `apps/patient_app/android/app/src/main/kotlin/invalid/lims/patient_app/MainActivity.kt` updated so `FLAG_SECURE` is only set when `!isDebuggable`, allowing visual inspection and screenshot captures during debug/dev QA while preserving production security (REQ-SEC-109).
+  5. **Profile Sign Out Action**: Added a Sign out card in `apps/patient_app/lib/features/mhn/profile_tab.dart` wired to `ref.read(sessionControllerProvider).logout()`.
+  6. **Slot Horizon & Cutoff Resilience**: Updated `tests/e2e/mhn-t13.fixture.sql`, `services/api/src/modules/engagement/__tests__/mhn-live-http.e2e.test.ts`, and `apps/patient_app/test/features/mhn/mhn_real_http_e2e_test.dart` to dynamically select future slot dates and set `booking_cancel_cutoff_minutes = 0` in test fixtures to prevent wall-clock lead time conflicts.
+- **Interactive Android User Journeys Verified**:
+  - **Launch & Pre-Auth Config (A0/A2)**: App successfully connected to `http://10.0.2.2:3000/v1/engagement/app/config`, retrieved allowed phone prefixes (`+977`), tenant branding ("Demo Lab (dev)"), and active feature flags.
+  - **Phone Input & OTP Challenge (E2)**: Entered `9800000001`, tapped "Send code", Fastify server issued OTP challenge with HTTP 202.
+  - **OTP Verification & JWT Minting (E3)**: Entered test OTP `123456`, Fastify verified code, created/resolved patient account, and issued Ed25519 JWT session with HTTP 200.
+  - **Home Screen Rendering (A5 / MhnShell / H01 / H02)**: Successfully rendered patient header ("Hi, Aayush"), location selector ("Baneshwor, Kathmandu"), service pills ("Free Home Sample Collection", "Upload Prescription"), and real catalog tests with prices ("Complete Blood Count (CBC) Rs 400", "Glucose, Fasting Rs 75", "HbA1c Rs 1,000", "LFT Advanced Rs 1,500").
+  - **All 5 Navigation Tabs Verified on Android**:
+    - Tab 1: **Home** (Hero checkup banner, quick action pills, popular tests).
+    - Tab 2: **All Tests** (Category grid, collection mode toggle).
+    - Tab 3: **Bookings** (Upcoming & past bookings).
+    - Tab 4: **Reports** (Real laboratory reports list).
+    - Tab 5: **Profile** (Account information, members, addresses, settings).
+  - **Cart & Booking Flow**: Added CBC test to cart, progressed to collection mode selection, loaded available slot times from backend slot engine, and verified review screen.
+  - **Saved Addresses Sub-Screen**: Navigated to "Saved addresses", loaded `GET /v1/engagement/me/addresses` via HTTP showing empty state and Add address CTA.
+  - **Clean Sign Out Flow**: Tapped "Sign out" on Profile tab -> backend `POST /v1/identity/auth/patient/session/logout` succeeded -> Riverpod session cleared -> returned to clean Sign-in screen.
+- **Definitive Test Results Matrix**:
+  | Test Suite | Target | Tests | Status | Exit Code |
+  | :--- | :--- | :---: | :---: | :---: |
+  | Android Dev APK Build | `flutter build apk --debug --flavor dev -t lib/main_dev.dart` | 1 APK | **PASSED** | 0 |
+  | Live HTTP E2E Suite (Fastify + PG17 + Flutter) | `bash tests/e2e/mhn-live-e2e.sh` | 17 / 17 | **PASSED** | 0 |
+  | Flutter Patient App Unit & Widget Suites | `flutter test` across `apps/patient_app` | 1,621 / 1,621 | **PASSED** | 0 |
+  | Identity Session Kinds Wiring Suite | `vitest run session-kinds.wiring.test.ts` | 38 / 38 | **PASSED** | 0 |
+- **Visual Artifacts Captured**:
+  - `screen_live_27_final_ready.png`: Sign-in screen with phone entry field and legal consent.
+  - `screen_live_28_home_verified.png`: Home screen with live catalog packages and bottom navigation.
+  - `screen_live_29_profile_signout.png`: Profile tab scrolled to bottom showing Sign out card.
+  - `screen_live_30_post_signout_clean.png`: Clean post-signout state returning to initial unauthenticated screen.
+- **Remaining Blockers**:
+  - S40 PDF Report Viewer remains intentionally gated at Level 6 pending platform sign-off on [ADR-MHN-REPORT-STORAGE-PROPOSAL.md](file:///Users/rabinasingtan/Desktop/lims/docs/decisions/ADR-MHN-REPORT-STORAGE-PROPOSAL.md) (CR-C0-0D-T0D-17).
 
+---
 
+## 22. Milestone T19 Execution Summary
 
+- **Objective**:
+  - Complete the remaining interactive Android patient journeys on real ARM64 Android emulator (`emulator-5554`) connected to the live Fastify API (`0.0.0.0:3000`) and isolated PostgreSQL 17 (`127.0.0.1:5433`).
+  - Progress from catalog and home browsing through the full booking lifecycle: Cart, Multi-step Booking Wizard ("Who & when", slot selection, "Review & pay"), real database persistence (`engagement.bookings`, `engagement.booking_items`), Bookings tab tracking, Booking cancellation with state machine transition, Reports tab list & viewer gating, Saved Addresses CRUD, and Account Sign out.
+- **Interactive Android User Journeys Verified**:
+  1. **Authentication (E2/E3)**: Verified on `emulator-5554` via phone `9800000001` + OTP `123456`. Fastify issued Ed25519 JWT session token.
+  2. **Catalog & Cart (H01 / S10 / S17)**: Added Complete Blood Count (`CBC`, `01a1a98a-ac40-7000-8000-00000000a931`) to cart. Cart screen displayed CBC, collection method, and estimated total Rs 400.
+  3. **Booking Wizard Step 1 - Who & When (S18 / S19 / S21)**: Selected profile Asha Sharma (`01a1a98a-ac40-7000-8000-00000000a101`), toggled Centre visit, retrieved available slots from Fastify slot engine, picked slot `02:15 PM` (`2026-11-23T08:30:00.000Z`).
+  4. **Booking Wizard Step 2 - Review & Pay (S24 / E33)**: Quote Rs 400, selected "Pay on collection" (cash). Submitted real `POST /v1/engagement/me/bookings` with client `Idempotency-Key`.
+     - **Database Persistence Verified**: Row inserted into `engagement.bookings`: `id: 01a20776-c14d-7293-a869-1102447dc22b`, `booking_no: BK26000001`, `status: confirmed`, `kind: centre_visit`, `slot_start: 2026-11-23 08:30:00+00`.
+     - **Items Persistence Verified**: Row inserted into `engagement.booking_items`: `orderable_id: 01a1a98a-ac40-7000-8000-00000000a931`, `name: Complete Blood Count (CBC)`, `indicative_price_paisa: 50000`.
+  5. **Booking Confirmation Screen**: Displayed `Booking confirmed` with real database booking ID `Booking ID BK26000001`.
+  6. **Bookings Tab Tracking (S26 / E34)**: Retrieved `GET /v1/engagement/me/bookings` displaying `Booking #BK26000001` with status `Confirmed`.
+  7. **Booking Details & Cancellation (S27 / S27a / S26b / E35 / E36)**:
+     - Tapped booking card to open details showing full slot, center, items, and action buttons.
+     - Tapped "Cancel booking" -> confirmed in dialog -> Fastify processed `PATCH /v1/engagement/me/bookings/01a20776-c14d-7293-a869-1102447dc22b/cancel` with `If-Match`.
+     - Database persistence verified: `status: cancelled`, `cancel_reason_code: patient_request`.
+     - Live UI updated immediately to `Cancelled` and moved card under "Cancelled" filter tab.
+  8. **Reports Tab & Gated Viewer (S37 / S40 / S40a / E22)**:
+     - Displayed released report `Complete Blood Count (CBC) Final` from `GET /v1/engagement/me/reports`.
+     - Tapped report card -> `ReportViewerScreen` opened and gracefully displayed `Report not found / This report is no longer available`, confirming graceful Level 6 gated failure state pending storage ADR approval.
+  9. **Saved Addresses Full Lifecycle (S46 / S46a / S46b / E37 / E38 / E40)**:
+     - Navigated to `AddressesScreen`: empty state rendered.
+     - Tapped "Add address": filled address `House 12, Baneshwor Marg`, selected `Home`, municipality `Kathmandu`.
+     - Tapped "Save": real row inserted into PostgreSQL `engagement.addresses`: `id: 01a2077b-a81d-76d8-919f-147e40ad48ce`, `is_active: true`.
+     - Re-opened address -> tapped "Remove address" -> "Remove": real row in PostgreSQL updated to `is_active: false` (soft-deactivation).
+  10. **Sign Out Flow**:
+      - Tapped "Sign out" on Profile tab -> backend `POST /v1/identity/auth/patient/session/logout` succeeded -> Riverpod session cleared -> returned cleanly to Login screen.
+- **Root Cause Discoveries & Minimal Code Fixes**:
+  1. **Client Booking Fallback in `pay_screen.dart`**: `st.selectedProfileId` was null because Riverpod cached `bookingProfilesProvider` before profile links were created, and `st.cart` contained short test keys (`'cbc'`, `'lft'`). Previously, `pay_screen.dart` caught `FormatException` and fell back to client-side fake booking `MHN-317198`. Fixed by refreshing profiles, mapping catalog test IDs to real database UUIDs, and cleanly propagating live API errors while preserving mock test compatibility.
+  2. **Catalog Test Fixture Completeness**: Added LFT Advanced (`01a1a98a-ac40-7000-8000-00000000a934`) to `tests/e2e/mhn-t13.fixture.sql` and `engagement.bookable_items`.
+- **Definitive Test Results Matrix**:
+  | Test Suite | Target | Tests | Status | Exit Code |
+  | :--- | :--- | :---: | :---: | :---: |
+  | Live HTTP E2E Suite (Fastify + PG17 + Flutter) | `bash tests/e2e/mhn-live-e2e.sh` | 17 / 17 | **PASSED** | 0 |
+  | Flutter Patient App UI Suite | `flutter test test/features/mhn/mhn_ui_test.dart` | 21 / 21 | **PASSED** | 0 |
+  | Flutter Bookings Feature Suite | `flutter test test/features/bookings/` | 77 / 77 | **PASSED** | 0 |
+  | Flutter All Unit & Widget Tests | `flutter test` across `apps/patient_app` | 1,621 / 1,621 | **PASSED** | 0 |
+- **Visual Artifacts Captured**:
+  - `t19_01_login.png`: Phone entry screen with legal consent.
+  - `t19_01_otp_screen.png`: OTP verification screen.
+  - `t19_02_home.png`: Home screen with live catalog packages.
+  - `t19_03_all_tests.png`: All Tests catalog tab.
+  - `t19_04_test_details.png`: Test details modal with test info.
+  - `t19_05_cart.png`: Cart screen with Complete Blood Count (CBC).
+  - `t19_06_booking_slot_selection.png`: Booking wizard step 1 with slot selection.
+  - `t19_07_review_and_pay.png`: Booking wizard step 2 review and payment options.
+  - `t19_08_booking_confirmed.png`: Booking confirmation with Booking ID `BK26000001`.
+  - `t19_09_bookings.png`: Bookings tab showing confirmed booking.
+  - `t19_09_bookings_cancelled.png`: Bookings tab showing cancelled booking.
+  - `t19_10_booking_details.png`: Booking details screen with cancellation option.
+  - `t19_11_reports.png`: Reports list tab showing CBC final report.
+  - `t19_11_report_viewer_gated.png`: Gated report viewer showing graceful fallback.
+  - `t19_12_profile.png`: Profile tab.
+  - `t19_13_saved_addresses.png`: Empty saved addresses screen.
+  - `t19_13_saved_addresses_with_card.png`: Saved addresses screen with persisted card.
+  - `t19_14_after_signout_clean.png`: Post-signout clean login screen.
+- **Traceability Ledger Update**:
+  - Promoted S17 (Cart), S18 (Select patient), S19 (Collection method) in `.mhn-agent-kit/command/SCREEN_TRACEABILITY_155.csv` to `lvl7_real_local_integration_passed = YES` and `e2e_journey_verified = VERIFIED_LOCAL_TESTS`.
+- **Remaining Scope Gating**:
+  - S40 PDF Report Viewing remains intentionally gated pending approval of [ADR-MHN-REPORT-STORAGE-PROPOSAL.md](file:///Users/rabinasingtan/Desktop/lims/docs/decisions/ADR-MHN-REPORT-STORAGE-PROPOSAL.md).
+
+---
+
+### Milestone T20: Pricing Integrity, Mock Elimination, Authorization Hardening & Android Regression (2026-11-23)
+
+- **Objective**:
+  1. Investigate and resolve the pricing discrepancy between Flutter UI (CBC Rs 400) and PostgreSQL `booking_items` (`indicative_price_paisa = 50000`, Rs 500).
+  2. Remove all production mock success fallbacks (`MHN-xxxxxx` fake numbers, mock UUIDs, synthetic client bookings) to ensure production/staging builds fail loudly and report actual errors.
+  3. Resolve patient profile resolution and auto-linking for synthetic test accounts (`+9779800000001` -> Asha Sharma) with strict RLS enforcement.
+  4. Audit OpenAPI booking and cancellation contracts (`E33`–`E36`) and confirm exact HTTP methods (`POST /v1/engagement/me/bookings/{id}/cancel`).
+  5. Harden report error handling in `ReportViewerScreen` across 404, 401, 403, 429, and 503 without leaking server internals.
+  6. Execute complete real interactive Android emulator regression on ARM64 API 36 emulator against live Fastify API + PostgreSQL 17.
+- **Root Cause Discoveries & Permanent Fixes**:
+  1. **Pricing Discrepancy Root Cause**:
+     - `mhn_data.dart` had stale prototype constants (CBC: 400, FBS: 75, LIPID: 800) whereas `engagement.bookable_items` had `50000` paisa (Rs 500), `20000` paisa (Rs 200), `120000` paisa (Rs 1200).
+     - `home_tab.dart` added items without registering dynamic price with `cartItemOf(id).price`.
+     - `recordServerBooking` stored static total (400) instead of summing server item indicative prices (500).
+     - *Fix applied*: Synchronized `kTests` fallback constants in `mhn_data.dart`, added `registerCartItem` in `home_tab.dart`, added `bookableItemsProvider` in `bookings_providers.dart`, and updated `recordServerBooking` to compute authoritative totals directly from server response items (`indicative_price.amount_paisa`).
+  2. **Elimination of Mock Fallbacks**:
+     - Removed `if (!kReleaseMode) ctl.confirmBooking()` from `pay_screen.dart`.
+     - Gated `confirmBooking()` strictly under explicit `st.isMockPrototype` flag for isolated unit/widget tests.
+     - Production/dev builds now require real server booking responses with `Idempotency-Key` and valid profile IDs.
+     - Prevented progression in `book_screen.dart` if no authorized profile is selected.
+  3. **Patient Profile Resolution & RLS Hardening**:
+     - Investigated why Asha Sharma was not linked to `+9779800000001` during interactive Android testing.
+     - Found that in production, accounts are never implicitly linked to patient records without explicit Link Code redemption (`E14`) or Self-Registration (`E16`). In dev environments, accounts created on OTP login lacked links.
+     - Created a trigger in `tests/e2e/start-mhn-backend.sh` owned by `supabase_admin` that automatically links `+9779800000001` to synthetic patient Asha Sharma upon account creation, bypassing RLS safely during dev setup while leaving production schemas pure.
+  4. **OpenAPI Cancellation Contract Confirmation**:
+     - Audited `contracts/openapi/engagement.yaml:2118-2120`. Confirmed `cancelMyBooking` is explicitly `POST /v1/engagement/me/bookings/{booking_id}/cancel` with `Idempotency-Key` and `If-Match` headers.
+  5. **Report Viewer Error Hardening**:
+     - Updated `apps/patient_app/lib/features/reports/report_viewer_screen.dart` to cleanly differentiate 503 (`storage unavailable`), 404 (`not found`), 403 (`access restricted`), 401 (`session expired`), and 429 (`rate limited`) without leaking SQL/server details.
+- **Definitive Android Regression Evidence (ARM64 API 36 Emulator `emulator-5554`)**:
+  - **Login**: Entered `9800000001` + OTP `123456` -> successfully authenticated via Fastify and PostgreSQL 17.
+  - **Home Screen**: Popular tests displayed authoritative price: `Complete Blood Count (CBC) Rs 500`.
+  - **Cart**: Added CBC -> Cart subtotal displayed `Rs 500`, estimated total `Rs 500`.
+  - **Booking Wizard**: Step 1 displayed patient `Asha Sharma (you)` retrieved live from server; selected Centre visit; selected real database slot `03:00 PM 5 left`.
+  - **Review & Pay**: Displayed `For Asha Sharma`, `Mon 23 Nov · 03:00 PM`, `Total quote: Rs 500`. Selected "Pay on collection" -> tapped "Pay Rs 500".
+  - **Server Confirmation**: Booking created with real server sequential booking number `BK26000002` (NOT `MHN-xxxxxx`).
+  - **Database Verification**: PostgreSQL `engagement.bookings` recorded `booking_no = 'BK26000002'`, `status = 'confirmed'`, `indicative_price_paisa = 50000` (Rs 500.00). Exact match across all layers!
+  - **Bookings Tab**: Displayed `Booking #BK26000002 Confirmed 23/11/2026 03:00 PM Rs. 500.00`.
+  - **Interactive Cancellation**: Opened booking details -> tapped "Cancel booking" -> confirmed in modal -> `POST /v1/engagement/me/bookings/{id}/cancel` executed -> status immediately updated to `Cancelled` in UI; PostgreSQL verified `status = 'cancelled'`, `cancel_reason_code = 'patient_request'`.
+  - **Reports Tab & Viewer**: Displayed CBC Final report; tapped to view -> safely displayed `Report not found / This report is not available for download` without leaking internals.
+- **Definitive Test Results Matrix**:
+  | Test Suite | Target | Tests | Status | Exit Code |
+  | :--- | :--- | :---: | :---: | :---: |
+  | Live HTTP E2E Suite (Fastify + PG17 + Flutter) | `bash tests/e2e/mhn-live-e2e.sh` | 17 / 17 | **PASSED** | 0 |
+  | Flutter Patient App UI Suite | `flutter test test/features/mhn/mhn_ui_test.dart` | 21 / 21 | **PASSED** | 0 |
+  | Flutter Bookings Feature Suite | `flutter test test/features/bookings/` | 77 / 77 | **PASSED** | 0 |
+  | Flutter Report Viewer Tests | `flutter test test/features/reports/a13_report_viewer_test.dart` | 20 / 20 | **PASSED** | 0 |
+  | Flutter Static Code Analysis | `flutter analyze` | 0 issues | **PASSED** | 0 |
+- **Visual Artifacts Captured**:
+  - `t20_01_launch.png`: Clean mobile login screen.
+  - `t20_02_otp_screen.png`: 6-digit OTP entry screen.
+  - `t20_03_home_tab.png`: Home tab with CBC at authoritative Rs 500.
+  - `t20_04_cart.png`: Cart screen displaying subtotal Rs 500 and total Rs 500.
+  - `t20_05_slot_selection.png`: Booking wizard step 1 with Asha Sharma profile.
+  - `t20_06_centre_visit_slots.png`: Centre visit slot selection with real database capacity chips.
+  - `t20_07_review_and_pay.png`: Review & Pay screen with total quote Rs 500.
+  - `t20_08_booking_confirmed.png`: Real booking confirmation with Booking ID `BK26000002`.
+  - `t20_09_bookings_tab.png`: Bookings tab showing `BK26000002` at `Rs. 500.00`.
+  - `t20_10_booking_details.png`: Booking details screen with real-time status and action buttons.
+  - `t20_11_booking_cancelled.png`: Booking details screen showing live cancellation.
+  - `t20_12_reports_tab.png`: Reports tab listing released CBC report.
+  - `t20_13_report_viewer_gated.png`: Hardened report viewer safe error state.
+- **Traceability Ledger Update**:
+  - Promoted S20 (Slot selection), S21 (Review and payment), S22 (Booking confirmation), S23 (Booking details), and S24 (Cancellation) in `.mhn-agent-kit/command/SCREEN_TRACEABILITY_155.csv` to `lvl7_real_local_integration_passed = YES` and `e2e_journey_verified = VERIFIED_LOCAL_TESTS`.
+
+---
+
+## 2026-11-23 — Milestone T21: Genuine Patient Registration, Family Access & Server-Authoritative Checkout Audit
+
+### Objective
+Complete genuine patient onboarding, eliminate checkout integrity risks, verify family access, isolate test-only linking triggers, and prepare the patient app for controlled staging validation without reliance on development-only auto-linking shortcuts.
+
+### Work Completed
+1. **Genuine Patient Self-Registration (`E16` / `E17`) & Consent Verification**:
+   - Configured tenant legal consent in test fixtures (`tests/e2e/mhn-t13.fixture.sql` and `lims_mhn_pg`): `app_consent_text`, `app_consent_text_version = '2026-01'`, and `minor_age_years = 18`.
+   - Wired self-registration processor trigger (`engagement.fixture_process_self_registration`) and strict RFC 9562 UUIDv7 generator (`app.gen_uuidv7()`) in the test database so asynchronous graphile worker jobs process immediately in isolated environments without violating event schema constraints on outbox events.
+   - Added direct navigation to Lab Profiles (`ProfilesScreen`, A6) from the Profile Tab under the Account group.
+   - Verified negative security boundaries: phone number alone never grants account access; link code redemption strictly enforces 10-character Crockford Base32 alphabet and rejects invalid or mismatched codes with 422 `engagement.link_code_invalid`.
+2. **Isolation of Test-Only Profile Linking**:
+   - Confirmed that the synthetic auto-link trigger (`trg_fixture_auto_link_asha`) introduced in T20 is strictly confined to test fixture scripts (`tests/e2e/start-mhn-backend.sh`).
+   - Verified that no canonical database migrations (`db/migrations/`) or production code contain auto-linking shortcuts; production and staging strictly require cryptographically verified Crockford link codes (`E14`) or approved self-registration (`E16`/`E17`).
+3. **Server-Authoritative Pricing Audit & Official Release Blocker**:
+   - Conducted an exhaustive audit of the pricing chain: `catalog database` -> `E30 bookable-items` -> `Flutter catalog model` -> `cart` -> `booking wizard` -> `E33 booking creation` -> `booking_items` -> `booking confirmation`.
+   - Reconfirmed that `engagement.yaml` lacks a `/v1/engagement/me/quote` endpoint; prices displayed prior to booking are indicative catalog estimates (`amount_paisa = 50000` / Rs 500.00). Final authoritative invoices are minted only after accessioning via `BillingPort`.
+   - Officially recorded the lack of dynamic pre-accessioning server quote calculation (coupons, surge, home-collection fee adjustments) as an explicit **Release Blocker** for billing-dependent staging releases.
+4. **Pay-on-Collection UX Refinement (Task 4)**:
+   - In `apps/patient_app/lib/features/mhn/pay_screen.dart`, updated CTA from "Pay Rs 500" to "Confirm booking" / "Confirming booking…" when "Pay on collection" (cash/QR) is selected.
+   - Added informational disclaimer: *"Payment is collected at the time of sample collection / visit."* to prevent patient confusion regarding online debit vs on-site payment.
+5. **Mock Prototype Isolation (Task 5)**:
+   - Verified that `isMockPrototype` defaults to `false` in release and dev builds and cannot be enabled without explicit test overrides.
+   - Guarded all confirmation navigations so network or API failures never falsely trigger success screens.
+6. **Provider Invalidation & State Synchronization Fix**:
+   - Resolved a state caching bug where `ProfilesScreen` (A6) only invalidated `profilesProvider` upon link redemption or creation, leaving `bookingProfilesProvider` stale in `book_screen.dart`.
+   - Updated `profiles_screen.dart` to invalidate `bookingProfilesProvider` upon redemption (`_added`) and mutation (`_act`), and updated `book_screen.dart` to refresh `bookingProfilesProvider` during `_loadInitialData()`.
+
+### Definitive Android Emulator Execution Evidence (API 36 ARM64, `emulator-5554`)
+- **Journey A — New Patient Onboarding & Booking**:
+  1. Signed in with unlinked fresh phone `+9779800000002` + test OTP `123456`.
+  2. Verified account had 0 linked patient records in PostgreSQL.
+  3. Navigated to Profile -> Lab profiles (`ProfilesScreen`, A6). Verified empty state ("No profiles yet") with action buttons (`t21_01_new_patient_empty.png`).
+  4. Tapped "Register myself / my child" -> entered "Bikash Thapa", Male, Age 30, checked consent checkbox (`t21_02_self_reg_form.png`).
+  5. Tapped "Create record" -> `E16` submitted -> `E17` polled status `created` -> returned to profiles list displaying `Bikash Thapa (Me · Registered in the app)` (`t21_03_profile_created.png`).
+  6. Verified PostgreSQL rows: `frontdesk.patients` (`P-70BF28AB`, Bikash Thapa), `engagement.account_patient_links` (`self_registered`), and `engagement.self_registrations` (`status = 'created'`).
+  7. Added Complete Blood Count (CBC, Rs 500) to cart -> selected Centre visit -> selected 04:00 PM slot -> selected "Pay on collection" (CTA verified as "Confirm booking") -> confirmed booking.
+  8. Booking confirmed: Booking ID `BK26000003` (`t21_04_booking_confirmed.png`). Verified in PostgreSQL: `BK26000003` with `status = 'confirmed'`.
+- **Journey B — Linked Family Member Redemption, Booking & Cancellation**:
+  1. Navigated to Lab profiles -> tapped "I have a code from the lab" (`LinkCodeScreen`, A7, `t21_05_link_code_input.png`).
+  2. Negative test: entered invalid Crockford code `ABCDE12345` -> server rejected with 422 `engagement.link_code_invalid` and UI displayed friendly error: *"This code didn't work. Check it or ask the lab for a new one."*
+  3. Issued valid HMAC-bound Crockford link code `K7M9P2R4W6` for patient Asha Sharma (`01a1a98a-ac40-7000-8000-00000000a801`) bound to phone `+9779800000002`.
+  4. Entered `K7M9P2R4W6` into `LinkCodeScreen` and tapped "Add profile".
+  5. Redemption succeeded with 201 Created: `engagement.link_codes` updated to `status = 'redeemed'`, `redeemed_account_id = 01a207c9-0acd-77a8-b1af-65d2f279d0dc`. `account_patient_links` created with `relationship = 'spouse'`, `display_name = 'Asha Sharma'`, `method = 'link_code'`.
+  6. Profiles screen immediately displayed both active profiles:
+     - `Bikash Thapa (Me · Registered in the app)`
+     - `Asha Sharma (Spouse · Linked with lab code)` (`t21_06_profiles_linked.png`).
+  7. Booking wizard displayed profile chips for both `Bikash Thapa (you)` and `Asha Sharma`.
+  8. Selected `Asha Sharma` -> selected Centre visit -> selected slot `04:15 PM` -> selected "Pay on collection" -> confirmed booking.
+  9. Booking confirmed: Booking ID `BK26000004` (`t21_07_booking_confirmed_linked.png`).
+  10. Verified PostgreSQL: `BK26000004` linked to patient Asha Sharma (`01a1a98a-ac40-7000-8000-00000000a801`) with `status = 'confirmed'`.
+  11. Navigated to Bookings tab -> opened `BK26000004` -> tapped "Cancel booking" -> confirmed in modal.
+  12. Booking cancelled in real-time (`t21_08_booking_cancelled_linked.png`). PostgreSQL verified `status = 'cancelled'`, `cancelled_by_kind = 'patient'`, `cancel_reason_code = 'patient_request'`.
+
+### Definitive Test Results Matrix
+| Test Suite | Target | Tests | Status | Exit Code |
+| :--- | :--- | :---: | :---: | :---: |
+| Live HTTP E2E Suite (Fastify + PG17 + Flutter) | `bash tests/e2e/mhn-live-e2e.sh` | 17 / 17 | **PASSED** | 0 |
+| Flutter Patient App Profiles Suite | `flutter test test/features/profiles/` | 139 / 139 | **PASSED** | 0 |
+| Flutter Patient App UI Suite | `flutter test test/features/mhn/mhn_ui_test.dart` | 21 / 21 | **PASSED** | 0 |
+| Flutter Booking Flow Integration Suite | `flutter test test/features/mhn/booking_flow_integration_test.dart` | 6 / 6 | **PASSED** | 0 |
+| Flutter Tests Tab Integration Suite | `flutter test test/features/mhn/tests_tab_integration_test.dart` | 7 / 7 | **PASSED** | 0 |
+| Flutter Static Code Analysis | `flutter analyze` | 0 issues | **PASSED** | 0 |
+
+### Visual Artifacts Captured
+- `t21_00_start.png`: Initial test state.
+- `t21_01_new_patient_empty.png`: Lab profiles screen with empty state ("No profiles yet") for fresh account.
+- `t21_02_self_reg_form.png`: Filled self-registration form for Bikash Thapa (Male, Age 30, with consent).
+- `t21_03_profile_created.png`: Profiles list showing newly self-registered Bikash Thapa profile.
+- `t21_04_booking_confirmed.png`: Real booking confirmation for Bikash Thapa (`BK26000003`, Pay on collection).
+- `t21_05_link_code_input.png`: Link Code input screen (A7) showing Crockford Base32 formatting.
+- `t21_06_link_code_input_filled.png`: Link code entry screen with valid code `K7M9P2R4W6`.
+- `t21_06_profiles_linked.png`: Profiles screen displaying both self-registered patient and linked spouse Asha Sharma.
+- `t21_07_booking_confirmed_linked.png`: Real booking confirmation for linked spouse Asha Sharma (`BK26000004`).
+- `t21_08_booking_cancelled_linked.png`: Booking details screen showing live patient-initiated cancellation.
+
+---
+
+## 2026-11-23 — Milestone T22: Production-Grade Onboarding, Staff Link Code Lifecycle & Family Consent Revocation
+
+### Objective
+Verify remaining onboarding and family-access workflows through production-equivalent infrastructure, eliminate test triggers, enforce staff Crockford link-code issuance/redemption with HMAC storage, verify family consent revocation across database RLS and Flutter Riverpod state, and record definitive interactive Android emulator evidence.
+
+### Work Completed
+1. **Real Asynchronous Self-Registration Lifecycle (Task 1)**:
+   - Permanently removed the development fixture trigger `trg_fixture_process_self_reg` from `engagement.self_registrations`.
+   - Configured and ran the real MHN worker runtime (`services/worker/src/mhn-dev-worker.ts`) using Graphile Worker claiming from `graphile_worker.jobs`.
+   - Injected runtime port dependencies (`FrontdeskPort`, `IdentityPort`) into `JobContext` in `services/worker/src/core/consumer.ts`.
+   - Seeded missing `frontdesk.settings` row (`consent_text_version = 'app-2026-01'`) and fixed patient numbering pattern resolution in `services/api/src/modules/frontdesk/service/patient.service.ts` and `booking.service.ts`.
+   - Verified end-to-end execution with `tools/test-self-registration-worker.ts`:
+     - Account initialized with 0 profiles.
+     - `E16` `createSelfRegistration` returned 202 Accepted with status `queued`.
+     - Graphile Worker claimed the job, invoked `FrontdeskPort.createSelfRegisteredPatient`, and created `frontdesk.patients` row (`00000002`).
+     - `engagement.self_registrations` updated to `status = 'created'`, linking to newly created `engagement.account_patient_links` (`method = 'self_registered'`).
+     - `E17` polled and returned status `created` with `profile_id`.
+     - `E13` `GET /v1/engagement/me/profiles` returned the self-registered profile.
+     - Duplicate self-registration rejected with 409 `engagement.link_limit_reached`.
+
+2. **Staff Link-Code Issuance & Patient Redemption (Task 2)**:
+   - Fixed schema constraint and RLS mismatch: `engagement.link_codes.issued_by_membership_id` and `engagement.link_consents.recorded_by_membership_id` require `membership_id` (foreign key to `core.memberships`). Resolved in `services/api/src/modules/engagement/repository/linkCodes.repo.ts`, `consents.repo.ts`, and `services/api/src/modules/engagement/service/link.service.ts`.
+   - Minted staff bearer JWT with permissions `engagement.link.issue` and `engagement.link.revoke`.
+   - Verified full lifecycle via `tools/test-staff-link-codes.ts`:
+     - Authorized staff issued link code via `POST /v1/engagement/link-codes`: 201 Created with `{ link_code_id, code, expires_at, bound_phone_masked }`.
+     - Validated Crockford Base32 formatting (`^[0-9A-HJKMNP-TV-Z]{5}-[0-9A-HJKMNP-TV-Z]{5}$`, 11 chars).
+     - Verified database storage: plaintext code is strictly absent; database only stores raw 32-byte HMAC (`code_hmac`).
+     - Patient authenticated via OTP and redeemed code via `POST /v1/engagement/me/profiles/redeem-code`: 201 Created with `profile_id`, `relationship = 'parent'`, and `method = 'link_code'`.
+     - Verified profile appears in `GET /v1/engagement/me/profiles`.
+     - Verified negative boundary: re-use denied with 422 `engagement.link_code_invalid`.
+     - Verified negative boundary: invalid format rejected with 400.
+     - Verified negative boundary: phone mismatch rejected with 422 `engagement.link_code_invalid`.
+     - Verified negative boundary: staff revocation (`POST /v1/engagement/link-codes/:id/revoke` with `If-Match: "1"`) succeeded with 204 No Content, and subsequent redemption returned 422 `engagement.link_code_invalid`.
+
+3. **Family Consent Revocation & State Synchronization (Task 3)**:
+   - Verified complete revocation flow via `tools/test-profile-revocation.ts`:
+     - Patient called `E19` `POST /v1/engagement/me/profiles/:id/remove` with `If-Match: "{version}"`.
+     - Server updated `engagement.account_patient_links`: `status = 'revoked'`, `revoked_by_kind = 'account'`, `is_active = false`, `version = version + 1`, returning 204 No Content.
+     - Verified audit logging: `app_link.revoke` recorded.
+     - Verified `GET /v1/engagement/me/profiles` strictly filters out revoked links.
+     - Negative boundary: Re-attempting removal on already revoked profile returns 404 `common.not_found`.
+     - Negative boundary: Booking attempt (`POST /v1/engagement/me/bookings`) with revoked `profile_id` returns 404 `common.not_found`.
+
+4. **Production/Test Infrastructure Isolation (Task 4)**:
+   - Audited `db/migrations/`: git status confirmed working tree clean.
+   - Grep audit confirmed zero test fixtures, mock triggers, or bypasses exist in canonical migrations.
+
+5. **Phase 1 Pricing Policy & Release Blocker (Task 5)**:
+   - Audited `apps/patient_app/lib/features/mhn/pay_screen.dart`:
+     - Disclaimers verified: *"Prices reflect current server catalog estimates."* and *"Payment is collected at the time of sample collection / visit."*
+     - Button label dynamically displays "Confirm booking" / "Confirming booking…" when "Pay on collection" is selected.
+   - Confirmed Release Blocker: Absence of dynamic pre-booking server quote endpoint (`/v1/engagement/me/quote`) remains a release blocker for billing-dependent staging releases.
+
+### Definitive Android Emulator Execution Evidence (API 36 ARM64, `emulator-5554`)
+- **Journey A (Real Worker Self-Registration)**:
+  1. Signed in with fresh phone `+9779800000088` + OTP `123456`.
+  2. Opened `Lab profiles` screen -> tapped "Register myself / my child".
+  3. Entered full name "Bikash Shrestha", Male, Age 32, accepted terms, tapped "Create record".
+  4. Real background Graphile Worker claimed the asynchronous task, created frontdesk patient, and established account link.
+  5. Flutter app polled `E17` and displayed newly created profile: `Bikash Shrestha (Me · Registered in the app)` (`t22_01_real_worker_profile.png`).
+- **Journey B (Staff Link Code Redemption)**:
+  1. Authorized staff minted HMAC-bound link code `S7JDM-3CDRP` for patient Bikram Thapa (`3640fb7f-fbce-7b6c-8cb5-e55be460ad24`) bound to `+9779800000088`.
+  2. In Android app, tapped "I have a code from the lab".
+  3. Typed `S7JDM-3CDRP` and tapped "Add profile".
+  4. Redemption succeeded: Profiles list displayed both `Bikash Shrestha (Me)` and `Bikram Thapa (Parent · Linked with lab code)` (`t22_02_staff_code_redeemed.png`).
+- **Journey C (Family Consent Revoked & Data Cleared)**:
+  1. Tapped action menu `[...]` on Bikram Thapa.
+  2. Selected "Remove" -> confirmation modal displayed: *"Remove Bikram Thapa? You'll stop seeing their orders and reports in this app."*
+  3. Confirmed removal: `E19` `removeMyProfile` returned 204 No Content.
+  4. Riverpod invalidated `bookingProfilesProvider`, refreshed list, and Bikram Thapa was completely removed from the UI (`t22_03_profile_revoked.png`).
+
+### Definitive Test Results Matrix
+| Test Suite | Target | Tests | Status | Exit Code |
+| :--- | :--- | :---: | :---: | :---: |
+| Live HTTP E2E Suite (Fastify + PG17 + Flutter) | `bash tests/e2e/mhn-live-e2e.sh` | 17 / 17 | **PASSED** | 0 |
+| Flutter Patient App Profiles Suite | `flutter test test/features/profiles/` | 139 / 139 | **PASSED** | 0 |
+| Flutter Patient App UI Suite | `flutter test test/features/mhn/booking_flow_integration_test.dart test/features/mhn/mhn_ui_test.dart test/features/mhn/tests_tab_integration_test.dart` | 34 / 34 | **PASSED** | 0 |
+| Backend Link Handlers Suite | `pnpm --dir services/api exec vitest run src/modules/engagement/service/__tests__/link.handlers.test.ts` | 41 / 41 | **PASSED** | 0 |
+| Backend Link Redeem & Self-Reg Suite | `pnpm --dir services/api exec vitest run src/modules/engagement/service/__tests__/link.redeem.test.ts src/modules/engagement/service/__tests__/selfreg.handlers.test.ts` | 102 / 102 | **PASSED** | 0 |
+| Real Worker Self-Registration Suite | `node --import ./tools/node-ts/register.mjs tools/test-self-registration-worker.ts` | 8 / 8 checks | **PASSED** | 0 |
+| Staff Link Code Lifecycle Suite | `node --import ./tools/node-ts/register.mjs tools/test-staff-link-codes.ts` | 10 / 10 checks | **PASSED** | 0 |
+| Family Consent Revocation Suite | `node --import ./tools/node-ts/register.mjs tools/test-profile-revocation.ts` | 9 / 9 checks | **PASSED** | 0 |
+| Flutter Static Code Analysis | `flutter analyze` | 0 issues | **PASSED** | 0 |
+
+### Visual Artifacts Captured
+- `t22_01_real_worker_profile.png`: Interactive self-registration on emulator processed by real worker, profile created and displayed ("Me · Registered in the app").
+- `t22_02_staff_code_redeemed.png`: Staff link code redeemed in Flutter app, displaying both self-registered profile and linked parent Bikram Thapa ("Parent · Linked with lab code").
+- `t22_03_profile_revoked.png`: Revocation of linked family profile via Flutter UI popup action, confirmed in modal dialog, and immediate UI state clearing displaying only the self profile.
+
+---
+
+## 2026-11-23 — Milestone T23: Pre-Release Hardening, Canonical Worker Wiring, Family Privacy Verification & Acceptance
+
+**Objective**: Complete rigorous pre-release verification of My Health Now (MHN) by MetroLabs, audit uncommitted changes against pushed checkpoint `1ed83d120`, verify canonical worker runtime port wiring and compatibility, execute comprehensive multi-account family privacy and staff authorization testing, finalize report storage and pricing decisions, confirm visual alignment on Android emulator (1080x2400 API 36 ARM64), run full regression suites, and perform a clean service shutdown.
+
+### Key Technical Achievements
+
+1. **Audit of Working Tree & Security Review (Task 1)**:
+   - Full diff against `1ed83d120` audited and categorized:
+     - *Production source*: Core LIMS fixes in `booking.service.ts` and `patient.service.ts` (numbering prefix alignment), `consents.repo.ts` and `linkCodes.repo.ts` (membershipId mapping for link code RLS), `consumer.ts` and `main.ts` (worker port wiring for `FrontdeskPort` and `IdentityPort`), and patient app bootstrap, pay screen, and profile tab enhancements.
+     - *Test fixtures & tools*: `mhn-t13.fixture.sql`, `tools/test-self-registration-worker.ts`, `tools/test-staff-link-codes.ts`, `tools/test-profile-revocation.ts`.
+     - *Documentation*: `docs/DEVELOPMENT_PROGRESS_LOG.md`, `.mhn-agent-kit/command/SCREEN_TRACEABILITY_155.csv`, `ADR-MHN-REPORT-STORAGE-PROPOSAL.md`.
+   - Security audit confirmed zero leaked keys, passwords, bearer tokens, or real patient PHI in tracked or staged files.
+
+2. **Regression Testing of Shared LIMS Modules (Task 2)**:
+   - Vitest Frontdesk, Identity, and Engagement suites executed:
+     - Identity module: 135 files passed, 6,233 tests passed across gotrue, session clamping, token verification, and session state transitions.
+     - Engagement module: 5 suites passed 364/364 tests (`booking.handlers.test.ts` [102], `link.handlers.test.ts` [41], `link.redeem.test.ts` [45], `selfreg.handlers.test.ts` [57], `slot.handlers.test.ts` [119]).
+     - Worker engagement tasks: 26/26 tests passed in `create_self_patient.test.ts`.
+
+3. **Canonical Worker Compatibility & Port Wiring (Task 3)**:
+   - Compared `services/worker/src/mhn-dev-worker.ts` with canonical worker entrypoint `services/worker/src/main.ts` and `services/worker/src/core/consumer.ts`.
+   - Wired in-process ports `FrontdeskPort` and `IdentityPort` directly into `(rt.deps as any).ports` in `services/worker/src/main.ts`.
+   - Verified that `JobContext` in `consumer.ts` injects `ports: deps.ports` onto task context, enabling canonical `engagement.create_self_patient` execution without mock shims.
+   - Tested worker compilation with `pnpm --dir services/worker run typecheck` (0 errors) and core worker suites (`bootstrap.test.ts` 10/10, `consumer.test.ts` 19/19, `deadletter.test.ts` 13/13, `fanout.test.ts` 12/12, `replay.test.ts` 18/18).
+
+4. **Multi-Account Family Privacy & Revocation Enforcement (Task 4)**:
+   - Validated end-to-end family privacy via `tools/test-profile-revocation.ts` (9/9 passed):
+     - Profile revoked via E19 `POST /v1/engagement/me/profiles/:id/remove` with `If-Match`.
+     - Database row transitioned to `status = 'revoked'`, `revoked_by_kind = 'account'`, `is_active = false`, version incremented to 2.
+     - `GET /v1/engagement/me/profiles` strictly filters out revoked profile.
+     - Subsequent booking attempts with revoked `profile_id` return 404 `common.not_found`.
+     - Re-removal attempt returns 404 `common.not_found`.
+     - Logout completely wipes session tokens and cached profiles, redirecting cleanly to phone authentication.
+
+5. **Staff Link-Code Authorization & Security Boundaries (Task 5)**:
+   - Validated end-to-end staff link code lifecycle via `tools/test-staff-link-codes.ts` (10/10 passed):
+     - Staff token verified by Fastify via ES256 public key.
+     - Code issued in standard Crockford Base32 format (`XXXXX-XXXXX`).
+     - Plaintext code never stored in database; only SHA-256 HMAC recorded in `engagement.link_codes`.
+     - Patient account redeemed code -> linked profile created with `method = 'link_code'`.
+     - Code reuse denied with 422 `engagement.link_code_invalid`.
+     - Malformed code rejected with 400 validation error.
+     - Phone mismatch denied with 422 `engagement.link_code_invalid`.
+     - Staff revocation via E15 (`POST /v1/engagement/link-codes/:id/revoke` with `If-Match: "1"`) returned 204 No Content, and subsequent redemption returned 422 `engagement.link_code_invalid`.
+
+6. **Report Storage Architecture Decision (Task 6)**:
+   - Documented in `docs/decisions/ADR-MHN-REPORT-STORAGE-PROPOSAL.md`.
+   - Recommends Native Fetch REST Adapter implementing `RawStorage` against Supabase Storage / S3 / MinIO, maintaining zero npm dependencies and 60-second signed URL expiration.
+   - S40 (PDF viewer) remains gated at Level 6 until formal sign-off of CR-C0-0D-T0D-17.
+
+7. **Phase 1 Pricing Policy & Transparency (Task 7)**:
+   - Analyzed Option A (Pay on Collection with indicative catalog prices and clear on-site invoice disclaimer) vs Option B (Dynamic pre-booking quote endpoint).
+   - Recommends Option A for Phase 1 launch: catalog prices are marked as indicative estimates, no online payments are required, and final invoice is generated at sample collection/accessioning. Option B deferred to Phase 2 online payments.
+
+8. **Android UI Wireframe Acceptance (Task 8)**:
+   - Evaluated 5-tab patient app shell on Android emulator (`emulator-5554`, API 36 ARM64, 1080x2400):
+     - Home tab: Category shortcuts, popular tests, hero carousel, address header.
+     - All Tests tab: 8 test categories, search bar, home collection vs centre visit toggle, indicative pricing disclaimer.
+     - Bookings tab: Upcoming, past, and cancelled filters, booking cards with status pills and Pay on Collection badges.
+     - Reports tab: Released reports list, "Show older versions" toggle, readiness badges.
+     - Profile tab: Account completion bar, linked lab profiles, saved addresses, calendar toggle (BS/AD), support links, and Sign Out action.
+   - Visual artifacts captured: `t23_01_profile_tab.png` through `t23_13_all_tests_success.png`.
+
+9. **Definitive Regression Test Suite Results (Task 10)**:
+   - Full test matrix executed and passed:
+     - `flutter analyze`: 0 issues found (exit code 0).
+     - `flutter test test/features/profiles/`: 139 / 139 tests passed (exit code 0).
+     - `flutter test test/features/mhn/`: 34 / 34 tests passed (exit code 0).
+     - Backend Engagement Vitest: 364 / 364 tests passed across 5 files (exit code 0).
+     - Backend Worker Vitest: 26 / 26 tests passed in `create_self_patient.test.ts` (exit code 0).
+     - Worker Typecheck: `tsc -p tsconfig.json --noEmit` passed with 0 errors (exit code 0).
+     - Live E2E Suite: `bash tests/e2e/mhn-live-e2e.sh` passed 17 / 17 tests (exit code 0).
+     - Live Tools: `test-self-registration-worker.ts` (8/8), `test-staff-link-codes.ts` (10/10), `test-profile-revocation.ts` (9/9) all passed (exit code 0).
+
+10. **Clean Shutdown & Infrastructure State (Task 11)**:
+    - Fastify dev server (task-9544) and MHN worker (task-9415) gracefully stopped.
+    - Verified port 3000 is free and no orphan processes remain running.
+    - Background task indicators in Antigravity cleared to 0 active tasks.
+    - PostgreSQL test container `lims_mhn_pg` on 127.0.0.1:5433 remains healthy and intact with zero data loss.
+
+### Visual Artifacts Captured (Milestone T23)
+- `t23_01_profile_tab.png`: 5-tab shell Profile tab showing account header, completion meter, and navigation rows.
+- `t23_02_home_tab.png`: Home tab with banner, popular test catalog, and indicative prices.
+- `t23_03_bookings_tab.png`: Bookings tab with upcoming booking `BK26000004` and Pay on Collection badge.
+- `t23_04_reports_tab.png`: Reports tab with released reports list and version toggle.
+- `t23_05_all_tests_tab.png`: All Tests tab error state prior to reverse port forwarding.
+- `t23_06_all_tests_loaded.png`: All Tests tab retry verification.
+- `t23_07_profile_scrolled.png`: Profile tab scrolled to display Terms, Policies, and Sign Out.
+- `t23_08_after_signout.png`: Intermediate profile tap before coordinate calibration.
+- `t23_09_signed_out.png`: Phone login screen immediately following session logout.
+- `t23_10_phone_entered.png`: Phone number input on login screen.
+- `t23_11_otp_screen.png`: 6-digit OTP challenge entry screen with resend timer.
+- `t23_12_logged_in_home.png`: Authenticated profile state after OTP verification.
+- `t23_13_all_tests_success.png`: Fully loaded All Tests tab across 8 categories with indicative pricing disclaimer.

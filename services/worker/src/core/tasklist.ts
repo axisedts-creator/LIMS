@@ -23,6 +23,7 @@ export interface WorkerDeps {
   readonly log: { child(ctx: object): any; info(m: string, f?: object): void; warn(m: string, f?: object): void; error(m: string, f?: object): void };
   readonly now: () => Date;
   readonly events: unknown; readonly core: unknown; readonly storage: unknown; readonly files: unknown; readonly audit: unknown;
+  readonly ports?: Readonly<Record<string, unknown>>;
 }
 
 export type TaskKind = 'core' | 'task' | 'consumer';

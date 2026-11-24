@@ -3,9 +3,12 @@
 // "Expanded tests" preview. Without catalog.test.manage everything is read-only text. Failures stay inline (cycle, inactive, stale).
 import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { getSharedTestByCodeOrName } from '@lims/shared-ts';
 import { Banner } from '@lims/ui/components/Banner';
 import { Button } from '@lims/ui/components/Button';
+import { Card } from '@lims/ui/components/Card';
 import { CodeField } from '@lims/ui/components/CodeField';
+import { DescriptionList } from '@lims/ui/components/DescriptionList';
 import { PageHeader } from '@lims/ui/components/PageHeader';
 import { RadioGroup } from '@lims/ui/components/RadioGroup';
 import { Select } from '@lims/ui/components/Select';
@@ -41,6 +44,7 @@ export function PanelDetail({ panel, departments, orderables, permissions }: { p
   const [sex, setSex] = useState<string>(panel.sex_restriction ?? 'none');
   const [dept, setDept] = useState<string>(panel.department_id ?? 'none');
   const [active, setActive] = useState(panel.is_active);
+  const shared = getSharedTestByCodeOrName(panel.code, panel.name);
 
   const saveGeneral = () => {
     const body: Record<string, unknown> = {};
@@ -95,6 +99,26 @@ export function PanelDetail({ panel, departments, orderables, permissions }: { p
           <dt>Department</dt><dd>{deptName ?? '—'}</dd>
         </dl>
       )}
+      {shared ? (
+        <div style={{ marginTop: '1.5rem', marginBottom: '1.5rem' }}>
+          <Card title="Shared Clinical Catalog (In Sync with Mobile App)">
+            <DescriptionList
+              columns={2}
+              items={[
+                { term: 'Catalog Code', value: shared.code },
+                { term: 'Standard MRP', value: `Rs. ${shared.mrp}` },
+                { term: 'Sample Type', value: shared.sample_type },
+                { term: 'Container', value: shared.container },
+                { term: 'Method', value: shared.method },
+                { term: 'Department', value: shared.department },
+                { term: 'Category', value: shared.category },
+                { term: 'TAT & Reporting', value: `${shared.tat} (${shared.reporting_time})` },
+                { term: 'Included Tests / Parameters', value: shared.parameters || '—' },
+              ]}
+            />
+          </Card>
+        </div>
+      ) : null}
       <h2 className="lims-section-title">Members</h2>
       {error ? <div role="alert"><Banner tone="danger" title={error} /></div> : null}
       <MembersEditor

@@ -19,11 +19,35 @@ import { manifest as identityManifest } from '../../api/src/modules/identity/ind
 import { manifest as engagementManifest } from './jobs/engagement/index.js';
 import { createWorkerRuntime, startWorker } from './core/bootstrap.js';
 import type { WorkerDeps } from './core/tasklist.js';
+import { getTextBeeConfig, sendTextBeeSms } from '../../api/src/modules/engagement/gateways/textbee.adapter.js';
 
 const env = process.env;
 const rt = await createWorkerRuntime(env);
+
+const textBeeCfg = getTextBeeConfig();
+if (textBeeCfg) {
+  console.log(`[MHN Dev Worker] TextBee SMS gateway enabled (Device: ${textBeeCfg.deviceId})`);
+}
+
 const NotificationPort = {
-  sendSms: async () => ({ status: 'queued' }),
+  sendSms: async (_ctx: any, input: any) => {
+    const phone = input?.recipient?.phoneE164;
+    const params = input?.params ?? {};
+    const code = params.otp_code || '123456';
+    const lab = params.lab_name || 'My Health Now';
+    const minutes = params.minutes || '5';
+    const msg = `Your ${lab} verification code is ${code}. Valid for ${minutes} minutes.`;
+    if (typeof phone === 'string' && phone.startsWith('+')) {
+      console.log(`[MHN Dev Worker] Dispatching OTP SMS via TextBee to ${phone}...`);
+      sendTextBeeSms(phone, msg)
+        .then((res) => {
+          if (res.success) console.log(`[MHN Dev Worker] TextBee SMS sent successfully to ${phone}`);
+          else console.warn(`[MHN Dev Worker] TextBee SMS dispatch error:`, res.error);
+        })
+        .catch((err) => console.error('[MHN Dev Worker] TextBee SMS dispatch failed:', err));
+    }
+    return { status: 'queued', deliveryId: '018f0000-0000-7000-8000-000000000001' };
+  },
   sendWhatsAppTemplate: async () => ({ status: 'queued' }),
   sendEmailLink: async () => ({ status: 'queued' }),
 };

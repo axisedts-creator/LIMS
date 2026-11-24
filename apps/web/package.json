@@ -10,6 +10,7 @@
     "typecheck": "pnpm run build:nav && tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@lims/shared-ts": "workspace:*",
     "@lims/ui": "workspace:*",
     "next": "16.4.5",
     "react": "19.3.1",

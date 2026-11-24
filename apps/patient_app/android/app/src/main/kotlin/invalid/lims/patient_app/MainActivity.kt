@@ -8,6 +8,14 @@ import io.flutter.plugin.common.MethodChannel
 
 // local_auth (app lock, US-EN-02.4) requires a FragmentActivity.
 class MainActivity : FlutterFragmentActivity() {
+    override fun onCreate(savedInstanceState: android.os.Bundle?) {
+        super.onCreate(savedInstanceState)
+        val isDebuggable = (applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
+        if (!isDebuggable && android.os.Debug.isDebuggerConnected()) {
+            android.os.Process.killProcess(android.os.Process.myPid())
+        }
+    }
+
     // REQ-SEC-109 / LD-140 [CONV channel name]: lims_ui LimsSecureScreen -> FLAG_SECURE blocks screenshots and recents thumbnails on PHI screens.
     // In debug builds, skip FLAG_SECURE so visual QA and screenshot inspection work during automated testing.
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {

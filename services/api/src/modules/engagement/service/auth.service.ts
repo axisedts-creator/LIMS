@@ -15,6 +15,7 @@ import * as accountsRepo from '../repository/accounts.repo.js';
 import * as otpRepo from '../repository/otp.repo.js';
 import { getEngagementSettings } from '../repository/settings.repo.js';
 import { DEFAULT_SETTINGS } from './settings.service.js';
+import { sendTextBeeSms } from '../gateways/textbee.adapter.js';
 
 export interface AuthCtx {
   readonly tenantId?: string; readonly actor?: { readonly type?: string; readonly id: string }; readonly tx?: unknown;
@@ -143,6 +144,7 @@ export function createAuthService() {
       });
       await s.tx.query('SELECT app.enqueue_job($1, $2::jsonb, $3)', ['engagement.send_login_otp', JSON.stringify({ tenant_id: s.tenantId, challenge_id: id }), `otp:${id}`]);
       engagementMetrics.otpRequest(ctx, 'queued');
+      sendTextBeeSms(phoneE164, `Your My Health Now verification code is ${code}. Valid for 5 minutes.`).catch(() => undefined);
       return { status: 202, body: { challenge_token: token, expires_at: expiresAt, resend_after_seconds: RESEND_AFTER_SECONDS, code_length: CODE_LENGTH } };
     },
 
@@ -188,6 +190,26 @@ export function createAuthService() {
         const row = await accountsRepo.recordLogin(s.tx, {
           id: acc['id'], tenantId: s.tenantId, membershipId: ids.membershipId, userId: ids.userId, loginAt: ctx.now(), appPlatform: ch['app_platform'], updatedBy: s.actorId,
         });
+        // Auto-reconcile existing lab records matching this phone number (loads historical reports)
+        const unlinked = await accountsRepo.findUnlinkedPatientsByPhone(s.tx, { tenantId: s.tenantId, accountId: acc['id'], phoneE164: phone });
+        if (unlinked.length > 0) {
+          let hasSelf = await accountsRepo.hasActiveSelfLink(s.tx, { tenantId: s.tenantId, accountId: acc['id'] });
+          for (const p of unlinked) {
+            const rel = hasSelf ? 'other' : 'self';
+            await accountsRepo.autoLinkPatient(s.tx, {
+              id: uuidv7(),
+              tenantId: s.tenantId,
+              accountId: acc['id'],
+              patientId: String(p['id']),
+              relationship: rel,
+              displayName: typeof p['full_name'] === 'string' && p['full_name'].trim().length > 0 ? p['full_name'].trim().slice(0, 200) : 'Patient',
+              sexSnapshot: ['male', 'female', 'other', 'unknown'].includes(p['sex']) ? p['sex'] : null,
+              phoneHmac: Buffer.from(ch['phone_hmac']),
+              actorId: s.actorId,
+            });
+            if (rel === 'self') hasSelf = true;
+          }
+        }
         engagementMetrics.otpVerification(ctx, 'verified');
         return {
           status: 200,
@@ -211,3 +233,24 @@ export function createAuthService() {
   };
 }
 export type AuthService = ReturnType<typeof createAuthService>;
+
+/**
+ * Server-side cryptographic verification of Google OAuth ID tokens.
+ * Validates issuer, audience against configured Google Client ID, and extracts verified sub/email.
+ */
+export async function verifyGoogleIdToken(idToken: string, expectedClientId?: string | readonly string[]): Promise<{ sub: string; email: string; name?: string | undefined }> {
+  if (typeof idToken !== 'string' || idToken.length < 10) throw new LimsError('auth.unauthenticated');
+  const res = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`);
+  if (!res.ok) throw new LimsError('auth.unauthenticated');
+  const data = await res.json() as Record<string, any>;
+  if (expectedClientId) {
+    const allowed = Array.isArray(expectedClientId) ? expectedClientId : [expectedClientId];
+    if (!allowed.includes(data.aud)) {
+      throw new LimsError('auth.forbidden');
+    }
+  }
+  if (data.iss !== 'accounts.google.com' && data.iss !== 'https://accounts.google.com') {
+    throw new LimsError('auth.forbidden');
+  }
+  return { sub: String(data.sub), email: String(data.email), name: typeof data.name === 'string' ? data.name : undefined };
+}

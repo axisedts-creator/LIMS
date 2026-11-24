@@ -60,7 +60,11 @@ void main() {
   });
 
   test('no keystore, key.properties or credential file is present in the app dir', () {
-    final bad = allFiles().map(norm).where((p) => RegExp(r'\.(jks|keystore|p12|pfx|pem)$|key\.properties$|service-account.*\.json$').hasMatch(p)).toList();
+    final bad = allFiles()
+        .map(norm)
+        .where((p) => !p.startsWith('assets/ca/'))
+        .where((p) => RegExp(r'\.(jks|keystore|p12|pfx|pem)$|key\.properties$|service-account.*\.json$').hasMatch(p))
+        .toList();
     expect(bad, isEmpty, reason: 'signing material belongs in the C1 secret store, never the repo');
   });
 

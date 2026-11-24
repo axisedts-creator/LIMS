@@ -252,6 +252,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@lims/shared-ts':
+        specifier: workspace:*
+        version: link:../../packages/shared-ts
       '@lims/ui':
         specifier: workspace:*
         version: link:../../packages/ui

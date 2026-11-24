@@ -1830,10 +1830,11 @@ Future<void> showCitySelectionSheet(BuildContext context, WidgetRef ref) async {
                     onError: (err) => mhnToast(context, err),
                   );
                   if (pos != null) {
-                    final label = MhnLocationService.formatLocation(pos);
+                    final label = await MhnLocationService.getNamedAddress(pos);
                     ref.read(mhnProvider.notifier).setSelectedLocation(
                       locationLabel: label,
                     );
+                    ref.read(mhnProvider.notifier).setAddress(label);
                     mhnToast(context, '📍 Live GPS location set: $label');
                   } else {
                     ref.read(mhnProvider.notifier).setSelectedLocation(

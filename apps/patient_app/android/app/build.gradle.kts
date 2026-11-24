@@ -30,6 +30,7 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        manifestPlaceholders["MAPS_API_KEY"] = sec("MAPS_API_KEY") ?: ""
     }
 
     // Matches lib/main_{dev,staging,prod}.dart: build with `--flavor <name> -t lib/main_<name>.dart`.
@@ -64,7 +65,11 @@ android {
             // Never the debug key. Fail closed (below) when the secret-store inputs are missing.
             signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = true // REQ-SEC-112
-            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
     }
 }

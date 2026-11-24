@@ -69,9 +69,18 @@ export function createKhaltiAdapter(cfg: KhaltiAdapterConfig) {
       const { pidx, payment_url: paymentUrl } = j;
       if (j['error_key'] !== undefined) throw unavailable();
       if (typeof pidx !== 'string' || pidx.length === 0 || pidx.length > MAX_PIDX) throw unavailable();
-      let https = false;
-      try { https = typeof paymentUrl === 'string' && new URL(paymentUrl).protocol === 'https:'; } catch { /* not a URL */ }
-      if (!https) throw unavailable();
+      let valid = false;
+      try {
+        if (typeof paymentUrl === 'string') {
+          const u = new URL(paymentUrl);
+          const isLoopback = u.hostname === 'localhost' || u.hostname === '127.0.0.1' || u.hostname === '10.0.2.2';
+          const validPort = !u.port || u.port === '443' || (isLoopback && u.port === '80');
+          valid = !u.username && !u.password && validPort &&
+            (u.protocol === 'https:' || (isLoopback && u.protocol === 'http:')) &&
+            (isLoopback || u.hostname === 'khalti.com' || u.hostname.endsWith('.khalti.com'));
+        }
+      } catch { /* not a URL */ }
+      if (!valid) throw unavailable();
       const url = paymentUrl as string;
       return { gatewayTxnRef: pidx, action: { kind: 'redirect', url } as IntentAction, expiresAt: expiresAt(j), paymentUrl: url };
     },

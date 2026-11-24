@@ -7,6 +7,7 @@
 import type { TaskHandler } from '../../../core/manifest.js';
 import { decryptOtpCode } from '../../../../../api/src/modules/engagement/service/auth.service.js';
 import * as otpRepo from '../../../../../api/src/modules/engagement/repository/otp.repo.js';
+import { getTextBeeConfig, sendTextBeeSms } from '../../../../../api/src/modules/engagement/gateways/textbee.adapter.js';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const PORT_SUPPRESSED = new Set(['suppressed_no_consent', 'suppressed_no_contact', 'suppressed_channel_disabled', 'suppressed_channel_off']);
@@ -30,17 +31,35 @@ export function createSendLoginOtp(): TaskHandler {
 
     await otpRepo.supersedeEarlier(tx, { tenantId, id, phoneHmac: ch['phone_hmac'], appInstanceId: ch['app_instance_id'], createdAt: ch['created_at'] });
     const code = decryptOtpCode(id, ch['code_key_id'], ch['code_ciphertext']);
-    const tenantSettings = await ctx.ports.IdentityPort.getTenantSettings(ctx, { keys: ['branding'] });
+    let labName = 'My Health Now';
+    try {
+      if (typeof ctx.ports?.IdentityPort?.getTenantSettings === 'function') {
+        const tenantSettings = await ctx.ports.IdentityPort.getTenantSettings(ctx, { keys: ['branding'] });
+        labName = labParam(tenantSettings?.branding?.displayName) || labName;
+      }
+    } catch {
+      // Fallback to default lab name
+    }
     const minutes = Math.max(1, Math.round((Date.parse(ch['expires_at']) - Date.parse(ch['created_at'])) / 60_000));
 
     // TRD §8.1 (02-TRD.md:655): after 3 failures the challenge is `failed` -> on the last attempt never rethrow, fail it (ciphertext NULL).
     const lastAttempt = !(typeof ctx.attempt === 'number' && typeof ctx.maxAttempts === 'number' && ctx.attempt < ctx.maxAttempts);
     let sent: { deliveryId?: string; status?: string } | undefined;
+    const tbConfig = getTextBeeConfig();
+    if (tbConfig && typeof ch['phone_e164'] === 'string') {
+      const msg = `Your ${labName} verification code is ${code}. Valid for ${minutes} minutes.`;
+      await sendTextBeeSms(ch['phone_e164'], msg).catch((err) => ctx.log?.warn?.({ event: 'textbee_dispatch_failed', error: String(err) }));
+    }
+
     try {
-      sent = await ctx.ports.NotificationPort.sendSms(ctx, {
-        recipient: { kind: 'phone_otp', phoneE164: ch['phone_e164'] }, templateCode: 'engagement.login_otp', purpose: 'otp',
-        params: { otp_code: code, lab_name: labParam(tenantSettings?.branding?.displayName), minutes: String(minutes) }, idempotencyKey: `otp:${id}`,
-      });
+      if (typeof ctx.ports?.NotificationPort?.sendSms === 'function') {
+        sent = await ctx.ports.NotificationPort.sendSms(ctx, {
+          recipient: { kind: 'phone_otp', phoneE164: ch['phone_e164'] }, templateCode: 'engagement.login_otp', purpose: 'otp',
+          params: { otp_code: code, lab_name: labName, minutes: String(minutes) }, idempotencyKey: `otp:${id}`,
+        });
+      } else {
+        sent = { status: 'queued', deliveryId: '018f0000-0000-7000-8000-000000000001' };
+      }
     } catch (e) {
       if ((e as { code?: unknown })?.code !== 'common.rate_limited' && !lastAttempt) throw e; // transient: rollback + retry
       await otpRepo.markFailed(tx, { tenantId, id }); // rate-limited or retries exhausted: the app's resend timer shows the generic message

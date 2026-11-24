@@ -31,3 +31,54 @@ export async function recordLogin(tx: Q, a: { id: string; tenantId: string; memb
     [a.tenantId, a.id, a.membershipId, a.userId, a.loginAt, a.appPlatform, a.updatedBy]);
   return rows[0]!;
 }
+
+/** Find existing patients in frontdesk.patients matching the phone that are not yet linked to this account. */
+export async function findUnlinkedPatientsByPhone(tx: Q, a: { tenantId: string; accountId: string; phoneE164: string }): Promise<Row[]> {
+  const { rows } = await tx.query(
+    `SELECT p.id, p.full_name, p.sex
+     FROM frontdesk.patients p
+     WHERE p.tenant_id = $1
+       AND p.phone_e164 = $2
+       AND p.anonymised_at IS NULL
+       AND NOT EXISTS (
+         SELECT 1 FROM engagement.account_patient_links l
+         WHERE l.tenant_id = $1 AND l.account_id = $3 AND l.patient_id = p.id AND l.status IN ('active', 'suspended')
+       )
+     ORDER BY p.created_at ASC`,
+    [a.tenantId, a.phoneE164, a.accountId]);
+  return rows;
+}
+
+/** Check if the account already has an active or suspended self-link. */
+export async function hasActiveSelfLink(tx: Q, a: { tenantId: string; accountId: string }): Promise<boolean> {
+  const { rows } = await tx.query(
+    `SELECT 1 FROM engagement.account_patient_links
+     WHERE tenant_id = $1 AND account_id = $2 AND relationship = 'self' AND status IN ('active', 'suspended')`,
+    [a.tenantId, a.accountId]);
+  return rows.length > 0;
+}
+
+/** Auto-link an existing lab patient to the newly verified mobile account and enqueue historical report backfill. */
+export async function autoLinkPatient(tx: Q, a: {
+  id: string;
+  tenantId: string;
+  accountId: string;
+  patientId: string;
+  relationship: string;
+  displayName: string;
+  sexSnapshot: string | null;
+  phoneHmac: Uint8Array;
+  actorId: string;
+}): Promise<void> {
+  await tx.query(
+    `INSERT INTO engagement.account_patient_links (
+       id, tenant_id, account_id, patient_id, relationship, method,
+       display_name, sex_snapshot, status, visible_from, record_phone_hmac_at_link,
+       created_by, updated_by
+     ) VALUES ($1, $2, $3, $4, $5, 'self_registered', $6, $7, 'active', NULL, $8, $9, $9)
+     ON CONFLICT (tenant_id, id) DO NOTHING`,
+    [a.id, a.tenantId, a.accountId, a.patientId, a.relationship, a.displayName, a.sexSnapshot, a.phoneHmac, a.actorId]);
+  await tx.query(
+    `SELECT app.enqueue_job('engagement.backfill_link', jsonb_build_object('tenant_id', $1, 'link_id', $2), $3, NULL, 10)`,
+    [a.tenantId, a.id, `backfill:${a.id}`]);
+}

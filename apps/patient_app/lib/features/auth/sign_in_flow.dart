@@ -250,7 +250,7 @@ class _SignInFlowState extends ConsumerState<SignInFlow> {
       liveRegion: true,
       container: true,
       child: Container(
-        padding: const EdgeInsets.all(LimsTokens.space3),
+        padding: const EdgeInsets.symmetric(horizontal: LimsTokens.space3, vertical: LimsTokens.space2),
         decoration: BoxDecoration(
           color: c.bg,
           border: Border.all(color: c.border),
@@ -259,7 +259,7 @@ class _SignInFlowState extends ConsumerState<SignInFlow> {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(Icons.error_outline_rounded, color: c.fg),
+            Icon(Icons.error_outline_rounded, color: c.fg, size: 18),
             const SizedBox(width: LimsTokens.space2),
             Expanded(child: Text(message, style: TextStyle(color: c.fg))),
           ],
@@ -289,6 +289,29 @@ class _SignInFlowState extends ConsumerState<SignInFlow> {
     setState(() {
       _notice = 'A verified mobile number is compulsory to link your laboratory records and enable WhatsApp/SMS report delivery. Please enter your mobile number.';
     });
+  }
+
+  Widget _socialChip(IconData icon, String label, VoidCallback onTap) {
+    return InkWell(
+      onTap: _busy ? null : onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: const Color(0xFFD1D5DB)),
+          color: Colors.white,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 18, color: const Color(0xFF374151)),
+            const SizedBox(width: 6),
+            Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF374151))),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _phoneStep() {
@@ -324,19 +347,15 @@ class _SignInFlowState extends ConsumerState<SignInFlow> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(lab, style: t.titleLarge),
-                    Align(
-                      alignment: AlignmentDirectional.centerStart,
-                      child: _link('Privacy policy', _flavour.tenantPrivacyUrl),
-                    ),
+                    if (_flavour.tenantPrivacyUrl != null)
+                      Align(
+                        alignment: AlignmentDirectional.centerStart,
+                        child: _link('Privacy policy', _flavour.tenantPrivacyUrl),
+                      ),
                   ],
                 ),
               ),
             ],
-          ),
-          const SizedBox(height: LimsTokens.space1),
-          Text(
-            'Your verified lab reports & home tests in one place',
-            style: t.bodySmall?.copyWith(color: LimsTokens.colorNeutral500),
           ),
           const SizedBox(height: LimsTokens.space4),
           LimsPhoneField(
@@ -356,66 +375,37 @@ class _SignInFlowState extends ConsumerState<SignInFlow> {
             label: 'Send code',
             onPressed: _busy ? null : _send,
           ),
-          const SizedBox(height: LimsTokens.space4),
-          Row(
+          const SizedBox(height: LimsTokens.space3),
+          Center(
+            child: Text(
+              'Or continue with',
+              style: t.bodySmall?.copyWith(color: LimsTokens.colorNeutral500),
+            ),
+          ),
+          const SizedBox(height: LimsTokens.space2),
+          Wrap(
+            alignment: WrapAlignment.center,
+            spacing: 8,
+            runSpacing: 8,
             children: [
-              const Expanded(child: Divider()),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: LimsTokens.space3),
-                child: Text('Or continue with', style: t.bodySmall?.copyWith(color: LimsTokens.colorNeutral500)),
-              ),
-              const Expanded(child: Divider()),
+              _socialChip(Icons.account_circle_outlined, 'Google', () => _handleSocialLogin('Google')),
+              _socialChip(Icons.apple, 'Apple', () => _handleSocialLogin('Apple')),
+              _socialChip(Icons.email_outlined, 'Email', () => _handleSocialLogin('Email')),
             ],
           ),
-          const SizedBox(height: LimsTokens.space3),
-          LimsButton(
-            label: 'Google',
-            icon: Icons.account_circle_outlined,
-            secondary: true,
-            onPressed: _busy ? null : () => _handleSocialLogin('google'),
-          ),
           const SizedBox(height: LimsTokens.space2),
-          LimsButton(
-            label: 'Apple',
-            icon: Icons.apple,
-            secondary: true,
-            onPressed: _busy ? null : () => _handleSocialLogin('apple'),
-          ),
-          const SizedBox(height: LimsTokens.space2),
-          LimsButton(
-            label: 'Email',
-            icon: Icons.email_outlined,
-            secondary: true,
-            onPressed: _busy ? null : () => _handleSocialLogin('email'),
-          ),
-          const SizedBox(height: LimsTokens.space3),
           TextButton(
             onPressed: _showConsent,
             child: Text(
               "By continuing you agree to $lab's app terms.",
               textAlign: TextAlign.center,
-              style: t.bodySmall?.copyWith(color: LimsTokens.colorNeutral600),
             ),
           ),
           Wrap(
             alignment: WrapAlignment.center,
-            spacing: LimsTokens.space3,
             children: [
               _link('Privacy policy', _flavour.privacyUrl),
               _link('Terms of use', _flavour.termsUrl),
-            ],
-          ),
-          const SizedBox(height: LimsTokens.space2),
-          Wrap(
-            alignment: WrapAlignment.center,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              const Icon(Icons.verified_user_rounded, size: 14, color: LimsTokens.colorAccentDefault),
-              const SizedBox(width: LimsTokens.space1),
-              Text(
-                'ISO 15189 & NPHL Certified Lab',
-                style: t.labelSmall?.copyWith(color: LimsTokens.colorAccentDefault, fontWeight: FontWeight.w600),
-              ),
             ],
           ),
         ],
@@ -434,20 +424,21 @@ class _SignInFlowState extends ConsumerState<SignInFlow> {
               Container(
                 width: 44,
                 height: 44,
-                decoration: const BoxDecoration(
-                  color: LimsTokens.colorAccentSubtle,
-                  borderRadius: BorderRadius.all(Radius.circular(LimsTokens.radiusMd)),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE8F5E9),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFC8E6C9)),
                 ),
                 alignment: Alignment.center,
-                child: const Icon(Icons.sms_outlined, color: LimsTokens.colorAccentDefault),
+                child: const Icon(Icons.sms_outlined, color: Color(0xFF0E4B3B), size: 24),
               ),
-              const SizedBox(width: LimsTokens.space3),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Verification Code', style: t.titleMedium),
-                    Text('Enter the 6-digit code sent to ${_masked()}.', style: t.bodySmall?.copyWith(color: LimsTokens.colorNeutral500)),
+                    Text('Verification Code', style: t.titleMedium?.copyWith(fontWeight: FontWeight.bold, color: const Color(0xFF0E4B3B))),
+                    Text('Enter the 6-digit code sent to ${_masked()}.', style: t.bodySmall?.copyWith(color: const Color(0xFF6B7280))),
                   ],
                 ),
               ),
@@ -495,28 +486,73 @@ class _SignInFlowState extends ConsumerState<SignInFlow> {
       _Step.code => _codeStep(),
     };
     return Scaffold(
-      backgroundColor: LimsTokens.colorNeutral50,
+      backgroundColor: const Color(0xFFF6F8F7),
       appBar: Navigator.of(context).canPop()
           ? AppBar(
-              backgroundColor: Colors.transparent,
+              backgroundColor: const Color(0xFF0E4B3B),
               elevation: 0,
               leading: IconButton(
-                icon: const Icon(Icons.arrow_back),
+                icon: const Icon(Icons.arrow_back, color: Colors.white),
                 onPressed: () => Navigator.of(context).pop(),
               ),
             )
           : null,
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(LimsTokens.space4),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 440),
-              child: body,
+      body: Stack(
+        children: [
+          // Top emerald gradient accent header
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 120,
+            child: Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Color(0xFF073328), Color(0xFF0E4B3B), Color(0xFF1B6B52)],
+                ),
+                borderRadius: BorderRadius.only(
+                  bottomLeft: Radius.circular(28),
+                  bottomRight: Radius.circular(28),
+                ),
+              ),
             ),
           ),
-        ),
+          SafeArea(
+            child: Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 440),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      body,
+                      const SizedBox(height: 10),
+                      Wrap(
+                        alignment: WrapAlignment.center,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          const Icon(Icons.lock_outline, size: 13, color: Color(0xFF8A909A)),
+                          const SizedBox(width: 4),
+                          Text(
+                            'ISO 15189 & NPHL Certified Lab',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(fontSize: 11, color: Colors.grey.shade600, fontWeight: FontWeight.w500),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 }
+
+

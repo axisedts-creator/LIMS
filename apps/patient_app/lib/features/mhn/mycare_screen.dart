@@ -11,6 +11,7 @@ import 'mhn_ble_service.dart';
 import 'mhn_shell.dart';
 import 'mhn_state.dart';
 import 'mhn_theme.dart';
+import 'reports_screen.dart';
 
 class MhnMyCareScreen extends ConsumerStatefulWidget {
   const MhnMyCareScreen({super.key});
@@ -141,6 +142,10 @@ class _MhnMyCareScreenState extends ConsumerState<MhnMyCareScreen> {
   Widget build(BuildContext context) {
     final st = ref.watch(mhnProvider);
     final first = st.profile.name.split(' ').first;
+    final myCareSteps = st.stepCount;
+    final myCareActiveMins = (myCareSteps / 150).round();
+    final myCareCalories = (myCareSteps * 0.045).round();
+    final myCareKm = (myCareSteps * 0.00075).toStringAsFixed(1);
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
@@ -266,7 +271,24 @@ class _MhnMyCareScreenState extends ConsumerState<MhnMyCareScreen> {
             ),
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 18),
+
+        // -------------------------------------------------------------
+        // My Reports Section (Directly Below Health Score)
+        // -------------------------------------------------------------
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text('My Reports', style: Mhn.h2),
+            InkWell(
+              onTap: () => mhnPush<void>(context, const MhnReportsScreen()),
+              child: Text('View all ›', style: Mhn.t(13, w: FontWeight.w700, c: Mhn.green)),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        const _MyCareReportsSection(),
+        const SizedBox(height: 20),
 
         // Consult Doctor & Consult Dietitian
         Row(
@@ -386,14 +408,15 @@ class _MhnMyCareScreenState extends ConsumerState<MhnMyCareScreen> {
 
         // 1. Samsung Health Daily Activity Card (Tri-metric Heart)
         _SamsungDailyActivityCard(
-          steps: st.stepCount,
-          activeMinutes: 45,
-          calories: 395,
+          steps: myCareSteps,
+          activeMinutes: myCareActiveMins,
+          calories: myCareCalories,
+          km: myCareKm,
           onTap: () => _showLogSheet(
             context: context,
             ref: ref,
             title: 'Steps',
-            initialValue: '${st.stepCount}',
+            initialValue: '$myCareSteps',
             unit: 'steps',
             onSave: (v) {
               final n = int.tryParse(v);
@@ -707,12 +730,14 @@ class _SamsungDailyActivityCard extends StatelessWidget {
     required this.steps,
     required this.activeMinutes,
     required this.calories,
+    required this.km,
     required this.onTap,
   });
 
   final int steps;
   final int activeMinutes;
   final int calories;
+  final String km;
   final VoidCallback onTap;
 
   @override
@@ -778,7 +803,7 @@ class _SamsungDailyActivityCard extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('4.8 km walked', style: Mhn.t(12, w: FontWeight.w600, c: Mhn.mutedSoft)),
+                Text('$km km walked', style: Mhn.t(12, w: FontWeight.w600, c: Mhn.mutedSoft)),
                 Text('$calories kcal burned', style: Mhn.t(12, w: FontWeight.w600, c: Mhn.mutedSoft)),
                 Text('$activeMinutes mins active', style: Mhn.t(12, w: FontWeight.w600, c: Mhn.mutedSoft)),
               ],
@@ -1554,6 +1579,142 @@ class _WeeklyMetric extends StatelessWidget {
         const SizedBox(height: 2),
         Text(label, style: Mhn.t(11, c: Mhn.mutedSoft, w: FontWeight.w500)),
       ],
+    );
+  }
+}
+
+/// My Reports overview section on MyCare screen
+class _MyCareReportsSection extends StatelessWidget {
+  const _MyCareReportsSection();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        _MyCareReportItem(
+          title: 'Complete Blood Count (CBC)',
+          date: '18 Sep 2026',
+          status: 'Ready',
+          statusColor: const Color(0xFF2E7D32),
+          statusBg: const Color(0xFFE8F5E9),
+          parameters: '14 parameters · Hemoglobin, WBC, Platelets',
+          onTap: () => mhnPush<void>(
+            context,
+            const MhnReportScreen(name: 'Complete Blood Count', date: '18 Sep 2026'),
+          ),
+        ),
+        const SizedBox(height: 10),
+        _MyCareReportItem(
+          title: 'Comprehensive Lipid Profile',
+          date: '18 Sep 2026',
+          status: 'Ready',
+          statusColor: const Color(0xFF2E7D32),
+          statusBg: const Color(0xFFE8F5E9),
+          parameters: 'Cholesterol, HDL, LDL, Triglycerides',
+          onTap: () => mhnPush<void>(
+            context,
+            const MhnReportScreen(name: 'Lipid Profile', date: '18 Sep 2026'),
+          ),
+        ),
+        const SizedBox(height: 10),
+        _MyCareReportItem(
+          title: 'Thyroid Profile (Total T3, T4, TSH)',
+          date: 'Today',
+          status: 'Processing',
+          statusColor: const Color(0xFFE65100),
+          statusBg: const Color(0xFFFFF3E0),
+          parameters: 'Sample in Central Processing Lab',
+          onTap: () => mhnToast(context, 'This report is still being processed by the laboratory.'),
+        ),
+      ],
+    );
+  }
+}
+
+class _MyCareReportItem extends StatelessWidget {
+  const _MyCareReportItem({
+    required this.title,
+    required this.date,
+    required this.status,
+    required this.statusColor,
+    required this.statusBg,
+    required this.parameters,
+    required this.onTap,
+  });
+
+  final String title;
+  final String date;
+  final String status;
+  final Color statusColor;
+  final Color statusBg;
+  final String parameters;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(16),
+      elevation: 1,
+      shadowColor: const Color(0x0C000000),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Mhn.line),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF1F8F5),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Center(
+                  child: Icon(Icons.description_outlined, color: Color(0xFF0E4B3B), size: 22),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title, style: Mhn.t(14, w: FontWeight.w700, c: Mhn.ink)),
+                    const SizedBox(height: 2),
+                    Text(parameters, style: Mhn.t(11.5, c: Mhn.mutedSoft), maxLines: 1, overflow: TextOverflow.ellipsis),
+                    const SizedBox(height: 2),
+                    Text(date, style: Mhn.t(11, c: Mhn.muted)),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: statusBg,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      status,
+                      style: Mhn.t(11, w: FontWeight.w700, c: statusColor),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  const Icon(Icons.arrow_forward_ios, size: 12, color: Mhn.muted),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

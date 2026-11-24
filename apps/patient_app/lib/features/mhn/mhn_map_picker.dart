@@ -5,8 +5,10 @@ import 'dart:async';
 import 'dart:io' show Platform;
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart' as gmaps;
+import 'package:latlong2/latlong.dart' as ll;
 
 import 'mhn_location_service.dart';
 import 'mhn_shell.dart';
@@ -141,23 +143,8 @@ class _MhnGoogleMapViewState extends State<MhnGoogleMapView> {
   Offset _panOffset = Offset.zero;
   bool _isDragging = false;
   static final bool _isTest = Platform.environment.containsKey('FLUTTER_TEST');
-  GoogleMapController? _mapController;
-  bool _useFastMap = true;
-  bool _googleMapReady = false;
-  Timer? _slowTileTimer;
-  bool _showSlowNotice = false;
-
-  @override
-  void initState() {
-    super.initState();
-    if (!_isTest) {
-      _slowTileTimer = Timer(const Duration(milliseconds: 2500), () {
-        if (mounted && !_googleMapReady) {
-          setState(() => _showSlowNotice = true);
-        }
-      });
-    }
-  }
+  final MapController _flutterMapController = MapController();
+  bool _useCanvasMap = false;
 
   @override
   void didUpdateWidget(covariant MhnGoogleMapView oldWidget) {
@@ -165,36 +152,23 @@ class _MhnGoogleMapViewState extends State<MhnGoogleMapView> {
     if (oldWidget.initialLat != widget.initialLat || oldWidget.initialLng != widget.initialLng) {
       _lat = widget.initialLat;
       _lng = widget.initialLng;
-      _mapController?.animateCamera(CameraUpdate.newLatLng(LatLng(_lat, _lng)));
+      if (!_isTest && !_useCanvasMap) {
+        _flutterMapController.move(ll.LatLng(_lat, _lng), _zoom);
+      }
     }
-  }
-
-  @override
-  void dispose() {
-    _slowTileTimer?.cancel();
-    super.dispose();
   }
 
   MhnMapLocation _currentLocation() {
-    // Determine closest landmark or construct address
-    MhnMapLocation closest = kNepalLocations.first;
-    double minD = double.infinity;
-    for (final loc in kNepalLocations) {
-      final d = math.sqrt(math.pow(loc.latitude - _lat, 2) + math.pow(loc.longitude - _lng, 2));
-      if (d < minD) {
-        minD = d;
-        closest = loc;
-      }
-    }
-    if (minD < 0.005) {
-      return closest;
-    }
+    final areaStr = MhnLocationService.matchNearestLocality(_lat, _lng);
+    final parts = areaStr.split(',');
+    final locality = parts.first.trim();
+    final city = parts.length > 1 ? parts.last.trim() : 'Kathmandu';
     return MhnMapLocation(
       latitude: _lat,
       longitude: _lng,
-      formattedAddress: 'Near ${closest.locality}, ${closest.city} (Lat: ${_lat.toStringAsFixed(4)}, Lng: ${_lng.toStringAsFixed(4)})',
-      locality: closest.locality,
-      city: closest.city,
+      formattedAddress: areaStr,
+      locality: locality,
+      city: city,
     );
   }
 
@@ -215,20 +189,27 @@ class _MhnGoogleMapViewState extends State<MhnGoogleMapView> {
   }
 
   void _zoomIn() {
-    setState(() => _zoom = (_zoom + 1.0).clamp(11.0, 19.0));
+    final next = (_zoom + 1.0).clamp(10.0, 18.5);
+    setState(() => _zoom = next);
+    if (!_isTest && !_useCanvasMap) {
+      _flutterMapController.move(ll.LatLng(_lat, _lng), next);
+    }
   }
 
   void _zoomOut() {
-    setState(() => _zoom = (_zoom - 1.0).clamp(11.0, 19.0));
+    final next = (_zoom - 1.0).clamp(10.0, 18.5);
+    setState(() => _zoom = next);
+    if (!_isTest && !_useCanvasMap) {
+      _flutterMapController.move(ll.LatLng(_lat, _lng), next);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_isTest || _useFastMap) {
+    if (_isTest || _useCanvasMap) {
       return Stack(
         children: [
           _buildCanvasSimulation(),
-          // Mode switch button to Google Live
           if (!_isTest)
             Positioned(
               top: widget.toggleTopOffset,
@@ -239,58 +220,70 @@ class _MhnGoogleMapViewState extends State<MhnGoogleMapView> {
       );
     }
 
-    // Real Native Google Map on Physical Device
+    // High accuracy live interactive map via FlutterMap & OpenStreetMap tiles
     return Stack(
       children: [
-        GoogleMap(
-          initialCameraPosition: CameraPosition(
-            target: LatLng(_lat, _lng),
-            zoom: _zoom,
+        FlutterMap(
+          mapController: _flutterMapController,
+          options: MapOptions(
+            initialCenter: ll.LatLng(_lat, _lng),
+            initialZoom: _zoom,
+            minZoom: 10.0,
+            maxZoom: 18.5,
+            interactionOptions: InteractionOptions(
+              flags: widget.interactive ? InteractiveFlag.all : InteractiveFlag.none,
+            ),
+            onPositionChanged: (camera, hasGesture) {
+              if (hasGesture) {
+                _lat = camera.center.latitude;
+                _lng = camera.center.longitude;
+                _zoom = camera.zoom;
+                if (!_isDragging) setState(() => _isDragging = true);
+              }
+            },
+            onMapEvent: (event) {
+              if (event is MapEventMoveEnd) {
+                if (_isDragging) setState(() => _isDragging = false);
+                widget.onLocationChanged?.call(_currentLocation());
+              }
+            },
           ),
-          myLocationEnabled: true,
-          myLocationButtonEnabled: true,
-          zoomControlsEnabled: true,
-          compassEnabled: true,
-          mapToolbarEnabled: false,
-          onMapCreated: (ctrl) {
-            _mapController = ctrl;
-            setState(() => _googleMapReady = true);
-          },
-          onCameraMove: (pos) {
-            _lat = pos.target.latitude;
-            _lng = pos.target.longitude;
-            _zoom = pos.zoom;
-            if (!_isDragging) setState(() => _isDragging = true);
-          },
-          onCameraIdle: () {
-            if (_isDragging) setState(() => _isDragging = false);
-            widget.onLocationChanged?.call(_currentLocation());
-          },
-          markers: {
-            if (widget.destinationPosition != null)
-              Marker(
-                markerId: const MarkerId('destination'),
-                position: LatLng(widget.initialLat, widget.initialLng),
-                icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
-              ),
-          },
-          polylines: {
+          children: [
+            TileLayer(
+              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+              userAgentPackageName: 'invalid.lims.patient_app.dev',
+              maxZoom: 19,
+            ),
             if (widget.routePolyline != null)
-              Polyline(
-                polylineId: const PolylineId('route_line'),
-                color: const Color(0xFF0E4B3B),
-                width: 6,
-                points: const [
-                  LatLng(27.6915, 85.3420),
-                  LatLng(27.6980, 85.3360),
-                  LatLng(27.7050, 85.3300),
-                  LatLng(27.7120, 85.3240),
+              PolylineLayer(
+                polylines: [
+                  Polyline(
+                    points: const [
+                      ll.LatLng(27.6915, 85.3420),
+                      ll.LatLng(27.6980, 85.3360),
+                      ll.LatLng(27.7050, 85.3300),
+                      ll.LatLng(27.7120, 85.3240),
+                    ],
+                    strokeWidth: 5,
+                    color: const Color(0xFF0E4B3B),
+                  ),
                 ],
               ),
-          },
+            if (widget.destinationPosition != null)
+              MarkerLayer(
+                markers: [
+                  Marker(
+                    point: ll.LatLng(widget.initialLat, widget.initialLng),
+                    width: 36,
+                    height: 36,
+                    child: const Icon(Icons.location_on, color: Color(0xFFEA4335), size: 36),
+                  ),
+                ],
+              ),
+          ],
         ),
 
-        // Floating Center Pin if picker mode
+        // Floating Center Pin in Picker Mode
         if (widget.showCenterPin)
           Align(
             alignment: Alignment.center,
@@ -309,7 +302,7 @@ class _MhnGoogleMapViewState extends State<MhnGoogleMapView> {
                       ],
                     ),
                     child: Text(
-                      'Set Collection Location',
+                      _isDragging ? 'Moving map...' : 'Set Collection Location',
                       style: Mhn.t(11, w: FontWeight.w700, c: Colors.white),
                     ),
                   ),
@@ -328,47 +321,25 @@ class _MhnGoogleMapViewState extends State<MhnGoogleMapView> {
             ),
           ),
 
-        // Mode switch button to Fast Map
+        // Zoom In / Out Controls
+        Positioned(
+          right: 14,
+          bottom: 24,
+          child: Column(
+            children: [
+              _MapControlButton(icon: Icons.add, onTap: _zoomIn),
+              const SizedBox(height: 8),
+              _MapControlButton(icon: Icons.remove, onTap: _zoomOut),
+            ],
+          ),
+        ),
+
+        // Mode switch button
         Positioned(
           top: widget.toggleTopOffset,
           right: 14,
           child: _buildLayerToggleButton(),
         ),
-
-        // Notice if Google Map tiles are pending, slow, or authorization failed
-        if (_showSlowNotice || !_googleMapReady)
-          Positioned(
-            top: widget.toggleTopOffset + 42,
-            left: 16,
-            right: 16,
-            child: Material(
-              color: const Color(0xFFFFF3E0),
-              borderRadius: BorderRadius.circular(12),
-              elevation: 4,
-              shadowColor: const Color(0x22000000),
-              child: InkWell(
-                onTap: () => setState(() => _useFastMap = true),
-                borderRadius: BorderRadius.circular(12),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.warning_amber_rounded, size: 20, color: Color(0xFFE65100)),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'Google Cloud requires Billing for live tiles. Tap here for Fast Map.',
-                          style: Mhn.t(11.5, w: FontWeight.w700, c: const Color(0xFFE65100)),
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                      const Icon(Icons.arrow_forward_ios, size: 12, color: Color(0xFFE65100)),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
       ],
     );
   }
@@ -380,7 +351,7 @@ class _MhnGoogleMapViewState extends State<MhnGoogleMapView> {
       elevation: 4,
       shadowColor: const Color(0x33000000),
       child: InkWell(
-        onTap: () => setState(() => _useFastMap = !_useFastMap),
+        onTap: () => setState(() => _useCanvasMap = !_useCanvasMap),
         borderRadius: BorderRadius.circular(20),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
@@ -388,13 +359,13 @@ class _MhnGoogleMapViewState extends State<MhnGoogleMapView> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(
-                _useFastMap ? Icons.layers_outlined : Icons.flash_on,
+                _useCanvasMap ? Icons.map_outlined : Icons.flash_on,
                 size: 15,
-                color: _useFastMap ? const Color(0xFF1B6B52) : const Color(0xFFE65100),
+                color: _useCanvasMap ? const Color(0xFF1B6B52) : const Color(0xFFE65100),
               ),
               const SizedBox(width: 5),
               Text(
-                _useFastMap ? '🗺️ Google Live' : '⚡ Fast Map',
+                _useCanvasMap ? '🗺️ Live Map' : '⚡ Fast Mode',
                 style: Mhn.t(11.5, w: FontWeight.w700, c: Mhn.ink),
               ),
             ],
@@ -759,15 +730,19 @@ class _MhnMapPickerScreenState extends State<MhnMapPickerScreen> {
       onError: (err) => mhnToast(context, err),
     );
     if (pos != null) {
+      final named = await MhnLocationService.getNamedAddress(pos);
+      final parts = named.split(',');
+      final locality = parts.first.trim();
+      final city = parts.length > 1 ? parts.last.trim() : 'Kathmandu';
       final loc = MhnMapLocation(
         latitude: pos.latitude,
         longitude: pos.longitude,
-        formattedAddress: 'Doorstep GPS: ${pos.latitude.toStringAsFixed(4)}, ${pos.longitude.toStringAsFixed(4)}',
-        locality: MhnLocationService.formatLocation(pos).split(',').first,
-        city: 'Kathmandu',
+        formattedAddress: named,
+        locality: locality,
+        city: city,
       );
       _onLocationSelected(loc);
-      mhnToast(context, '📍 Exact GPS doorstep located');
+      mhnToast(context, '📍 Doorstep located: $locality');
     } else {
       setState(() {
         _current = kNepalLocations.first;

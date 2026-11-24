@@ -114,6 +114,7 @@ class MhnGoogleMapView extends StatefulWidget {
     this.destinationPosition,
     this.onLocationChanged,
     this.interactive = true,
+    this.toggleTopOffset = 14.0,
   });
 
   final double initialLat;
@@ -127,6 +128,7 @@ class MhnGoogleMapView extends StatefulWidget {
   final Offset? destinationPosition;
   final ValueChanged<MhnMapLocation>? onLocationChanged;
   final bool interactive;
+  final double toggleTopOffset;
 
   @override
   State<MhnGoogleMapView> createState() => _MhnGoogleMapViewState();
@@ -140,7 +142,7 @@ class _MhnGoogleMapViewState extends State<MhnGoogleMapView> {
   bool _isDragging = false;
   static final bool _isTest = Platform.environment.containsKey('FLUTTER_TEST');
   GoogleMapController? _mapController;
-  bool _useFastMap = false;
+  bool _useFastMap = true;
   bool _googleMapReady = false;
   Timer? _slowTileTimer;
   bool _showSlowNotice = false;
@@ -149,7 +151,7 @@ class _MhnGoogleMapViewState extends State<MhnGoogleMapView> {
   void initState() {
     super.initState();
     if (!_isTest) {
-      _slowTileTimer = Timer(const Duration(milliseconds: 3500), () {
+      _slowTileTimer = Timer(const Duration(milliseconds: 2500), () {
         if (mounted && !_googleMapReady) {
           setState(() => _showSlowNotice = true);
         }
@@ -229,7 +231,7 @@ class _MhnGoogleMapViewState extends State<MhnGoogleMapView> {
           // Mode switch button to Google Live
           if (!_isTest)
             Positioned(
-              top: 14,
+              top: widget.toggleTopOffset,
               right: 14,
               child: _buildLayerToggleButton(),
             ),
@@ -328,15 +330,15 @@ class _MhnGoogleMapViewState extends State<MhnGoogleMapView> {
 
         // Mode switch button to Fast Map
         Positioned(
-          top: 14,
+          top: widget.toggleTopOffset,
           right: 14,
           child: _buildLayerToggleButton(),
         ),
 
-        // Notice if Google Map tiles are pending or slow
-        if (_showSlowNotice && !_googleMapReady)
+        // Notice if Google Map tiles are pending, slow, or authorization failed
+        if (_showSlowNotice || !_googleMapReady)
           Positioned(
-            top: 60,
+            top: widget.toggleTopOffset + 42,
             left: 16,
             right: 16,
             child: Material(
@@ -351,14 +353,15 @@ class _MhnGoogleMapViewState extends State<MhnGoogleMapView> {
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   child: Row(
                     children: [
-                      const Icon(Icons.flash_on, size: 18, color: Color(0xFFE65100)),
+                      const Icon(Icons.warning_amber_rounded, size: 20, color: Color(0xFFE65100)),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          'Google live tiles slow? Tap for instant 0ms map',
+                          'Google Cloud requires Billing for live tiles. Tap here for Fast Map.',
                           style: Mhn.t(11.5, w: FontWeight.w700, c: const Color(0xFFE65100)),
                         ),
                       ),
+                      const SizedBox(width: 4),
                       const Icon(Icons.arrow_forward_ios, size: 12, color: Color(0xFFE65100)),
                     ],
                   ),
@@ -374,24 +377,24 @@ class _MhnGoogleMapViewState extends State<MhnGoogleMapView> {
     return Material(
       color: Colors.white,
       borderRadius: BorderRadius.circular(20),
-      elevation: 3,
+      elevation: 4,
       shadowColor: const Color(0x33000000),
       child: InkWell(
         onTap: () => setState(() => _useFastMap = !_useFastMap),
         borderRadius: BorderRadius.circular(20),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(
-                _useFastMap ? Icons.map : Icons.flash_on,
+                _useFastMap ? Icons.layers_outlined : Icons.flash_on,
                 size: 15,
                 color: _useFastMap ? const Color(0xFF1B6B52) : const Color(0xFFE65100),
               ),
-              const SizedBox(width: 4),
+              const SizedBox(width: 5),
               Text(
-                _useFastMap ? 'Google Live' : 'Fast Map',
+                _useFastMap ? '🗺️ Google Live' : '⚡ Fast Map',
                 style: Mhn.t(11.5, w: FontWeight.w700, c: Mhn.ink),
               ),
             ],
@@ -681,6 +684,33 @@ class _GoogleMapsPainter extends CustomPainter {
       canvas.drawCircle(destinationPosition!, 9, destPaint);
       canvas.drawCircle(destinationPosition!, 4, Paint()..color = Colors.white);
     }
+
+    // 8. Labels for Rivers, Highways, and Areas
+    void drawLabel(String text, Offset pos, {Color color = const Color(0xFF5F6368), double fontSize = 11, bool isBold = false}) {
+      final span = TextSpan(
+        text: text,
+        style: TextStyle(
+          color: color,
+          fontSize: fontSize,
+          fontWeight: isBold ? FontWeight.w800 : FontWeight.w600,
+        ),
+      );
+      final tp = TextPainter(text: span, textDirection: TextDirection.ltr);
+      tp.layout();
+      final bgR = Rect.fromLTWH(pos.dx - 4, pos.dy - 2, tp.width + 8, tp.height + 4);
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(bgR, const Radius.circular(4)),
+        Paint()..color = Colors.white.withValues(alpha: 0.85),
+      );
+      tp.paint(canvas, pos);
+    }
+
+    drawLabel('Bagmati River', Offset(size.width * 0.35 + (panOffset.dx * 0.3), size.height * 0.40 + (panOffset.dy * 0.3)), color: const Color(0xFF1A73E8), fontSize: 10);
+    drawLabel('Ring Road / Araniko Hwy', Offset(16 + (panOffset.dx * 0.8), h1 - 18), color: const Color(0xFF8D6E63), fontSize: 10, isBold: true);
+    drawLabel('Tribhuvan Path', Offset(h2 + 8, size.height * 0.65 + (panOffset.dy * 0.8)), color: const Color(0xFF8D6E63), fontSize: 10, isBold: true);
+    drawLabel('📍 Baneshwor Heights', Offset(size.width * 0.55 + panOffset.dx, size.height * 0.28 + panOffset.dy), color: const Color(0xFF0E4B3B), fontSize: 11);
+    drawLabel('📍 Patan Durbar Area', Offset(size.width * 0.18 + panOffset.dx, size.height * 0.65 + panOffset.dy), color: const Color(0xFF0E4B3B), fontSize: 11);
+    drawLabel('📍 Maitighar Mandala', Offset(size.width * 0.42 + panOffset.dx, size.height * 0.48 + panOffset.dy), color: const Color(0xFF0E4B3B), fontSize: 11);
   }
 
   @override
@@ -777,6 +807,7 @@ class _MhnMapPickerScreenState extends State<MhnMapPickerScreen> {
               initialLat: _current.latitude,
               initialLng: _current.longitude,
               showCenterPin: true,
+              toggleTopOffset: 72,
               onLocationChanged: (loc) => setState(() => _current = loc),
             ),
           ),

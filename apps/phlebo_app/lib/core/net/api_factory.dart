@@ -28,11 +28,19 @@ ApiClient createApiClient({
   required String appVersion,
   required String deviceId,
   required FutureOr<String?> Function() accessToken,
+  String env = 'dev',
+  String? hostOverrides,
 }) {
   if (baseUrl.scheme != 'https' || baseUrl.host.isEmpty || baseUrl.userInfo.isNotEmpty) {
     throw ArgumentError.value('<redacted>', 'baseUrl', 'must be an absolute https URL without credentials');
   }
-  return ApiClient._(createPinnedHttpClient(pinnedCaPems), baseUrl, appVersion, deviceId, accessToken);
+  return ApiClient._(
+    createPinnedHttpClient(pinnedCaPems, env: env, rawOverrides: hostOverrides),
+    baseUrl,
+    appVersion,
+    deviceId,
+    accessToken,
+  );
 }
 
 class ApiClient {

@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lims_ui/lims_ui.dart';
@@ -10,18 +11,32 @@ import 'providers.dart';
 
 Future<void> runPatientApp(Flavour flavour) async {
   WidgetsFlutterBinding.ensureInitialized();
-  // LD-24 (2026-11-07, A33-1): self-hosted GlitchTip via the lims_ui wrapper; PHI scrubber in beforeSend; off when the
-  // DSN is empty.
+
+  String? caPem;
+  if (flavour.env != 'prod') {
+    try {
+      caPem = await rootBundle.loadString('assets/ca/lims-internal-ca.pem');
+    } catch (_) {
+      // In test or non-flutter-asset environments, patient_security_context falls back to bundled kInternalCaPem
+    }
+  }
+
   void runner() => runApp(ProviderScope(
         overrides: [
           flavourProvider.overrideWithValue(flavour),
           // LOCAL TEST WIRING until the generated lims_api_client lands (CR-C16-016/017).
-          innerTransportProvider.overrideWithValue(buildHttpTransport(baseUrl: flavour.apiBaseUrl)),
+          innerTransportProvider.overrideWithValue(buildHttpTransport(
+            baseUrl: flavour.apiBaseUrl,
+            env: flavour.env,
+            caPem: caPem,
+          )),
         ],
         child: const PatientApp(),
       ));
 
-  if (kErrorTrackingDsn.isEmpty) {
+  // LD-24 (2026-11-07, A33-1): self-hosted GlitchTip via the lims_ui wrapper; PHI scrubber in beforeSend; off when the
+  // DSN is empty.
+  if (kErrorTrackingDsn.trim().isEmpty) {
     runner();
     return;
   }

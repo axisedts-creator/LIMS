@@ -10,10 +10,23 @@ import 'package:lims_shared/lims_shared.dart';
 
 import '../../features/auth/patient_auth_api.dart';
 import 'api_client_factory.dart';
+import 'dev_host_override.dart';
+import 'patient_security_context.dart';
 
-PatientTransport buildHttpTransport({required String baseUrl, Duration timeout = const Duration(seconds: 60)}) {
-  final base = Uri.parse(baseUrl.endsWith('/') ? baseUrl.substring(0, baseUrl.length - 1) : baseUrl);
-  final client = HttpClient()..connectionTimeout = const Duration(seconds: 15);
+PatientTransport buildHttpTransport({
+  required String baseUrl,
+  String env = 'dev',
+  String? caPem,
+  String? hostOverrides,
+  Duration timeout = const Duration(seconds: 60),
+}) {
+  final base = baseUrl.isEmpty
+      ? Uri()
+      : Uri.parse(baseUrl.endsWith('/') ? baseUrl.substring(0, baseUrl.length - 1) : baseUrl);
+
+  final context = buildPatientSecurityContext(env: env, caPem: caPem);
+  final client = HttpClient(context: context)..connectionTimeout = const Duration(seconds: 15);
+  applyDevHostOverrides(client, env: env, rawOverrides: hostOverrides, context: context);
 
   return (method, path, {query, headers, body}) async {
     final q = <String, String>{

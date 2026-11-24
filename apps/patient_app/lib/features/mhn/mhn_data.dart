@@ -119,12 +119,13 @@ class MhnPlan {
 }
 
 class MhnHeroSlide {
-  const MhnHeroSlide(this.tag, this.title, this.sub, this.cta, this.go);
+  const MhnHeroSlide(this.tag, this.title, this.sub, this.cta, this.go, {this.imageAsset = ''});
   final String tag;
   final String title;
   final String sub;
   final String cta;
   final String go; // packages | tests | membership
+  final String imageAsset;
 }
 
 const kCategories = <MhnCategory>[
@@ -187,9 +188,9 @@ const kFaqs = <MhnFaq>[
 ];
 
 const kHero = <MhnHeroSlide>[
-  MhnHeroSlide('Health packages', 'Looking for a full body checkup?', 'Five packages, from Bronze to Elite.', 'See packages', 'packages'),
-  MhnHeroSlide('At your door', 'Home sample collection', 'A phlebotomist comes to you at the time you pick.', 'Book a test', 'tests'),
-  MhnHeroSlide('Laboratory tests', 'Accurate & verified reports', 'Comprehensive test profiles with barcoded sample tracking.', 'View tests', 'tests'),
+  MhnHeroSlide('Health packages', 'Looking for a full body checkup?', 'Five packages, from Bronze to Elite.', 'See packages', 'packages', imageAsset: 'assets/images/hero_checkup.jpg'),
+  MhnHeroSlide('At your door', 'Home sample collection', 'A phlebotomist comes to you at the time you pick.', 'Book a test', 'tests', imageAsset: 'assets/images/hero_doorstep.jpg'),
+  MhnHeroSlide('Laboratory tests', 'Accurate & verified reports', 'Comprehensive test profiles with barcoded sample tracking.', 'View tests', 'tests', imageAsset: 'assets/images/hero_lab.jpg'),
 ];
 
 const kPlaceholders = <String>['Thyroid profile', 'CBC', 'HbA1c', 'Vitamin D', 'Lipid profile'];
@@ -251,3 +252,110 @@ int? ageFrom(String iso) {
   if (n.month < d.month || (n.month == d.month && n.day < d.day)) a--;
   return a;
 }
+
+class MhnCarePlan {
+  const MhnCarePlan(this.id, this.title, this.image);
+  final String id;
+  final String title;
+  final String image;
+}
+
+const kCarePlans = <MhnCarePlan>[
+  MhnCarePlan('women', "Women's health", 'assets/images/avatars/women.png'),
+  MhnCarePlan('men', "Men's health", 'assets/images/avatars/men.png'),
+  MhnCarePlan('senior', 'Senior health', 'assets/images/avatars/senior.png'),
+];
+
+class MhnOrganTest {
+  const MhnOrganTest(this.id, this.title, this.icon);
+  final String id;
+  final String title;
+  final IconData icon;
+}
+
+const kOrganTests = <MhnOrganTest>[
+  MhnOrganTest('kidney', 'Kidney', Icons.grid_view_rounded),
+  MhnOrganTest('heart', 'Heart', Icons.favorite_outline),
+  MhnOrganTest('liver', 'Liver', Icons.science_outlined),
+  MhnOrganTest('thyroid', 'Thyroid', Icons.verified_user_outlined),
+];
+
+class MhnHealthConcern {
+  const MhnHealthConcern(this.id, this.title, this.color);
+  final String id;
+  final String title;
+  final Color color;
+}
+
+const kHealthConcerns = <MhnHealthConcern>[
+  MhnHealthConcern('anemia', 'Anemia', Color(0xFFE57373)),
+  MhnHealthConcern('arthritis', 'Arthritis', Color(0xFFFFB74D)),
+  MhnHealthConcern('pcos', 'PCOS', Color(0xFFBA68C8)),
+  MhnHealthConcern('infertility', 'Infertility', Color(0xFF81C784)),
+];
+
+const kLifestyleConcerns = <MhnHealthConcern>[
+  MhnHealthConcern('smoking', 'Smoking', Color(0xFFFF8A65)),
+  MhnHealthConcern('stress', 'Stress', Color(0xFFFFD54F)),
+  MhnHealthConcern('sleeplessness', 'Sleeplessness', Color(0xFF4FC3F7)),
+  MhnHealthConcern('poor_diet', 'Poor diet', Color(0xFFAED581)),
+];
+
+const kAllergyTests = <MhnHealthConcern>[
+  MhnHealthConcern('veg_nonveg', 'Veg & Non-veg', Color(0xFF81C784)),
+  MhnHealthConcern('drugs', 'Drugs', Color(0xFF64B5F6)),
+  MhnHealthConcern('pets', 'Pets', Color(0xFFFFB74D)),
+  MhnHealthConcern('dust_mites', 'Dust mites', Color(0xFFBA68C8)),
+];
+
+class MhnSupplement {
+  const MhnSupplement(this.id, this.name, this.count, this.price);
+  final String id;
+  final String name;
+  final String count;
+  final int price;
+}
+
+const kSupplements = <MhnSupplement>[
+  MhnSupplement('sup1', 'Supplement name', '60 tablets', 0),
+  MhnSupplement('sup2', 'Supplement name', '60 tablets', 0),
+];
+
+class MhnArticle {
+  const MhnArticle(this.id, this.title, this.readTime);
+  final String id;
+  final String title;
+  final String readTime;
+}
+
+const kArticles = <MhnArticle>[
+  MhnArticle('art1', 'Article title goes here', '5 min read'),
+  MhnArticle('art2', 'Article title goes here', '5 min read'),
+];
+
+class MhnJourneyStep {
+  const MhnJourneyStep(this.num, this.title, this.desc);
+  final int num;
+  final String title;
+  final String desc;
+}
+
+const kJourneySteps = <MhnJourneyStep>[
+  MhnJourneyStep(1, 'Book with ease', 'Choose tests and a time slot.'),
+  MhnJourneyStep(2, 'Home sample collection', 'A trained collector visits you.'),
+  MhnJourneyStep(3, 'Safe transfer to the lab', 'Samples travel to the lab.'),
+  MhnJourneyStep(4, 'Report access', 'Reports are available in the app.'),
+];
+
+class MhnFeatureItem {
+  const MhnFeatureItem(this.title, this.icon);
+  final String title;
+  final IconData icon;
+}
+
+const kWhyChooseMetroLabs = <MhnFeatureItem>[
+  MhnFeatureItem('Accreditation', Icons.verified_user_outlined),
+  MhnFeatureItem('Sample collection', Icons.local_shipping_outlined),
+  MhnFeatureItem('Smart reports', Icons.insights_outlined),
+  MhnFeatureItem('Report consultation', Icons.support_agent_outlined),
+];

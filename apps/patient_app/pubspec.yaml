@@ -19,6 +19,7 @@ dependencies:
   # workspace members (packages/shared-dart, packages/ui-flutter); lims_api_client joins when generated (CR-C16-016/017)
   lims_shared: any
   lims_ui: any
+  video_player: ^2.14.1
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -35,3 +36,31 @@ dependency_overrides:
 flutter:
   # Bundles the Material Icons font the screens draw with (Icons.*); without it every icon renders as a wrong glyph.
   uses-material-design: true
+  assets:
+    - assets/ca/lims-internal-ca.pem
+    - assets/brand/
+    - assets/fonts/
+    - assets/images/
+    - assets/images/cta/
+    - assets/images/avatars/
+    - assets/images/cards/
+    - assets/lottie/
+    - assets/svg/
+    - assets/svg/icons/
+    - assets/video/
+  fonts:
+    - family: Poppins
+      fonts:
+        - asset: assets/fonts/Poppins-Regular.ttf
+        - asset: assets/fonts/Poppins-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Poppins-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Poppins-Bold.ttf
+          weight: 700
+    - family: Quicksand
+      fonts:
+        - asset: assets/fonts/Quicksand-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Quicksand-Bold.ttf
+          weight: 700

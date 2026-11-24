@@ -55,6 +55,44 @@ class MhnBooking {
 }
 
 @immutable
+class MhnAddress {
+  const MhnAddress({
+    required this.id,
+    required this.label,
+    required this.address,
+    required this.landmark,
+    this.isDefault = false,
+    this.inCoverage = true,
+  });
+
+  final String id;
+  final String label; // Home | Office | Other
+  final String address;
+  final String landmark;
+  final bool isDefault;
+  final bool inCoverage;
+}
+
+@immutable
+class MhnNotificationItem {
+  const MhnNotificationItem({
+    required this.id,
+    required this.title,
+    required this.subtitle,
+    required this.time,
+    this.isRead = false,
+    this.type = 'booking',
+  });
+
+  final String id;
+  final String title;
+  final String subtitle;
+  final String time;
+  final bool isRead;
+  final String type;
+}
+
+@immutable
 class MhnState {
   const MhnState({
     this.cart = const [],
@@ -70,6 +108,39 @@ class MhnState {
     this.memberUntil = '',
     this.profile = const MhnProfile(name: 'Aayush Shrestha', phone: '9841234567'),
     this.members = const [],
+    this.addresses = const [
+      MhnAddress(
+        id: 'addr_home',
+        label: 'Home',
+        address: 'House 24, Baluwatar Marg\nBaluwatar-4, Kathmandu',
+        landmark: 'Near Baluwatar Chowk',
+        isDefault: true,
+      ),
+      MhnAddress(
+        id: 'addr_office',
+        label: 'Office',
+        address: '3rd floor, Durbar Marg\nKamaladi-1, Kathmandu',
+        landmark: 'Opposite the park gate',
+        isDefault: false,
+      ),
+    ],
+    this.favorites = const ['cbc', 'hba1c'],
+    this.notifications = const [
+      MhnNotificationItem(
+        id: 'n1',
+        title: 'Sample health checkup package',
+        subtitle: '86 tests recommended for you. Up to 40% OFF',
+        time: '2 hrs ago',
+        type: 'package',
+      ),
+      MhnNotificationItem(
+        id: 'n2',
+        title: 'Win a wallet reward',
+        subtitle: 'Participate in MetroLabs lucky draw for testing rewards',
+        time: '1 day ago',
+        type: 'reward',
+      ),
+    ],
     this.lastId = '',
     this.doneMode = 'home',
     this.calendar = 'BS',
@@ -82,6 +153,14 @@ class MhnState {
     this.lastBookingNo = '',
     this.lastBooking,
     this.isMockPrototype = false,
+    this.healthKarmaScore = 72,
+    this.stepCount = 6420,
+    this.bloodSugar = 95,
+    this.weightKg = 68,
+    this.bloodPressure = '120/80',
+    this.heartRateBpm = 74,
+    this.walletBalance = 0,
+    this.v1_1Mode = true,
   });
 
   final List<String> cart;
@@ -109,6 +188,17 @@ class MhnState {
   final String lastBookingNo;
   final Map<String, Object?>? lastBooking;
   final bool isMockPrototype;
+  final List<MhnAddress> addresses;
+  final List<String> favorites;
+  final List<MhnNotificationItem> notifications;
+  final int healthKarmaScore;
+  final int stepCount;
+  final int bloodSugar;
+  final int weightKg;
+  final String bloodPressure;
+  final int heartRateBpm;
+  final int walletBalance;
+  final bool v1_1Mode;
 
   bool get isMember => member != null;
   MhnPlan? get plan => member == null ? null : kPlans.firstWhere((p) => p.id == member);
@@ -119,6 +209,17 @@ class MhnState {
     String? selectedLocationLabel,
     String? selectedProfileId, String? selectedAddressId, String? selectedCentreId, String? selectedSlotStart, String? selectedSlotLabel, String? lastBookingNo, Map<String, Object?>? lastBooking,
     bool? isMockPrototype,
+    List<MhnAddress>? addresses,
+    List<String>? favorites,
+    List<MhnNotificationItem>? notifications,
+    int? healthKarmaScore,
+    int? stepCount,
+    int? bloodSugar,
+    int? weightKg,
+    String? bloodPressure,
+    int? heartRateBpm,
+    int? walletBalance,
+    bool? v1_1Mode,
   }) =>
       MhnState(
         cart: cart ?? this.cart, who: who ?? this.who, mode: mode ?? this.mode, day: day ?? this.day, slot: slot ?? this.slot,
@@ -130,6 +231,17 @@ class MhnState {
         selectedCentreId: selectedCentreId ?? this.selectedCentreId, selectedSlotStart: selectedSlotStart ?? this.selectedSlotStart,
         selectedSlotLabel: selectedSlotLabel ?? this.selectedSlotLabel, lastBookingNo: lastBookingNo ?? this.lastBookingNo, lastBooking: lastBooking ?? this.lastBooking,
         isMockPrototype: isMockPrototype ?? this.isMockPrototype,
+        addresses: addresses ?? this.addresses,
+        favorites: favorites ?? this.favorites,
+        notifications: notifications ?? this.notifications,
+        healthKarmaScore: healthKarmaScore ?? this.healthKarmaScore,
+        stepCount: stepCount ?? this.stepCount,
+        bloodSugar: bloodSugar ?? this.bloodSugar,
+        weightKg: weightKg ?? this.weightKg,
+        bloodPressure: bloodPressure ?? this.bloodPressure,
+        heartRateBpm: heartRateBpm ?? this.heartRateBpm,
+        walletBalance: walletBalance ?? this.walletBalance,
+        v1_1Mode: v1_1Mode ?? this.v1_1Mode,
       );
 }
 
@@ -307,6 +419,35 @@ class MhnController extends Notifier<MhnState> {
   void removeMember(String id) => state = state.copyWith(members: [for (final m in state.members) if (m.id != id) m], who: state.who == id ? 'self' : state.who);
 
   String newMemberId() => 'm${DateTime.now().microsecondsSinceEpoch}${_rng.nextInt(99)}';
+
+  void toggleFavorite(String id) {
+    final has = state.favorites.contains(id);
+    state = state.copyWith(
+      favorites: has
+          ? [for (final x in state.favorites) if (x != id) x]
+          : [...state.favorites, id],
+    );
+  }
+
+  void toggleV11Mode() => state = state.copyWith(v1_1Mode: !state.v1_1Mode);
+
+  void updateHealthTracker({int? steps, int? sugar, int? weight, String? bp, int? hr}) {
+    state = state.copyWith(
+      stepCount: steps ?? state.stepCount,
+      bloodSugar: sugar ?? state.bloodSugar,
+      weightKg: weight ?? state.weightKg,
+      bloodPressure: bp ?? state.bloodPressure,
+      heartRateBpm: hr ?? state.heartRateBpm,
+    );
+  }
+
+  void addAddress(MhnAddress addr) {
+    state = state.copyWith(addresses: [...state.addresses, addr]);
+  }
+
+  void removeAddress(String id) {
+    state = state.copyWith(addresses: [for (final a in state.addresses) if (a.id != id) a]);
+  }
 }
 
 final mhnProvider = NotifierProvider<MhnController, MhnState>(MhnController.new);

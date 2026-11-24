@@ -184,7 +184,7 @@ class _MhnTestsTabState extends ConsumerState<MhnTestsTab> {
     final results = _filteredResults();
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 96),
       children: [
         Wrap(
           alignment: WrapAlignment.spaceBetween,

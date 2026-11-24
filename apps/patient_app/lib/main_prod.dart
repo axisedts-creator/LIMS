@@ -1,13 +1,14 @@
 import 'app/bootstrap.dart';
 import 'app/flavour.dart';
 
-// .invalid defaults are placeholders: CI passes the real public URLs with --dart-define (release checklist, T-REL1).
+const _override = String.fromEnvironment('DEV_HOST_OVERRIDE');
+
 const _flavour = Flavour(
   env: 'prod',
-  tenantCode: 'demo_lab',
-  displayName: 'Demo Lab',
-  apiBaseUrl: String.fromEnvironment('API_BASE_URL', defaultValue: 'https://api.invalid'),
-  portalOrigin: String.fromEnvironment('PORTAL_ORIGIN', defaultValue: 'https://portal.invalid'),
+  tenantCode: String.fromEnvironment('TENANT_CODE'),
+  displayName: 'My Health Now',
+  apiBaseUrl: String.fromEnvironment('API_BASE_URL'),
+  portalOrigin: String.fromEnvironment('PORTAL_ORIGIN'),
   storeUrl: String.fromEnvironment('STORE_URL', defaultValue: 'https://store.invalid/demo_lab'),
   // LD-28: legal.privacy_url / legal.terms_url are required in production builds (no default; checked in main), also
   // recorded in the release checklist for the store listings.
@@ -17,7 +18,11 @@ const _flavour = Flavour(
 );
 
 Future<void> main() {
-  if (_flavour.privacyUrl!.isEmpty || _flavour.termsUrl!.isEmpty) {
+  // REQ-SEC-105: DEV_HOST_OVERRIDE is strictly impossible in production.
+  if (_override.isNotEmpty) {
+    throw UnsupportedError('DEV_HOST_OVERRIDE is forbidden in prod');
+  }
+  if (_flavour.privacyUrl == null || _flavour.privacyUrl!.isEmpty || _flavour.termsUrl == null || _flavour.termsUrl!.isEmpty) {
     throw StateError('PRIVACY_URL/TERMS_URL required for prod (LD-28)');
   }
   return runPatientApp(_flavour);

@@ -48,19 +48,29 @@ class _PatientAppState extends ConsumerState<PatientApp> {
     final timer = ref.read(backgroundTimerProvider);
     return MaterialApp.router(
       title: ref.read(flavourProvider).displayName,
-      theme: LimsTheme.light(),
-      routerConfig: _router,
-      builder: (_, child) => AppLockGate(
-        timer: timer,
-        deviceAuth: ref.read(deviceAuthProvider),
-        enabled: () => session.status.value == SessionStatus.signedIn, // A2/A3 are not PHI
-        // No device screen lock: fall back to a fresh OTP sign-in (US-EN-02.4).
-        onSignInRequired: () async {
-          await session.logout().then<void>((_) {}, onError: (_) {});
-          timer.unlock();
-        },
-        child: child!,
+      theme: LimsTheme.light().copyWith(
+        visualDensity: const VisualDensity(horizontal: -1.0, vertical: -1.0),
       ),
+      routerConfig: _router,
+      builder: (ctx, child) {
+        final media = MediaQuery.of(ctx);
+        return MediaQuery(
+          data: media.copyWith(
+            textScaler: TextScaler.linear(media.textScaler.scale(1.0) * 0.85),
+          ),
+          child: AppLockGate(
+            timer: timer,
+            deviceAuth: ref.read(deviceAuthProvider),
+            enabled: () => session.status.value == SessionStatus.signedIn, // A2/A3 are not PHI
+            // No device screen lock: fall back to a fresh OTP sign-in (US-EN-02.4).
+            onSignInRequired: () async {
+              await session.logout().then<void>((_) {}, onError: (_) {});
+              timer.unlock();
+            },
+            child: child!,
+          ),
+        );
+      },
     );
   }
 }

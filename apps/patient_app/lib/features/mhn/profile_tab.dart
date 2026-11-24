@@ -8,11 +8,13 @@ import '../profiles/profiles_screen.dart';
 import '../../app/providers.dart';
 import 'about_screen.dart';
 import 'contact_tab.dart';
+import 'live_tracking_screen.dart';
 import 'members_screen.dart';
 import 'mhn_shell.dart';
 import 'mhn_state.dart';
 import 'mhn_theme.dart';
 import 'my_profile_screen.dart';
+import 'placeholders_screens.dart';
 import 'problem_screen.dart';
 
 class MhnProfileTab extends ConsumerWidget {
@@ -24,10 +26,10 @@ class MhnProfileTab extends ConsumerWidget {
     final ctl = ref.read(mhnProvider.notifier);
     final p = st.profile;
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
       children: [
         Row(children: [
-          CircleAvatar(radius: 28, backgroundColor: Mhn.green, child: Text(p.name[0], style: Mhn.t(22, w: FontWeight.w700, c: Mhn.white))),
+          MhnAvatar(name: p.name, radius: 28),
           const SizedBox(width: 12),
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -56,6 +58,15 @@ class MhnProfileTab extends ConsumerWidget {
             _Row(icon: Icons.groups_2_outlined, title: 'Other members', trailing: st.members.isEmpty ? 'None' : '${st.members.length}', onTap: () => mhnPush<void>(context, const MhnMembersScreen())),
             _Row(icon: Icons.badge_outlined, title: 'Lab profiles', onTap: () => mhnPush<void>(context, const ProfilesScreen())),
             _Row(icon: Icons.location_on_outlined, title: 'Saved addresses', onTap: () => mhnPush<void>(context, const AddressesScreen())),
+            _Row(
+              icon: Icons.dashboard_customize_outlined,
+              title: 'Healthians v1.1 Mode',
+              badge: st.v1_1Mode ? 'Active' : 'Classic',
+              onTap: () {
+                ctl.toggleV11Mode();
+                mhnToast(context, st.v1_1Mode ? 'Switched to Classic layout' : 'Switched to Healthians v1.1 layout');
+              },
+            ),
             _Row(
               icon: Icons.calendar_today_outlined,
               title: 'Calendar',
@@ -88,6 +99,14 @@ class MhnProfileTab extends ConsumerWidget {
           child: Column(children: [
             _Row(icon: Icons.description_outlined, title: 'Reports', onTap: () => ref.read(mhnTabProvider.notifier).go(mhnTabReports)),
             _Row(icon: Icons.event_available_outlined, title: 'Bookings', trailing: st.bookings.isEmpty ? '' : '${st.bookings.length}', onTap: () => ref.read(mhnTabProvider.notifier).go(mhnTabBookings)),
+            if (st.v1_1Mode) ...[
+              _Row(icon: Icons.route_outlined, title: 'Live phlebotomist tracking', onTap: () => mhnPush<void>(context, const MhnLiveTrackingScreen())),
+              _Row(icon: Icons.account_balance_wallet_outlined, title: 'My wallet', onTap: () => mhnPush<void>(context, const MhnWalletScreen())),
+              _Row(icon: Icons.card_giftcard_outlined, title: 'Refer & earn', onTap: () => mhnPush<void>(context, const MhnReferEarnScreen())),
+              _Row(icon: Icons.casino_outlined, title: 'Lucky draw', onTap: () => mhnPush<void>(context, const MhnLuckyDrawScreen())),
+              _Row(icon: Icons.business_outlined, title: 'Corporate verification', onTap: () => mhnPush<void>(context, const MhnCorporateScreen())),
+              _Row(icon: Icons.design_services_outlined, title: 'Make your own package', onTap: () => mhnPush<void>(context, const MhnMakePackageScreen())),
+            ],
           ]),
         ),
         const _Label('INFORMATION'),

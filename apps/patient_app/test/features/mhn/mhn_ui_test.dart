@@ -15,18 +15,27 @@ SemanticsHandle? _sem;
 
 final _vertical = find.byWidgetPredicate((w) => w is Scrollable && w.axis == Axis.vertical).first;
 
-Future<ProviderContainer> open(WidgetTester t, {double scale = 1.0, Size size = const Size(390, 844)}) async {
+class _ClassicMhnController extends MhnController {
+  @override
+  MhnState build() => const MhnState(v1_1Mode: false);
+}
+
+Future<ProviderContainer> open(WidgetTester t, {double scale = 1.0, Size size = const Size(390, 844), bool v1_1 = false}) async {
   t.view.physicalSize = size;
   t.view.devicePixelRatio = 1;
   addTearDown(t.view.reset);
   _sem = t.ensureSemantics();
-  final c = ProviderContainer();
+  final c = ProviderContainer(
+    overrides: [
+      if (!v1_1) mhnProvider.overrideWith(_ClassicMhnController.new),
+    ],
+  );
   addTearDown(c.dispose);
   await t.pumpWidget(UncontrolledProviderScope(
     container: c,
     child: MediaQuery(
       data: MediaQueryData(size: size, textScaler: TextScaler.linear(scale)),
-      child: MaterialApp(theme: LimsTheme.light(), home: const MhnShell()),
+      child: MaterialApp(theme: LimsTheme.light(), home: const MhnShell(showLaunchSplash: false)),
     ),
   ));
   await t.pump(const Duration(milliseconds: 100));
@@ -34,7 +43,16 @@ Future<ProviderContainer> open(WidgetTester t, {double scale = 1.0, Size size = 
 }
 
 Future<void> tab(WidgetTester t, String label) async {
-  await t.tap(find.byKey(ValueKey<String>('mhn-nav-$label')));
+  final navFinder = find.byKey(ValueKey<String>('mhn-nav-$label'));
+  if (navFinder.evaluate().isNotEmpty) {
+    await t.tap(navFinder);
+  } else if (label == 'All Tests') {
+    await t.tap(find.bySemanticsLabel('Search tests'));
+  } else if (label == 'Reports') {
+    await t.tap(find.byKey(const ValueKey<String>('mhn-nav-Profile')));
+    await t.pumpAndSettle();
+    await t.tap(find.text('Reports'));
+  }
   await t.pump(const Duration(milliseconds: 300));
 }
 
@@ -76,12 +94,15 @@ void main() {
 
   for (final scale in [1.0, 1.3]) {
     testWidgets('home renders at text scale $scale without overflow and shows the prototype sections', (t) async {
-      await open(t, scale: scale);
+      final c = await open(t, scale: scale);
       expect(t.takeException(), isNull);
       expect(find.text('Hi, Aayush'), findsOneWidget);
       expect(find.bySemanticsLabel('Cart'), findsOneWidget);
       expect(find.text('Popular tests'), findsOneWidget);
-      for (final l in ['Home', 'All Tests', 'Bookings', 'Reports', 'Profile']) {
+      final navLabels = c.read(mhnProvider).v1_1Mode
+          ? ['Home', 'Call', 'Community', 'MyCare', 'Profile']
+          : ['Home', 'All Tests', 'Bookings', 'Reports', 'Profile'];
+      for (final l in navLabels) {
         expect(find.text(l), findsWidgets, reason: l);
       }
       for (final s in ['Tests by category', 'Routine Health Checkup for Men', 'Health Checkup Packages', 'ISO 9001:2015 certified · NPHL approved']) {
@@ -98,9 +119,12 @@ void main() {
 
   for (final width in [360.0, 390.0, 430.0]) {
     testWidgets('responsive layout: ${width}dp viewport with 1.3x text scale across all 5 tabs renders without overflow', (t) async {
-      await open(t, scale: 1.3, size: Size(width, 740));
+      final c = await open(t, scale: 1.3, size: Size(width, 740));
       expect(t.takeException(), isNull);
-      for (final l in ['Home', 'All Tests', 'Bookings', 'Reports', 'Profile']) {
+      final navLabels = c.read(mhnProvider).v1_1Mode
+          ? ['Home', 'Community', 'MyCare', 'Profile']
+          : ['Home', 'All Tests', 'Bookings', 'Reports', 'Profile'];
+      for (final l in navLabels) {
         await tab(t, l);
         expect(t.takeException(), isNull, reason: 'Tab $l has overflow at width $width');
       }
@@ -109,9 +133,12 @@ void main() {
   }
 
   testWidgets('accessibility: 390dp viewport with 2.0x enlarged text scale renders without overflow', (t) async {
-    await open(t, scale: 2.0, size: const Size(390, 844));
+    final c = await open(t, scale: 2.0, size: const Size(390, 844));
     expect(t.takeException(), isNull);
-    for (final l in ['Home', 'All Tests', 'Bookings', 'Reports', 'Profile']) {
+    final navLabels = c.read(mhnProvider).v1_1Mode
+        ? ['Home', 'Community', 'MyCare', 'Profile']
+        : ['Home', 'All Tests', 'Bookings', 'Reports', 'Profile'];
+    for (final l in navLabels) {
       await tab(t, l);
       expect(t.takeException(), isNull, reason: 'Tab $l has overflow at 2.0x text scale');
     }
@@ -362,6 +389,30 @@ void main() {
     await t.tap(find.text('Send report'));
     await t.pump();
     expect(find.text('Add a short description (at least 10 characters).'), findsOneWidget);
+    await end(t);
+  });
+
+  testWidgets('v1.1 mode: toggling switches bottom nav to Call, Community, MyCare; header icons open Notifications, Prescription', (t) async {
+    final c = await open(t);
+    expect(find.bySemanticsLabel('Notifications'), findsOneWidget);
+    await t.tap(find.bySemanticsLabel('Notifications'));
+    await t.pumpAndSettle();
+    expect(find.text('Notifications'), findsOneWidget);
+    await t.tap(find.bySemanticsLabel('Back'));
+    await t.pumpAndSettle();
+
+    await t.tap(find.byIcon(Icons.document_scanner_outlined));
+    await t.pumpAndSettle();
+    expect(find.text('Upload Prescription'), findsOneWidget);
+    await t.tap(find.bySemanticsLabel('Back'));
+    await t.pumpAndSettle();
+
+    c.read(mhnProvider.notifier).toggleV11Mode();
+    await t.pumpAndSettle();
+
+    for (final l in ['Home', 'Call', 'Community', 'MyCare', 'Profile']) {
+      expect(find.text(l), findsWidgets, reason: l);
+    }
     await end(t);
   });
 }

@@ -5,7 +5,7 @@ import 'app/flavour.dart';
 Future<void> main() => runPatientApp(const Flavour(
       env: 'dev',
       tenantCode: String.fromEnvironment('TENANT_CODE', defaultValue: 'tenant_a'),
-      displayName: 'Demo Lab (dev)',
+      displayName: 'My Health Now',
       apiBaseUrl: String.fromEnvironment('API_BASE_URL', defaultValue: 'http://10.0.2.2:3000'),
       portalOrigin: String.fromEnvironment('PORTAL_ORIGIN', defaultValue: 'http://10.0.2.2:3001'),
       storeUrl: String.fromEnvironment('STORE_URL', defaultValue: 'https://store.invalid/demo_lab'),

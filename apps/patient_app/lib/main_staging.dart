@@ -1,16 +1,23 @@
 import 'app/bootstrap.dart';
 import 'app/flavour.dart';
 
-// .invalid defaults are placeholders: CI passes the real public URLs with --dart-define (release checklist, T-REL1).
-Future<void> main() => runPatientApp(const Flavour(
-      env: 'staging',
-      tenantCode: 'demo_lab',
-      displayName: 'Demo Lab (staging)',
-      apiBaseUrl: String.fromEnvironment('API_BASE_URL', defaultValue: 'https://api.staging.invalid'),
-      portalOrigin: String.fromEnvironment('PORTAL_ORIGIN', defaultValue: 'https://portal.staging.invalid'),
-      storeUrl: String.fromEnvironment('STORE_URL', defaultValue: 'https://store.invalid/demo_lab'),
-      // LD-28: legal.privacy_url / legal.terms_url.
-      privacyUrl: String.fromEnvironment('PRIVACY_URL', defaultValue: 'https://legal.invalid/privacy'),
-      termsUrl: String.fromEnvironment('TERMS_URL', defaultValue: 'https://legal.invalid/terms'),
-      tenantPrivacyUrl: String.fromEnvironment('TENANT_PRIVACY_URL'),
-    ));
+// Staging entry point. Runtime config via --dart-define. No hardcoded hosts (REQ-SEC-107).
+Future<void> main() {
+  const tenant = String.fromEnvironment('TENANT_CODE', defaultValue: 'demo_lab4');
+  const api = String.fromEnvironment('API_BASE_URL');
+  const portal = String.fromEnvironment('PORTAL_ORIGIN');
+  const store = String.fromEnvironment('STORE_URL', defaultValue: 'https://store.invalid/demo_lab');
+  const tenantPrivacy = String.fromEnvironment('TENANT_PRIVACY_URL');
+
+  return runPatientApp(const Flavour(
+    env: 'staging',
+    tenantCode: tenant,
+    displayName: 'My Health Now',
+    apiBaseUrl: api,
+    portalOrigin: portal,
+    storeUrl: store,
+    privacyUrl: String.fromEnvironment('PRIVACY_URL', defaultValue: 'https://legal.invalid/privacy'),
+    termsUrl: String.fromEnvironment('TERMS_URL', defaultValue: 'https://legal.invalid/terms'),
+    tenantPrivacyUrl: tenantPrivacy,
+  ));
+}

@@ -1,14 +1,19 @@
 // My Health Now shell: five approved tabs (Home, All Tests, Bookings, Reports, Profile)
 // with the bottom bar and the floating cart bar per ADR-UI-NAV-001.
 // Pushed screens (category, packages, cart, booking...) use MhnPage. Tab choice is in memory only.
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'bookings_screen.dart';
+import 'call_sheet.dart';
 import 'cart_screen.dart';
+import 'community_screens.dart';
 import 'home_tab.dart';
 import 'mhn_state.dart';
 import 'mhn_theme.dart';
+import 'mycare_screen.dart';
+import 'placeholders_screens.dart';
 import 'profile_tab.dart';
 import 'reports_screen.dart';
 import 'tests_tab.dart';
@@ -32,6 +37,47 @@ const mhnTabContact = -1; // Retained for backwards compatibility; contact lives
 
 Future<T?> mhnPush<T>(BuildContext context, Widget screen) =>
     Navigator.of(context).push<T>(MaterialPageRoute<T>(builder: (_) => screen));
+
+/// Floating "Call to Book" widget matching Healthians wireframe & live video.
+class MhnFloatingCallButton extends StatelessWidget {
+  const MhnFloatingCallButton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.white,
+      elevation: 6,
+      shadowColor: Colors.black26,
+      borderRadius: BorderRadius.circular(24),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(24),
+        onTap: () => MhnCallSheet.show(context),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 28,
+                height: 28,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFE8F4EC),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.phone_in_talk, size: 16, color: Mhn.green),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Call to Book',
+                style: Mhn.t(13, w: FontWeight.w700, c: Mhn.ink),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
 
 /// "N items   View cart ›" bar shown above the bottom bar (and on category / packages screens) while the cart is not empty.
 class MhnCartBar extends ConsumerWidget {
@@ -73,10 +119,52 @@ class MhnCartBar extends ConsumerWidget {
   }
 }
 
-class MhnShell extends ConsumerWidget {
-  const MhnShell({super.key});
+class MhnShell extends ConsumerStatefulWidget {
+  const MhnShell({
+    super.key,
+    this.showLaunchSplash = const bool.fromEnvironment('MHN_SPLASH', defaultValue: true),
+  });
+  final bool showLaunchSplash;
 
-  static const _items = <(IconData, String)>[
+  @override
+  ConsumerState<MhnShell> createState() => _MhnShellState();
+}
+
+class _MhnShellState extends ConsumerState<MhnShell> with SingleTickerProviderStateMixin {
+  late bool _splashActive = widget.showLaunchSplash;
+  late final AnimationController _exitCtrl = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 450),
+  );
+  late final Animation<Offset> _splashSlideOut = Tween<Offset>(
+    begin: Offset.zero,
+    end: const Offset(-1.0, 0.0),
+  ).animate(CurvedAnimation(
+    parent: _exitCtrl,
+    curve: Curves.easeInOutCubic,
+  ));
+  late final Animation<Offset> _homeSlideIn = Tween<Offset>(
+    begin: const Offset(0.30, 0.0),
+    end: Offset.zero,
+  ).animate(CurvedAnimation(
+    parent: _exitCtrl,
+    curve: Curves.easeOutCubic,
+  ));
+
+  @override
+  void dispose() {
+    _exitCtrl.dispose();
+    super.dispose();
+  }
+
+  void _triggerSplashExit() {
+    if (!_splashActive || _exitCtrl.isAnimating || _exitCtrl.isCompleted) return;
+    _exitCtrl.forward().then((_) {
+      if (mounted) setState(() => _splashActive = false);
+    });
+  }
+
+  static const _classicItems = <(IconData, String)>[
     (Icons.home_outlined, 'Home'),
     (Icons.science_outlined, 'All Tests'),
     (Icons.event_available_outlined, 'Bookings'),
@@ -84,85 +172,225 @@ class MhnShell extends ConsumerWidget {
     (Icons.person_outline, 'Profile'),
   ];
 
+  static const _v11Items = <(IconData, String)>[
+    (Icons.home_outlined, 'Home'),
+    (Icons.phone_outlined, 'Call'),
+    (Icons.groups_outlined, 'Community'),
+    (Icons.monitor_heart_outlined, 'MyCare'),
+    (Icons.person_outline, 'Profile'),
+  ];
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final tab = ref.watch(mhnTabProvider);
-    final body = switch (tab) {
-      mhnTabHome => const MhnHomeTab(),
-      mhnTabTests => const MhnTestsTab(),
-      mhnTabBookings => const MhnBookingsScreen(isTab: true),
-      mhnTabReports => const MhnReportsScreen(isTab: true),
-      _ => const MhnProfileTab(),
-    };
-    return Scaffold(
+    final v11 = ref.watch(mhnProvider.select((s) => s.v1_1Mode));
+
+    final items = v11 ? _v11Items : _classicItems;
+
+    final Widget body;
+    if (v11) {
+      body = switch (tab) {
+        0 => const MhnHomeTab(),
+        1 => const MhnHomeTab(), // Call opens sheet, keeps home active behind
+        2 => const MhnCommunityScreen(),
+        3 => const MhnMyCareScreen(),
+        _ => const MhnProfileTab(),
+      };
+    } else {
+      body = switch (tab) {
+        mhnTabHome => const MhnHomeTab(),
+        mhnTabTests => const MhnTestsTab(),
+        mhnTabBookings => const MhnBookingsScreen(isTab: true),
+        mhnTabReports => const MhnReportsScreen(isTab: true),
+        _ => const MhnProfileTab(),
+      };
+    }
+
+    final shell = Scaffold(
       backgroundColor: Mhn.page,
+      extendBody: true,
       body: SafeArea(bottom: false, child: body),
-      bottomNavigationBar: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (tab == mhnTabHome || tab == mhnTabTests) const MhnCartBar(),
-          Container(
-            decoration: const BoxDecoration(
-              color: Mhn.white,
-              border: Border(top: BorderSide(color: Mhn.line)),
-            ),
-            child: SafeArea(
-              top: false,
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(minHeight: 64),
-                child: Row(
-                  children: [
-                    for (var i = 0; i < _items.length; i++)
-                      Expanded(
-                        key: ValueKey<String>('mhn-nav-${_items[i].$2}'),
-                        child: Semantics(
-                          button: true,
-                          selected: tab == i,
-                          label: _items[i].$2,
-                          child: InkWell(
-                            onTap: () =>
-                                ref.read(mhnTabProvider.notifier).go(i),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Container(
-                                  width: tab == i ? 28 : 0,
-                                  height: 3,
-                                  margin: const EdgeInsets.only(bottom: 6),
-                                  decoration: BoxDecoration(
-                                    color: Mhn.green,
-                                    borderRadius: BorderRadius.circular(2),
+      floatingActionButton: (tab == 0 && v11) ? const MhnFloatingCallButton() : null,
+      bottomNavigationBar: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(23, 0, 23, 10),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (tab == mhnTabHome || (!v11 && tab == mhnTabTests)) const MhnCartBar(),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(24),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: const Color(0xF4FFFFFF),
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(color: const Color(0x22084D3B), width: 1.0),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Color(0x1E000000),
+                          blurRadius: 16,
+                          offset: Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(minHeight: 54),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Row(
+                            children: [
+                              for (var i = 0; i < items.length; i++)
+                                Expanded(
+                                  key: ValueKey<String>('mhn-nav-${items[i].$2}'),
+                                  child: Semantics(
+                                    button: true,
+                                    selected: tab == i,
+                                    label: items[i].$2,
+                                    child: InkWell(
+                                      onTap: () {
+                                        if (v11 && i == 1) {
+                                          MhnCallSheet.show(context);
+                                        } else {
+                                          ref.read(mhnTabProvider.notifier).go(i);
+                                        }
+                                      },
+                                      child: Stack(
+                                        alignment: Alignment.topCenter,
+                                        children: [
+                                          Padding(
+                                            padding: const EdgeInsets.symmetric(vertical: 4),
+                                            child: Column(
+                                              mainAxisSize: MainAxisSize.min,
+                                              mainAxisAlignment: MainAxisAlignment.center,
+                                              children: [
+                                                if (tab == i)
+                                                  Container(
+                                                    width: 33,
+                                                    height: 33,
+                                                    decoration: const BoxDecoration(
+                                                      shape: BoxShape.circle,
+                                                      gradient: LinearGradient(
+                                                        colors: [Color(0xFF00796B), Color(0xFF7CB342)],
+                                                        begin: Alignment.topLeft,
+                                                        end: Alignment.bottomRight,
+                                                      ),
+                                                      boxShadow: [
+                                                        BoxShadow(
+                                                          color: Color(0x3800796B),
+                                                          blurRadius: 5,
+                                                          offset: Offset(0, 2),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                    child: Center(
+                                                      child: Icon(
+                                                        items[i].$1,
+                                                        size: 19,
+                                                        color: Colors.white,
+                                                      ),
+                                                    ),
+                                                  )
+                                                else
+                                                  SizedBox(
+                                                    width: 33,
+                                                    height: 33,
+                                                    child: Center(
+                                                      child: Icon(
+                                                        items[i].$1,
+                                                        size: 20,
+                                                        color: Mhn.muted,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                const SizedBox(height: 1),
+                                                Text(
+                                                  items[i].$2,
+                                                  style: Mhn.t(
+                                                    10.5,
+                                                    w: tab == i ? FontWeight.w800 : FontWeight.w600,
+                                                    c: tab == i ? const Color(0xFF084D3B) : Mhn.muted,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          if (v11 && items[i].$2 == 'Community')
+                                            Positioned(
+                                              top: 2,
+                                              right: 12,
+                                              child: Container(
+                                                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                                decoration: BoxDecoration(
+                                                  color: const Color(0xFFE53935),
+                                                  borderRadius: BorderRadius.circular(6),
+                                                ),
+                                                child: Text(
+                                                  'New',
+                                                  style: Mhn.t(9, w: FontWeight.w800, c: Colors.white),
+                                                ),
+                                              ),
+                                            ),
+                                        ],
+                                      ),
+                                    ),
                                   ),
                                 ),
-                                Icon(
-                                  _items[i].$1,
-                                  size: 24,
-                                  color: tab == i ? Mhn.green : Mhn.muted,
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  _items[i].$2,
-                                  style: Mhn.t(
-                                    12,
-                                    w: tab == i
-                                        ? FontWeight.w700
-                                        : FontWeight.w600,
-                                    c: tab == i ? Mhn.green : Mhn.muted,
+                            ],
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 3.5),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text('by ', style: Mhn.t(8.5, w: FontWeight.w500, c: Mhn.muted)),
+                                Image.asset(
+                                  'assets/brand/ml-logo-landscape.png',
+                                  height: 8.5,
+                                  fit: BoxFit.contain,
+                                  errorBuilder: (_, __, ___) => Text(
+                                    'METROLABS',
+                                    style: Mhn.t(8.5, w: FontWeight.w700, c: Mhn.green),
                                   ),
                                 ),
                               ],
                             ),
                           ),
-                        ),
+                        ],
                       ),
-                  ],
+                    ),
+                  ),
                 ),
               ),
-            ),
+            ],
           ),
-        ],
+        ),
       ),
+    );
+
+    if (!_splashActive) {
+      return shell;
+    }
+
+    return Stack(
+      children: [
+        SlideTransition(
+          position: _homeSlideIn,
+          child: shell,
+        ),
+        SlideTransition(
+          position: _splashSlideOut,
+          child: MhnSplashScreen(
+            onTransitionStart: _triggerSplashExit,
+            onComplete: () {
+              if (mounted) setState(() => _splashActive = false);
+            },
+          ),
+        ),
+      ],
     );
   }
 }

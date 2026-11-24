@@ -150,7 +150,7 @@ export function releaseSetup(o: ReleaseWorldOpts = {}) {
     /** handler ctx (API, user actor) */
     userCtx(over: Row = {}): any {
       return { tenantId: TENANT_A, actor: { type: 'user', id: USER, membershipId: MEMBERSHIP }, requestId: idN(0xf1), operationId: 'releaseReportVersion', clientIp: '203.0.113.9',
-        tx, ports, events: ev.events, audit: au.audit, now: () => NOW, log: logs.log, ...over };
+        tx, ports: { ...ports, IdentityPort: { assertRole: async () => undefined, getTenantSettings: async () => ({}) } }, events: ev.events, audit: au.audit, now: () => NOW, log: logs.log, ...over };
     },
     /** worker job ctx (system actor) */
     jobCtx(over: Row = {}): any {

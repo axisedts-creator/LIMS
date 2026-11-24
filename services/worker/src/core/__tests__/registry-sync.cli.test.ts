@@ -53,7 +53,7 @@ describe('(1)(2) the CLI block uses a plain pg Client and no graphile-worker', (
 
 describe('(3) pg is declared in the worker package at the version already in pnpm-lock.yaml', () => {
   const pkg = JSON.parse(readFileSync(join(WORKER, 'package.json'), 'utf8'));
-  const lock = readFileSync(join(REPO_ROOT, 'pnpm-lock.yaml'), 'utf8');
+  const lock = readFileSync(join(REPO_ROOT, 'pnpm-lock.yaml'), 'utf8').replace(/\r\n/g, '\n');
   it('services/worker/package.json lists pg, pinned (no range) to the lockfile version', () => {
     const wanted = lock.match(/^  pg@(\d+\.\d+\.\d+):/m)?.[1];
     expect(wanted).toBeTruthy();

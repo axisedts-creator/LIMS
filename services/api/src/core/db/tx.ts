@@ -64,6 +64,30 @@ interface TxState { readonly kind: 'request' | 'identity_auth'; readonly operati
 const internal = (): Error => new AuthError('common.internal');
 const realSleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
+/** Security hardening: prevents multi-statement (stacked query) injection and null-byte truncation. */
+export function assertSingleStatement(text: string): void {
+  if (typeof text !== 'string' || text.length === 0 || text.includes('\0')) {
+    throw internal();
+  }
+  let inQuote = false;
+  let escape = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (escape) {
+      escape = false;
+    } else if (ch === '\\') {
+      escape = true;
+    } else if (ch === "'") {
+      inQuote = !inQuote;
+    } else if (ch === ';' && !inQuote) {
+      const remainder = text.slice(i + 1).trim();
+      if (remainder.length > 0) {
+        throw internal();
+      }
+    }
+  }
+}
+
 export function createDb(o: DbOptions) {
   const retryMax = o.retryMax ?? 3;
   const sleep = o.sleep ?? realSleep;
@@ -90,6 +114,7 @@ export function createDb(o: DbOptions) {
       let bound = false;
       const query = (text: string, values: unknown[] = []) => {
         if (!state.open) return Promise.reject(internal()); // a tx kept past its request must not reach a reused connection
+        try { assertSingleStatement(text); } catch (e) { return Promise.reject(e); }
         if (!ENQUEUE.test(text)) return client.query(text, values);
         return client.query(text, values).catch((e: unknown) => {
           if (e !== null && typeof e === 'object' && typeof values[0] === 'string') enqueued.set(e, values[0]);
@@ -176,6 +201,12 @@ export function createDb(o: DbOptions) {
     requestTx<T>(input: RequestTxInput, fn: TxFn<T>): Promise<T> {
       if (!input?.claims || !input.operation) return Promise.reject(internal());
       return run('request', input, JSON.stringify(input.claims), fn);
+    },
+
+    /** Public/anonymous transaction for unauthenticated operations (e.g. verifyReportQr, receiveProviderCallback) */
+    anonymousTx<T>(input: TxInput, fn: TxFn<T>): Promise<T> {
+      if (!input?.operation) return Promise.reject(internal());
+      return run('request', { ...input, readOnly: input.readOnly ?? false }, JSON.stringify({ actor_type: 'anonymous' }), fn);
     },
 
     /** 08 A25 D-212: refused before any SQL unless identity + x-context identity_auth + allowlisted operationId. */

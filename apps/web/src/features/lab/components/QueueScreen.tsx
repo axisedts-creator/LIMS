@@ -362,6 +362,7 @@ export function QueueScreen({ mode, items, permissions, onStepUp, currentUserId,
       <p role="heading" aria-level={2} className="lims-card-title">{sel.items[0]!.patient_display.full_name}</p>
       <p className="lims-console-strip">
         {[sel.items[0]!.patient_display.age_sex, sel.items[0]!.patient_display.patient_code, sel.no, sel.items[0]!.priority].join(' · ')}
+        {permissions.includes('lab.result.enter') ? <> · <a className="lims-link" href="/lab/worklists">Open worklists</a></> : null}
       </p>
       <DataTable caption="Results" columns={resultCols} rows={sel.items} getRowId={(i) => i.result.id} cellTitle emptyState={{ title: 'No results.' }} />
       <p data-console-audit="">{auditLine(sel, chains)}</p>

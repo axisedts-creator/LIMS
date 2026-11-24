@@ -315,7 +315,14 @@ export function makePortalWorld(opts: { rng?: never } = {}) {
     sendEmailLink(ctx: any, input: any) { return notif.send('sendEmailLink', ctx, input); },
     sendWhatsAppTemplate(ctx: any, input: any) { return notif.send('sendWhatsAppTemplate', ctx, input); },
   };
-  const identity = { async getTenantSettings(_c: any, _i: any) { return { reportLinkTtlDays: 45 }; } };
+  const identity = {
+    async getTenantSettings(_c: any, _i: any) { return { reportLinkTtlDays: 45 }; },
+    async assertRole(ctx: any, _req: { permission: string }) {
+      if (ctx?.actor?.type !== 'user' && ctx?.actor?.type !== 'system') {
+        throw new LimsError('auth.forbidden');
+      }
+    },
+  };
   const ports: any = { FrontdeskPort: frontdesk, IdentityPort: identity, NotificationPort: notif, ...forbidden };
 
   // --- seed: tenant A report released v1 (+ qr snapshot + pdf), a second report, a tenant B report, settings

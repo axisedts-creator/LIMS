@@ -5,6 +5,7 @@
 // totals bar fixed at the bottom, rare items under one More fold, and every web-only ElabAssist item on the existing contracts (no contract change).
 // UI-only values (barcode, client label, patient type, registration time, franchise choice) never reach F9: they wait for T0D-REGSCREEN-2.
 import { useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react';
+import { BarcodeSymbol } from '@lims/ui/components/BarcodeSymbol';
 import { Badge } from '@lims/ui/components/Badge';
 import { Banner } from '@lims/ui/components/Banner';
 import { Button } from '@lims/ui/components/Button';
@@ -92,6 +93,7 @@ const fmtDate = (iso?: string) => (iso ? new Date(iso).toLocaleDateString('en-GB
 const fmtNow = (d: Date) => d.toLocaleString('en-GB', { timeZone: 'Asia/Kathmandu', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false });
 /** UI-only barcode until T0D-REGSCREEN-2 stores it on the order (specimen barcodes still come from C5 label printing). */
 const genBarcode = () => `R${Date.now().toString(36).toUpperCase()}${Math.floor(Math.random() * 1296).toString(36).toUpperCase().padStart(2, '0')}`;
+const BARCODE_VALID = /^[A-Z0-9-]{1,32}$/;
 
 type BannerState = { tone: 'warning' | 'danger'; title: string } | null;
 type Approval = { id: string; status: string } | null;
@@ -375,9 +377,9 @@ function Registration({ centres, permissions, defaultCentreId, consentTextVersio
   const loadParties = async (q: string) => { const r = await searchCreditPartiesAction(q); return r.ok ? r.data : []; };
   const findExisting = useRef(async (mobile: string) => { const r = await searchPatientsAction(mobile); return r.ok ? r.data : []; }).current;
 
-  const openNewPatient = () => { setShowNew(true); setNoMatch(false); setTimeout(() => root.current?.querySelector<HTMLElement>('input[name="full_name"]')?.focus(), 0); };
+  const openNewPatient = () => { setShowNew(true); setNoMatch(false); setBarcode(undefined); setTimeout(() => root.current?.querySelector<HTMLElement>('input[name="full_name"]')?.focus(), 0); };
   const closeNewPatient = () => { setShowNew(false); setPatientKey((k) => k + 1); wantFocus.current = 'patient'; };
-  const pickPatient = (p: PatientSummary | undefined) => { setPatient(p ?? null); setNewPatient(null); setNoMatch(false); };
+  const pickPatient = (p: PatientSummary | undefined) => { setPatient(p ?? null); setNewPatient(null); setNoMatch(false); setBarcode(undefined); };
   const pickParty = (p: CreditPartySummary | undefined) => { setParty(p); setClientLabel(p?.name ?? ''); setFieldErr((e) => ({ ...e, clientLabel: undefined as never })); };
   const reveal = (f: 'barcode' | 'trf', shown: boolean, show: () => void) => { if (shown) focusField(f); else { wantFocus.current = f; show(); } };
   const revealBarcode = () => reveal('barcode', barcode !== undefined, () => setBarcode(''));
@@ -425,6 +427,7 @@ function Registration({ centres, permissions, defaultCentreId, consentTextVersio
     if (p.patient && 'patient_id' in p.patient) { who = await patientOf(p.patient.patient_id); if (!who) return false; }
     setPatient(who ?? null);
     setNewPatient(p.patient && 'new_patient' in p.patient ? p.patient.new_patient : null);
+    setBarcode(undefined);
     setShowNew(false); setPatientKey((k) => k + 1);
     const c = centres.find((x) => x.id === p.centre_id);
     if (c) { if (c.kind === 'franchise') setFranchiseId(c.id); else { setLabId(c.id); setFranchiseId(''); } }
@@ -607,7 +610,7 @@ function Registration({ centres, permissions, defaultCentreId, consentTextVersio
               <Card title="Patient">
                 <div className="lims-reg-section">
                   {showNew ? (
-                    <NewPatientForm consentTextVersion={consentTextVersion} onCancel={closeNewPatient} onUse={(p) => { setNewPatient(p); setPatient(null); closeNewPatient(); }}
+                    <NewPatientForm consentTextVersion={consentTextVersion} onCancel={closeNewPatient} onUse={(p) => { setNewPatient(p); setPatient(null); setBarcode(undefined); closeNewPatient(); }}
                       findExisting={findExisting} onUseExisting={(p) => { pickPatient(p); closeNewPatient(); }} customFields={customDefs} uploadPhoto={uploadPhoto} />
                   ) : (
                     <>
@@ -753,7 +756,12 @@ function Registration({ centres, permissions, defaultCentreId, consentTextVersio
                   ) : null}
                   {barcode !== undefined ? (
                     <div data-field="barcode">
-                      <TextField label="Barcode" name="barcode" maxLength={32} value={barcode} onChange={setBarcode} description="Scan or type; printed labels still come from label printing" />
+                      <TextField label="Barcode" name="barcode" maxLength={32} value={barcode} onChange={(v) => setBarcode(v.toUpperCase())} description="Scan or type; printed labels still come from label printing" />
+                      {BARCODE_VALID.test(barcode.trim()) ? (
+                        <div className="lims-reg-barcode-box" role="img" aria-label={`Barcode preview ${barcode.trim()}`}>
+                          <BarcodeSymbol value={barcode.trim()} showText heightMm={12} moduleWidthMm={0.25} />
+                        </div>
+                      ) : null}
                     </div>
                   ) : null}
                 </div>

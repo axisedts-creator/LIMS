@@ -19,7 +19,7 @@ import {
 } from './booking-model';
 
 export const PAGE_ID = 'staff.engagement.bookings';
-export interface BookingsQuery { centre_id: string; booking_kind?: BookingKind; status: BookingStatus[]; slot_start_from: string; slot_start_to: string; sort: 'slot_start' }
+export interface BookingsQuery { centre_id?: string; booking_kind?: BookingKind; status: BookingStatus[]; slot_start_from: string; slot_start_to: string; sort: 'slot_start' }
 export interface BookingsListActions extends BookingRowActions { listBookings(q: BookingsQuery): Promise<StaffBooking[]> }
 export interface BookingsListProps {
   centres: readonly Centre[]; workingCentreId: string; today: string; rows: readonly StaffBooking[]; queues: readonly Queue[]; cancelReasons: readonly CancelReason[];
@@ -28,6 +28,7 @@ export interface BookingsListProps {
 
 const MAX_DAYS = 31;
 const DEFAULT_STATUS: BookingStatus[] = ['confirmed', 'checked_in'];
+const AUTO_REFRESH_MS = 12_000;
 
 export function BookingsList({ centres, workingCentreId, today, rows: initial, queues, cancelReasons, actions }: BookingsListProps) {
   const router = useRouter();
@@ -42,32 +43,56 @@ export function BookingsList({ centres, workingCentreId, today, rows: initial, q
   const [loading, setLoading] = useState(false);
   const seq = useRef(0);
 
-  const load = async (f: FilterValue, st: BookingStatus[]) => {
+  const load = async (f: FilterValue, st: BookingStatus[], showLoading = true) => {
     const [from, to] = Array.isArray(f['date']) ? (f['date'] as string[]) : [today, today];
-    const centre = typeof f['centre_id'] === 'string' ? f['centre_id'] : workingCentreId;
+    const rawCentre = typeof f['centre_id'] === 'string' ? f['centre_id'] : workingCentreId;
+    const centre = rawCentre === 'all' ? undefined : rawCentre;
     const kind = f['booking_kind'] as BookingKind | undefined;
-    const q: BookingsQuery = { centre_id: centre, ...(kind ? { booking_kind: kind } : {}), status: st, slot_start_from: dayStartUtc(from!), slot_start_to: dayStartUtc(addDays(to!, 1)), sort: 'slot_start' };
+    const q: BookingsQuery = { ...(centre ? { centre_id: centre } : {}), ...(kind ? { booking_kind: kind } : {}), status: st, slot_start_from: dayStartUtc(from!), slot_start_to: dayStartUtc(addDays(to!, 1)), sort: 'slot_start' };
     if (Date.parse(q.slot_start_to) - Date.parse(q.slot_start_from) > MAX_DAYS * DAY_MS) { setError(`Choose a date range of ${MAX_DAYS} days or less.`); return; }
     if (st.length === 0) { setError('Choose at least one status.'); return; }
     const mine = ++seq.current;
-    setError(undefined);
-    setLoading(true);
+    if (showLoading) {
+      setError(undefined);
+      setLoading(true);
+    }
     try {
       const r = await actions.listBookings(q);
-      if (mine === seq.current) { setRows(r); setSelected(new Set()); }
+      if (mine === seq.current) {
+        setRows(r);
+        setSelected((prev) => {
+          const next = new Set<string>();
+          for (const id of prev) { if (r.some((row) => row.id === id)) next.add(id); }
+          return next;
+        });
+      }
     } catch (e) {
-      if (mine === seq.current) setError(bookingProblem(e));
+      if (mine === seq.current && showLoading) setError(bookingProblem(e));
     } finally {
-      if (mine === seq.current) setLoading(false);
+      if (mine === seq.current && showLoading) setLoading(false);
     }
   };
-  const onFilters = (f: FilterValue) => { setFilters(f); void load(f, status); };
+  const onFilters = (f: FilterValue) => { setFilters(f); void load(f, status, true); };
   const onStatus = (s: BookingStatus, on: boolean) => {
     const next = on ? [...status, s] : status.filter((x) => x !== s);
     setStatus(next);
-    void load(filters, next);
+    void load(filters, next, true);
   };
-  const refresh = () => { void load(filters, status); router.refresh(); };
+  const refresh = () => { void load(filters, status, true); router.refresh(); };
+
+  // Auto-refresh: periodically poll in background so bookings submitted from the mobile app appear automatically
+  const activeState = useRef({ filters, status, checkIn, cancelling, loading });
+  activeState.current = { filters, status, checkIn, cancelling, loading };
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
+      const s = activeState.current;
+      if (s.checkIn || s.cancelling || s.loading) return;
+      void load(s.filters, s.status, false);
+    }, AUTO_REFRESH_MS);
+    return () => clearInterval(timer);
+  }, []);
 
   const selectedRow = () => rows.find((r) => selected.has(r.id));
   const latest = useRef({ selectedRow, setCheckIn, setCancelling, router });
@@ -79,6 +104,11 @@ export function BookingsList({ centres, workingCentreId, today, rows: initial, q
     { key: 'Alt+X', description: 'Cancel the selected booking', run: () => { const r = latest.current.selectedRow(); if (r?.status === 'confirmed') latest.current.setCancelling(r); } },
   ), []);
 
+  const centreOptions = [
+    { value: 'all', label: 'All centres' },
+    ...centres.map((c) => ({ value: c.id, label: c.display_name })),
+  ];
+
   return (
     <div className="lims-stack">
       <div className="lims-inline">
@@ -87,12 +117,12 @@ export function BookingsList({ centres, workingCentreId, today, rows: initial, q
       <FilterBar
         filters={[
           { id: 'date', label: 'Date', kind: 'date_range' },
-          { id: 'centre_id', label: 'Centre', kind: 'select', options: centres.map((c) => ({ value: c.id, label: c.display_name })) },
+          { id: 'centre_id', label: 'Centre', kind: 'select', options: centreOptions },
           { id: 'booking_kind', label: 'Type', kind: 'select', options: KIND_OPTIONS },
         ]}
         value={filters}
         onChange={onFilters}
-        onReset={() => { setFilters(defaults); setStatus(DEFAULT_STATUS); void load(defaults, DEFAULT_STATUS); }}
+        onReset={() => { setFilters(defaults); setStatus(DEFAULT_STATUS); void load(defaults, DEFAULT_STATUS, true); }}
       />
       <fieldset className="lims-fieldset lims-inline">
         <legend>Status</legend>

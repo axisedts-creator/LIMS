@@ -26,7 +26,10 @@ beforeAll(async () => {
 const rejection = async (p: Promise<unknown>): Promise<any> => { try { await p; } catch (e) { return e; } throw new Error('expected rejection, got success'); };
 function setup(v: Record<string, unknown> | null = failed(), o: { rls?: boolean } = {}) {
   const w = world({ versions: v ? [v] : [], ...(o.rls === undefined ? {} : { rls: o.rls }) });
-  const ctx = { tenantId: TENANT_A, actor: { type: 'user', id: idN(0xa001) }, tx: w.db.tx, requestId: idN(0xf1), operationId: OP, clientIp: '203.0.113.9', log: { info() {}, warn() {}, error() {} } };
+  const ctx = {
+    tenantId: TENANT_A, actor: { type: 'user', id: idN(0xa001) }, tx: w.db.tx, requestId: idN(0xf1), operationId: OP, clientIp: '203.0.113.9', log: { info() {}, warn() {}, error() {} },
+    ports: { IdentityPort: { assertRole: async () => undefined } },
+  };
   const call = (over: { id?: string; ifMatch?: string | undefined; ctx?: any } = {}) => {
     const headers: Record<string, string> = over.ifMatch === undefined && 'ifMatch' in over ? {} : { 'if-match': over.ifMatch ?? '"4"' };
     return manifest.handlers[OP]({ params: { report_version_id: over.id ?? VID }, query: {}, headers, body: undefined }, over.ctx ?? ctx);

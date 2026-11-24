@@ -50,6 +50,7 @@ export function BookingDetail({ booking: initial, timeline, queues, cancelReason
             { term: 'Patient', value: <a href={`/frontdesk/patients/${encodeURIComponent(b.patient_id)}`}>{b.patient_name || 'Open patient record'}</a> },
             { term: 'Type', value: KIND_LABEL[b.booking_kind] ?? b.booking_kind },
             { term: b.booking_kind === 'home_collection' ? 'Collected by' : 'Centre', value: b.centre_display_name },
+            ...(b.booking_kind === 'home_collection' ? [{ term: 'Home address', value: b.home_address_id ? 'Registered address on file' : 'Not specified' }] : []),
             { term: 'Slot', value: `${dateTime(b.slot_start)}–${hhmm(b.slot_end)}` },
             {
               term: 'Tests',

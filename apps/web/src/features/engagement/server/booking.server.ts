@@ -45,8 +45,13 @@ export async function listCancelReasons(): Promise<CancelReason[]> {
 
 // ---- patient names (W1: C4 GET /v1/frontdesk/patients/{id} server-side; no frontdesk.patient.read or a failure → null → "—") ----
 async function patientName(patientId: string): Promise<string | null> {
-  const r = await serverFetch<{ full_name?: string }>(`/v1/frontdesk/patients/${id(patientId)}`).catch(() => undefined);
-  return r?.full_name ?? null;
+  try {
+    if (!patientId || !UUID_RE.test(patientId)) return null;
+    const r = await serverFetch<{ full_name?: string }>(`/v1/frontdesk/patients/${encodeURIComponent(patientId)}`).catch(() => undefined);
+    return r?.full_name ?? null;
+  } catch {
+    return null;
+  }
 }
 export async function withPatientNames<T extends { patient_id: string }>(list: T[]): Promise<(T & { patient_name: string | null })[]> {
   if (!(await has(PERM.patientRead))) return list.map((b) => ({ ...b, patient_name: null }));
@@ -62,7 +67,8 @@ export async function searchPatients(q: string): Promise<PatientHit[]> {
 
 // ---- S1–S6 bookings + slots ----
 export async function listBookings(q: BookingsQuery): Promise<StaffBooking[]> {
-  const query = qs({ centre_id: uuid(q.centre_id), booking_kind: q.booking_kind, status: q.status.join(','), slot_start_from: q.slot_start_from, slot_start_to: q.slot_start_to, sort: q.sort, limit: '100' });
+  const centreId = q.centre_id && q.centre_id !== 'all' ? uuid(q.centre_id) : undefined;
+  const query = qs({ centre_id: centreId, booking_kind: q.booking_kind, status: q.status.join(','), slot_start_from: q.slot_start_from, slot_start_to: q.slot_start_to, sort: q.sort, limit: '100' });
   return withPatientNames(rows(await serverFetch<{ data?: StaffBooking[] }>(`/v1/engagement/bookings?${query}`)));
 }
 export const getBooking = (bookingId: string) => serverFetch<StaffBooking & { transitions?: Transition[] }>(`/v1/engagement/bookings/${id(bookingId)}`);

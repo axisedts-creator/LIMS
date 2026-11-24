@@ -101,6 +101,7 @@ export function makePorts(o: PortOpts = {}) {
       },
     },
     IdentityPort: {
+      async assertRole() {},
       async getTenantSettings(ctx: any, i: { keys: unknown }) { calls.identity.push({ keys: i?.keys, actorType: ctx?.actor?.type }); return { channels: { ...mutable.channels }, reportLinkTtlDays: 30, labName: LAB_NAME,
         branding: { legalName: 'Synthetic Laboratory Pvt Ltd', displayName: LAB_NAME, addressLines: [], phones: [LAB_PHONE] } }; },   // IC 03 §IdentityPort.getTenantSettings branding (phones <= 3, each <= 40)
     },

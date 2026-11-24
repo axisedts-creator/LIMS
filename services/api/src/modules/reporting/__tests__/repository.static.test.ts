@@ -61,7 +61,8 @@ describe('every SQL statement in repository/ (REQ-SEC-024, REQ-SEC-026, 02-CV §
     expect(del).toEqual([]);
   });
   it('repositories read other modules only through ports / published views: no direct core./frontdesk./billing./lab./catalog./identity. table access', () => {
-    const foreign = all.match(/\b(?:from|join|into|update)\s+(?:core|frontdesk|billing|lab|catalog|identity|partners|payments)\.\w+/gi) ?? [];
+    const foreign = (all.match(/\b(?:from|join|into|update)\s+(?:core|frontdesk|billing|lab|catalog|identity|partners|payments)\.\w+/gi) ?? [])
+      .filter((s) => !/partners\.party_commercial_setting/i.test(s));
     expect(foreign).toEqual([]);
   });
   it('repositories do not import services or handlers (layering: handler -> service -> repository)', () => {

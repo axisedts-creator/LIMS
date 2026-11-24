@@ -61,6 +61,7 @@ async function loadPortImpls(env: string, needed: ReadonlySet<string>): Promise<
 export interface PipelineBoot {
   /** LD-193 (WIRE-HEALTH): real readiness checks; absent without a database (bootstrap then keeps UNWIRED_CHECKS, fail closed). */
   healthChecks?: HealthChecks;
+  db?: Db | undefined;
   pipelineFor(module: string): Pipeline;
   close(): Promise<void>;
 }
@@ -195,6 +196,7 @@ export async function bootPipeline(o: {
 
   const cache = new Map<string, Pipeline>();
   return {
+    db,
     ...(healthChecks ? { healthChecks } : {}),
     pipelineFor(module) {
       let p = cache.get(module);

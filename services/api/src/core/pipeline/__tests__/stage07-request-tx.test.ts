@@ -47,6 +47,14 @@ describe('stage 7 request transaction', () => {
     expect(count(rig, /^BEGIN/i)).toBe(0);
   });
 
+  it('public operation with anonymousTx need (verifyReportQr): opens anonymous read-only transaction', async () => {
+    const rig = makeRig({ handler: async (_r, ctx) => { expect(ctx.tx).toBeDefined(); expect(ctx.tenantId).toBeUndefined(); return { status: 200, body: {} }; } });
+    await rig.run({ op: op({ module: 'reporting', operationId: 'verifyReportQr', public: true, rateLimitTier: 'qr_verify', context: undefined }), claims: undefined });
+    expect(rig.fake.state.connects).toBe(1);
+    expect(count(rig, /^BEGIN/i)).toBe(1);
+    expect(rig.fake.openingClaims()).toEqual({ actor_type: 'anonymous' });
+  });
+
   it('serialization failure (40001) before commit: the whole handler is retried in a new transaction; idempotency begin is NOT repeated', async () => {
     const rig = makeRig();
     let runs = 0;

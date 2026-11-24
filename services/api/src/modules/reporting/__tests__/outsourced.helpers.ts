@@ -245,7 +245,13 @@ export function makeApiCtx(db: FakeDb, storage: FakeStorage, over: Record<string
   const access: Array<Record<string, any>> = []; const logs: unknown[] = []; const metrics: Array<{ name: string; labels: any }> = [];
   const scanner = (over['scan'] as typeof fakeScan | undefined) ?? fakeScan;
   const ctx = {
-    tenantId, actor: { type: 'user', id: USER, membershipId: MEM }, requestId: REQ_ID, tx: db.tx, now: () => NOW, ports: {},
+    tenantId, actor: { type: 'user', id: USER, membershipId: MEM }, requestId: REQ_ID, tx: db.tx, now: () => NOW,
+    ports: {
+      IdentityPort: {
+        assertRole: async () => undefined,
+      },
+      ...((over['ports'] as object) ?? {}),
+    },
     storage: storage.forTenant(tenantId), files: { scan: scanner },
     uploads: createUploads({ files: { scan: scanner }, storage: storage.forTenant(tenantId), module: 'reporting', tenantId }),
     audit: { access: async (e: Record<string, any>) => { access.push(e); } },

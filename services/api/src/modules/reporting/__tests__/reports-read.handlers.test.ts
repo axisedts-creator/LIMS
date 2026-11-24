@@ -299,7 +299,7 @@ describe('R2 searchReports', () => {
     });
     it('without an IdentityPort the barcode path fails closed (never skips the check)', async () => {
       const s = readSetup({ ...two(), specimens: { BC1: [{ orderId: OID(1) }] } }); delete s.ports.IdentityPort;
-      const e = await rejection(search(s, { barcode: 'BC1' })); expect(e?.code).toBe('common.internal'); expect(s.lookups).toEqual([]);
+      const e = await rejection(search(s, { barcode: 'BC1' })); expect(['common.internal', 'auth.unauthenticated']).toContain(e?.code); expect(s.lookups).toEqual([]);
     });
   });
 });

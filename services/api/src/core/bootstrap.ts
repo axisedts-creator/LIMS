@@ -11,6 +11,7 @@ import { createBffKeyVerifier } from './auth/bff-key.js';
 import type { ClaimsResolver } from './auth/claims-resolver.js';
 import { createClientIpResolver } from './auth/client-ip.js';
 import { createJwtVerifier } from './auth/jwt.js';
+import { createAuthResolverRegistry } from './auth/resolvers.js';
 import { installHttpPerf } from './observability/http-perf.js';
 import { installSecurityHeaders } from './observability/security-headers.js';
 import { childLoggerFactory, createCoreLogger, installRequestLog } from './observability/logging.js';
@@ -77,10 +78,12 @@ export async function bootstrap(opts: BootstrapOptions): Promise<FastifyInstance
       claimsResolver: modules.find((m) => m.manifest.name === 'identity')?.manifest.claimsResolver as ClaimsResolver | undefined,
       bff: createBffKeyVerifier(config.bffKeyFiles),
       clientIp: createClientIpResolver(config.trustedProxyCidrs),
+      authResolvers: createAuthResolverRegistry(modules.map((m) => m.manifest)),
     };
     installRouteHooks(app, { responseValidation: config.responseValidation, auth });
     // 02-TRD §6.2 stages 5-11 per request (LD-133, T0D-18): pool, limiter, idempotency, ports, authz guard.
     const pipes = await bootPipeline({ config, modules, log: app.log as any, metrics });
+    auth.db = pipes.db;
     app.addHook('onClose', async () => { await pipes.close(); });
     if (repoRoot === REPO_ROOT) {
       // 02-TRD §8: the core's own spec; custom repoRoots (test fixtures) carry module specs only.

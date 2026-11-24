@@ -9,6 +9,8 @@ import { authenticateBearer, endpointFamilyOf, type ClaimsResolver } from './aut
 import type { DbClaims } from './auth/claims.js';
 import type { ClientIpResolver } from './auth/client-ip.js';
 import { AuthError } from './auth/errors.js';
+import type { AuthResolverRegistry } from './auth/resolvers.js';
+import type { Db } from './db/tx.js';
 import { isRenderedProblem, LimsError, pendingProblem } from './errors.js';
 import type { JwtVerifier } from './auth/jwt.js';
 import type { Handler } from './module.js';
@@ -21,6 +23,8 @@ export interface CoreAuth {
   readonly claimsResolver?: ClaimsResolver | undefined;
   readonly bff: BffKeyVerifier;
   readonly clientIp: ClientIpResolver;
+  readonly authResolvers?: AuthResolverRegistry;
+  db?: Db | undefined;
 }
 interface RequestAuth {
   readonly clientIp: string;
@@ -38,7 +42,7 @@ const SID_COOKIE = /(?:^|;\s*)__Host-lims_sid=[^;\s]{1,4096}(?=;|\s*$)/; // non-
 /** securityHandlers for fastify-openapi-glue. Schemes without a handler here fail closed (glue rejects the request). */
 function securityHandlers(auth: CoreAuth): Record<string, (req: FastifyRequest) => Promise<void>> {
   const out: Record<string, (req: FastifyRequest) => Promise<void>> = {};
-  const { verifier, claimsResolver } = auth;
+  const { verifier, claimsResolver, authResolvers, db } = auth;
   if (verifier) {
     out.bearerJwt = async (req) => {
       const m = BEARER.exec(header(req.headers.authorization) ?? '');
@@ -58,6 +62,47 @@ function securityHandlers(auth: CoreAuth): Record<string, (req: FastifyRequest) 
       && SID_COOKIE.test(header(req.headers.cookie) ?? '');
     if (!ok) throw new AuthError('auth.unauthenticated');
   };
+
+  // Module auth resolvers: portalSession, patientPreAuth, queueDisplayToken, deviceToken, paymentCallbackToken
+  if (authResolvers) {
+    const registerResolver = (scheme: string, getCred: (req: FastifyRequest) => string | undefined, resolverKey: string = scheme) => {
+      if (!authResolvers.has(resolverKey)) return;
+      out[scheme] = async (req) => {
+        const cred = getCred(req);
+        if (!cred) throw new AuthError('auth.unauthenticated');
+        const ra = requestAuth.get(req)!;
+        const authenticate = async (tx: unknown) => {
+          const claims = await authResolvers.authenticate(resolverKey, cred, tx);
+          ra.claims = claims;
+        };
+        if (db?.anonymousTx) {
+          await db.anonymousTx({
+            requestId: String(req.id),
+            clientIp: ra.clientIp,
+            readOnly: true,
+            operation: { module: 'core', operationId: 'authenticateResolver', context: 'internal' },
+          }, async (tx) => {
+            await authenticate(tx);
+          });
+        } else {
+          await authenticate({ query: async () => ({ rows: [] }) });
+        }
+      };
+    };
+
+    registerResolver('portalSession', (req) => header(req.headers['x-lims-portal-credential']));
+    registerResolver('patientPreAuth', (req) => header(req.headers['x-lims-patient-preauth']));
+    registerResolver('queueDisplayToken', (req) => header(req.headers['x-lims-display-token']));
+    registerResolver('deviceToken', (req) => {
+      const m = BEARER.exec(header(req.headers.authorization) ?? '');
+      return m ? m[1] : undefined;
+    });
+    registerResolver('paymentCallbackToken', (req) => {
+      const p = req.params as Record<string, unknown> | undefined;
+      const q = req.query as Record<string, unknown> | undefined;
+      return header(p?.['callback_token']) ?? header(q?.['callback_token']);
+    }, 'paymentCallback');
+  }
   return out;
 }
 

@@ -36,12 +36,13 @@ async function run<T>(perm: string, fn: () => Promise<T>): Promise<ActionResult<
 
 // ---- W1/W2 (S1, S4, S5) ----
 export async function listBookingsAction(q: unknown) {
-  if (!obj(q) || !uuid(q['centre_id']) || (q['booking_kind'] !== undefined && !kind(q['booking_kind'])) || !iso(q['slot_start_from']) || !iso(q['slot_start_to'])) return bad();
+  if (!obj(q) || (q['centre_id'] !== undefined && q['centre_id'] !== 'all' && !uuid(q['centre_id'])) || (q['booking_kind'] !== undefined && !kind(q['booking_kind'])) || !iso(q['slot_start_from']) || !iso(q['slot_start_to'])) return bad();
   const status = q['status'];
   if (!Array.isArray(status) || status.length < 1 || status.length > 4 || !status.every((s) => STATUSES.includes(s))) return bad();
   if (Date.parse(q['slot_start_to']) - Date.parse(q['slot_start_from']) > 31 * 86_400_000) return bad();
+  const centreId = q['centre_id'] && q['centre_id'] !== 'all' ? (q['centre_id'] as string) : undefined;
   const query = {
-    centre_id: q['centre_id'], ...(q['booking_kind'] ? { booking_kind: q['booking_kind'] as Kind } : {}), status: status as (typeof STATUSES)[number][],
+    ...(centreId ? { centre_id: centreId } : {}), ...(q['booking_kind'] ? { booking_kind: q['booking_kind'] as Kind } : {}), status: status as (typeof STATUSES)[number][],
     slot_start_from: q['slot_start_from'], slot_start_to: q['slot_start_to'], sort: 'slot_start' as const,
   };
   return run(PERM.bookingRead, () => api.listBookings(query));

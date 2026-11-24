@@ -26,3 +26,14 @@ Claude outputs/
 test-results/
 
 .next/
+
+# Local archives, logs, and screenshots
+*.tar.gz
+*.tar.gz.sha256
+*.tgz
+screenshots/
+*.log
+.orchestra/*.bak*
+.orchestra/*.before-*
+.orchestra/*.tmp-del
+

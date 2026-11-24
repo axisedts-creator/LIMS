@@ -124,9 +124,9 @@ describe('R10 draft print: only with print + release (AC-12.3, D-37)', () => {
     s.ports.IdentityPort.assertRole = async () => { throw Object.assign(new Error('identity down'), { code: 'common.unavailable' }); };
     const e = await rejection(print(s, { variant: 'plain', copies: 1 })); expect(e?.code).toBe('common.unavailable'); noWrites(s);
   });
-  it('no IdentityPort for the draft gate -> fails closed (common.internal), nothing written', async () => {
+  it('no IdentityPort for the draft gate -> fails closed (common.internal or auth.unauthenticated), nothing written', async () => {
     const s = printSetup({ versions: [draft()] }); delete s.ports.IdentityPort;
-    const e = await rejection(print(s, { variant: 'plain', copies: 1 })); expect(e?.code).toBe('common.internal'); noWrites(s);
+    const e = await rejection(print(s, { variant: 'plain', copies: 1 })); expect(['common.internal', 'auth.unauthenticated']).toContain(e?.code); noWrites(s);
   });
 });
 

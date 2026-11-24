@@ -40,6 +40,7 @@ export function SuccessPanel({ result, onNew, onOpenOrder, retryLabelsRef, offli
   const [printed, setPrinted] = useState<Printed>('no');
   const [doc, setDoc] = useState<InvoicePrintDocument | null>(null);
   const [labels, setLabels] = useState<Labels>({ s: result.label_print?.autoprint ? 'preparing' : 'off' });
+  const [labelsKey, setLabelsKey] = useState(0);
   const alive = useRef(true);
   const run = useRef(0);
   useEffect(() => { alive.current = true; return () => { alive.current = false; run.current++; }; }, []);
@@ -134,6 +135,7 @@ export function SuccessPanel({ result, onNew, onOpenOrder, retryLabelsRef, offli
       ) : null}
       {labels.s === 'ready' ? (
         <iframe
+          key={labelsKey}
           title="Labels"
           aria-hidden="true"
           tabIndex={-1}
@@ -145,6 +147,7 @@ export function SuccessPanel({ result, onNew, onOpenOrder, retryLabelsRef, offli
       ) : null}
       <div className="lims-reg-actions">
         {invoice ? <Button onPress={() => void print('customer_copy', false)} isDisabled={printed === 'printing'}>Print copy</Button> : null}
+        <Button onPress={() => { setLabelsKey((k) => k + 1); void prepareLabels(); }} isDisabled={labels.s === 'preparing'}>Print labels</Button>
         <Button onPress={onOpenOrder} shortcut="Alt+G">Open order</Button>
         <Button variant="primary" onPress={onNew} shortcut="Ctrl+Shift+N">New registration</Button>
       </div>

@@ -252,9 +252,21 @@ export function createPipeline(d: PipelineDeps) {
     if (begun.action === 'replay') return { status: begun.status, body: begun.body, headers: begun.headers };
     const handle: IdemHandle | undefined = begun.action === 'proceed' ? begun.handle : undefined;
 
-    // stage 7: public operation without tenant -> no transaction.
+    // stage 7: public operation without tenant
     if (!claims || !d.db) {
       const az = d.authz.forRequest();
+      const needsAnonymousTx = op.public && d.db && ((op.rateLimitTier as string) === 'qr_verify' || (op.rateLimitTier as string) === 'callback' || op.operationId === 'verifyReportQr' || op.operationId === 'receiveProviderCallback' || op.operationId === 'verifyProviderCallback');
+      if (needsAnonymousTx && d.db) {
+        return d.db.anonymousTx({
+          requestId: c.requestId, clientIp: c.clientIp, userAgent: c.userAgent,
+          readOnly: op.method === 'GET' || op.method === 'HEAD',
+          operation: { module: op.module, operationId: op.operationId, context: op.context },
+        }, async (tx) => {
+          const r = await c.handler(c.req, buildCtx(c, az, tx, undefined, () => undefined, systemActorId));
+          authzCheck(az, op, r.status);
+          return r;
+        });
+      }
       const r = await c.handler(c.req, buildCtx(c, az, undefined, undefined, () => undefined, systemActorId)); // stage 8
       authzCheck(az, op, r.status); // stage 9
       return r;

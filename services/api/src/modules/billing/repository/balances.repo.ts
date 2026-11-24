@@ -9,8 +9,9 @@ export async function getOrderBalance(tx: Q, a: { tenantId: string; orderId: str
   return rows[0];
 }
 
-/** TRD §12 lock order: this row first, then the RC counter. No row yet (first invoice of the order) = nothing to lock; the optimistic balance_version guard covers that case. */
+/** TRD §12 lock order: advisory xact lock per order, then this row first, then the RC counter. Prevents race before order_balances row exists. */
 export async function lockOrderBalance(tx: Q, a: { tenantId: string; orderId: string }): Promise<void> {
+  await tx.query(`SELECT pg_advisory_xact_lock(hashtextextended('billing.order_balances:' || $1::text || ':' || $2::text, 0))`, [a.tenantId, a.orderId]);
   await tx.query('SELECT 1 FROM billing.order_balances WHERE tenant_id = $1 AND order_id = $2 FOR UPDATE', [a.tenantId, a.orderId]);
 }
 

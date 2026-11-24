@@ -42,12 +42,14 @@ export const bookingsPage = (searchParams: SearchParams) =>
   pageOr('Bookings', ['Time', 'Booking no.', 'Patient', 'Type', 'Tests', 'Source', 'Status', 'Order'], () => bookingsBody(searchParams));
 
 async function bookingsBody(searchParams: SearchParams) {
-  const centreId = await resolveCentre(first((await searchParams)['centre_id']));
+  const rawParam = first((await searchParams)['centre_id']);
+  const centreId = await resolveCentre(rawParam === 'all' ? undefined : rawParam);
   if (!centreId) return noCentre;
   const today = api.todayKathmandu();
+  const queryCentre = rawParam === 'all' ? undefined : (rawParam && UUID_RE.test(rawParam) ? rawParam : centreId);
   const [centres, rows, queues, cancelReasons] = await Promise.all([
     api.listCentres(),
-    orOff(api.listBookings({ centre_id: centreId, status: ['confirmed', 'checked_in'], slot_start_from: dayStartUtc(today), slot_start_to: dayStartUtc(addDays(today, 1)), sort: 'slot_start' })),
+    orOff(api.listBookings({ ...(queryCentre ? { centre_id: queryCentre } : {}), status: ['confirmed', 'checked_in'], slot_start_from: dayStartUtc(today), slot_start_to: dayStartUtc(addDays(today, 1)), sort: 'slot_start' })),
     queuesFor(centreId),
     api.listCancelReasons(),
   ]);

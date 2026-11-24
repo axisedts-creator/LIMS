@@ -12,6 +12,7 @@ export interface StaffBooking {
   id: string; booking_no: string; booking_kind: BookingKind; centre_id: string; centre_display_name: string; slot_start: string; slot_end: string;
   status: BookingStatus; items: BookingItem[]; created_via: 'app' | 'staff'; version: number; patient_id: string; account_present: boolean;
   order_id?: string; queue_token_id?: string; checked_in_at?: string; cancel_reason_code?: string; cancelled_by_kind?: string;
+  home_address_id?: string;
   /** Fetched server-side from C4 (frontdesk.patient.read); null/absent = not available. */
   patient_name?: string | null;
 }

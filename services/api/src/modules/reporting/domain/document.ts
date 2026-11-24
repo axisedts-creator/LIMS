@@ -265,9 +265,12 @@ export function buildReportDocument(input: BuildDocumentInput): ReportDocument {
   const toSig = (id: string, role: Signatory['role']): Signatory | undefined => {
     const s = sigById.get(id);
     if (!s) return undefined;
+    // Admin actions must never attach a verified signature asset (only licensed clinical signatories)
+    const isVerifiedSignatory = s.roleCode !== 'tenant_admin' && s.isAdmin !== true;
+    const hasSigAsset = Boolean(isVerifiedSignatory && s.signatureAssetId && s.signatureSha256);
     return { membershipId: s.membershipId, displayName: s.displayName, ...(s.displayTitle ? { displayTitle: s.displayTitle } : {}),
       ...(s.registrationNo ? { registrationNo: s.registrationNo } : {}),
-      ...(s.signatureAssetId && s.signatureSha256 ? { signatureAssetRef: { source: 'signature', id: s.signatureAssetId, sha256: s.signatureSha256 } } : {}), role };
+      ...(hasSigAsset ? { signatureAssetRef: { source: 'signature', id: s.signatureAssetId, sha256: s.signatureSha256 } } : {}), role };
   };
   const sigIds = config.signatoryMode === 'nominated' ? [...new Set(config.nominatedMembershipIds ?? [])] : byTime(approvals);
   const signatories = input.signoffs !== undefined ? pathologistSignatories(input.signoffs, config.maxSignatories) : sigIds.map((id) => toSig(id, config.signatoryMode === 'nominated' ? 'nominated' : 'approver'))

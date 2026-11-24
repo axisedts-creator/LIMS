@@ -185,7 +185,13 @@ export function makeMsgWorld(manifest: any, o: { seed?: Record<string, Row[]>; c
   const logs: unknown[] = []; const access: Row[] = []; const metrics: Array<{ name: string; labels: any }> = [];
   const noop = (sink: unknown[]) => (x: unknown) => { sink.push(x); };
   const ctxBase = {
-    tenantId: TENANT_A, actor: { type: 'user', id: USER, membershipId: MEM }, requestId: REQ_ID, tx: db.tx, now: () => NOW, ports: {},
+    tenantId: TENANT_A, actor: { type: 'user', id: USER, membershipId: MEM }, requestId: REQ_ID, tx: db.tx, now: () => NOW,
+    ports: {
+      IdentityPort: {
+        assertRole: async () => undefined,
+      },
+      ...(o.ctx?.ports as object),
+    },
     audit: { access: async (e: Row) => { access.push(e); } },
     log: { info: noop(logs), warn: noop(logs), error: noop(logs) },
     metrics: { inc: (name: string, labels?: any) => metrics.push({ name, labels: labels ?? {} }) },

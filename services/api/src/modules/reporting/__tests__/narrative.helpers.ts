@@ -58,9 +58,18 @@ export const REASONS = ['transcription_error', 'clinical_correction'];
 export function env(operationId: string, manifest: any, seed: Record<string, Row[]> = seedAll(), over: Record<string, unknown> = {}) {
   const db = makeDb(seed as any); const storage = makeStorage();
   const roleCalls: Array<{ permission: string; centreId?: string }> = []; const catalogCalls: unknown[] = [];
-  const denied: { error?: () => Error } = {};
+  const denied: { error?: () => Error; permissions?: string[] } = {};
   const ports = {
-    IdentityPort: { assertRole: async (_c: unknown, req: any) => { roleCalls.push(req); if (denied.error) throw denied.error(); } },
+    IdentityPort: {
+      assertRole: async (_c: unknown, req: any) => {
+        roleCalls.push(req);
+        if (denied.error) {
+          if (!denied.permissions || denied.permissions.includes(req.permission)) {
+            throw denied.error();
+          }
+        }
+      },
+    },
     CatalogPort: { getTest: async (_c: unknown, req: any) => { catalogCalls.push(req); return { id: req.testId, name: TEST_NAME, code: 'XRCH', workflowType: 'narrative', isActive: true, revision: 1, analytes: [] }; } },
   };
   const c = makeApiCtx(db, storage, { ports, ...over });

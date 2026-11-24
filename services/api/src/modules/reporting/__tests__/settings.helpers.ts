@@ -196,7 +196,14 @@ export function makeDb(seed: Seed = {}, opts: { deniedCentres?: string[]; failOn
 export function makeCtx(db: ReturnType<typeof makeDb>, over: Record<string, unknown> = {}) {
   return {
     tenantId: TENANT_A, actor: { type: 'user', id: USER, membershipId: MEM }, requestId: REQ_ID, tx: db.tx,
-    now: () => '2026-11-07T12:00:00.000Z', ports: {}, ...over,
+    now: () => '2026-11-07T12:00:00.000Z',
+    ports: {
+      IdentityPort: {
+        assertRole: async () => undefined,
+      },
+      ...((over['ports'] as object) ?? {}),
+    },
+    ...over,
   } as any;
 }
 

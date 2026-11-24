@@ -53,7 +53,7 @@ function scope(ctx: SlotCtx): { tx: any; tenantId: string; userId: string; now: 
 
 /** Patient actors only (E30-E40): the account is found from the signed membership claim, never from input. Throws before any query. */
 export function patientScope(ctx: SlotCtx & { readonly claims?: { readonly membership_id?: unknown } }): { tx: any; tenantId: string; userId: string; now: string; membershipId: string } {
-  const m = ctx?.claims?.membership_id;
+  const m = (ctx as any)?.actor?.membershipId ?? ctx?.claims?.membership_id ?? (ctx?.actor?.type === 'patient' && isUuid((ctx.actor as any).id) ? (ctx.actor as any).id : undefined);
   if (typeof ctx?.tenantId !== 'string' || typeof ctx.actor?.id !== 'string' || !ctx.tx || typeof ctx.now !== 'function') throw new LimsError('auth.unauthenticated');
   if (ctx.actor.type !== 'patient' || typeof m !== 'string') throw new LimsError('auth.forbidden');
   return { tx: ctx.tx, tenantId: ctx.tenantId, userId: ctx.actor.id, now: iso(ctx.now()), membershipId: m };

@@ -41,8 +41,8 @@ function buildCsp(nonce: string): string {
   ].join('; ');
 }
 
-// [CONV] report-only first (REQ-SEC-089 "report-only first"); flip to 'content-security-policy' to enforce.
-const CSP_HEADER = 'content-security-policy-report-only';
+// [CONV] report-only in dev (REQ-SEC-089); enforce in production.
+const CSP_HEADER = process.env.NODE_ENV === 'production' ? 'content-security-policy' : 'content-security-policy-report-only';
 
 function secure(res: NextResponse, csp: string): NextResponse {
   res.headers.set(CSP_HEADER, csp);

@@ -84,6 +84,8 @@ export function ReportDetailView({ report, permissions }: ReportDetailViewProps)
   const canRegenerate = hasPerm(permissions, 'reporting.report.regenerate');
   const canRevoke = !!released && hasPerm(permissions, 'reporting.token.revoke');
   const canOverride = hasPerm(permissions, 'billing.release.override');
+  const canEditOrder = hasPerm(permissions, 'frontdesk.order.edit');
+  const canResend = hasPerm(permissions, 'reporting.delivery.resend');
   const held = heldBalance !== null || report.display_status === 'held';
   const balance = heldBalance ?? report.balance_due_paisa;
   const renderFailed = latest?.status === 'render_failed' || report.display_status === 'render_failed';
@@ -187,6 +189,7 @@ export function ReportDetailView({ report, permissions }: ReportDetailViewProps)
           <>
             {canRelease ? <Button variant="primary" shortcut="Alt+R" onPress={() => { setDlgError(undefined); setDlg('release'); }}>Release</Button> : null}
             {canPrint ? <Button shortcut="Alt+P" onPress={() => { setDlgError(undefined); setDlg('print'); }}>Print</Button> : null}
+            {canEditOrder && report.order_id ? <a className="lims-btn lims-btn-ghost lims-btn-md" href={`/frontdesk/orders/${report.order_id}`}>Edit order</a> : null}
             {downloadable[0] ? <a className="lims-btn lims-btn-secondary lims-btn-md" href={pdfHref(downloadable[0].id)}>Download</a> : null}
             {menuItems.length ? <Menu trigger={<Button>More actions</Button>} items={menuItems} onAction={(id) => { setDlgError(undefined); setDlg(id as Dlg); }} /> : null}
           </>
@@ -246,7 +249,14 @@ export function ReportDetailView({ report, permissions }: ReportDetailViewProps)
         <div className="rpt-chips" role="group" aria-label="Delivery counts">
           {(['queued', 'sent', 'delivered', 'read', 'failed', 'suppressed'] as const).map((s) => <Chip key={s} status={s} label={`${humanize(s)} ${ds[s]}`} />)}
         </div>
-        <a className="lims-link" href={`/reporting/deliveries?report_id=${report.id}`}>Open delivery log filtered to this report</a>
+        <div style={{ marginTop: '0.75rem', display: 'flex', gap: '1rem', alignItems: 'center' }}>
+          <a className="lims-link" href={`/reporting/deliveries?report_id=${report.id}`}>Open delivery log filtered to this report</a>
+          {canResend && report.display_status === 'released' ? (
+            <a className="lims-btn lims-btn-secondary lims-btn-sm" href={`/reporting/deliveries?report_id=${report.id}&status=failed`}>
+              Dispatch / Resend deliveries
+            </a>
+          ) : null}
+        </div>
       </Card>
 
       <Dialog

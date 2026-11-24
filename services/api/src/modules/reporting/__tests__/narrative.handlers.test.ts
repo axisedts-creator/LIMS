@@ -414,7 +414,7 @@ describe('AC-05.7 — only a narrative signer at aal2 may sign / amend', () => {
     }
   });
   it('a user who may only WRITE (not sign) can still save drafts: save does not require the sign permission', async () => {
-    const t = e(N.save); t.denied.error = () => Object.assign(new Error('x'), { code: 'auth.forbidden' }); expect((await save(t, body('<p>x</p>'))).status).toBe(200);
+    const t = e(N.save); t.denied.permissions = ['reporting.narrative.sign']; t.denied.error = () => Object.assign(new Error('x'), { code: 'auth.forbidden' }); expect((await save(t, body('<p>x</p>'))).status).toBe(200);
   });
 });
 
@@ -490,7 +490,7 @@ describe('N7 getNarrativeImageContent — P-10: + reporting.narrative.write whil
     const t = world7(); t.denied.error = () => Object.assign(new Error('x'), { code: 'auth.forbidden' }); expect(await code(get(t, IMG_AM))).toBe('auth.forbidden');
   });
   it('an image only in a signed / superseded version is readable with report.read alone (no narrative.write check)', async () => {
-    const t = world7(); t.denied.error = () => Object.assign(new Error('x'), { code: 'auth.forbidden' }); const r = await get(t, IMG_S);
+    const t = world7(); t.denied.permissions = ['reporting.narrative.write']; t.denied.error = () => Object.assign(new Error('x'), { code: 'auth.forbidden' }); const r = await get(t, IMG_S);
     expect(r.status).toBe(200); expect(writeCalls(t)).toHaveLength(0); expect(t.access).toHaveLength(1);
   });
   it('an uploaded image not yet attached to any version of a draft narrative is treated as draft (narrative.write required)', async () => {

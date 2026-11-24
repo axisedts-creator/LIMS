@@ -43,13 +43,42 @@ const OPEN_SQL = `SELECT set_config('request.jwt.claims', $1::text, true),
        set_config('lock_timeout', '3000', true)`;
 const DEFAULT_STATEMENT_TIMEOUT_MS = 5000;                                // [CONV] same default as the API (02-TRD §6.4)
 
+/** Security hardening: prevents multi-statement (stacked query) injection and null-byte truncation. */
+function assertSingleStatement(text: string): void {
+  if (typeof text !== 'string' || text.length === 0 || text.includes('\0')) {
+    throw new Error('worker db: invalid or multi-statement query rejected');
+  }
+  let inQuote = false;
+  let escape = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (escape) {
+      escape = false;
+    } else if (ch === '\\') {
+      escape = true;
+    } else if (ch === "'") {
+      inQuote = !inQuote;
+    } else if (ch === ';' && !inQuote) {
+      const remainder = text.slice(i + 1).trim();
+      if (remainder.length > 0) {
+        throw new Error('worker db: invalid or multi-statement query rejected');
+      }
+    }
+  }
+}
+
 export function createWorkerDb(withPgClient: WithPgClient): WorkerDeps['db'] {
   return {
     tx: <T>(input: { claims: Claims; statementTimeoutMs?: number }, fn: (tx: WorkerTx) => Promise<T>) => withPgClient(async (client) => {
       await client.query('BEGIN');
       try {
         await client.query(OPEN_SQL, [JSON.stringify(input.claims), String(input.statementTimeoutMs ?? DEFAULT_STATEMENT_TIMEOUT_MS)]);
-        const out = await fn({ query: (text, values) => client.query(text, values as unknown[]) });
+        const out = await fn({
+          query: (text, values) => {
+            assertSingleStatement(text);
+            return client.query(text, values as unknown[]);
+          },
+        });
         await client.query('COMMIT');
         return out;
       } catch (e) {

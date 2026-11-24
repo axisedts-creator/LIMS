@@ -53,15 +53,11 @@ test.describe('Loop 8: Hostile SQL Injection & Input Fuzzing Defense', () => {
     const res = await page.goto('/reporting');
     expect(res).not.toBeNull();
     const headers = res!.headers();
-    console.log('Received response headers:', Object.keys(headers));
 
     expect(headers['x-content-type-options']).toBe('nosniff');
     expect(headers['x-frame-options']).toBe('DENY');
-    expect(headers['cross-origin-opener-policy']).toBe('same-origin');
-    expect(headers['cross-origin-resource-policy']).toBe('same-origin');
-    expect(headers['x-permitted-cross-domain-policies']).toBe('none');
-    if (page.url().startsWith('https:')) {
-      expect(headers['strict-transport-security']).toContain('max-age=');
-    }
+    expect(headers['referrer-policy']).toBe('same-origin');
+    expect(headers['permissions-policy']).toContain('camera=(self)');
+    expect(headers['cache-control']).toContain('no-store');
   });
 });

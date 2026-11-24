@@ -25,7 +25,7 @@ export const listReferrers = (tx: LabelsTx, a: LabelsInput) =>
   select<ReferrerRow>(tx, 'referrer_id, display_name, is_active, canonical_referrer_id', 'catalog.v_pub_referrer_directory', 'referrer_id', a);
 /** #17: case-insensitive "contains" on display_name. The term is one bound LIKE pattern; % _ \ are escaped so they match literally. */
 export async function searchReferrers(tx: LabelsTx, a: { readonly tenantId: string; readonly query: string; readonly limit?: number | undefined }): Promise<ReferrerRow[]> {
-  const pattern = `%${a.query.replace(/[\\%_]/g, '\\$&')}%`;
+  const pattern = `%${a.query.slice(0, 128).replace(/[\\%_]/g, '\\$&')}%`;
   const limit = Math.min(Math.max(1, Math.trunc(a.limit ?? 20)), 20);
   return (await tx.query(
     `SELECT referrer_id, display_name, is_active, canonical_referrer_id FROM catalog.v_pub_referrer_directory

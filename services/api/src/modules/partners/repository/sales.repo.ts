@@ -6,8 +6,8 @@ export type Q = { query(text: string, values?: unknown[]): Promise<{ rows: Row[]
 
 const ts = (c: string): string => `to_char(${c} AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')`;
 const day = (c: string): string => `to_char(${c}, 'YYYY-MM-DD')`;
-/** LIKE prefix with the wildcards of the value escaped */
-export const prefix = (v: string): string => `${v.replace(/[\\%_]/g, '\\$&')}%`;
+/** LIKE prefix with the wildcards of the value escaped, clamped to max 128 chars */
+export const prefix = (v: string): string => `${v.slice(0, 128).replace(/[\\%_]/g, '\\$&')}%`;
 
 /** same key as the trigger partners.sales_representative__manager_guard (migration 20261117210000): all manager changes of a tenant run one at a time */
 export const lockManagerChanges = (tx: Q, tenantId: string) =>

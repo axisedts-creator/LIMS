@@ -38,6 +38,7 @@ function buildCsp(nonce: string): string {
     "base-uri 'self'",
     "form-action 'self'",
     "frame-ancestors 'none'",
+    ...(dev ? [] : ['upgrade-insecure-requests']),
   ].join('; ');
 }
 
@@ -52,6 +53,12 @@ function secure(res: NextResponse, csp: string): NextResponse {
   // SEC-HDR-1 (LD-238): camera=(self) only because apps/web/src/features/frontdesk/components/NewPatientForm.tsx captures a photo; the rest unused.
   res.headers.set('permissions-policy', 'camera=(self), microphone=(), geolocation=(), payment=()');
   res.headers.set('cache-control', 'no-store');
+  // Defense-in-depth security headers
+  res.headers.set('strict-transport-security', 'max-age=63072000; includeSubDomains; preload');
+  res.headers.set('cross-origin-opener-policy', 'same-origin');
+  res.headers.set('cross-origin-resource-policy', 'same-origin');
+  res.headers.set('x-permitted-cross-domain-policies', 'none');
+  res.headers.set('x-xss-protection', '0');
   return res;
 }
 

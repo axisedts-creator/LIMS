@@ -9,6 +9,10 @@ export function installSecurityHeaders(app: FastifyInstance): void {
   app.addHook('onSend', async (req, reply, payload) => {
     reply.header('x-content-type-options', 'nosniff');
     reply.header('referrer-policy', 'no-referrer');
+    reply.header('x-frame-options', 'DENY');
+    reply.header('cross-origin-opener-policy', 'same-origin');
+    reply.header('cross-origin-resource-policy', 'same-origin');
+    reply.header('x-permitted-cross-domain-policies', 'none');
     const schema = req.routeOptions?.schema as Record<string, unknown> | undefined;
     const authenticated = typeof schema?.operationId === 'string' && schema['x-public'] === undefined;
     if (authenticated && reply.statusCode >= 200 && reply.statusCode < 300 && !reply.hasHeader('cache-control')

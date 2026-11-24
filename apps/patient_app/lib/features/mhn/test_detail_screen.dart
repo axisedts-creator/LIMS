@@ -22,7 +22,8 @@ class _MhnTestDetailScreenState extends ConsumerState<MhnTestDetailScreen> {
 
   List<String> _getParametersForTest(MhnTest t) {
     final id = t.id.toLowerCase();
-    if (id.contains('cbc')) {
+    final code = t.code.toUpperCase();
+    if (id.contains('cbc') || code == 'CBC' || code == 'HM010') {
       return const [
         'Hemoglobin (Hb)',
         'Total White Blood Cell (WBC)',
@@ -39,7 +40,15 @@ class _MhnTestDetailScreenState extends ConsumerState<MhnTestDetailScreen> {
         'Basophils %',
       ];
     }
-    if (id.contains('lipid')) {
+    if (t.parameters.trim().isNotEmpty) {
+      final rawList = t.parameters
+          .split(RegExp(r'[,;\n]|\s{2,}'))
+          .map((s) => s.trim())
+          .where((s) => s.isNotEmpty && s.length > 1)
+          .toList();
+      if (rawList.isNotEmpty) return rawList;
+    }
+    if (id.contains('lipid') || code == 'ML022') {
       return const [
         'Total Cholesterol',
         'HDL (Good Cholesterol)',
@@ -50,7 +59,7 @@ class _MhnTestDetailScreenState extends ConsumerState<MhnTestDetailScreen> {
         'LDL / HDL Ratio',
       ];
     }
-    if (id.contains('lft')) {
+    if (id.contains('lft') || code == 'ML002') {
       return const [
         'Bilirubin Total',
         'Bilirubin Direct (Conjugated)',
@@ -64,7 +73,7 @@ class _MhnTestDetailScreenState extends ConsumerState<MhnTestDetailScreen> {
         'A:G Ratio',
       ];
     }
-    if (id.contains('kft')) {
+    if (id.contains('kft') || code == 'ML032') {
       return const [
         'Blood Urea Nitrogen (BUN)',
         'Serum Creatinine',
@@ -106,25 +115,32 @@ class _MhnTestDetailScreenState extends ConsumerState<MhnTestDetailScreen> {
   }
 
   String _getSampleType(MhnTest t) {
+    if (t.sampleType.trim().isNotEmpty) {
+      final container = t.container.trim().isNotEmpty ? ' (${t.container})' : '';
+      return '${t.sampleType}$container';
+    }
     if (t.name.toLowerCase().contains('urine')) return 'Urine (Midstream, 20 mL)';
     if (t.name.toLowerCase().contains('x-ray') || t.centre) return 'In-Centre Scan / Imaging';
     return 'Blood (3 mL Serum / EDTA Vacutainer)';
   }
 
-  int _getMrp(int price) {
-    if (price <= 0) return 0;
-    return (price * 1.33 / 10).round() * 10;
+  int _getMrp(MhnTest t) {
+    if (t.mrp > t.price) return t.mrp;
+    if (t.price <= 0) return 0;
+    return (t.price * 1.33 / 10).round() * 10;
   }
 
   @override
   Widget build(BuildContext context) {
     final t = widget.test;
     final inCart = ref.watch(mhnProvider.select((s) => s.cart.contains(t.id)));
-    final mrp = _getMrp(t.price);
+    final mrp = _getMrp(t);
     final params = _getParametersForTest(t);
     final sampleType = _getSampleType(t);
     final catMatches = kCategories.where((c) => c.id == t.cat);
-    final catName = catMatches.isNotEmpty ? catMatches.first.name : 'Routine Diagnostics';
+    final catName = catMatches.isNotEmpty
+        ? catMatches.first.name
+        : (t.department.isNotEmpty ? t.department : 'Routine Diagnostics');
 
     return Scaffold(
       backgroundColor: Mhn.page,
@@ -264,22 +280,26 @@ class _MhnTestDetailScreenState extends ConsumerState<MhnTestDetailScreen> {
               children: [
                 Row(
                   children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFE8F5E9),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        catName,
-                        style: Mhn.t(11, w: FontWeight.w700, c: const Color(0xFF084D3B)),
+                    Flexible(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE8F5E9),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          t.code.isNotEmpty ? '${t.code} · $catName' : catName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Mhn.t(11, w: FontWeight.w700, c: const Color(0xFF084D3B)),
+                        ),
                       ),
                     ),
-                    const Spacer(),
+                    const SizedBox(width: 8),
                     const Icon(Icons.star, size: 16, color: Color(0xFFF9A825)),
                     const SizedBox(width: 4),
                     Text('4.8', style: Mhn.t(12, w: FontWeight.w700)),
-                    Text(' (1,240+ booked)', style: Mhn.t(11, c: Mhn.muted)),
+                    Text(' (1,240+)', style: Mhn.t(11, c: Mhn.muted)),
                   ],
                 ),
                 const SizedBox(height: 10),
@@ -352,19 +372,37 @@ class _MhnTestDetailScreenState extends ConsumerState<MhnTestDetailScreen> {
                   icon: Icons.timer_outlined,
                   iconColor: const Color(0xFF1E88E5),
                   title: 'Report delivery',
-                  value: 'Report ${t.report}',
+                  value: t.reportingTime.isNotEmpty ? 'Report in ${t.reportingTime}' : (t.report.isNotEmpty ? 'Report ${t.report}' : 'Same day'),
                 ),
                 const Divider(height: 16, color: Mhn.rowLine),
                 _HighlightRow(
                   icon: Icons.science_outlined,
                   iconColor: const Color(0xFF7B1FA2),
-                  title: 'Sample type',
+                  title: 'Sample & Container',
                   value: sampleType,
                 ),
+                if (t.method.isNotEmpty || t.department.isNotEmpty) ...[
+                  const Divider(height: 16, color: Mhn.rowLine),
+                  _HighlightRow(
+                    icon: Icons.biotech_outlined,
+                    iconColor: const Color(0xFF00897B),
+                    title: 'Method & Department',
+                    value: '${t.method.isNotEmpty ? t.method : 'Standard Assay'}${t.department.isNotEmpty ? ' · ${t.department}' : ''}',
+                  ),
+                ],
+                if (t.tat.isNotEmpty && t.tat != t.reportingTime) ...[
+                  const Divider(height: 16, color: Mhn.rowLine),
+                  _HighlightRow(
+                    icon: Icons.schedule_outlined,
+                    iconColor: const Color(0xFF0D47A1),
+                    title: 'Reporting Schedule (TAT)',
+                    value: t.tat,
+                  ),
+                ],
                 const Divider(height: 16, color: Mhn.rowLine),
                 _HighlightRow(
                   icon: Icons.people_outline,
-                  iconColor: const Color(0xFF00897B),
+                  iconColor: const Color(0xFF5D4037),
                   title: 'Target age group',
                   value: t.age.isNotEmpty ? t.age : 'All age groups',
                 ),

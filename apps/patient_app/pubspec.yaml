@@ -20,6 +20,9 @@ dependencies:
   lims_shared: any
   lims_ui: any
   video_player: ^2.14.1
+  google_maps_flutter: ^2.19.0
+  geolocator: ^14.1.2
+  flutter_blue_plus: ^2.3.15
 dev_dependencies:
   flutter_test:
     sdk: flutter

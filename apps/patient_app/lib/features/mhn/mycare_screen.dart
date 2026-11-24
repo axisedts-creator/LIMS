@@ -1,16 +1,61 @@
 // H07: MyCare Screen (HealthKarma, Consults, Diet Plan, Samsung Health style Daily Tracker, Supplements)
 // Wireframe pages 16-17 with 3D gauge, AI health score, realistic portraits, and Samsung Health daily activity tracker.
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'ai_health_score_screen.dart';
 import 'herb_screen.dart';
+import 'mhn_ble_service.dart';
 import 'mhn_shell.dart';
 import 'mhn_state.dart';
 import 'mhn_theme.dart';
 
-class MhnMyCareScreen extends ConsumerWidget {
+class MhnMyCareScreen extends ConsumerStatefulWidget {
   const MhnMyCareScreen({super.key});
+
+  @override
+  ConsumerState<MhnMyCareScreen> createState() => _MhnMyCareScreenState();
+}
+
+class _MhnMyCareScreenState extends ConsumerState<MhnMyCareScreen> {
+  Timer? _liveTicker;
+
+  @override
+  void initState() {
+    super.initState();
+    // Realtime live tracker ticker (Samsung Health live pedometer / watch sync simulation)
+    _liveTicker = Timer.periodic(const Duration(seconds: 4), (_) {
+      if (!mounted) return;
+      final st = ref.read(mhnProvider);
+      // Increment live steps gently (+1 to +2 steps per cycle)
+      final newSteps = st.stepCount + 1;
+      // If wearable connected, slightly fluctuate resting heart rate (e.g. 72-76 bpm)
+      final newHr = st.wearableConnected
+          ? 72 + (DateTime.now().second % 5)
+          : st.heartRateBpm;
+      ref.read(mhnProvider.notifier).updateHealthTracker(steps: newSteps, hr: newHr);
+    });
+  }
+
+  @override
+  void dispose() {
+    _liveTicker?.cancel();
+    super.dispose();
+  }
+
+  void _showWearableConnectSheet(BuildContext context, WidgetRef ref) {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.white,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => const _WearableBleScanModal(),
+    );
+  }
 
   void _showLogSheet({
     required BuildContext context,
@@ -93,7 +138,7 @@ class MhnMyCareScreen extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final st = ref.watch(mhnProvider);
     final first = st.profile.name.split(' ').first;
 
@@ -375,54 +420,142 @@ class MhnMyCareScreen extends ConsumerWidget {
         const _SamsungSleepCard(),
         const SizedBox(height: 12),
 
-        // 4. Heart Rate & Blood Pressure Card (Vitals)
-        Row(
-          children: [
-            Expanded(
-              child: _SamsungMetricCard(
-                icon: Icons.favorite,
-                iconColor: const Color(0xFFE53935),
-                title: 'Heart rate',
-                value: '${st.heartRateBpm}',
-                unit: 'bpm',
-                subtitle: 'Resting · Normal',
-                onTap: () => _showLogSheet(
-                  context: context,
-                  ref: ref,
-                  title: 'Heart Rate',
-                  initialValue: '${st.heartRateBpm}',
+        // 4. Wearable Integration (Smartwatch / Fitness Band)
+        if (!st.wearableConnected) ...[
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF1F8F5),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFC7E27A)),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF0E4B3B),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.watch, color: Colors.white, size: 20),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Smartwatch / Band Disconnected', style: Mhn.t(13.5, w: FontWeight.w700, c: const Color(0xFF0E4B3B))),
+                      const SizedBox(height: 2),
+                      Text('Connect Galaxy Watch or Apple Watch to stream live Blood Pressure & Heartbeat.', style: Mhn.t(11.5, c: Mhn.muted)),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF0E4B3B),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    elevation: 0,
+                  ),
+                  onPressed: () => _showWearableConnectSheet(context, ref),
+                  child: Text('Connect', style: Mhn.t(12, w: FontWeight.w800, c: Colors.white)),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+        ] else ...[
+          // Connected Wearable Status Banner
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: const Color(0xFFE8F5E9),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0xFF81C784)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.watch, color: Color(0xFF2E7D32), size: 20),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(width: 7, height: 7, decoration: const BoxDecoration(color: Color(0xFF2E7D32), shape: BoxShape.circle)),
+                          const SizedBox(width: 5),
+                          Text('Connected: ${st.wearableDeviceName}', style: Mhn.t(13, w: FontWeight.w800, c: const Color(0xFF1B5E20))),
+                        ],
+                      ),
+                      const SizedBox(height: 2),
+                      Text('Streaming live vitals · Battery ${st.wearableBatteryPercent}% · Real-time', style: Mhn.t(11, c: const Color(0xFF2E7D32))),
+                    ],
+                  ),
+                ),
+                TextButton(
+                  onPressed: () {
+                    ref.read(mhnProvider.notifier).disconnectWearable();
+                    mhnToast(context, 'Wearable disconnected');
+                  },
+                  child: Text('Disconnect', style: Mhn.t(11.5, w: FontWeight.w700, c: const Color(0xFFC62828))),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // 5. Heart Rate & Blood Pressure Card (Live from Wearable)
+          Row(
+            children: [
+              Expanded(
+                child: _SamsungMetricCard(
+                  icon: Icons.favorite,
+                  iconColor: const Color(0xFFE53935),
+                  title: 'Heart rate',
+                  value: '${st.heartRateBpm}',
                   unit: 'bpm',
-                  onSave: (v) {
-                    final n = int.tryParse(v);
-                    if (n != null) ref.read(mhnProvider.notifier).updateHealthTracker(hr: n);
-                  },
+                  subtitle: 'Live from ${st.wearableDeviceName?.split(' ').first ?? 'Watch'}',
+                  onTap: () => _showLogSheet(
+                    context: context,
+                    ref: ref,
+                    title: 'Heart Rate',
+                    initialValue: '${st.heartRateBpm}',
+                    unit: 'bpm',
+                    onSave: (v) {
+                      final n = int.tryParse(v);
+                      if (n != null) ref.read(mhnProvider.notifier).updateHealthTracker(hr: n);
+                    },
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _SamsungMetricCard(
-                icon: Icons.bloodtype_outlined,
-                iconColor: const Color(0xFFC2185B),
-                title: 'Blood pressure',
-                value: st.bloodPressure,
-                unit: 'mmHg',
-                subtitle: 'Optimal range',
-                onTap: () => _showLogSheet(
-                  context: context,
-                  ref: ref,
-                  title: 'Blood Pressure',
-                  initialValue: st.bloodPressure,
+              const SizedBox(width: 12),
+              Expanded(
+                child: _SamsungMetricCard(
+                  icon: Icons.bloodtype_outlined,
+                  iconColor: const Color(0xFFC2185B),
+                  title: 'Blood pressure',
+                  value: st.bloodPressure,
                   unit: 'mmHg',
-                  onSave: (v) {
-                    ref.read(mhnProvider.notifier).updateHealthTracker(bp: v);
-                  },
+                  subtitle: 'Synced from Watch',
+                  onTap: () => _showLogSheet(
+                    context: context,
+                    ref: ref,
+                    title: 'Blood Pressure',
+                    initialValue: st.bloodPressure,
+                    unit: 'mmHg',
+                    onSave: (v) {
+                      ref.read(mhnProvider.notifier).updateHealthTracker(bp: v);
+                    },
+                  ),
                 ),
               ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
+            ],
+          ),
+          const SizedBox(height: 12),
+        ],
 
         // 5. Blood Sugar & Weight
         Row(
@@ -888,6 +1021,338 @@ class _SamsungMetricCard extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Text(subtitle, style: Mhn.t(10.5, c: Mhn.mutedSoft)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _WearableBleScanModal extends ConsumerStatefulWidget {
+  const _WearableBleScanModal();
+
+  @override
+  ConsumerState<_WearableBleScanModal> createState() => _WearableBleScanModalState();
+}
+
+class _WearableBleScanModalState extends ConsumerState<_WearableBleScanModal> {
+  bool _isBluetoothOn = true;
+  bool _isScanning = false;
+  List<ScanResult> _devices = [];
+  StreamSubscription<List<ScanResult>>? _scanSub;
+  StreamSubscription<bool>? _scanningSub;
+  StreamSubscription<BluetoothAdapterState>? _adapterSub;
+  String? _connectingId;
+
+  @override
+  void initState() {
+    super.initState();
+    _initBle();
+  }
+
+  Future<void> _initBle() async {
+    try {
+      if (!await FlutterBluePlus.isSupported) {
+        if (mounted) setState(() => _isBluetoothOn = false);
+        return;
+      }
+      _adapterSub = FlutterBluePlus.adapterState.listen((s) {
+        if (!mounted) return;
+        setState(() => _isBluetoothOn = s == BluetoothAdapterState.on);
+        if (s == BluetoothAdapterState.on && !_isScanning) {
+          _triggerScan();
+        }
+      });
+      _scanningSub = FlutterBluePlus.isScanning.listen((s) {
+        if (mounted) setState(() => _isScanning = s);
+      });
+      _scanSub = FlutterBluePlus.scanResults.listen((res) {
+        if (!mounted) return;
+        setState(() {
+          _devices = res.where((r) => r.device.platformName.trim().isNotEmpty).toList();
+        });
+      });
+      final initial = await FlutterBluePlus.adapterState.first;
+      if (initial == BluetoothAdapterState.on) {
+        _triggerScan();
+      }
+    } catch (_) {}
+  }
+
+  void _triggerScan() {
+    MhnBleService.startScan(timeout: const Duration(seconds: 15));
+  }
+
+  Future<void> _connect(BluetoothDevice device) async {
+    setState(() => _connectingId = device.remoteId.str);
+    final ok = await MhnBleService.connectToDevice(device);
+    if (!mounted) return;
+    setState(() => _connectingId = null);
+    if (ok) {
+      final name = device.platformName.isNotEmpty ? device.platformName : 'Smart Watch';
+      ref.read(mhnProvider.notifier).connectWearable(
+        deviceName: name,
+        hr: 74,
+        bp: '118/78',
+        battery: 88,
+      );
+      Navigator.pop(context);
+      mhnToast(context, '⌚ Successfully connected to $name');
+    } else {
+      mhnToast(context, 'Connection timed out. Ensure device is in pairing mode.');
+    }
+  }
+
+  void _pairSimulated(String name) {
+    ref.read(mhnProvider.notifier).connectWearable(
+      deviceName: name,
+      hr: 72,
+      bp: '120/80',
+      battery: 90,
+    );
+    Navigator.pop(context);
+    mhnToast(context, '⌚ Connected to $name');
+  }
+
+  @override
+  void dispose() {
+    _scanSub?.cancel();
+    _scanningSub?.cancel();
+    _adapterSub?.cancel();
+    MhnBleService.stopScan();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(color: Mhn.line, borderRadius: BorderRadius.circular(2)),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                const Icon(Icons.bluetooth_searching, color: Color(0xFF0E4B3B), size: 24),
+                const SizedBox(width: 10),
+                Text('Connect Smartwatch or Band', style: Mhn.t(17, w: FontWeight.w800)),
+                const Spacer(),
+                IconButton(
+                  icon: const Icon(Icons.close, color: Mhn.muted),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Scanning for nearby Bluetooth LE smartwatches and fitness bands to stream live vitals.',
+              style: Mhn.t(12.5, c: Mhn.muted, h: 1.3),
+            ),
+            const SizedBox(height: 16),
+
+            if (!_isBluetoothOn) ...[
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFBEAEA),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFE57373)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.bluetooth_disabled, color: Color(0xFFC62828), size: 24),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text('Bluetooth is turned off on your device.', style: Mhn.t(13, w: FontWeight.w600, c: const Color(0xFF8A2E2E))),
+                    ),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF0E4B3B),
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      ),
+                      onPressed: () => FlutterBluePlus.turnOn(),
+                      child: Text('Enable', style: Mhn.t(11.5, w: FontWeight.w700, c: Colors.white)),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 14),
+            ] else ...[
+              // Scanning Indicator & Refresh
+              Row(
+                children: [
+                  if (_isScanning)
+                    const SizedBox(
+                      width: 14,
+                      height: 14,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF0E4B3B)),
+                    )
+                  else
+                    const Icon(Icons.check_circle, size: 16, color: Color(0xFF2E7D32)),
+                  const SizedBox(width: 8),
+                  Text(
+                    _isScanning ? 'Scanning for nearby BLE devices…' : 'Scan completed',
+                    style: Mhn.t(12, w: FontWeight.w600, c: const Color(0xFF0E4B3B)),
+                  ),
+                  const Spacer(),
+                  TextButton.icon(
+                    icon: const Icon(Icons.refresh, size: 15),
+                    label: Text('Rescan', style: Mhn.t(12, w: FontWeight.w700)),
+                    onPressed: _triggerScan,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+
+              // Live Discovered BLE Devices
+              if (_devices.isEmpty)
+                Container(
+                  padding: const EdgeInsets.all(18),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF7FAF8),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Mhn.line),
+                  ),
+                  child: Center(
+                    child: Column(
+                      children: [
+                        const Icon(Icons.watch_later_outlined, size: 36, color: Color(0xFF81A792)),
+                        const SizedBox(height: 8),
+                        Text('No smart bands detected nearby yet', style: Mhn.t(13, w: FontWeight.w700, c: Mhn.ink)),
+                        const SizedBox(height: 2),
+                        Text('Make sure your fitness band or Galaxy/Apple Watch is in pairing mode and nearby.', textAlign: TextAlign.center, style: Mhn.t(11.5, c: Mhn.muted)),
+                      ],
+                    ),
+                  ),
+                )
+              else
+                for (final d in _devices) ...[
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFC7E27A)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.watch, color: Color(0xFF0E4B3B), size: 24),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(d.device.platformName, style: Mhn.t(13.5, w: FontWeight.w700)),
+                              Text('Signal: ${d.rssi} dBm · ${d.device.remoteId.str}', style: Mhn.t(11, c: Mhn.muted)),
+                            ],
+                          ),
+                        ),
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF0E4B3B),
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                          onPressed: _connectingId == d.device.remoteId.str ? null : () => _connect(d.device),
+                          child: _connectingId == d.device.remoteId.str
+                              ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                              : Text('Connect', style: Mhn.t(12, w: FontWeight.w700, c: Colors.white)),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              const SizedBox(height: 14),
+            ],
+
+            // Dev simulation / Quick Pair fallback
+            Text('Or connect supported platform:', style: Mhn.t(12.5, w: FontWeight.w700, c: Mhn.muted)),
+            const SizedBox(height: 8),
+            _DeviceTile(
+              title: 'Samsung Galaxy Watch',
+              subtitle: 'Pair Galaxy Watch6 / Watch5 (Samsung Health SDK)',
+              icon: Icons.watch_outlined,
+              onTap: () => _pairSimulated('Galaxy Watch6'),
+            ),
+            const SizedBox(height: 8),
+            _DeviceTile(
+              title: 'Apple Watch',
+              subtitle: 'Pair Series 9 / Ultra (Apple HealthKit API)',
+              icon: Icons.apple,
+              onTap: () => _pairSimulated('Apple Watch Series 9'),
+            ),
+            const SizedBox(height: 8),
+            _DeviceTile(
+              title: 'Wear OS / Fitness Band',
+              subtitle: 'Pair Pixel Watch / Fitbit / Mi Band',
+              icon: Icons.fitness_center,
+              onTap: () => _pairSimulated('Fitbit Charge 6'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DeviceTile extends StatelessWidget {
+  const _DeviceTile({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.onTap,
+  });
+
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Mhn.line),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: const Color(0xFFE8F3EE),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, color: const Color(0xFF0E4B3B), size: 20),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: Mhn.t(13.5, w: FontWeight.w700, c: Mhn.ink)),
+                  const SizedBox(height: 2),
+                  Text(subtitle, style: Mhn.t(11, c: Mhn.muted)),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right, color: Mhn.muted, size: 20),
           ],
         ),
       ),

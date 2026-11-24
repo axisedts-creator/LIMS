@@ -13,8 +13,9 @@ import '../orders/orders_format.dart';
 import '../orders/status_look.dart';
 import 'payments_api.dart';
 import 'payments_providers.dart';
+import 'payments_security.dart';
 
-const _gatewayLabels = {'esewa': 'eSewa', 'khalti': 'Khalti'};
+const _gatewayLabels = {'esewa': 'eSewa', 'khalti': 'Khalti', 'fonepay': 'Fonepay', 'card': 'Card'};
 
 /// 03-APP-FLOW §10.1 A15: failure_code -> text. Anything else gets the generic line.
 const _failureText = {
@@ -93,7 +94,7 @@ class _PayDueScreenState extends ConsumerState<PayDueScreen> {
   void _ready(Map<String, Object?>? action) {
     _timer?.cancel();
     final url = action?['url'] is String ? Uri.tryParse(action!['url']! as String) : null;
-    if (url == null || url.scheme != 'https') return _fail(_generic);
+    if (url == null || !isAllowedPaymentUrl(url)) return _fail(_generic);
     setState(() => _phase = _Phase.opening);
     if (_opened) return;
     _opened = true; // once, however long the screen stays

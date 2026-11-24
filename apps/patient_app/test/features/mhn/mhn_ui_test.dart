@@ -448,4 +448,52 @@ void main() {
 
     await end(t);
   });
+
+  testWidgets('v1.1 location picker and wearable daily health tracker visibility', (t) async {
+    final c = await open(t, v1_1: true);
+
+    // 1. Location Map Picker: Open city sheet and tap Pick on Google Map
+    await t.tap(find.text('Baneshwor, Kathmandu'));
+    await t.pumpAndSettle();
+    expect(find.text('Pick on Google Map'), findsOneWidget);
+    await t.tap(find.text('Pick on Google Map'));
+    await t.pumpAndSettle();
+    expect(find.text('Pick location on Map'), findsOneWidget);
+    expect(find.text('Confirm Location'), findsOneWidget);
+    await t.tap(find.text('Confirm Location'));
+    await t.pumpAndSettle();
+
+    // 2. MyCare tab Wearable conditional visibility
+    await tab(t, 'MyCare');
+    await t.pumpAndSettle();
+    expect(find.text('Daily Health Tracker'), findsOneWidget);
+
+    await t.scrollUntilVisible(find.text('Smartwatch / Band Disconnected'), 500, scrollable: find.byType(Scrollable).first);
+    await t.pumpAndSettle();
+
+    // Disconnected: Heart rate and Blood pressure must NOT be visible
+    expect(find.text('Smartwatch / Band Disconnected'), findsOneWidget);
+    expect(find.text('Heart rate'), findsNothing);
+    expect(find.text('Blood pressure'), findsNothing);
+
+    // Connect Wearable
+    await t.tap(find.text('Connect'));
+    await t.pumpAndSettle();
+    expect(find.text('Connect Smartwatch or Band'), findsOneWidget);
+    await t.tap(find.text('Samsung Galaxy Watch'));
+    await t.pumpAndSettle();
+
+    // Connected: Heart rate and Blood pressure MUST be visible
+    expect(find.textContaining('Connected: Galaxy Watch6'), findsOneWidget);
+    expect(find.text('Heart rate'), findsOneWidget);
+    expect(find.text('Blood pressure'), findsOneWidget);
+
+    // Disconnect Wearable: they must disappear
+    await t.tap(find.text('Disconnect'));
+    await t.pumpAndSettle();
+    expect(find.text('Heart rate'), findsNothing);
+    expect(find.text('Blood pressure'), findsNothing);
+
+    await end(t);
+  });
 }

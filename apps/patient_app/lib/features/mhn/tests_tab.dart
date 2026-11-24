@@ -39,7 +39,7 @@ class _MhnTestsTabState extends ConsumerState<MhnTestsTab> {
   _CatalogViewStatus _status = _CatalogViewStatus.ready;
   String _errorMessage = '';
 
-  List<MhnTest> _items = kTests;
+  List<MhnTest> _items = kMasterTests;
   List<MhnTest> _serverItems = [];
   bool _usingServerData = false;
   bool _isDemoMode = false;
@@ -126,7 +126,7 @@ class _MhnTestsTabState extends ConsumerState<MhnTestsTab> {
         setState(() {
           _usingServerData = false;
           _isDemoMode = true;
-          _items = kTests;
+          _items = kMasterTests;
           _loading = false;
           _loadingMore = false;
           _status = _CatalogViewStatus.ready;
@@ -388,7 +388,7 @@ class _MhnTestsTabState extends ConsumerState<MhnTestsTab> {
                                 Text(cat.name, maxLines: 2, overflow: TextOverflow.ellipsis, style: Mhn.t(14, w: FontWeight.w700, h: 1.2)),
                                 const SizedBox(height: 2),
                                 Text(() {
-                                  final n = kTests.where((t) => t.cat == cat.id).length;
+                                  final n = _items.where((t) => t.cat == cat.id).length;
                                   return '$n ${n == 1 ? 'test' : 'tests'}';
                                 }(), style: Mhn.t(12, c: Mhn.muted)),
                               ],

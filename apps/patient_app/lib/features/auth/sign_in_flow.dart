@@ -274,6 +274,12 @@ class _SignInFlowState extends ConsumerState<SignInFlow> {
 
   String _countdown() => 'Resend in ${_resendIn ~/ 60}:${(_resendIn % 60).toString().padLeft(2, '0')}';
 
+  void _handleSocialLogin(String provider) {
+    setState(() {
+      _notice = 'A verified mobile number is compulsory to link your laboratory records and enable WhatsApp/SMS report delivery. Please enter your mobile number.';
+    });
+  }
+
   Widget _phoneStep() {
     final lab = _flavour.displayName;
     final t = Theme.of(context).textTheme;
@@ -293,6 +299,29 @@ class _SignInFlowState extends ConsumerState<SignInFlow> {
       const SizedBox(height: LimsTokens.space4),
       if (_busy) const LimsLoading(label: 'Sending code'),
       LimsButton(label: 'Send code', onPressed: _busy ? null : _send),
+      const SizedBox(height: LimsTokens.space3),
+      Center(child: Text('Or continue with', style: t.bodySmall)),
+      const SizedBox(height: LimsTokens.space2),
+      LimsButton(
+        label: 'Google',
+        icon: Icons.account_circle_outlined,
+        secondary: true,
+        onPressed: _busy ? null : () => _handleSocialLogin('google'),
+      ),
+      const SizedBox(height: LimsTokens.space2),
+      LimsButton(
+        label: 'Apple',
+        icon: Icons.apple,
+        secondary: true,
+        onPressed: _busy ? null : () => _handleSocialLogin('apple'),
+      ),
+      const SizedBox(height: LimsTokens.space2),
+      LimsButton(
+        label: 'Email',
+        icon: Icons.email_outlined,
+        secondary: true,
+        onPressed: _busy ? null : () => _handleSocialLogin('email'),
+      ),
       TextButton(onPressed: _showConsent, child: Text("By continuing you agree to $lab's app terms.", textAlign: TextAlign.center)),
       Wrap(alignment: WrapAlignment.center, children: [
         _link('Privacy policy', _flavour.privacyUrl),

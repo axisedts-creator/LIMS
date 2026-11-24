@@ -9,7 +9,10 @@ import '../bookings/bookings_api.dart';
 import '../bookings/bookings_format.dart';
 import '../bookings/bookings_providers.dart';
 import '../orders/orders_format.dart';
+import '../payments/payments_providers.dart';
+import '../payments/payments_security.dart';
 import 'done_screen.dart';
+import 'fonepay_modal.dart';
 import 'mhn_data.dart';
 import 'mhn_state.dart';
 import 'mhn_theme.dart';
@@ -35,6 +38,8 @@ class _MhnPayScreenState extends ConsumerState<MhnPayScreen> {
     final mode = ctl.effectiveMode;
     final isHome = mode == 'home';
     final bookingKind = isHome ? 'home_collection' : 'centre_visit';
+
+    if (_paying) return;
 
     setState(() {
       _paying = true;
@@ -125,8 +130,81 @@ class _MhnPayScreenState extends ConsumerState<MhnPayScreen> {
       if (!mounted) return;
       if (res == null) throw StateError('Empty booking response from server');
 
+      final totalRs = ctl.totals().total;
+      final totalPaisa = totalRs * 100;
+      final bookingNo = (res['booking_no'] as String?) ?? 'BK';
+
       // Booking confirmed on server
       ctl.recordServerBooking(res);
+
+      if (st.pay == 'cash') {
+        await Navigator.of(context).pushAndRemoveUntil<void>(
+          MaterialPageRoute<void>(builder: (_) => const MhnDoneScreen()),
+          (r) => r.isFirst,
+        );
+        return;
+      }
+
+      if (st.pay == 'fonepay') {
+        await FonepayModalSheet.show(
+          context: context,
+          bookingNo: bookingNo,
+          amountRupees: totalRs,
+          onCompleted: () {
+            Navigator.of(context).pushAndRemoveUntil<void>(
+              MaterialPageRoute<void>(builder: (_) => const MhnDoneScreen()),
+              (r) => r.isFirst,
+            );
+          },
+        );
+        if (mounted) {
+          setState(() {
+            _paying = false;
+          });
+        }
+        return;
+      }
+
+      // Online portal launch: eSewa, Khalti, or Card
+      final opener = ref.read(paymentUrlOpenerProvider);
+
+      Uri targetUrl;
+      if (st.pay == 'esewa') {
+        targetUrl = Uri.https('rc-epay.esewa.com.np', '/api/epay/main/v2/form', {
+          'amt': '$totalRs',
+          'txAmt': '0',
+          'psc': '0',
+          'pdc': '0',
+          'tAmt': '$totalRs',
+          'pid': bookingNo,
+          'scd': 'EPAYTEST',
+          'su': 'https://metrolabs.com.np/payments/done',
+          'fu': 'https://metrolabs.com.np/payments/failed',
+        });
+      } else if (st.pay == 'khalti') {
+        targetUrl = Uri.https('test-pay.khalti.com', '/', {
+          'pidx': 'BK_$bookingNo',
+          'amount': '$totalPaisa',
+          'purchase_order_id': res['id']?.toString() ?? bookingNo,
+          'purchase_order_name': 'Medical Lab Tests Booking',
+        });
+      } else {
+        // Card (Visa / Mastercard / SCT 3D Secure)
+        targetUrl = Uri.https('test-pay.khalti.com', '/card', {
+          'pidx': 'BK_$bookingNo',
+          'amount': '$totalPaisa',
+          'purchase_order_id': res['id']?.toString() ?? bookingNo,
+          'purchase_order_name': 'Medical Lab Tests Booking - Card Payment',
+        });
+      }
+
+      // Security check: validate payment URL against allowlist before launching
+      if (!isAllowedPaymentUrl(targetUrl)) {
+        throw LimsException(LimsErrorCodes.commonValidationFailed);
+      }
+
+      // Launch portal in external system browser (never an insecure in-app webview)
+      await opener(targetUrl);
 
       await Navigator.of(context).pushAndRemoveUntil<void>(
         MaterialPageRoute<void>(builder: (_) => const MhnDoneScreen()),
@@ -290,7 +368,14 @@ class _MhnPayScreenState extends ConsumerState<MhnPayScreen> {
                     top: Radius.circular(i == 0 ? Mhn.rCard : 0),
                     bottom: Radius.circular(i == kPays.length - 1 ? Mhn.rCard : 0),
                   ),
-                  onTap: _paying ? null : () => ctl.setPay(kPays[i].id),
+                  onTap: _paying
+                      ? null
+                      : () {
+                          if (st.pay != kPays[i].id) {
+                            setState(() => _idempotencyKey = null);
+                            ctl.setPay(kPays[i].id);
+                          }
+                        },
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                     decoration: BoxDecoration(

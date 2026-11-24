@@ -11,6 +11,7 @@ import '../bookings/bookings_providers.dart';
 import '../orders/orders_format.dart';
 import 'member_form_screen.dart';
 import 'mhn_data.dart';
+import 'mhn_map_picker.dart';
 import 'mhn_shell.dart';
 import 'mhn_state.dart';
 import 'mhn_theme.dart';
@@ -311,6 +312,55 @@ class _MhnBookScreenState extends ConsumerState<MhnBookScreen> {
                 ctl.setAddress(v);
                 if (_err.isNotEmpty) setState(() => _err = '');
               },
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    icon: const Icon(Icons.map_outlined, size: 16, color: Color(0xFFEA4335)),
+                    label: Text('Pick on Map', style: Mhn.t(12.5, w: FontWeight.w700, c: const Color(0xFF0E4B3B))),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      side: const BorderSide(color: Color(0xFFCFDDD4)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                    onPressed: () async {
+                      final loc = await MhnMapPickerScreen.pick(context);
+                      if (loc != null) {
+                        setState(() {
+                          _selectedAddressId = null;
+                          _address.text = loc.formattedAddress;
+                        });
+                        ctl.setAddress(_address.text);
+                        ctl.setSelectedAddressId(null);
+                        mhnToast(context, '📍 Address selected from Google Map');
+                      }
+                    },
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    icon: const Icon(Icons.my_location, size: 16, color: Color(0xFF1B6B52)),
+                    label: Text('Use GPS', style: Mhn.t(12.5, w: FontWeight.w700, c: const Color(0xFF0E4B3B))),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      side: const BorderSide(color: Color(0xFFCFDDD4)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _selectedAddressId = null;
+                        _address.text = 'Baneshwor Heights, Ward 10, Kathmandu 44600';
+                      });
+                      ctl.setAddress(_address.text);
+                      ctl.setSelectedAddressId(null);
+                      mhnToast(context, '📍 Location set from live GPS');
+                    },
+                  ),
+                ),
+              ],
             ),
           ] else ...[
             const SizedBox(height: 14),

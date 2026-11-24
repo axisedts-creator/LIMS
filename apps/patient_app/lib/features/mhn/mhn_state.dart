@@ -162,6 +162,9 @@ class MhnState {
     this.waterGlasses = 5,
     this.walletBalance = 0,
     this.v1_1Mode = true,
+    this.wearableConnected = false,
+    this.wearableDeviceName,
+    this.wearableBatteryPercent = 86,
   });
 
   final List<String> cart;
@@ -201,6 +204,9 @@ class MhnState {
   final int waterGlasses;
   final int walletBalance;
   final bool v1_1Mode;
+  final bool wearableConnected;
+  final String? wearableDeviceName;
+  final int wearableBatteryPercent;
 
   bool get isMember => member != null;
   MhnPlan? get plan => member == null ? null : kPlans.firstWhere((p) => p.id == member);
@@ -223,6 +229,9 @@ class MhnState {
     int? waterGlasses,
     int? walletBalance,
     bool? v1_1Mode,
+    bool? wearableConnected,
+    String? wearableDeviceName,
+    int? wearableBatteryPercent,
   }) =>
       MhnState(
         cart: cart ?? this.cart, who: who ?? this.who, mode: mode ?? this.mode, day: day ?? this.day, slot: slot ?? this.slot,
@@ -246,6 +255,9 @@ class MhnState {
         waterGlasses: waterGlasses ?? this.waterGlasses,
         walletBalance: walletBalance ?? this.walletBalance,
         v1_1Mode: v1_1Mode ?? this.v1_1Mode,
+        wearableConnected: wearableConnected ?? this.wearableConnected,
+        wearableDeviceName: wearableDeviceName ?? this.wearableDeviceName,
+        wearableBatteryPercent: wearableBatteryPercent ?? this.wearableBatteryPercent,
       );
 }
 
@@ -434,6 +446,28 @@ class MhnController extends Notifier<MhnState> {
   }
 
   void toggleV11Mode() => state = state.copyWith(v1_1Mode: !state.v1_1Mode);
+
+  void connectWearable({
+    required String deviceName,
+    int? hr,
+    String? bp,
+    int battery = 86,
+  }) {
+    state = state.copyWith(
+      wearableConnected: true,
+      wearableDeviceName: deviceName,
+      wearableBatteryPercent: battery,
+      heartRateBpm: hr ?? 72,
+      bloodPressure: bp ?? '118/78',
+    );
+  }
+
+  void disconnectWearable() {
+    state = state.copyWith(
+      wearableConnected: false,
+      wearableDeviceName: null,
+    );
+  }
 
   void updateHealthTracker({int? steps, int? sugar, int? weight, String? bp, int? hr, int? water}) {
     state = state.copyWith(

@@ -23,7 +23,7 @@ class MhnCatalogState {
     this.allowedPrefixes = const ['+977'],
     this.calendarDisplay = 'AD',
     this.heroSlides = kHero,
-    this.tests = kTests,
+    this.tests = kMasterTests,
     this.packages = kPackages,
     this.categories = kCategories,
   });

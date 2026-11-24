@@ -63,7 +63,8 @@ void main() {
   test('MhnCatalogState defaults gracefully to offline catalog', () {
     const s = MhnCatalogState();
     expect(s.isServerDriven, isFalse);
-    expect(s.tests, equals(kTests));
+    expect(s.tests, equals(kMasterTests));
+    expect(s.tests.length, 460);
     expect(s.packages, equals(kPackages));
     expect(s.heroSlides, equals(kHero));
     expect(s.supportPhone, '+977-1-5000000');

@@ -2,6 +2,9 @@
 // terms are placeholders the prototype itself marks as "sample until Metro Labs confirms". Nothing here is PHI of a real person.
 import 'package:flutter/material.dart';
 
+import 'mhn_shared_catalog.dart';
+export 'mhn_shared_catalog.dart';
+
 const noFast = 'No fasting';
 const memberDiscount = 0.10;
 const homeFee = 0;
@@ -30,6 +33,15 @@ class MhnTest {
     this.sexRestriction,
     this.hasIndicativePrice = true,
     this.bookingKinds = const [],
+    this.department = '',
+    this.method = '',
+    this.sampleType = '',
+    this.container = '',
+    this.parameters = '',
+    this.tat = '',
+    this.reportingTime = '',
+    this.category = '',
+    this.mrp = 0,
   });
   final String id;
   final String cat;
@@ -45,6 +57,15 @@ class MhnTest {
   final String? sexRestriction;
   final bool hasIndicativePrice;
   final List<String> bookingKinds;
+  final String department;
+  final String method;
+  final String sampleType;
+  final String container;
+  final String parameters;
+  final String tat;
+  final String reportingTime;
+  final String category;
+  final int mrp;
 
   bool get needsFasting => fasting.isNotEmpty && fasting != noFast;
   bool get isPanel => kind == 'panel';
@@ -67,14 +88,53 @@ class MhnTest {
     final sex = map['sex_restriction'] as String?;
     final isCentre = kinds.contains('centre_visit') && !kinds.contains('home_collection');
 
+    final master = findMasterTest(code, id, name);
+    if (master != null) {
+      return MhnTest(
+        id: id.isNotEmpty ? id : master.id,
+        cat: master.cat,
+        name: name.isNotEmpty ? name : master.name,
+        price: pricePaisa != null ? price : master.price,
+        fasting: master.fasting,
+        report: master.report,
+        age: master.age,
+        desc: master.desc,
+        centre: isCentre || master.centre,
+        code: code.isNotEmpty ? code : master.code,
+        kind: kind.isNotEmpty ? kind : master.kind,
+        sexRestriction: sex ?? master.sexRestriction,
+        hasIndicativePrice: pricePaisa != null || master.hasIndicativePrice,
+        bookingKinds: kinds.isNotEmpty ? kinds : master.bookingKinds,
+        department: master.department,
+        method: master.method,
+        sampleType: master.sampleType,
+        container: master.container,
+        parameters: master.parameters,
+        tat: master.tat,
+        reportingTime: master.reportingTime,
+        category: master.category,
+        mrp: master.mrp > 0 ? master.mrp : (price > 0 ? price : master.price),
+      );
+    }
+
+    // Auto-adapt unknown server tests with intelligent defaults
+    final lowerName = name.toLowerCase();
+    final lowerCode = code.toLowerCase();
+    final needsFast = lowerName.contains('fasting') || lowerName.contains('fbs') || lowerName.contains('lipid') || lowerName.contains('sugar');
+    final isUrine = lowerName.contains('urine');
+    final isStool = lowerName.contains('stool');
+    final isFluid = lowerName.contains('fluid');
+    final sampleType = isUrine ? '5 ML URINE' : (isStool ? 'STOOL' : (isFluid ? 'BODY FLUID' : '2 ML SERUM / EDTA WB'));
+    final container = isUrine ? 'STERILE CONTAINER' : (isStool ? 'STERILE CONTAINER' : 'GEL VIAL / EDTA VIAL');
+
     return MhnTest(
       id: id,
       cat: kind == 'panel' ? 'packages' : 'general',
       name: name.isNotEmpty ? name : code,
       price: price,
-      fasting: noFast,
-      report: '',
-      age: '',
+      fasting: needsFast ? 'Fasting 10–12 h' : noFast,
+      report: 'Same day',
+      age: 'All ages',
       desc: code.isNotEmpty && code != name ? 'Code: $code' : '',
       centre: isCentre,
       code: code,
@@ -82,6 +142,15 @@ class MhnTest {
       sexRestriction: sex,
       hasIndicativePrice: pricePaisa != null,
       bookingKinds: kinds,
+      department: kind == 'panel' ? 'PANEL' : 'GENERAL',
+      method: 'Automated Assay',
+      sampleType: sampleType,
+      container: container,
+      parameters: '',
+      tat: 'Same Day',
+      reportingTime: 'Same day',
+      category: kind == 'panel' ? 'Panel' : 'Routine',
+      mrp: price,
     );
   }
 }

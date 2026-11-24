@@ -5,6 +5,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import 'mhn_map_picker.dart';
 import 'mhn_theme.dart';
 
 enum TrackingState {
@@ -208,19 +209,67 @@ class _MhnLiveTrackingScreenState extends State<MhnLiveTrackingScreen> with Sing
       ),
       body: Stack(
         children: [
-          // 3D Simulated Realtime Map
+          // 3D Google Maps Realtime Tracking Map
           Positioned.fill(
             bottom: 270,
             child: Stack(
               children: [
-                CustomPaint(
-                  size: Size.infinite,
-                  painter: _TrackingMapPainter(
-                    pulseValue: _pulseCtrl.value,
-                    collectorProgress: _collectorProgress,
-                    isOffline: _state == TrackingState.offline || _state == TrackingState.retrying,
-                    isReassigned: _state == TrackingState.reassigned,
+                MhnGoogleMapView(
+                  initialLat: 27.6915,
+                  initialLng: 85.3420,
+                  zoom: 15.5,
+                  showCenterPin: false,
+                  showGoogleWatermark: true,
+                  routePolyline: const [
+                    Offset(100, 360),
+                    Offset(280, 360),
+                    Offset(280, 140),
+                  ],
+                  destinationPosition: const Offset(280, 140),
+                  collectorPosition: Offset(
+                    100 + (280 - 100) * _collectorProgress,
+                    _collectorProgress > 0.65 ? 360 - (360 - 140) * ((_collectorProgress - 0.65) / 0.35) : 360,
                   ),
+                  collectorProgress: _collectorProgress,
+                ),
+                // Collector on motorcycle icon overlay
+                AnimatedBuilder(
+                  animation: _pulseCtrl,
+                  builder: (_, __) {
+                    final currX = 100.0 + (180.0 * _collectorProgress.clamp(0.0, 1.0));
+                    final currY = _collectorProgress > 0.65
+                        ? 360.0 - (220.0 * ((_collectorProgress - 0.65) / 0.35))
+                        : 360.0;
+                    return Positioned(
+                      left: currX - 22,
+                      top: currY - 22,
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: const Color(0xFF1B6B52).withValues(alpha: 0.25 * (1.0 - _pulseCtrl.value)),
+                            ),
+                          ),
+                          Container(
+                            width: 34,
+                            height: 34,
+                            decoration: const BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Color(0xFF0E4B3B),
+                              boxShadow: [
+                                BoxShadow(color: Color(0x33000000), blurRadius: 6, offset: Offset(0, 2)),
+                              ],
+                            ),
+                            child: const Icon(Icons.two_wheeler, color: Colors.white, size: 18),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
                 ),
                 Positioned(
                   top: 12,
@@ -233,17 +282,12 @@ class _MhnLiveTrackingScreenState extends State<MhnLiveTrackingScreen> with Sing
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.science_outlined, color: Colors.white70, size: 14),
-                        const SizedBox(width: 4),
-                        Text('Simulated · not real tracking', style: Mhn.t(11, c: Colors.white)),
+                        const Icon(Icons.gps_fixed, color: Color(0xFFD9EE8C), size: 14),
+                        const SizedBox(width: 5),
+                        Text('Live Google Maps Tracking', style: Mhn.t(11, w: FontWeight.w700, c: Colors.white)),
                       ],
                     ),
                   ),
-                ),
-                Positioned(
-                  bottom: 12,
-                  right: 16,
-                  child: Text('Map © provider', style: Mhn.t(10, c: Colors.black45)),
                 ),
               ],
             ),

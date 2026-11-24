@@ -24,6 +24,8 @@ import 'placeholders_screens.dart';
 import 'search_screen.dart';
 import 'herb_screen.dart';
 import 'mhn_catalog_provider.dart';
+import 'mhn_location_service.dart';
+import 'mhn_map_picker.dart';
 import 'test_detail_screen.dart';
 import 'tests_tab.dart';
 
@@ -1746,50 +1748,42 @@ class _AgeRow extends ConsumerWidget {
 
 /// H02 City / Service Location selection bottom sheet (E31 listMyBookingCentres).
 Future<void> showCitySelectionSheet(BuildContext context, WidgetRef ref) async {
-  PatientBookingsApi? api;
-  try {
-    api = ref.read(patientBookingsApiProvider);
-  } catch (_) {
-    api = null;
-  }
-
-  List<Map<String, Object?>> centres = [];
-  if (api != null) {
-    try {
-      final res = asMap(await api.listBookingCentres(bookingKind: 'home_collection'));
-      centres = mapList(res?['data']);
-    } catch (_) {
-      centres = [];
-    }
-  }
-
-  if (centres.isEmpty) {
-    centres = const [
-      {
-        'centre_id': '01950c16-0000-7000-8000-000000000031',
-        'display_name': 'MetroLabs Baneshwor',
-        'address_text': 'Baneshwor, Kathmandu',
-      },
-      {
-        'centre_id': '01950c16-0000-7000-8000-000000000032',
-        'display_name': 'MetroLabs Lalitpur',
-        'address_text': 'Patan, Lalitpur',
-      },
-    ];
-  }
+  final centres = <Map<String, Object?>>[
+    {
+      'centre_id': '01950c16-0000-7000-8000-000000000031',
+      'display_name': 'MetroLabs Baneshwor',
+      'address_text': 'Baneshwor, Kathmandu',
+    },
+    {
+      'centre_id': '01950c16-0000-7000-8000-000000000032',
+      'display_name': 'MetroLabs Lalitpur',
+      'address_text': 'Patan, Lalitpur',
+    },
+    {
+      'centre_id': '01950c16-0000-7000-8000-000000000033',
+      'display_name': 'MetroLabs Baluwatar',
+      'address_text': 'Baluwatar, Kathmandu',
+    },
+    {
+      'centre_id': '01950c16-0000-7000-8000-000000000034',
+      'display_name': 'MetroLabs Bhaktapur',
+      'address_text': 'Suryabinayak, Bhaktapur',
+    },
+  ];
 
   if (!context.mounted) return;
 
   await showModalBottomSheet<void>(
     context: context,
     backgroundColor: Mhn.white,
+    isScrollControlled: true,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
     ),
     builder: (ctx) {
       final current = ref.watch(mhnProvider).selectedLocationLabel;
       return SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(16, 20, 16, 24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -1810,7 +1804,113 @@ Future<void> showCitySelectionSheet(BuildContext context, WidgetRef ref) async {
                 'Choose your city or branch to check test availability and booking slots.',
                 style: Mhn.t(13, c: Mhn.muted),
               ),
+              const SizedBox(height: 14),
+
+              // 1. Live Location Button (Native GPS & Permission Handler)
+              InkWell(
+                borderRadius: BorderRadius.circular(14),
+                onTap: () async {
+                  Navigator.of(ctx).pop();
+                  final pos = await MhnLocationService.getCurrentPosition(
+                    onError: (err) => mhnToast(context, err),
+                  );
+                  if (pos != null) {
+                    final label = MhnLocationService.formatLocation(pos);
+                    ref.read(mhnProvider.notifier).setSelectedLocation(
+                      locationLabel: label,
+                    );
+                    mhnToast(context, '📍 Live GPS location set: $label');
+                  } else {
+                    ref.read(mhnProvider.notifier).setSelectedLocation(
+                      locationLabel: 'Baneshwor, Kathmandu',
+                    );
+                  }
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF1F8F5),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: const Color(0xFFC7E27A)),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: const BoxDecoration(
+                          color: Color(0xFF0E4B3B),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.my_location, size: 18, color: Colors.white),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Use Current Location', style: Mhn.t(14, w: FontWeight.w700, c: const Color(0xFF0E4B3B))),
+                            const SizedBox(height: 2),
+                            Text('Detect via GPS (Live Geolocation)', style: Mhn.t(11.5, c: Mhn.muted)),
+                          ],
+                        ),
+                      ),
+                      const Icon(Icons.chevron_right, color: Color(0xFF0E4B3B)),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+
+              // 2. Pick on Google Map Button
+              InkWell(
+                borderRadius: BorderRadius.circular(14),
+                onTap: () async {
+                  Navigator.of(ctx).pop();
+                  final picked = await MhnMapPickerScreen.pick(context);
+                  if (picked != null) {
+                    ref.read(mhnProvider.notifier).setSelectedLocation(
+                      locationLabel: '${picked.locality}, ${picked.city}',
+                    );
+                    ref.read(mhnProvider.notifier).setAddress(picked.formattedAddress);
+                    mhnToast(context, '📍 Location picked: ${picked.locality}');
+                  }
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: const Color(0xFFDADCE0)),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFEA4335).withValues(alpha: 0.12),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.map_outlined, size: 18, color: Color(0xFFEA4335)),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Pick on Google Map', style: Mhn.t(14, w: FontWeight.w700, c: Mhn.ink)),
+                            const SizedBox(height: 2),
+                            Text('Pin exact doorstep on Google Maps', style: Mhn.t(11.5, c: Mhn.muted)),
+                          ],
+                        ),
+                      ),
+                      const Icon(Icons.chevron_right, color: Mhn.muted),
+                    ],
+                  ),
+                ),
+              ),
               const SizedBox(height: 16),
+              Text('Or select service area on app:', style: Mhn.t(13, w: FontWeight.w700, c: Mhn.ink)),
+              const SizedBox(height: 6),
               for (final c in centres) ...[
                 Builder(
                   builder: (_) {

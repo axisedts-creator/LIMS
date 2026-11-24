@@ -159,6 +159,7 @@ class MhnState {
     this.weightKg = 68,
     this.bloodPressure = '120/80',
     this.heartRateBpm = 74,
+    this.waterGlasses = 5,
     this.walletBalance = 0,
     this.v1_1Mode = true,
   });
@@ -197,6 +198,7 @@ class MhnState {
   final int weightKg;
   final String bloodPressure;
   final int heartRateBpm;
+  final int waterGlasses;
   final int walletBalance;
   final bool v1_1Mode;
 
@@ -218,6 +220,7 @@ class MhnState {
     int? weightKg,
     String? bloodPressure,
     int? heartRateBpm,
+    int? waterGlasses,
     int? walletBalance,
     bool? v1_1Mode,
   }) =>
@@ -240,6 +243,7 @@ class MhnState {
         weightKg: weightKg ?? this.weightKg,
         bloodPressure: bloodPressure ?? this.bloodPressure,
         heartRateBpm: heartRateBpm ?? this.heartRateBpm,
+        waterGlasses: waterGlasses ?? this.waterGlasses,
         walletBalance: walletBalance ?? this.walletBalance,
         v1_1Mode: v1_1Mode ?? this.v1_1Mode,
       );
@@ -431,13 +435,14 @@ class MhnController extends Notifier<MhnState> {
 
   void toggleV11Mode() => state = state.copyWith(v1_1Mode: !state.v1_1Mode);
 
-  void updateHealthTracker({int? steps, int? sugar, int? weight, String? bp, int? hr}) {
+  void updateHealthTracker({int? steps, int? sugar, int? weight, String? bp, int? hr, int? water}) {
     state = state.copyWith(
       stepCount: steps ?? state.stepCount,
       bloodSugar: sugar ?? state.bloodSugar,
       weightKg: weight ?? state.weightKg,
       bloodPressure: bp ?? state.bloodPressure,
       heartRateBpm: hr ?? state.heartRateBpm,
+      waterGlasses: water ?? state.waterGlasses,
     );
   }
 

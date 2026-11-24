@@ -415,4 +415,37 @@ void main() {
     }
     await end(t);
   });
+
+  testWidgets('v1.1 interactive flows: test detail, booking, herb supplements, organs, AI health score', (t) async {
+    await open(t);
+
+    // 1. Tapping a popular test opens Test Description Screen
+    expect(find.text('Complete Blood Count (CBC)'), findsOneWidget);
+    await t.tap(find.text('Complete Blood Count (CBC)'));
+    await t.pumpAndSettle();
+    expect(find.text('Parameters Tested (13)'), findsOneWidget);
+    expect(find.text('Book Now'), findsOneWidget);
+
+    // 2. Tapping Book Now on Test Description Screen takes directly to Selection/Booking screen
+    await t.tap(find.text('Book Now'));
+    await t.pumpAndSettle();
+    expect(find.text('Book collection'), findsOneWidget);
+    await t.tap(find.bySemanticsLabel('Back'));
+    await t.pumpAndSettle();
+    await t.tap(find.bySemanticsLabel('Back'));
+    await t.pumpAndSettle();
+
+    // 3. Herb section Explore Now > opens Herbवेद+ Supplements
+    await t.scrollUntilVisible(find.text('Explore Now >'), 500, scrollable: find.byType(Scrollable).first);
+    await t.pumpAndSettle();
+    expect(find.text('Explore Now >'), findsOneWidget);
+    await t.tap(find.text('Explore Now >'));
+    await t.pumpAndSettle();
+    expect(find.text('Herbवेद+™ Supplements'), findsOneWidget);
+    expect(find.text('DIABEAT-EASE™'), findsOneWidget);
+    await t.tap(find.bySemanticsLabel('Back'));
+    await t.pumpAndSettle();
+
+    await end(t);
+  });
 }

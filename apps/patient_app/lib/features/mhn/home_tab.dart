@@ -22,6 +22,8 @@ import 'mhn_theme.dart';
 import 'packages_screen.dart';
 import 'placeholders_screens.dart';
 import 'search_screen.dart';
+import 'herb_screen.dart';
+import 'test_detail_screen.dart';
 import 'tests_tab.dart';
 
 class MhnHomeTab extends ConsumerStatefulWidget {
@@ -65,11 +67,16 @@ class _MhnHomeTabState extends ConsumerState<MhnHomeTab> {
   }
 
   void _heroGo(String go) {
+    final st = ref.read(mhnProvider);
     switch (go) {
       case 'packages':
         mhnPush<void>(context, const MhnPackagesScreen());
       default:
-        ref.read(mhnTabProvider.notifier).go(mhnTabTests);
+        if (st.v1_1Mode) {
+          mhnPush<void>(context, const MhnPage(title: 'All Tests', child: MhnTestsTab()));
+        } else {
+          ref.read(mhnTabProvider.notifier).go(mhnTabTests);
+        }
     }
   }
 
@@ -452,7 +459,13 @@ class _MhnHomeTabState extends ConsumerState<MhnHomeTab> {
                       ctaAsset: 'assets/images/cta/home_cta_1.png',
                       icon: Icons.local_shipping_outlined,
                       label: 'Free Home Sample Collection',
-                      onTap: () => ref.read(mhnTabProvider.notifier).go(mhnTabTests),
+                      onTap: () {
+                        if (st.v1_1Mode) {
+                          mhnPush<void>(context, const MhnPage(title: 'All Tests', child: MhnTestsTab()));
+                        } else {
+                          ref.read(mhnTabProvider.notifier).go(mhnTabTests);
+                        }
+                      },
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -555,7 +568,13 @@ class _MhnHomeTabState extends ConsumerState<MhnHomeTab> {
               _SectionTitle(
                 'Routine Health Checkup for Men',
                 action: 'See all',
-                onAction: () => mhnPush<void>(context, const MhnPackagesScreen()),
+                onAction: () {
+                  if (st.v1_1Mode) {
+                    mhnPush<void>(context, const MhnPage(title: 'All Tests', child: MhnTestsTab()));
+                  } else {
+                    ref.read(mhnTabProvider.notifier).go(mhnTabTests);
+                  }
+                },
               ),
               const SizedBox(height: 10),
               const _AgeRow(gender: 'men'),
@@ -563,7 +582,13 @@ class _MhnHomeTabState extends ConsumerState<MhnHomeTab> {
               _SectionTitle(
                 'Routine Health Checkup for Women',
                 action: 'See all',
-                onAction: () => mhnPush<void>(context, const MhnPackagesScreen()),
+                onAction: () {
+                  if (st.v1_1Mode) {
+                    mhnPush<void>(context, const MhnPage(title: 'All Tests', child: MhnTestsTab()));
+                  } else {
+                    ref.read(mhnTabProvider.notifier).go(mhnTabTests);
+                  }
+                },
               ),
               const SizedBox(height: 10),
               const _AgeRow(gender: 'women'),
@@ -595,7 +620,16 @@ class _MhnHomeTabState extends ConsumerState<MhnHomeTab> {
                 ),
               ),
               const SizedBox(height: 18),
-              const _SectionTitle('Tests by organ'),
+              _SectionTitle(
+                'Tests by organ',
+                action: 'See all',
+                onAction: () => mhnPush<void>(
+                  context,
+                  MhnCategoryScreen(
+                    category: kCategories.firstWhere((c) => c.id == 'organs'),
+                  ),
+                ),
+              ),
               const SizedBox(height: 10),
               const _OrganTestsRow(),
               const SizedBox(height: 20),
@@ -1118,25 +1152,50 @@ class _OrganTestsRow extends StatelessWidget {
         separatorBuilder: (_, __) => const SizedBox(width: 10),
         itemBuilder: (_, i) => MediaQuery.withClampedTextScaling(
           maxScaleFactor: 1.15,
-          child: Container(
-            width: 76,
-            decoration: BoxDecoration(
-              color: Colors.white,
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: Mhn.line),
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(organs[i].$2, color: organs[i].$3, size: 28),
-                const SizedBox(height: 6),
-                Text(
-                  organs[i].$1,
-                  style: Mhn.t(12, w: FontWeight.w700),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+              onTap: () {
+                final organName = organs[i].$1.toLowerCase();
+                if (organName == 'heart') {
+                  final t = kTests.firstWhere((x) => x.id == 'lipid', orElse: () => kTests.first);
+                  mhnPush<void>(context, MhnTestDetailScreen(test: t));
+                } else if (organName == 'liver') {
+                  final t = kTests.firstWhere((x) => x.id == 'lft', orElse: () => kTests.first);
+                  mhnPush<void>(context, MhnTestDetailScreen(test: t));
+                } else if (organName == 'kidney') {
+                  final t = kTests.firstWhere((x) => x.id == 'kft', orElse: () => kTests.first);
+                  mhnPush<void>(context, MhnTestDetailScreen(test: t));
+                } else if (organName == 'thyroid') {
+                  final t = kTests.firstWhere((x) => x.id == 'tft', orElse: () => kTests.first);
+                  mhnPush<void>(context, MhnTestDetailScreen(test: t));
+                } else {
+                  final cat = kCategories.firstWhere((c) => c.id == 'organs');
+                  mhnPush<void>(context, MhnCategoryScreen(category: cat));
+                }
+              },
+              child: Container(
+                width: 76,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: Mhn.line),
                 ),
-              ],
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(organs[i].$2, color: organs[i].$3, size: 28),
+                    const SizedBox(height: 6),
+                    Text(
+                      organs[i].$1,
+                      style: Mhn.t(12, w: FontWeight.w700),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
         ),
@@ -1168,7 +1227,17 @@ class _SupplementsStrip extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
               ),
             ),
-            Text('Explore Now >', style: Mhn.t(13, w: FontWeight.w700, c: const Color(0xFFE53935))),
+            Material(
+              color: Colors.transparent,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(6),
+                onTap: () => mhnPush<void>(context, const HerbSupplementsScreen()),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                  child: Text('Explore Now >', style: Mhn.t(13, w: FontWeight.w700, c: const Color(0xFFE53935))),
+                ),
+              ),
+            ),
           ],
         ),
         const SizedBox(height: 10),
@@ -1182,53 +1251,60 @@ class _SupplementsStrip extends StatelessWidget {
               final s = supplements[i];
               return MediaQuery.withClampedTextScaling(
                 maxScaleFactor: 1.15,
-                child: Container(
-                  width: 130,
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: Mhn.line),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: Center(
-                          child: Container(
-                            width: 44,
-                            height: 44,
-                            decoration: BoxDecoration(
-                              color: s.$4.withAlpha(30),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Icon(Icons.medication_liquid_outlined, color: s.$4, size: 28),
-                          ),
-                        ),
+                    onTap: () => mhnPush<void>(context, const HerbSupplementsScreen()),
+                    child: Container(
+                      width: 130,
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: Mhn.line),
                       ),
-                      Text(s.$1, style: Mhn.t(11, w: FontWeight.w800), maxLines: 1),
-                      Row(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Flexible(
-                            child: Text(
-                              s.$2,
-                              style: Mhn.t(12, w: FontWeight.w700),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+                          Expanded(
+                            child: Center(
+                              child: Container(
+                                width: 44,
+                                height: 44,
+                                decoration: BoxDecoration(
+                                  color: s.$4.withAlpha(30),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Icon(Icons.medication_liquid_outlined, color: s.$4, size: 28),
+                              ),
                             ),
                           ),
-                          const SizedBox(width: 4),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFFFEBEE),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Text(s.$3, style: Mhn.t(9, w: FontWeight.w700, c: const Color(0xFFC62828))),
+                          Text(s.$1, style: Mhn.t(11, w: FontWeight.w800), maxLines: 1),
+                          Row(
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  s.$2,
+                                  style: Mhn.t(12, w: FontWeight.w700),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFFFEBEE),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Text(s.$3, style: Mhn.t(9, w: FontWeight.w700, c: const Color(0xFFC62828))),
+                              ),
+                            ],
                           ),
                         ],
                       ),
-                    ],
+                    ),
                   ),
                 ),
               );
@@ -1469,20 +1545,33 @@ class _PopularRow extends ConsumerWidget {
       child: Row(
         children: [
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(test.name, style: Mhn.t(15, w: FontWeight.w700)),
-                const SizedBox(height: 2),
-                Text(
-                  '${test.fasting} · Report ${test.report}',
-                  style: Mhn.t(12, c: Mhn.muted),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(8),
+                onTap: () => mhnPush<void>(context, MhnTestDetailScreen(test: test)),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(test.name, style: Mhn.t(15, w: FontWeight.w700)),
+                          const SizedBox(height: 2),
+                          Text(
+                            '${test.fasting} · Report ${test.report}',
+                            style: Mhn.t(12, c: Mhn.muted),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(rs(test.price), style: Mhn.t(14, w: FontWeight.w800)),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
-          const SizedBox(width: 8),
-          Text(rs(test.price), style: Mhn.t(14, w: FontWeight.w800)),
           const SizedBox(width: 10),
           Semantics(
             button: true,

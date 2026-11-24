@@ -16,6 +16,23 @@ const nextConfig = {
   images: { unoptimized: true, remotePatterns: [] }, // no remote image origin (08 A18.1)
   // T0D-BUNDLE-1 (LD-310 / LD-312): react-aria ships 34 locales of screen-reader strings per component; keep en-US only.
   turbopack: { rules: { 'intlStrings.mjs': { loaders: [fileURLToPath(new URL('./scripts/aria-locales-loader.cjs', import.meta.url))] } } },
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          { key: 'X-Frame-Options', value: 'DENY' },
+          { key: 'Referrer-Policy', value: 'same-origin' },
+          { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' },
+          { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
+          { key: 'Cross-Origin-Resource-Policy', value: 'same-origin' },
+          { key: 'X-Permitted-Cross-Domain-Policies', value: 'none' },
+          { key: 'X-XSS-Protection', value: '0' },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;

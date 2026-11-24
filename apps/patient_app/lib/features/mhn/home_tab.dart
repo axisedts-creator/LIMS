@@ -23,6 +23,7 @@ import 'packages_screen.dart';
 import 'placeholders_screens.dart';
 import 'search_screen.dart';
 import 'herb_screen.dart';
+import 'mhn_catalog_provider.dart';
 import 'test_detail_screen.dart';
 import 'tests_tab.dart';
 
@@ -50,8 +51,10 @@ class _MhnHomeTabState extends ConsumerState<MhnHomeTab> {
     });
     _heroTimer = Timer.periodic(const Duration(milliseconds: 4800), (_) {
       if (!mounted || _held || !_hero.hasClients) return;
+      final int slideCount = ref.read(mhnCatalogProvider).heroSlides.length;
+      if (slideCount == 0) return;
       _hero.animateToPage(
-        (_slide + 1) % kHero.length,
+        ((_slide + 1) % slideCount).toInt(),
         duration: const Duration(milliseconds: 350),
         curve: Curves.easeOut,
       );
@@ -83,10 +86,10 @@ class _MhnHomeTabState extends ConsumerState<MhnHomeTab> {
   @override
   Widget build(BuildContext context) {
     final st = ref.watch(mhnProvider);
+    final catalog = ref.watch(mhnCatalogProvider);
     final first = st.profile.name.split(' ').first;
-    final popular = [
-      for (final id in kPopularIds) kTests.firstWhere((t) => t.id == id),
-    ];
+    final popular = catalog.popularTests;
+    final heroSlides = catalog.heroSlides;
     return ListView(
       padding: EdgeInsets.zero,
       children: [
@@ -387,13 +390,13 @@ class _MhnHomeTabState extends ConsumerState<MhnHomeTab> {
                       borderRadius: BorderRadius.circular(20),
                       child: PageView.builder(
                         controller: _hero,
-                        itemCount: kHero.length,
+                        itemCount: heroSlides.length,
                         onPageChanged: (i) => setState(() => _slide = i),
                         itemBuilder: (_, i) => MediaQuery.withClampedTextScaling(
                           maxScaleFactor: 1.15,
                           child: _HeroSlide(
-                            slide: kHero[i],
-                            onTap: () => _heroGo(kHero[i].go),
+                            slide: heroSlides[i],
+                            onTap: () => _heroGo(heroSlides[i].go),
                           ),
                         ),
                       ),
@@ -403,7 +406,7 @@ class _MhnHomeTabState extends ConsumerState<MhnHomeTab> {
                       bottom: 12,
                       child: Row(
                         children: [
-                          for (var i = 0; i < kHero.length; i++)
+                          for (var i = 0; i < heroSlides.length; i++)
                             Semantics(
                               button: true,
                               label: 'Show slide ${i + 1}',
@@ -604,7 +607,7 @@ class _MhnHomeTabState extends ConsumerState<MhnHomeTab> {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    for (final p in kPackages)
+                    for (final p in catalog.packages)
                       Padding(
                         padding: const EdgeInsets.only(right: 12),
                         child: MhnPackageCard(
@@ -983,6 +986,7 @@ class _AllergyTestsRow extends StatelessWidget {
               height: 124,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: const Color(0xFFE2EBE5), width: 1.0),
                 boxShadow: const [
                   BoxShadow(color: Color(0x10000000), blurRadius: 8, offset: Offset(0, 3)),
                 ],
@@ -1005,12 +1009,11 @@ class _AllergyTestsRow extends StatelessWidget {
                             begin: Alignment.topCenter,
                             end: Alignment.bottomCenter,
                             colors: [
-                              Color(0x22000000),
                               Colors.transparent,
                               Color(0x33000000),
-                              Color(0xD9084D3B),
+                              Color(0xCC084D3B),
                             ],
-                            stops: [0.0, 0.25, 0.55, 1.0],
+                            stops: [0.30, 0.65, 1.0],
                           ),
                         ),
                       ),
@@ -1324,12 +1327,28 @@ class _HeroSlide extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Mhn3DTiltCard(
-    borderRadius: 20,
-    child: Container(
-      color: const Color(0xFF084D3B),
-      child: Stack(
+      borderRadius: 20,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: onTap,
+        child: Container(
+          color: const Color(0xFF084D3B),
+          child: Stack(
         children: [
-          if (slide.imageAsset.isNotEmpty)
+          if (slide.imageUrl.isNotEmpty)
+            Positioned.fill(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: Image.network(
+                  slide.imageUrl,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => slide.imageAsset.isNotEmpty
+                      ? Image.asset(slide.imageAsset, fit: BoxFit.cover)
+                      : const SizedBox(),
+                ),
+              ),
+            )
+          else if (slide.imageAsset.isNotEmpty)
             Positioned.fill(
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(20),
@@ -1348,12 +1367,13 @@ class _HeroSlide extends StatelessWidget {
                   begin: Alignment.centerLeft,
                   end: Alignment.centerRight,
                   colors: [
-                    Color(0xF2063226),
-                    Color(0xCC063226),
-                    Color(0x55063226),
+                    Color(0xFF063226),
+                    Color(0xF6063226),
+                    Color(0xB8063226),
+                    Color(0x40063226),
                     Colors.transparent,
                   ],
-                  stops: [0.0, 0.42, 0.62, 0.82],
+                  stops: [0.0, 0.44, 0.62, 0.78, 0.92],
                 ),
               ),
             ),
@@ -1438,6 +1458,7 @@ class _HeroSlide extends StatelessWidget {
       ],
     ),
   ),
+),
 );
   }
 }
@@ -1514,11 +1535,19 @@ class _SectionTitle extends StatelessWidget {
     children: [
       Expanded(child: Text(text, style: Mhn.h2)),
       if (action != null)
-        TextButton(
-          onPressed: onAction,
-          child: Text(
-            action!,
-            style: Mhn.t(14, w: FontWeight.w700, c: Mhn.green),
+        Semantics(
+          button: true,
+          label: '$action for $text',
+          child: InkWell(
+            onTap: onAction,
+            borderRadius: BorderRadius.circular(8),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              child: Text(
+                action!,
+                style: Mhn.t(14, w: FontWeight.w700, c: Mhn.green),
+              ),
+            ),
           ),
         ),
     ],

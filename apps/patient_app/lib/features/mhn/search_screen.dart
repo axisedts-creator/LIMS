@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'cart_screen.dart';
 import 'category_screen.dart';
+import 'mhn_catalog_provider.dart';
 import 'mhn_data.dart';
 import 'mhn_package_card.dart';
 import 'mhn_shell.dart';
@@ -82,25 +83,26 @@ class _MhnSearchScreenState extends ConsumerState<MhnSearchScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final catalog = ref.watch(mhnCatalogProvider);
     final q = _query.trim().toLowerCase();
     final tokens = q.split(RegExp(r'[\s,\-_/]+')).where((w) => w.length > 1 && w != 'test' && w != 'tests' && w != 'checkup').toList();
     final matchingTests = q.isEmpty
         ? const <MhnTest>[]
-        : kTests.where((t) {
+        : catalog.tests.where((t) {
             final target = '${t.name} ${t.cat} ${t.desc}'.toLowerCase();
             return target.contains(q) || (tokens.isNotEmpty && tokens.any((tok) => target.contains(tok)));
           }).toList();
 
     final matchingPackages = q.isEmpty
         ? const <MhnPackage>[]
-        : kPackages.where((p) {
+        : catalog.packages.where((p) {
             final target = '${p.name} ${p.params} ${p.feats.join(' ')}'.toLowerCase();
             return target.contains(q) || (tokens.isNotEmpty && tokens.any((tok) => target.contains(tok)));
           }).toList();
 
     final matchingCategories = q.isEmpty
         ? const <MhnCategory>[]
-        : kCategories.where((c) => c.name.toLowerCase().contains(q)).toList();
+        : catalog.categories.where((c) => c.name.toLowerCase().contains(q)).toList();
 
     final cartCount = ref.watch(mhnProvider.select((s) => s.cart.length));
 
@@ -129,21 +131,37 @@ class _MhnSearchScreenState extends ConsumerState<MhnSearchScreen> {
               const Icon(Icons.search, size: 20, color: Color(0xFF1B6B52)),
               const SizedBox(width: 8),
               Expanded(
-                child: TextField(
-                  controller: _ctrl,
-                  focusNode: _focus,
-                  onChanged: (val) => setState(() => _query = val),
-                  style: Mhn.t(14, w: FontWeight.w600, c: Mhn.ink),
-                  decoration: InputDecoration(
-                    hintText: 'Search tests, packages, diseases...',
-                    hintStyle: Mhn.t(13, c: Mhn.muted),
-                    border: InputBorder.none,
-                    focusedBorder: InputBorder.none,
-                    enabledBorder: InputBorder.none,
-                    errorBorder: InputBorder.none,
-                    disabledBorder: InputBorder.none,
-                    isDense: true,
-                    contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                child: Theme(
+                  data: Theme.of(context).copyWith(
+                    inputDecorationTheme: const InputDecorationTheme(
+                      border: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      errorBorder: InputBorder.none,
+                      disabledBorder: InputBorder.none,
+                      focusedErrorBorder: InputBorder.none,
+                      filled: false,
+                    ),
+                  ),
+                  child: TextField(
+                    controller: _ctrl,
+                    focusNode: _focus,
+                    onChanged: (val) => setState(() => _query = val),
+                    style: Mhn.t(14, w: FontWeight.w600, c: Mhn.ink),
+                    cursorColor: const Color(0xFF1B6B52),
+                    decoration: InputDecoration(
+                      hintText: 'Search tests, packages, diseases...',
+                      hintStyle: Mhn.t(13, c: Mhn.muted),
+                      border: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      errorBorder: InputBorder.none,
+                      disabledBorder: InputBorder.none,
+                      focusedErrorBorder: InputBorder.none,
+                      filled: false,
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                    ),
                   ),
                 ),
               ),

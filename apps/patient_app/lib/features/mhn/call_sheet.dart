@@ -1,11 +1,13 @@
 // Call / Call to Book bottom sheet & screen
 // Supports direct hotline calling, WhatsApp advisor chat, and request callback.
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import 'mhn_catalog_provider.dart';
 import 'mhn_theme.dart';
 
-class MhnCallSheet extends StatelessWidget {
+class MhnCallSheet extends ConsumerWidget {
   const MhnCallSheet({super.key});
 
   static Future<void> show(BuildContext context) => showModalBottomSheet<void>(
@@ -16,7 +18,10 @@ class MhnCallSheet extends StatelessWidget {
       );
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final catalog = ref.watch(mhnCatalogProvider);
+    final phone = catalog.supportPhone.isNotEmpty ? catalog.supportPhone : '+977-1-5000000';
+    final dialDigits = phone.replaceAll(RegExp(r'[^\d+]'), '');
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
       decoration: const BoxDecoration(
@@ -62,14 +67,14 @@ class MhnCallSheet extends StatelessWidget {
             _CallOptionTile(
               icon: Icons.phone_in_talk,
               title: 'Call to Book Now',
-              subtitle: '+977-1-4200000 (Toll-Free / Local)',
+              subtitle: '$phone (Lab Support & Booking)',
               color: Mhn.green,
               onTap: () async {
-                final uri = Uri.parse('tel:+97714200000');
+                final uri = Uri.parse('tel:$dialDigits');
                 if (await canLaunchUrl(uri)) {
                   await launchUrl(uri);
                 } else {
-                  if (context.mounted) mhnToast(context, 'Dialing +977-1-4200000');
+                  if (context.mounted) mhnToast(context, 'Dialing $phone');
                 }
               },
             ),
@@ -81,7 +86,7 @@ class MhnCallSheet extends StatelessWidget {
               color: const Color(0xFF25D366),
               onTap: () {
                 Navigator.of(context).pop();
-                mhnToast(context, 'Connecting to WhatsApp health advisor...');
+                mhnToast(context, 'Connecting to WhatsApp health advisor ($phone)...');
               },
             ),
             const SizedBox(height: 10),

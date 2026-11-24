@@ -94,6 +94,39 @@ class MhnPackage {
   final String params;
   final Color color;
   final List<String> feats;
+
+  factory MhnPackage.fromBookable(Map<String, Object?> map) {
+    final id = map['orderable_id'] as String? ?? '';
+    final name = map['display_name'] as String? ?? 'Package';
+    final priceObj = map['indicative_price'] is Map
+        ? (map['indicative_price'] as Map).cast<String, Object?>()
+        : null;
+    final pricePaisa = priceObj?['amount_paisa'] is num
+        ? (priceObj!['amount_paisa'] as num).toInt()
+        : null;
+    final price = pricePaisa != null ? pricePaisa ~/ 100 : 0;
+    final lower = name.toLowerCase();
+    Color color = const Color(0xFF2E7D32);
+    if (lower.contains('bronze')) {
+      color = const Color(0xFF8D6E63);
+    } else if (lower.contains('silver')) {
+      color = const Color(0xFF546E7A);
+    } else if (lower.contains('gold')) {
+      color = const Color(0xFFD4AF37);
+    } else if (lower.contains('platinum')) {
+      color = const Color(0xFF37474F);
+    } else if (lower.contains('diamond') || lower.contains('elite')) {
+      color = const Color(0xFF00695C);
+    }
+    return MhnPackage(
+      id,
+      name,
+      price,
+      map['code'] is String && (map['code'] as String).isNotEmpty ? 'Code: ${map['code']}' : 'Comprehensive Profile',
+      color,
+      const ['Free Home Sample Collection', 'Certified Pathologist Verification', 'Smart AI Health Summary'],
+    );
+  }
 }
 
 class MhnFaq {
@@ -119,13 +152,46 @@ class MhnPlan {
 }
 
 class MhnHeroSlide {
-  const MhnHeroSlide(this.tag, this.title, this.sub, this.cta, this.go, {this.imageAsset = ''});
+  const MhnHeroSlide(
+    this.tag,
+    this.title,
+    this.sub,
+    this.cta,
+    this.go, {
+    this.imageAsset = '',
+    this.imageUrl = '',
+  });
+
   final String tag;
   final String title;
   final String sub;
   final String cta;
   final String go; // packages | tests | membership
   final String imageAsset;
+  final String imageUrl;
+
+  factory MhnHeroSlide.fromPortalContent(Map<String, Object?> map) {
+    final title = map['title'] as String? ?? 'Special Offer';
+    final body = map['body'] as String? ?? '';
+    final link = map['link_url'] as String? ?? '';
+    final kind = map['kind'] as String? ?? 'banner';
+    final isPkg = link.contains('package') || title.toLowerCase().contains('package') || title.toLowerCase().contains('checkup');
+    final tag = kind == 'banner' ? 'Featured Announcement' : 'Health Package';
+    final cta = isPkg ? 'See packages' : 'View tests';
+    final go = isPkg ? 'packages' : 'tests';
+    final imgUrl = link.startsWith('http') && (link.endsWith('.jpg') || link.endsWith('.png') || link.endsWith('.webp'))
+        ? link
+        : '';
+    return MhnHeroSlide(
+      tag,
+      title,
+      body,
+      cta,
+      go,
+      imageAsset: isPkg ? 'assets/images/banner_doorstep.jpg' : 'assets/images/banner_lab.jpg',
+      imageUrl: imgUrl,
+    );
+  }
 }
 
 const kCategories = <MhnCategory>[

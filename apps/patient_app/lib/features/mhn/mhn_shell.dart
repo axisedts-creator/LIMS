@@ -268,36 +268,40 @@ class _MhnShellState extends ConsumerState<MhnShell> with SingleTickerProviderSt
                                               mainAxisAlignment: MainAxisAlignment.center,
                                               children: [
                                                 if (tab == i)
-                                                  Container(
-                                                    width: 33,
-                                                    height: 33,
-                                                    decoration: const BoxDecoration(
-                                                      shape: BoxShape.circle,
-                                                      gradient: LinearGradient(
-                                                        colors: [Color(0xFF00796B), Color(0xFF7CB342)],
-                                                        begin: Alignment.topLeft,
-                                                        end: Alignment.bottomRight,
-                                                      ),
-                                                      boxShadow: [
-                                                        BoxShadow(
-                                                          color: Color(0x3800796B),
-                                                          blurRadius: 5,
-                                                          offset: Offset(0, 2),
+                                                  Transform.translate(
+                                                    offset: const Offset(0, -4),
+                                                    child: Container(
+                                                      width: 35,
+                                                      height: 35,
+                                                      decoration: BoxDecoration(
+                                                        shape: BoxShape.circle,
+                                                        border: Border.all(color: Colors.white, width: 2.0),
+                                                        gradient: const LinearGradient(
+                                                          colors: [Color(0xFF00796B), Color(0xFF7CB342)],
+                                                          begin: Alignment.topLeft,
+                                                          end: Alignment.bottomRight,
                                                         ),
-                                                      ],
-                                                    ),
-                                                    child: Center(
-                                                      child: Icon(
-                                                        items[i].$1,
-                                                        size: 19,
-                                                        color: Colors.white,
+                                                        boxShadow: const [
+                                                          BoxShadow(
+                                                            color: Color(0x4000796B),
+                                                            blurRadius: 6,
+                                                            offset: Offset(0, 2),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                      child: Center(
+                                                        child: Icon(
+                                                          items[i].$1,
+                                                          size: 19,
+                                                          color: Colors.white,
+                                                        ),
                                                       ),
                                                     ),
                                                   )
                                                 else
                                                   SizedBox(
-                                                    width: 33,
-                                                    height: 33,
+                                                    width: 35,
+                                                    height: 35,
                                                     child: Center(
                                                       child: Icon(
                                                         items[i].$1,

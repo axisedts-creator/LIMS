@@ -1,18 +1,21 @@
 // One category: description and its test cards. Imaging tests are done at the centre, so it carries a note.
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'mhn_catalog_provider.dart';
 import 'mhn_data.dart';
 import 'mhn_shell.dart';
 import 'mhn_test_card.dart';
 import 'mhn_theme.dart';
 
-class MhnCategoryScreen extends StatelessWidget {
+class MhnCategoryScreen extends ConsumerWidget {
   const MhnCategoryScreen({super.key, required this.category});
   final MhnCategory category;
 
   @override
-  Widget build(BuildContext context) {
-    final tests = [for (final t in kTests) if (t.cat == category.id) t];
+  Widget build(BuildContext context, WidgetRef ref) {
+    final allTests = ref.watch(mhnCatalogProvider).tests;
+    final tests = [for (final t in allTests) if (t.cat == category.id) t];
     return MhnPage(
       title: category.name,
       bottom: const MhnCartBar(),

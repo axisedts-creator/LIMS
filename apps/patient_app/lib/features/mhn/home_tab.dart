@@ -4,6 +4,7 @@
 // brand ambassador card, health concerns, lifestyle concerns, allergy tests,
 // age checkups, packages carousel, 3D supplements, and ISO/NPHL accreditation.
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -26,6 +27,8 @@ import 'herb_screen.dart';
 import 'mhn_catalog_provider.dart';
 import 'mhn_location_service.dart';
 import 'mhn_map_picker.dart';
+import 'mhn_pedometer_service.dart';
+import 'mycare_screen.dart';
 import 'test_detail_screen.dart';
 import 'tests_tab.dart';
 
@@ -61,6 +64,13 @@ class _MhnHomeTabState extends ConsumerState<MhnHomeTab> {
         curve: Curves.easeOut,
       );
     });
+    MhnPedometerService.listenSteps(
+      onSteps: (steps) {
+        if (mounted) {
+          ref.read(mhnProvider.notifier).updateHealthTracker(steps: steps);
+        }
+      },
+    );
   }
 
   @override
@@ -68,6 +78,7 @@ class _MhnHomeTabState extends ConsumerState<MhnHomeTab> {
     _phTimer?.cancel();
     _heroTimer?.cancel();
     _hero.dispose();
+    MhnPedometerService.stop();
     super.dispose();
   }
 
@@ -489,6 +500,10 @@ class _MhnHomeTabState extends ConsumerState<MhnHomeTab> {
               ),
               const SizedBox(height: 14),
               const _HealthAdvisorCard(),
+              if (st.v1_1Mode) ...[
+                const SizedBox(height: 14),
+                const _HomeDailyHealthWidget(),
+              ],
               const SizedBox(height: 22),
               _SectionTitle(
                 'Popular tests',
@@ -1949,4 +1964,239 @@ Future<void> showCitySelectionSheet(BuildContext context, WidgetRef ref) async {
       );
     },
   );
+}
+
+/// Samsung Health Daily Activity Widget for Home Tab
+class _HomeDailyHealthWidget extends ConsumerWidget {
+  const _HomeDailyHealthWidget();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final st = ref.watch(mhnProvider);
+    final steps = st.stepCount;
+    const targetSteps = 10000;
+    final stepProgress = (steps / targetSteps).clamp(0.0, 1.0);
+    final activeMinutes = (steps / 150).round();
+    final activeProgress = (activeMinutes / 60).clamp(0.0, 1.0);
+    final calories = (steps * 0.045).round();
+    final calProgress = (calories / 500).clamp(0.0, 1.0);
+    final km = (steps * 0.00075).toStringAsFixed(1);
+
+    void openTracker() {
+      if (st.v1_1Mode) {
+        ref.read(mhnTabProvider.notifier).go(3); // Go to MyCare tab
+      } else {
+        mhnPush<void>(context, const MhnPage(title: 'MyCare Tracker', child: MhnMyCareScreen()));
+      }
+    }
+
+    return InkWell(
+      onTap: openTracker,
+      borderRadius: BorderRadius.circular(18),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: const Color(0xFFD4E5DD)),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x0C0E4B3B),
+              blurRadius: 10,
+              offset: Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE8F5E9),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.directions_walk, color: Color(0xFF00C853), size: 20),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              'Daily Health Tracker',
+                              style: Mhn.t(13.5, w: FontWeight.w800, c: Mhn.ink),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFE8F3EE),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text('LIVE', style: Mhn.t(9, w: FontWeight.w800, c: const Color(0xFF0E4B3B))),
+                          ),
+                        ],
+                      ),
+                      Text('Samsung Health Sensor Active', style: Mhn.t(10.5, c: Mhn.muted)),
+                    ],
+                  ),
+                ),
+                TextButton(
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    visualDensity: VisualDensity.compact,
+                  ),
+                  onPressed: openTracker,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text('Weekly >', style: Mhn.t(11.5, w: FontWeight.w700, c: const Color(0xFF0E4B3B))),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                // Activity Rings Visual (Samsung Health style)
+                SizedBox(
+                  width: 64,
+                  height: 64,
+                  child: CustomPaint(
+                    painter: _SamsungRingsPainter(
+                      stepProgress: stepProgress,
+                      activeProgress: activeProgress,
+                      calProgress: calProgress,
+                    ),
+                    child: Center(
+                      child: Text(
+                        '${(stepProgress * 100).round()}%',
+                        style: Mhn.t(11.5, w: FontWeight.w800, c: const Color(0xFF00C853)),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.baseline,
+                          textBaseline: TextBaseline.alphabetic,
+                          children: [
+                            Text('$steps', style: Mhn.t(20, w: FontWeight.w900, c: Mhn.ink)),
+                            const SizedBox(width: 4),
+                            Text('/ 10,000 steps', style: Mhn.t(11, c: Mhn.muted, w: FontWeight.w600)),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 4,
+                        children: [
+                          _MiniStat(label: '$km km', icon: Icons.straighten, color: const Color(0xFF00C853)),
+                          _MiniStat(label: '$activeMinutes m', icon: Icons.timer, color: const Color(0xFF00B0FF)),
+                          _MiniStat(label: '$calories kcal', icon: Icons.local_fire_department, color: const Color(0xFFFF5252)),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MiniStat extends StatelessWidget {
+  const _MiniStat({required this.label, required this.icon, required this.color});
+  final String label;
+  final IconData icon;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 13, color: color),
+        const SizedBox(width: 2),
+        Text(label, style: Mhn.t(11, w: FontWeight.w700, c: Mhn.ink)),
+      ],
+    );
+  }
+}
+
+class _SamsungRingsPainter extends CustomPainter {
+  const _SamsungRingsPainter({
+    required this.stepProgress,
+    required this.activeProgress,
+    required this.calProgress,
+  });
+
+  final double stepProgress;
+  final double activeProgress;
+  final double calProgress;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    const strokeWidth = 5.0;
+    const startAngle = -math.pi / 2;
+
+    void drawRing(double radius, double progress, Color trackColor, Color progressColor) {
+      final trackPaint = Paint()
+        ..color = trackColor
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = strokeWidth;
+      canvas.drawCircle(center, radius, trackPaint);
+
+      if (progress > 0.0) {
+        final progressPaint = Paint()
+          ..color = progressColor
+          ..style = PaintingStyle.stroke
+          ..strokeCap = StrokeCap.round
+          ..strokeWidth = strokeWidth;
+        final sweepAngle = 2 * math.pi * progress;
+        canvas.drawArc(
+          Rect.fromCircle(center: center, radius: radius),
+          startAngle,
+          sweepAngle,
+          false,
+          progressPaint,
+        );
+      }
+    }
+
+    drawRing(28.0, stepProgress, const Color(0xFFE8F5E9), const Color(0xFF00C853));
+    drawRing(21.0, activeProgress, const Color(0xFFE1F5FE), const Color(0xFF00B0FF));
+    drawRing(14.0, calProgress, const Color(0xFFFFEBEE), const Color(0xFFFF5252));
+  }
+
+  @override
+  bool shouldRepaint(covariant _SamsungRingsPainter oldDelegate) {
+    return oldDelegate.stepProgress != stepProgress ||
+        oldDelegate.activeProgress != activeProgress ||
+        oldDelegate.calProgress != calProgress;
+  }
 }

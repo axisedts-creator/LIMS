@@ -178,6 +178,9 @@ class _SignInFlowState extends ConsumerState<SignInFlow> {
         if (expires != null) {
           // Session token to secure storage, JWT in memory only (US-EN-02.1); the router then leaves the sign-in area.
           await ref.read(sessionControllerProvider).signIn(sessionToken: session, accessToken: access, accessExpiresAt: expires);
+          if (mounted && Navigator.of(context).canPop()) {
+            Navigator.of(context).pop();
+          }
           return;
         }
       }
@@ -246,13 +249,21 @@ class _SignInFlowState extends ConsumerState<SignInFlow> {
     return Semantics(
       liveRegion: true,
       container: true,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: LimsTokens.space2),
-        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Icon(Icons.error_outline, color: c.fg),
-          const SizedBox(width: LimsTokens.space2),
-          Expanded(child: Text(message, style: TextStyle(color: c.fg))),
-        ]),
+      child: Container(
+        padding: const EdgeInsets.all(LimsTokens.space3),
+        decoration: BoxDecoration(
+          color: c.bg,
+          border: Border.all(color: c.border),
+          borderRadius: const BorderRadius.all(Radius.circular(LimsTokens.radiusSm)),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(Icons.error_outline_rounded, color: c.fg),
+            const SizedBox(width: LimsTokens.space2),
+            Expanded(child: Text(message, style: TextStyle(color: c.fg))),
+          ],
+        ),
       ),
     );
   }
@@ -284,71 +295,188 @@ class _SignInFlowState extends ConsumerState<SignInFlow> {
     final lab = _flavour.displayName;
     final t = Theme.of(context).textTheme;
     return LimsCard(
-        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      Text(lab, style: t.titleLarge),
-      Align(alignment: AlignmentDirectional.centerStart, child: _link('Privacy policy', _flavour.tenantPrivacyUrl)),
-      const SizedBox(height: LimsTokens.space4),
-      LimsPhoneField(
-        label: 'Mobile number',
-        prefixes: _prefixes,
-        initialPrefix: _prefixes.first,
-        errorText: _phoneError,
-        onChanged: (v) => _phone = v,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: const BoxDecoration(
+                  color: LimsTokens.colorAccentSubtle,
+                  borderRadius: BorderRadius.all(Radius.circular(LimsTokens.radiusMd)),
+                ),
+                alignment: Alignment.center,
+                child: Image.asset(
+                  'assets/brand/ml-logo.png',
+                  height: 28,
+                  width: 28,
+                  errorBuilder: (_, __, ___) => const Icon(
+                    Icons.local_hospital_rounded,
+                    color: LimsTokens.colorAccentDefault,
+                  ),
+                ),
+              ),
+              const SizedBox(width: LimsTokens.space3),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(lab, style: t.titleLarge),
+                    Align(
+                      alignment: AlignmentDirectional.centerStart,
+                      child: _link('Privacy policy', _flavour.tenantPrivacyUrl),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: LimsTokens.space1),
+          Text(
+            'Your verified lab reports & home tests in one place',
+            style: t.bodySmall?.copyWith(color: LimsTokens.colorNeutral500),
+          ),
+          const SizedBox(height: LimsTokens.space4),
+          LimsPhoneField(
+            label: 'Mobile number',
+            prefixes: _prefixes,
+            initialPrefix: _prefixes.first,
+            errorText: _phoneError,
+            onChanged: (v) => _phone = v,
+          ),
+          if (_notice != null) ...[
+            const SizedBox(height: LimsTokens.space2),
+            _noticeRow(_notice!),
+          ],
+          const SizedBox(height: LimsTokens.space4),
+          if (_busy) const LimsLoading(label: 'Sending code'),
+          LimsButton(
+            label: 'Send code',
+            onPressed: _busy ? null : _send,
+          ),
+          const SizedBox(height: LimsTokens.space4),
+          Row(
+            children: [
+              const Expanded(child: Divider()),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: LimsTokens.space3),
+                child: Text('Or continue with', style: t.bodySmall?.copyWith(color: LimsTokens.colorNeutral500)),
+              ),
+              const Expanded(child: Divider()),
+            ],
+          ),
+          const SizedBox(height: LimsTokens.space3),
+          LimsButton(
+            label: 'Google',
+            icon: Icons.account_circle_outlined,
+            secondary: true,
+            onPressed: _busy ? null : () => _handleSocialLogin('google'),
+          ),
+          const SizedBox(height: LimsTokens.space2),
+          LimsButton(
+            label: 'Apple',
+            icon: Icons.apple,
+            secondary: true,
+            onPressed: _busy ? null : () => _handleSocialLogin('apple'),
+          ),
+          const SizedBox(height: LimsTokens.space2),
+          LimsButton(
+            label: 'Email',
+            icon: Icons.email_outlined,
+            secondary: true,
+            onPressed: _busy ? null : () => _handleSocialLogin('email'),
+          ),
+          const SizedBox(height: LimsTokens.space3),
+          TextButton(
+            onPressed: _showConsent,
+            child: Text(
+              "By continuing you agree to $lab's app terms.",
+              textAlign: TextAlign.center,
+              style: t.bodySmall?.copyWith(color: LimsTokens.colorNeutral600),
+            ),
+          ),
+          Wrap(
+            alignment: WrapAlignment.center,
+            spacing: LimsTokens.space3,
+            children: [
+              _link('Privacy policy', _flavour.privacyUrl),
+              _link('Terms of use', _flavour.termsUrl),
+            ],
+          ),
+          const SizedBox(height: LimsTokens.space2),
+          Wrap(
+            alignment: WrapAlignment.center,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              const Icon(Icons.verified_user_rounded, size: 14, color: LimsTokens.colorAccentDefault),
+              const SizedBox(width: LimsTokens.space1),
+              Text(
+                'ISO 15189 & NPHL Certified Lab',
+                style: t.labelSmall?.copyWith(color: LimsTokens.colorAccentDefault, fontWeight: FontWeight.w600),
+              ),
+            ],
+          ),
+        ],
       ),
-      if (_notice != null) _noticeRow(_notice!),
-      const SizedBox(height: LimsTokens.space4),
-      if (_busy) const LimsLoading(label: 'Sending code'),
-      LimsButton(label: 'Send code', onPressed: _busy ? null : _send),
-      const SizedBox(height: LimsTokens.space3),
-      Center(child: Text('Or continue with', style: t.bodySmall)),
-      const SizedBox(height: LimsTokens.space2),
-      LimsButton(
-        label: 'Google',
-        icon: Icons.account_circle_outlined,
-        secondary: true,
-        onPressed: _busy ? null : () => _handleSocialLogin('google'),
-      ),
-      const SizedBox(height: LimsTokens.space2),
-      LimsButton(
-        label: 'Apple',
-        icon: Icons.apple,
-        secondary: true,
-        onPressed: _busy ? null : () => _handleSocialLogin('apple'),
-      ),
-      const SizedBox(height: LimsTokens.space2),
-      LimsButton(
-        label: 'Email',
-        icon: Icons.email_outlined,
-        secondary: true,
-        onPressed: _busy ? null : () => _handleSocialLogin('email'),
-      ),
-      TextButton(onPressed: _showConsent, child: Text("By continuing you agree to $lab's app terms.", textAlign: TextAlign.center)),
-      Wrap(alignment: WrapAlignment.center, children: [
-        _link('Privacy policy', _flavour.privacyUrl),
-        _link('Terms of use', _flavour.termsUrl),
-      ]),
-    ]));
+    );
   }
 
-  Widget _codeStep() => LimsCard(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        Text('Enter the 6-digit code sent to ${_masked()}.', style: Theme.of(context).textTheme.bodyLarge),
-        const SizedBox(height: LimsTokens.space4),
-        LimsOtpField(key: ValueKey(_otpKey), autofocus: true, errorText: _codeError, onCompleted: _verify),
-        if (_notice != null) _noticeRow(_notice!),
-        const SizedBox(height: LimsTokens.space4),
-        if (_busy) const LimsLoading(label: 'Checking code'),
-        LimsButton(
-          label: _resendIn > 0 ? _countdown() : 'Resend code',
-          secondary: true,
-          onPressed: _resendIn > 0 || _busy ? null : _send,
-        ),
-        const SizedBox(height: LimsTokens.space2),
-        LimsButton(label: 'Change number', secondary: true, onPressed: _busy ? null : _backToPhone),
-      ]));
+  Widget _codeStep() {
+    final t = Theme.of(context).textTheme;
+    return LimsCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: const BoxDecoration(
+                  color: LimsTokens.colorAccentSubtle,
+                  borderRadius: BorderRadius.all(Radius.circular(LimsTokens.radiusMd)),
+                ),
+                alignment: Alignment.center,
+                child: const Icon(Icons.sms_outlined, color: LimsTokens.colorAccentDefault),
+              ),
+              const SizedBox(width: LimsTokens.space3),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Verification Code', style: t.titleMedium),
+                    Text('Enter the 6-digit code sent to ${_masked()}.', style: t.bodySmall?.copyWith(color: LimsTokens.colorNeutral500)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: LimsTokens.space4),
+          LimsOtpField(key: ValueKey(_otpKey), autofocus: true, errorText: _codeError, onCompleted: _verify),
+          if (_notice != null) ...[
+            const SizedBox(height: LimsTokens.space2),
+            _noticeRow(_notice!),
+          ],
+          const SizedBox(height: LimsTokens.space4),
+          if (_busy) const LimsLoading(label: 'Checking code'),
+          LimsButton(
+            label: _resendIn > 0 ? _countdown() : 'Resend code',
+            secondary: true,
+            onPressed: _resendIn > 0 || _busy ? null : _send,
+          ),
+          const SizedBox(height: LimsTokens.space2),
+          LimsButton(
+            label: 'Change number',
+            secondary: true,
+            onPressed: _busy ? null : _backToPhone,
+          ),
+        ],
+      ),
+    );
+  }
 
-  // LD-258 (M4): A0 error, A2 and A3 sit on a white LimsCard (450 ms enter fade, none under reduced motion) on the
-  // neutral.50 page; the A0 splash stays page-level. Layout only: steps, requests and texts are unchanged.
   @override
   Widget build(BuildContext context) {
     final body = switch (_step) {
@@ -367,9 +495,26 @@ class _SignInFlowState extends ConsumerState<SignInFlow> {
       _Step.code => _codeStep(),
     };
     return Scaffold(
+      backgroundColor: LimsTokens.colorNeutral50,
+      appBar: Navigator.of(context).canPop()
+          ? AppBar(
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+            )
+          : null,
       body: SafeArea(
         child: Center(
-          child: SingleChildScrollView(padding: const EdgeInsets.all(LimsTokens.space4), child: body),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(LimsTokens.space4),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 440),
+              child: body,
+            ),
+          ),
         ),
       ),
     );

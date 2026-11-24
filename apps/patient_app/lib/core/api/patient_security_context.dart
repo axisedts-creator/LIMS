@@ -19,7 +19,9 @@ SecurityContext? buildPatientSecurityContext({required String env, String? caPem
     return null; // Prod keeps system roots
   }
   final pem = (caPem != null && caPem.trim().isNotEmpty) ? caPem : kInternalCaPem;
-  final ctx = SecurityContext(withTrustedRoots: false);
-  ctx.setTrustedCertificatesBytes(utf8.encode(pem));
+  final ctx = SecurityContext(withTrustedRoots: true);
+  try {
+    ctx.setTrustedCertificatesBytes(utf8.encode(pem));
+  } catch (_) {}
   return ctx;
 }

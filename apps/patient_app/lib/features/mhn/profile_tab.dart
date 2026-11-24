@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../bookings/addresses_screen.dart';
 import '../profiles/profiles_screen.dart';
+import '../auth/sign_in_flow.dart';
+import '../../core/session/session_controller.dart';
 import '../../app/providers.dart';
 import 'about_screen.dart';
 import 'contact_tab.dart';
@@ -25,6 +27,8 @@ class MhnProfileTab extends ConsumerWidget {
     final st = ref.watch(mhnProvider);
     final ctl = ref.read(mhnProvider.notifier);
     final p = st.profile;
+    final session = ref.watch(sessionControllerProvider);
+    final isGuest = session.status.value != SessionStatus.signedIn;
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
       children: [
@@ -37,6 +41,17 @@ class MhnProfileTab extends ConsumerWidget {
               Text('+977 ${p.phone}', style: Mhn.t(13, c: Mhn.muted)),
             ]),
           ),
+          if (isGuest)
+            OutlinedButton(
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Mhn.green,
+                side: const BorderSide(color: Mhn.green),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              ),
+              onPressed: () => mhnPush<void>(context, const SignInFlow()),
+              child: const Text('Sign in', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+            ),
         ]),
         const _Label('ACCOUNT'),
         MhnCard(
@@ -121,17 +136,19 @@ class MhnProfileTab extends ConsumerWidget {
             _Row(icon: Icons.flag_outlined, title: 'Report a problem', onTap: () => mhnPush<void>(context, const MhnProblemScreen())),
           ]),
         ),
-        const SizedBox(height: 16),
-        MhnCard(
-          padding: EdgeInsets.zero,
-          child: _Row(
-            icon: Icons.logout,
-            title: 'Sign out',
-            onTap: () async {
-              await ref.read(sessionControllerProvider).logout();
-            },
+        if (!isGuest) ...[
+          const SizedBox(height: 16),
+          MhnCard(
+            padding: EdgeInsets.zero,
+            child: _Row(
+              icon: Icons.logout,
+              title: 'Sign out',
+              onTap: () async {
+                await ref.read(sessionControllerProvider).logout();
+              },
+            ),
           ),
-        ),
+        ],
         const SizedBox(height: 24),
       ],
     );

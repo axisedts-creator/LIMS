@@ -5,16 +5,17 @@ const _override = String.fromEnvironment('DEV_HOST_OVERRIDE');
 
 const _flavour = Flavour(
   env: 'prod',
-  tenantCode: String.fromEnvironment('TENANT_CODE'),
+  tenantCode: String.fromEnvironment('TENANT_CODE', defaultValue: 'demo_lab4'),
   displayName: 'My Health Now',
-  apiBaseUrl: String.fromEnvironment('API_BASE_URL'),
-  portalOrigin: String.fromEnvironment('PORTAL_ORIGIN'),
-  storeUrl: String.fromEnvironment('STORE_URL', defaultValue: 'https://store.invalid/demo_lab'),
+  apiBaseUrl: String.fromEnvironment('API_BASE_URL', defaultValue: 'https://api.metrolmis.com:8443'),
+  portalOrigin: String.fromEnvironment('PORTAL_ORIGIN', defaultValue: 'https://portal.metrolmis.com:8443'),
+  storeUrl: String.fromEnvironment('STORE_URL', defaultValue: 'https://portal.metrolmis.com:8443'),
   // LD-28: legal.privacy_url / legal.terms_url are required in production builds (no default; checked in main), also
   // recorded in the release checklist for the store listings.
   privacyUrl: String.fromEnvironment('PRIVACY_URL'),
   termsUrl: String.fromEnvironment('TERMS_URL'),
   tenantPrivacyUrl: String.fromEnvironment('TENANT_PRIVACY_URL'),
+  googleServerClientId: String.fromEnvironment('GOOGLE_SERVER_CLIENT_ID', defaultValue: '968717539325-nuupeo0hbbde7h9v8hahcbkrrk8lq78m.apps.googleusercontent.com'),
 );
 
 Future<void> main() {

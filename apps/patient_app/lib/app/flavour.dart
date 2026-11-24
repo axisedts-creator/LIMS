@@ -10,6 +10,7 @@ class Flavour {
     this.privacyUrl,
     this.termsUrl,
     this.tenantPrivacyUrl,
+    this.googleServerClientId,
   });
 
   final String env; // dev | staging | prod
@@ -18,6 +19,7 @@ class Flavour {
   final String apiBaseUrl;
   final String portalOrigin;
   final String storeUrl;
+  final String? googleServerClientId;
 
   /// LD-28 (A33-5): platform config `legal.privacy_url` / `legal.terms_url` (required in production builds, passed with
   /// --dart-define) and the optional tenant privacy URL shown under the lab name. Empty/null = link hidden.

@@ -1,6 +1,7 @@
 // Google Maps Picker & Interactive Map Component for My Health Now.
 // Provides Google Maps tile imagery, interactive pan/zoom, GPS live location,
 // center pin reverse geocoding, and landmark search across Nepal service areas.
+import 'dart:async';
 import 'dart:io' show Platform;
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
@@ -139,6 +140,38 @@ class _MhnGoogleMapViewState extends State<MhnGoogleMapView> {
   bool _isDragging = false;
   static final bool _isTest = Platform.environment.containsKey('FLUTTER_TEST');
   GoogleMapController? _mapController;
+  bool _useFastMap = false;
+  bool _googleMapReady = false;
+  Timer? _slowTileTimer;
+  bool _showSlowNotice = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (!_isTest) {
+      _slowTileTimer = Timer(const Duration(milliseconds: 3500), () {
+        if (mounted && !_googleMapReady) {
+          setState(() => _showSlowNotice = true);
+        }
+      });
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant MhnGoogleMapView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.initialLat != widget.initialLat || oldWidget.initialLng != widget.initialLng) {
+      _lat = widget.initialLat;
+      _lng = widget.initialLng;
+      _mapController?.animateCamera(CameraUpdate.newLatLng(LatLng(_lat, _lng)));
+    }
+  }
+
+  @override
+  void dispose() {
+    _slowTileTimer?.cancel();
+    super.dispose();
+  }
 
   MhnMapLocation _currentLocation() {
     // Determine closest landmark or construct address
@@ -189,8 +222,19 @@ class _MhnGoogleMapViewState extends State<MhnGoogleMapView> {
 
   @override
   Widget build(BuildContext context) {
-    if (_isTest) {
-      return _buildCanvasSimulation();
+    if (_isTest || _useFastMap) {
+      return Stack(
+        children: [
+          _buildCanvasSimulation(),
+          // Mode switch button to Google Live
+          if (!_isTest)
+            Positioned(
+              top: 14,
+              right: 14,
+              child: _buildLayerToggleButton(),
+            ),
+        ],
+      );
     }
 
     // Real Native Google Map on Physical Device
@@ -206,7 +250,10 @@ class _MhnGoogleMapViewState extends State<MhnGoogleMapView> {
           zoomControlsEnabled: true,
           compassEnabled: true,
           mapToolbarEnabled: false,
-          onMapCreated: (ctrl) => _mapController = ctrl,
+          onMapCreated: (ctrl) {
+            _mapController = ctrl;
+            setState(() => _googleMapReady = true);
+          },
           onCameraMove: (pos) {
             _lat = pos.target.latitude;
             _lng = pos.target.longitude;
@@ -278,7 +325,79 @@ class _MhnGoogleMapViewState extends State<MhnGoogleMapView> {
               ),
             ),
           ),
+
+        // Mode switch button to Fast Map
+        Positioned(
+          top: 14,
+          right: 14,
+          child: _buildLayerToggleButton(),
+        ),
+
+        // Notice if Google Map tiles are pending or slow
+        if (_showSlowNotice && !_googleMapReady)
+          Positioned(
+            top: 60,
+            left: 16,
+            right: 16,
+            child: Material(
+              color: const Color(0xFFFFF3E0),
+              borderRadius: BorderRadius.circular(12),
+              elevation: 4,
+              shadowColor: const Color(0x22000000),
+              child: InkWell(
+                onTap: () => setState(() => _useFastMap = true),
+                borderRadius: BorderRadius.circular(12),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.flash_on, size: 18, color: Color(0xFFE65100)),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Google live tiles slow? Tap for instant 0ms map',
+                          style: Mhn.t(11.5, w: FontWeight.w700, c: const Color(0xFFE65100)),
+                        ),
+                      ),
+                      const Icon(Icons.arrow_forward_ios, size: 12, color: Color(0xFFE65100)),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
       ],
+    );
+  }
+
+  Widget _buildLayerToggleButton() {
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(20),
+      elevation: 3,
+      shadowColor: const Color(0x33000000),
+      child: InkWell(
+        onTap: () => setState(() => _useFastMap = !_useFastMap),
+        borderRadius: BorderRadius.circular(20),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                _useFastMap ? Icons.map : Icons.flash_on,
+                size: 15,
+                color: _useFastMap ? const Color(0xFF1B6B52) : const Color(0xFFE65100),
+              ),
+              const SizedBox(width: 4),
+              Text(
+                _useFastMap ? 'Google Live' : 'Fast Map',
+                style: Mhn.t(11.5, w: FontWeight.w700, c: Mhn.ink),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 

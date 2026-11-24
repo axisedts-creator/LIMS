@@ -420,8 +420,10 @@ void main() {
     await open(t);
 
     // 1. Tapping a popular test opens Test Description Screen
-    expect(find.text('Complete Blood Count (CBC)'), findsOneWidget);
-    await t.tap(find.text('Complete Blood Count (CBC)'));
+    final cbcFinder = find.text('Complete Blood Count (CBC)');
+    await t.scrollUntilVisible(cbcFinder, 100, scrollable: find.byType(Scrollable).first);
+    expect(cbcFinder, findsOneWidget);
+    await t.tap(cbcFinder);
     await t.pumpAndSettle();
     expect(find.text('Parameters Tested (13)'), findsOneWidget);
     expect(find.text('Book Now'), findsOneWidget);
@@ -452,6 +454,10 @@ void main() {
   testWidgets('v1.1 location picker and wearable daily health tracker visibility', (t) async {
     final c = await open(t, v1_1: true);
 
+    // 0. Home tab Daily Health Widget
+    expect(find.text('Daily Health Tracker'), findsOneWidget);
+    expect(find.text('Samsung Health Sensor Active'), findsOneWidget);
+
     // 1. Location Map Picker: Open city sheet and tap Pick on Google Map
     await t.tap(find.text('Baneshwor, Kathmandu'));
     await t.pumpAndSettle();
@@ -466,7 +472,9 @@ void main() {
     // 2. MyCare tab Wearable conditional visibility
     await tab(t, 'MyCare');
     await t.pumpAndSettle();
-    expect(find.text('Daily Health Tracker'), findsOneWidget);
+    await t.scrollUntilVisible(find.text('Weekly Activity'), 200, scrollable: find.byType(Scrollable).first);
+    expect(find.text('Weekly Activity'), findsOneWidget);
+    expect(find.text('Target: 10,000 steps/day'), findsOneWidget);
 
     await t.scrollUntilVisible(find.text('Smartwatch / Band Disconnected'), 500, scrollable: find.byType(Scrollable).first);
     await t.pumpAndSettle();

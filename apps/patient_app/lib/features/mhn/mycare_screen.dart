@@ -403,6 +403,10 @@ class _MhnMyCareScreenState extends ConsumerState<MhnMyCareScreen> {
         ),
         const SizedBox(height: 12),
 
+        // Samsung Health Weekly Monitor Card
+        _SamsungWeeklyMonitorCard(todaySteps: st.stepCount),
+        const SizedBox(height: 12),
+
         // 2. Water Tracker Card with live + / - buttons
         _SamsungWaterCard(
           glasses: st.waterGlasses,
@@ -1356,6 +1360,200 @@ class _DeviceTile extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Samsung Health 7-day Weekly Activity Monitor Card with day bars and target metrics.
+class _SamsungWeeklyMonitorCard extends StatelessWidget {
+  const _SamsungWeeklyMonitorCard({required this.todaySteps});
+
+  final int todaySteps;
+
+  @override
+  Widget build(BuildContext context) {
+    // 7-day step history ending at today
+    final days = <String>['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    final history = <int>[8420, 10250, 9180, 11400, 7890, 10600, todaySteps];
+    const target = 10000;
+    const maxScale = 13000;
+
+    final total = history.fold<int>(0, (a, b) => a + b);
+    final avg = (total / history.length).round();
+    final totalKm = (total * 0.00075).toStringAsFixed(1);
+    final totalCal = (total * 0.045).round();
+    final daysMet = history.where((s) => s >= target).length;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Mhn.line),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE8F5E9),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.bar_chart, color: Color(0xFF2E7D32), size: 22),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Weekly Activity', style: Mhn.t(14, w: FontWeight.w800)),
+                    Text('Target: 10,000 steps/day', style: Mhn.t(11, c: Mhn.muted)),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE8F5E9),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  '$daysMet / 7 days goal reached',
+                  style: Mhn.t(11, w: FontWeight.w700, c: const Color(0xFF2E7D32)),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // 7-day Bar Chart
+          SizedBox(
+            height: 120,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                for (var i = 0; i < history.length; i++)
+                  _DayStepBar(
+                    dayLabel: days[i],
+                    steps: history[i],
+                    target: target,
+                    maxScale: maxScale,
+                    isToday: i == history.length - 1,
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
+          const Divider(height: 1, color: Mhn.rowLine),
+          const SizedBox(height: 12),
+
+          // Weekly Metrics Row
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _WeeklyMetric(label: 'Daily Avg', value: '$avg', unit: 'steps'),
+              _WeeklyMetric(label: 'Total Distance', value: totalKm, unit: 'km'),
+              _WeeklyMetric(label: 'Total Burned', value: '$totalCal', unit: 'kcal'),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DayStepBar extends StatelessWidget {
+  const _DayStepBar({
+    required this.dayLabel,
+    required this.steps,
+    required this.target,
+    required this.maxScale,
+    required this.isToday,
+  });
+
+  final String dayLabel;
+  final int steps;
+  final int target;
+  final int maxScale;
+  final bool isToday;
+
+  @override
+  Widget build(BuildContext context) {
+    final ratio = (steps / maxScale).clamp(0.08, 1.0);
+    final met = steps >= target;
+    final color = isToday
+        ? const Color(0xFF00C853) // Samsung Health Green
+        : met
+            ? const Color(0xFF4CAF50)
+            : const Color(0xFFB0BEC5);
+
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        Text(
+          '${(steps / 1000).toStringAsFixed(1)}k',
+          style: Mhn.t(9.5, w: FontWeight.w600, c: isToday ? color : Mhn.muted),
+        ),
+        const SizedBox(height: 4),
+        Container(
+          width: 24,
+          height: 75 * ratio,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(6),
+            border: isToday ? Border.all(color: const Color(0xFF0E4B3B), width: 1.5) : null,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+          decoration: BoxDecoration(
+            color: isToday ? const Color(0xFFE8F5E9) : Colors.transparent,
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: Text(
+            dayLabel,
+            style: Mhn.t(11, w: isToday ? FontWeight.w800 : FontWeight.w600, c: isToday ? const Color(0xFF2E7D32) : Mhn.ink),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _WeeklyMetric extends StatelessWidget {
+  const _WeeklyMetric({
+    required this.label,
+    required this.value,
+    required this.unit,
+  });
+
+  final String label;
+  final String value;
+  final String unit;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.baseline,
+          textBaseline: TextBaseline.alphabetic,
+          children: [
+            Text(value, style: Mhn.t(15, w: FontWeight.w800, c: Mhn.ink)),
+            const SizedBox(width: 2),
+            Text(unit, style: Mhn.t(10, c: Mhn.muted, w: FontWeight.w600)),
+          ],
+        ),
+        const SizedBox(height: 2),
+        Text(label, style: Mhn.t(11, c: Mhn.mutedSoft, w: FontWeight.w500)),
+      ],
     );
   }
 }

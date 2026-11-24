@@ -40,10 +40,9 @@ GoRouter buildPatientRouter({
   // Feature screens arrive with T-A4/T-P*; every PHI screen is already wrapped in LimsSecureScreen (REQ-SEC-109).
   Widget phi(String title) => LimsSecureScreen(child: Scaffold(body: Center(child: Text(title))));
   return GoRouter(
-    initialLocation: kHomePath,
+    initialLocation: kMhnPreview ? kHomePath : kSignInPath,
     refreshListenable: Listenable.merge([session.status, updateRequired]),
     redirect: (_, state) {
-      if (state.uri.path == kHomePath) return null; // My Health Now main UI
       if (kMhnPreview && (state.uri.path == kMhnPreviewPath || state.uri.path == kHomePath)) return null;
       return patientRedirect(updateRequired: updateRequired.value, status: session.status.value, location: state.uri.path);
     },

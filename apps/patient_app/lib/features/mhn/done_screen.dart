@@ -41,7 +41,12 @@ class MhnDoneScreen extends ConsumerWidget {
             const SizedBox(height: 16),
             Center(child: Text('Booking confirmed', style: Mhn.t(24, w: FontWeight.w800))),
             const SizedBox(height: 4),
-            Center(child: Text('Booking ID ${st.lastBookingNo.isNotEmpty ? st.lastBookingNo : st.lastId}', style: Mhn.t(14, c: Mhn.muted))),
+            Center(
+              child: Text(
+                'Booking ID ${st.lastBookingNo.isNotEmpty ? st.lastBookingNo : st.lastId} · ${st.pay == 'cash' ? 'Pay on collection' : 'Online payment pending verification'}',
+                style: Mhn.t(14, c: Mhn.muted),
+              ),
+            ),
             const SizedBox(height: 20),
             MhnCard(
               padding: const EdgeInsets.all(16),

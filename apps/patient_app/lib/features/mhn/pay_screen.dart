@@ -17,6 +17,8 @@ import 'mhn_data.dart';
 import 'mhn_state.dart';
 import 'mhn_theme.dart';
 
+final _uuidRegex = RegExp(r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$');
+
 class MhnPayScreen extends ConsumerStatefulWidget {
   const MhnPayScreen({super.key});
 
@@ -134,10 +136,8 @@ class _MhnPayScreenState extends ConsumerState<MhnPayScreen> {
       final totalPaisa = totalRs * 100;
       final bookingNo = (res['booking_no'] as String?) ?? 'BK';
 
-      // Booking confirmed on server
-      ctl.recordServerBooking(res);
-
       if (st.pay == 'cash') {
+        ctl.recordServerBooking(res);
         await Navigator.of(context).pushAndRemoveUntil<void>(
           MaterialPageRoute<void>(builder: (_) => const MhnDoneScreen()),
           (r) => r.isFirst,
@@ -151,6 +151,7 @@ class _MhnPayScreenState extends ConsumerState<MhnPayScreen> {
           bookingNo: bookingNo,
           amountRupees: totalRs,
           onCompleted: () {
+            ctl.recordServerBooking(res);
             Navigator.of(context).pushAndRemoveUntil<void>(
               MaterialPageRoute<void>(builder: (_) => const MhnDoneScreen()),
               (r) => r.isFirst,
@@ -165,37 +166,34 @@ class _MhnPayScreenState extends ConsumerState<MhnPayScreen> {
         return;
       }
 
+      ctl.recordServerBooking(res);
+
       // Online portal launch: eSewa, Khalti, or Card
       final opener = ref.read(paymentUrlOpenerProvider);
 
       Uri targetUrl;
-      if (st.pay == 'esewa') {
-        targetUrl = Uri.https('rc-epay.esewa.com.np', '/api/epay/main/v2/form', {
-          'amt': '$totalRs',
-          'txAmt': '0',
-          'psc': '0',
-          'pdc': '0',
-          'tAmt': '$totalRs',
-          'pid': bookingNo,
-          'scd': 'EPAYTEST',
-          'su': 'https://metrolabs.com.np/payments/done',
-          'fu': 'https://metrolabs.com.np/payments/failed',
-        });
-      } else if (st.pay == 'khalti') {
-        targetUrl = Uri.https('test-pay.khalti.com', '/', {
-          'pidx': 'BK_$bookingNo',
-          'amount': '$totalPaisa',
-          'purchase_order_id': res['id']?.toString() ?? bookingNo,
-          'purchase_order_name': 'Medical Lab Tests Booking',
-        });
+      final orderId = res['order_id'] as String?;
+      if (orderId != null && _uuidRegex.hasMatch(orderId)) {
+        try {
+          final paymentsApi = ref.read(patientPaymentsApiProvider);
+          final pr = asMap(await paymentsApi.createPaymentRequest(
+            orderId: orderId,
+            gateway: st.pay == 'card' ? 'khalti' : st.pay,
+            idempotencyKey: key,
+          ));
+          final action = asMap(pr?['action']);
+          final actionUrl = action?['url'] as String?;
+          final parsed = actionUrl != null ? Uri.tryParse(actionUrl) : null;
+          if (parsed != null && isAllowedPaymentUrl(parsed)) {
+            targetUrl = parsed;
+          } else {
+            targetUrl = _buildGatewayTarget(st.pay, bookingNo, totalRs, totalPaisa, res);
+          }
+        } catch (_) {
+          targetUrl = _buildGatewayTarget(st.pay, bookingNo, totalRs, totalPaisa, res);
+        }
       } else {
-        // Card (Visa / Mastercard / SCT 3D Secure)
-        targetUrl = Uri.https('test-pay.khalti.com', '/card', {
-          'pidx': 'BK_$bookingNo',
-          'amount': '$totalPaisa',
-          'purchase_order_id': res['id']?.toString() ?? bookingNo,
-          'purchase_order_name': 'Medical Lab Tests Booking - Card Payment',
-        });
+        targetUrl = _buildGatewayTarget(st.pay, bookingNo, totalRs, totalPaisa, res);
       }
 
       // Security check: validate payment URL against allowlist before launching
@@ -227,6 +225,36 @@ class _MhnPayScreenState extends ConsumerState<MhnPayScreen> {
       setState(() {
         _paying = false;
         _errorMessage = 'Booking failed: $e';
+      });
+    }
+  }
+
+  Uri _buildGatewayTarget(String pay, String bookingNo, int totalRs, int totalPaisa, Map<String, Object?> res) {
+    if (pay == 'esewa') {
+      return Uri.https('rc-epay.esewa.com.np', '/api/epay/main/v2/form', {
+        'amt': '$totalRs',
+        'txAmt': '0',
+        'psc': '0',
+        'pdc': '0',
+        'tAmt': '$totalRs',
+        'pid': bookingNo,
+        'scd': 'EPAYTEST',
+        'su': 'https://metrolabs.com.np/payments/done',
+        'fu': 'https://metrolabs.com.np/payments/failed',
+      });
+    } else if (pay == 'khalti') {
+      return Uri.https('test-pay.khalti.com', '/', {
+        'pidx': 'BK_$bookingNo',
+        'amount': '$totalPaisa',
+        'purchase_order_id': res['id']?.toString() ?? bookingNo,
+        'purchase_order_name': 'Medical Lab Tests Booking',
+      });
+    } else {
+      return Uri.https('test-pay.khalti.com', '/card', {
+        'pidx': 'BK_$bookingNo',
+        'amount': '$totalPaisa',
+        'purchase_order_id': res['id']?.toString() ?? bookingNo,
+        'purchase_order_name': 'Medical Lab Tests Booking - Card Payment',
       });
     }
   }

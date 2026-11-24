@@ -9,6 +9,49 @@ import 'package:url_launcher/url_launcher.dart';
 import 'mhn_data.dart';
 import 'mhn_theme.dart';
 
+/// Encodes an EMVCo Merchant-Presented Mode (MPM) dynamic QR string with CRC16-CCITT checksum.
+/// Follows Nepal National QR / Fonepay specification.
+String buildFonepayEmvcoQr({
+  required String merchantId,
+  required String merchantName,
+  required String bookingNo,
+  required int amountRupees,
+}) {
+  String tlv(String tag, String value) {
+    final len = value.length.toString().padLeft(2, '0');
+    return '$tag$len$value';
+  }
+
+  final merchantInfo = tlv('00', 'NP.COM.FONEPAY') + tlv('01', merchantId);
+  final additionalData = tlv('05', bookingNo);
+
+  final payload = tlv('00', '01') + // Format indicator
+      tlv('01', '12') + // 12 = Dynamic QR
+      tlv('26', merchantInfo) + // Merchant Account Info
+      tlv('52', '8011') + // MCC
+      tlv('53', '524') + // NPR ISO 4217 code
+      tlv('54', amountRupees.toString()) + // Amount
+      tlv('58', 'NP') + // Country
+      tlv('59', merchantName) + // Merchant Name
+      tlv('60', 'KATHMANDU') + // City
+      tlv('62', additionalData) + // Reference
+      '6304'; // CRC placeholder
+
+  var crc = 0xFFFF;
+  for (final b in payload.codeUnits) {
+    crc ^= (b << 8) & 0xFFFF;
+    for (var i = 0; i < 8; i++) {
+      if ((crc & 0x8000) != 0) {
+        crc = ((crc << 1) ^ 0x1021) & 0xFFFF;
+      } else {
+        crc = (crc << 1) & 0xFFFF;
+      }
+    }
+  }
+  final crcHex = crc.toRadixString(16).toUpperCase().padLeft(4, '0');
+  return '$payload$crcHex';
+}
+
 class FonepayModalSheet extends StatefulWidget {
   const FonepayModalSheet({
     super.key,
@@ -83,9 +126,15 @@ class _FonepayModalSheetState extends State<FonepayModalSheet> {
   }
 
   Future<void> _launchFonepayApp() async {
-    // Attempt deep link into Fonepay or mobile banking app
+    // Generate EMVCo MPM QR payload for mobile banking and Fonepay apps
+    final emvcoPayload = buildFonepayEmvcoQr(
+      merchantId: 'METROLABS',
+      merchantName: 'METRO LABS',
+      bookingNo: widget.bookingNo,
+      amountRupees: widget.amountRupees,
+    );
     final deepLink = Uri.parse(
-      'fonepay://payment?prn=${widget.bookingNo}&amt=${widget.amountRupees}&merchant=METROLABS',
+      'fonepay://qr?data=${Uri.encodeComponent(emvcoPayload)}',
     );
     final webFallback = Uri.https('client.fonepay.com', '/api/merchantRequest', {
       'prn': widget.bookingNo,

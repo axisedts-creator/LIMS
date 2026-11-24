@@ -79,4 +79,22 @@ describe('stage 7 request transaction', () => {
     await rig.run({ req: { params: {}, query: {}, headers: { 'x-tenant-id': TENANT_B, authorization: 'x' }, body: { tenant_id: TENANT_B } } });
     expect(rig.fake.openingClaims().tenant_id).toBe(TENANT_A);
   });
+
+  it('rejects multi-statement queries and null-byte injection attempts fail-closed', async () => {
+    const rig = makeRig();
+    await rig.run({
+      handler: async (_r: any, ctx: any) => {
+        await ctx.ports.IdentityPort.assertRole(ctx, {});
+        // Legitimate query with semicolon inside string literal must succeed
+        await expect(ctx.tx.query("SELECT 'hello; world' AS val")).resolves.toBeDefined();
+        // Semicolon terminating the single statement must succeed
+        await expect(ctx.tx.query("SELECT 1;")).resolves.toBeDefined();
+        // Multi-statement injection must be rejected
+        await expect(ctx.tx.query("SELECT 1; DROP TABLE core.users;")).rejects.toThrow();
+        // Null byte injection must be rejected
+        await expect(ctx.tx.query("SELECT 1\0;")).rejects.toThrow();
+        return { status: 200, body: {} };
+      },
+    });
+  });
 });

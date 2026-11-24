@@ -1,6 +1,9 @@
 # One-shot recovery (2026-11-13): 1) test the API, 2) release the staged resets only if it works, 3) merge main into lane C11.
 Set-Location C:\LIMS
 Write-Host "1/3 API test ..."
+# API-key-only mode (LD-454): test the key, never the subscription login
+foreach ($sc in 'User','Machine') { $kv = [Environment]::GetEnvironmentVariable('ANTHROPIC_API_KEY', $sc); if ($kv -and $kv.Trim()) { $env:ANTHROPIC_API_KEY = $kv.Trim(); break } }
+Remove-Item Env:CLAUDE_CODE_OAUTH_TOKEN -ErrorAction SilentlyContinue
 $r = (& claude -p "reply ok" --output-format json 2>&1 | Out-String)
 if ($r -match '"is_error"\s*:\s*false' -and $r -notmatch 'Cloudflare|Attention Required') {
   Write-Host "API OK"

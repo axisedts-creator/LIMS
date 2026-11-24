@@ -9,7 +9,7 @@
    - Re-running it after a reboot is safe: finished chunks are skipped, unfinished ones resume; lane windows that are already open are adopted, not duplicated.
    - Lane order below = priority: the chunks that gate the most later work (C4, C6, C5, C3, C15, C16) come first. #>
 param([string]$Integration = "C:\LIMS", [string]$LanesRoot = "C:\LIMS-lanes", [string]$StateDir = "C:\LIMS-state",
-      [int]$MaxLanes = 5, [int]$EveryMinutes = 3, [int]$MinFreeGB = 60, [int]$ResetExtra = 1, [switch]$NoPush)
+      [int]$MaxLanes = 8, [int]$EveryMinutes = 3, [int]$MinFreeGB = 60, [int]$ResetExtra = 1, [switch]$NoPush)
 
 $C0 = "C0-foundation-contracts"
 $log = Join-Path $StateDir "logs\queue.log"
@@ -31,17 +31,17 @@ $Queue = @(
   @{ name="C0-0C"; chunk=$C0; filter='^T0C-(?!(REGPARITY-3$|SYNC-|FINCTRL-|PRICETOOLS-|SALES-|PARTYSET-|MISREPORTS-|ACCTFIX-1$|VERLEVEL-1$))'; after=@() },   # contracts, catalog and report stream (TESTMGMT, VERLEVEL, TESTIMPORT, PRINTCFG, CONTENT)
   @{ name="C0-0M"; chunk=$C0; filter='^T0C-(REGPARITY-3$|SYNC-|FINCTRL-|PRICETOOLS-|SALES-|PARTYSET-|MISREPORTS-)'; after=@() },   # 2026-11-17 lead, founder go 13:19 NPT (LD-330): second contract lane: registration number preview fix, sync, price tools, sales, party settings, MIS reports, message desk
   @{ name="C0-0N"; chunk=$C0; filter='^T0C-(ACCTFIX|VERLEVEL)-1$'; after=@() },   # 2026-11-17 lead (LD-335, founder asked to speed up 19:19 NPT): critical path contracts: ACCTFIX-1 unblocks T0B-ACCT-2, VERLEVEL-1 starts the verification level API. The older contract lane windows still carry broad filters, so they were busy with another lane task
-  @{ name="C0-0D"; chunk=$C0; filter='^T0D-(?!UI-)(?!(TESTMGMT|TESTIMPORT|VERLEVEL|PRINTCFG|OFFLINE|FINCTRL|PRICETOOLS|SALES|PARTYSET|MISREPORTS|MSGDESK)-)(?!(UIDASH-1|UICONSOLE-1|UICONSOLE-2|UILIST-1|UILIST-2)$)'; after=@() },   # registration, accounting, content, engbook, bundle, UIKIT-1, UILIST-3, UISCAN, UISETTINGS, UIREPORT, UIGUARD (2026-11-18 lead, LD-364: five UI rows moved to C0-0P and C0-0Q)
-  @{ name="C0-0P"; chunk=$C0; filter='^T0D-(UIDASH-1|UICONSOLE-1|UICONSOLE-2)$'; after=@() },   # 2026-11-18 lead, founder asked to increase the lanes 07:29 NPT (LD-364): UI plan rows that wait only for T0D-UIKIT-1 run in parallel: dashboards and consoles
-  @{ name="C0-0Q"; chunk=$C0; filter='^T0D-(UILIST-1|UILIST-2)$'; after=@() },   # 2026-11-18 lead (LD-364): UI plan list screens, two of the three
-  @{ name="C0-0K"; chunk=$C0; filter='^T0D-(TESTMGMT|TESTIMPORT|VERLEVEL|PRINTCFG|OFFLINE)-'; after=@() },                          # screens: tests, verification, print, offline
+  @{ name="C0-0D"; chunk=$C0; filter='^T0D-(?!UI-)(?!(TESTMGMT|TESTIMPORT|VERLEVEL|PRINTCFG|OFFLINE|FINCTRL|PRICETOOLS|SALES|PARTYSET|MISREPORTS|MSGDESK)-)(?!(UIDASH-1|UICONSOLE-1|UICONSOLE-2|UILIST-1|UILIST-2)$)(?!UIGUARD-1-(LAB|BILLING|FRONTDESK|CATALOG|QUALITY|REPORTING|INSTRUMENTS|INVENTORY|SMARTREPORT|ANATOMIC|PAYMENTS|ENGAGEMENT|HOMECOLLECTION|OFFLINE|PARTNERS)$)(?!UIX-[2-5]$)(?!FIX-([2-4]|7|8|10|11|12)$)(?!(BUILD-[1-5]|DASHCARDS-1)$)'; after=@() },   # registration, accounting, content, engbook, bundle, UIKIT-1, UILIST-3, UISCAN, UISETTINGS, UIREPORT, UIGUARD (2026-11-18 lead, LD-364: five UI rows moved to C0-0P and C0-0Q)
+  @{ name="C0-0P"; chunk=$C0; filter='^T0D-(UIDASH-1|UICONSOLE-1|UICONSOLE-2|UIGUARD-1-(LAB|BILLING)|UIX-2|FIX-4|FIX-10|BUILD-4)$'; after=@() },   # 2026-11-18 lead, founder asked to increase the lanes 07:29 NPT (LD-364): UI plan rows that wait only for T0D-UIKIT-1 run in parallel: dashboards and consoles
+  @{ name="C0-0Q"; chunk=$C0; filter='^T0D-(UILIST-1|UILIST-2|UIGUARD-1-(FRONTDESK|CATALOG|QUALITY)|UIX-3|BUILD-1|FIX-11|DASHCARDS-1)$'; after=@() },   # 2026-11-18 lead (LD-364): UI plan list screens, two of the three
+  @{ name="C0-0K"; chunk=$C0; filter='^(T0D-(TESTMGMT|TESTIMPORT|VERLEVEL|PRINTCFG|OFFLINE)-|T0D-UIGUARD-1-(ENGAGEMENT|HOMECOLLECTION|OFFLINE|PARTNERS)$|T0D-BUILD-5$)'; after=@() },                          # screens: tests, verification, print, offline
   @{ name="C0-0H"; chunk=$C0; filter='^T0B-(SYNC|FINCTRL)-'; after=@() },                                                           # sync API stream
   @{ name="C0-0I"; chunk=$C0; filter='^T0B-(PRICETOOLS|SALES|PARTYSET)-'; after=@() },                                              # price tools, sales, party settings API
   @{ name="C0-0J"; chunk=$C0; filter='^T0B-(MISREPORTS|MSGDESK)-'; after=@() },                                                     # MIS reports and message desk API
-  @{ name="C0-0L"; chunk=$C0; filter='^T0D-(FINCTRL|PRICETOOLS|SALES|PARTYSET|MISREPORTS|MSGDESK)-'; after=@() },                   # screens for the last six modules
+  @{ name="C0-0L"; chunk=$C0; filter='^T0D-((FINCTRL|PRICETOOLS|SALES|PARTYSET|MISREPORTS|MSGDESK)-|FIX-12$)'; after=@() },                   # screens for the last six modules
   # 2026-11-13 lead: the restyle tasks (T0D-UI-R*) were split off C0-0D so they run in parallel with T0D-18 (they touch packages/ui and apps/web/src/core/shell, T0D-18 touches services/api/src/core). R05 (Flutter) is not on the critical path of the RS lanes, so it has its own lane.
-  @{ name="C0-0E"; chunk=$C0; filter='^(T0D-UI-R01|T0D-UI-R02|T0D-UI-R03|T0D-UI-R04|T0D-UI-R07)$'; after=@() },
-  @{ name="C0-0F"; chunk=$C0; filter='^T0D-UI-R05$'; after=@() },
+  @{ name="C0-0E"; chunk=$C0; filter='^(T0D-UI-R01|T0D-UI-R02|T0D-UI-R03|T0D-UI-R04|T0D-UI-R07|T0D-UIGUARD-1-(REPORTING|INSTRUMENTS|INVENTORY)|T0D-UIX-4|T0D-FIX-2|T0D-FIX-7|T0D-BUILD-3)$'; after=@() },
+  @{ name="C0-0F"; chunk=$C0; filter='^(T0D-UI-R05|T0D-UIGUARD-1-(SMARTREPORT|ANATOMIC|PAYMENTS)|T0D-UIX-5|T0D-FIX-3|T0D-FIX-8|T0D-BUILD-2)$'; after=@() },
   @{ name="C1";  chunk="C1-infrastructure-ops"; filter='.*'; after=@() },
   @{ name="C4"; chunk="C4-frontdesk-billing"; filter='^(FD-T01|FD-T03|FD-T04|FD-T05|FD-T06|FD-T13|FD-T07|FD-T10|FD-T15|FD-T08|FD-T09|FD-T11|FD-T12|FD-T16|FD-T17|J-T03)$'; after=@($C0) },
   @{ name="C4b"; chunk="C4-frontdesk-billing"; filter='^(FD-T02|BL-T02|BL-T05|BL-T06|BL-T08|BL-T07|BL-T11|BL-T09|BL-T12|BL-T16|BL-T22|J-T01|FD-T14)$'; after=@($C0) },

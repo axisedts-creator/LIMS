@@ -34,7 +34,15 @@ $env:PATH = ((@($extra | Where-Object { Test-Path $_ })) -join ';') + ';' + $env
 # 'credit balance is too low'; the code in Invoke-Agent then writes this flag, drops the key for this process and carries on with the subscription login. Delete the flag file to use a refilled key again.
 $script:CreditFlag = Join-Path $StateDir 'api-credit-exhausted.flag'
 $script:VerifyTimeoutMin = 30   # minutes a task's verify command may run before it is killed and counted as failed
-if ($env:ANTHROPIC_API_KEY -and (Test-Path $script:CreditFlag)) { Remove-Item Env:ANTHROPIC_API_KEY -ErrorAction SilentlyContinue }
+# API-key-only mode (founder order 2026-11-22 15:58, LD-454): every claude call bills ANTHROPIC_API_KEY, never the subscription login. The key is re-read from the user/machine
+# environment variables before every call (a new or refilled key works without a restart); no key = no call; credit exhausted or key rejected = wait and retry, no fallback.
+$script:PauseFlag = Join-Path $StateDir 'api-paused.flag'
+function Ensure-ApiKey {
+  foreach ($sc in 'User','Machine') { $v = [Environment]::GetEnvironmentVariable('ANTHROPIC_API_KEY', $sc); if ($v -and $v.Trim()) { $env:ANTHROPIC_API_KEY = $v.Trim(); break } }
+  Remove-Item Env:CLAUDE_CODE_OAUTH_TOKEN -ErrorAction SilentlyContinue
+  return [bool]$env:ANTHROPIC_API_KEY
+}
+[void](Ensure-ApiKey)
 # writer model cascade (user-approved 2026-11-07 22:24): first implementation pass = Sonnet with --effort high (only if this claude CLI has --effort); chunks C0 and C2 (auth, tenant isolation) keep Opus; every rework pass (after a ruling or review CHANGES) is Opus
 $script:EffortOk = $false
 try { $script:EffortOk = ([bool]((& claude --help 2>&1 | Out-String) -match '--effort')) } catch { }
@@ -118,8 +126,12 @@ function Invoke-Agent([string]$Role, [string]$TaskId, [string]$Brief, [string]$M
   $errf = Join-Path $O "logs\stderr-$TaskId-$Role.log"
   while ($true) {
     $tries++
-    # switch-back: the flag file (written by the credit check below, or by hand) drops the API key before every agent call
-    if ($env:ANTHROPIC_API_KEY -and (Test-Path $script:CreditFlag)) { Remove-Item Env:ANTHROPIC_API_KEY -ErrorAction SilentlyContinue }
+    # API-key-only mode: no key = no claude call. Wait and look again (the key is re-read from the user/machine settings each time).
+    if (-not (Ensure-ApiKey)) {
+      Log "$Role $TaskId no ANTHROPIC_API_KEY set - API-key-only mode, claude not started; waiting 5 min"
+      try { Set-Content -Path $script:PauseFlag -Value "$(Get-Date -Format s) no ANTHROPIC_API_KEY" } catch { }
+      Start-Sleep -Seconds 300; $tries--; continue
+    }
     # prompt goes right after -p: --allowedTools takes a list and would swallow a prompt placed after it
     if ($session) { $run = @("-p","Continue the task in $rel from where you stopped.","--resume",$session) + $common }
     else          { $run = @("-p","Read $rel and do exactly what it says. Reply in at most 6 lines.") + $common }
@@ -129,13 +141,13 @@ function Invoke-Agent([string]$Role, [string]$TaskId, [string]$Brief, [string]$M
     Add-Content (Join-Path $O "logs\agents.log") "---- $(Get-Date -Format s) $Role $TaskId try $tries exit $code`nSTDOUT: $raw`nSTDERR: $err"
     $j = $null; try { $j = $raw | ConvertFrom-Json } catch {}
     if ($j -and $j.session_id) { $session = $j.session_id }
-    if ($code -eq 0 -and $j -and -not $j.is_error) { return $true }
-    # API key out of credit: fall back to the subscription login right away (no wait, no failed try) and remember it for the next passes
-    $credRx = '(?i)credit balance|insufficient (credit|funds)|spend limit|specified API usage limits'
+    if ($code -eq 0 -and $j -and -not $j.is_error) { if (Test-Path $script:PauseFlag) { Remove-Item $script:PauseFlag -ErrorAction SilentlyContinue }; return $true }
+    # API key out of credit, or key rejected: API-key-only mode - NO fallback to the subscription login. Wait 5 min and retry (no failed try counted); marker file api-paused.flag.
+    $credRx = '(?i)credit balance|insufficient (credit|funds)|spend limit|specified API usage limits|invalid api key|invalid x-api-key|authentication_error|Fix external API key'
     if ($env:ANTHROPIC_API_KEY -and ((("$err" -match $credRx)) -or (("$raw" -match '"is_error"\s*:\s*true') -and ("$raw" -match $credRx)))) {
-      Log "$Role $TaskId API credit exhausted - dropping ANTHROPIC_API_KEY, continuing on the subscription login"
-      try { Set-Content -Path $script:CreditFlag -Value (Get-Date -Format s) } catch { }
-      Remove-Item Env:ANTHROPIC_API_KEY -ErrorAction SilentlyContinue; $tries--; continue
+      Log "$Role $TaskId API key problem (credit exhausted or key rejected) - API-key-only mode, no subscription fallback: waiting 5 min, then retrying. Refill the credit or fix the ANTHROPIC_API_KEY user environment variable."
+      try { Set-Content -Path $script:PauseFlag -Value "$(Get-Date -Format s) $Role $TaskId credit exhausted or key rejected" } catch { }
+      Start-Sleep -Seconds 300; $tries--; continue
     }
     # only a real API/CLI error counts as a usage limit: stderr, or an is_error JSON result - never words in the agent's own work
     # (e.g. a task about nginx "rate-limit zones" must not trigger a 10-minute wait)

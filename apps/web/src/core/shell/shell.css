@@ -30,7 +30,7 @@
 .lims-filter-bar input[type='search'] { flex: 1 1 12rem; max-width: 24rem; }
 /* T0D-UNSLOP-1 (C), LD-353 rule 10 and template 5: one row of equal status tiles; hero chart two thirds, side chart one third. */
 .lims-stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: var(--lims-space-2); }
-.lims-dash-charts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--lims-space-3); }
+.lims-dash-charts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--lims-space-4); }
 @media (max-width: 64rem) { .lims-dash-charts { grid-template-columns: 1fr; } }
 /* T0D-UIDASH-1 (LD-353 rule 4): a status tile that is also a filter (lab status board); pressed = the accent border. */
 .lims-stat-toggle { font: inherit; text-align: start; cursor: pointer; }
@@ -256,11 +256,13 @@ body { margin: 0; }
 .lims-topbar-bell-note { display: none !important; }
 .lims-shell-main { padding: var(--lims-space-2) var(--lims-space-4) !important; }
 .lims-page-title { font-size: 1rem !important; line-height: 1.3rem; }
-.lims-card { padding: var(--lims-space-3) !important; }
-.lims-card-title { margin: 0 0 var(--lims-space-2) !important; font-size: var(--lims-font-size-base-size) !important; }
-/* T0D-UIKIT-2, LD-436 R8 + LD-438 (CR-C0-0D-UIKIT2 option C): staff web card = white, 1px neutral.200 hairline, radius md, 3D popped tactile elevation.
+.lims-card { padding: var(--lims-space-2) var(--lims-space-3) !important; }
+.lims-card-title { margin: 0 0 var(--lims-space-1-5, 0.375rem) !important; font-size: var(--lims-font-size-base-size) !important; }
+/* T0D-UIKIT-2, LD-436 R8 + LD-438 (CR-C0-0D-UIKIT2 option C): staff web card = white, 1px neutral.200 hairline, radius md, elevation.1.
    The kit base lims-card (radius 24, no border, no shadow) is unchanged; dialogs and drawers are not touched. */
-.lims-card, .lims-chart-card {
+.lims-card { border: 0.0625rem solid var(--lims-neutral-200) !important; border-radius: var(--lims-radius-md) !important; box-shadow: var(--lims-elevation-1) !important; }
+.lims-shell .lims-card, .lims-chart-card {
+  box-sizing: border-box !important;
   position: relative;
   border: 0.0625rem solid color-mix(in srgb, var(--lims-neutral-300) 40%, var(--lims-neutral-200)) !important;
   border-radius: var(--lims-radius-md) !important;
@@ -278,7 +280,7 @@ body { margin: 0; }
               border-color var(--lims-motion-duration-fast) var(--lims-motion-easing) !important;
 }
 
-.lims-card:hover, .lims-chart-card:hover {
+.lims-shell .lims-card:hover, .lims-chart-card:hover {
   transform: translate3d(0, -0.125rem, 0);
   z-index: 2;
   border-color: color-mix(in srgb, var(--lims-accent) 40%, var(--lims-neutral-300)) !important;
@@ -334,19 +336,19 @@ a.lims-menuitem { display: block; color: inherit; text-decoration: none; }
 .lims-rail-user-role { opacity: 0.85; }
 .lims-shell-top .lims-breadcrumb { font-size: var(--lims-font-size-base-size); }
 /* T0D-UIDASH-2 (LD-436 Today mock): pipeline card, then Needs you (5) beside Money (7), then the two charts (7 beside 5). Tokens only. */
-.lims-dash { display: flex; flex-direction: column; gap: var(--lims-space-3); }
-.lims-dash-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--lims-space-3); align-items: stretch; }
-.lims-dash-charts { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: stretch; }
+.lims-dash { display: flex; flex-direction: column; gap: var(--lims-space-4); }
+.lims-dash-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--lims-space-4); align-items: stretch; }
+.lims-dash-charts { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--lims-space-4); align-items: stretch; }
 /* T0D-DASHCARDS-1 (LD-447, founder 2026-11-22 "more attractive"): equal heights per row, a lone card takes the full row, Money is a 2 x 2 block of large
    tabular values, an empty chart frame keeps the chart height with its message centred; skeleton in the same grid. Tokens only (AA from the token pairs). */
 .lims-dash-row-single { grid-template-columns: 1fr; }
-.lims-dash-row > *, .lims-dash-charts > * { height: 100%; min-width: 0; }
+.lims-dash-row > *, .lims-dash-charts > * { height: 100%; min-width: 0; box-sizing: border-box !important; }
 @media (max-width: 64rem) { .lims-dash-row, .lims-dash-charts { grid-template-columns: 1fr; } }
 .lims-dash-money { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.0625rem; background: var(--lims-neutral-200); border-radius: var(--lims-radius-sm); overflow: hidden; }
 .lims-dash-money > .lims-stat { border: 0 !important; border-top: 0 !important; border-radius: 0 !important; box-shadow: none !important; padding: var(--lims-space-2) var(--lims-space-3); transform: none !important; will-change: auto !important; }
 .lims-dash-money > .lims-stat:hover { border-color: transparent !important; box-shadow: none !important; transform: none !important; }
 .lims-dash-money .lims-stat-value { font-size: var(--lims-font-size-xl-size); font-weight: var(--lims-font-weight-semibold); font-variant-numeric: tabular-nums; text-align: end; }
-.lims-dash-charts .lims-chart-empty { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: var(--lims-space-1); min-height: 5.5rem; margin: 0; color: var(--lims-neutral-700); text-align: center; font-size: var(--lims-font-size-sm-size); }
+.lims-dash-charts .lims-chart-empty { position: absolute; inset: 0; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: var(--lims-space-1); margin: 0; color: var(--lims-neutral-700); text-align: center; font-size: var(--lims-font-size-sm-size); pointer-events: none; }
 .lims-dash-skeleton .lims-skeleton-row { min-height: var(--lims-space-6); }
 .lims-dash-ratio { display: flex; flex-direction: column; gap: var(--lims-space-1); margin-top: var(--lims-space-2); }
 .lims-dash-ratio-label { display: flex; justify-content: space-between; color: var(--lims-neutral-700); font-size: var(--lims-font-size-xs-size); font-weight: var(--lims-font-weight-medium); font-variant-numeric: tabular-nums; }
@@ -453,8 +455,8 @@ a.lims-menuitem { display: block; color: inherit; text-decoration: none; }
 .lims-action-item { overflow: hidden; }
 .lims-action-row { box-sizing: border-box !important; max-width: 100% !important; width: 100% !important; padding: var(--lims-space-2) var(--lims-space-3) !important; }
 .lims-chart-card .lims-chart-title { display: none !important; }
-.lims-chart-card { padding: var(--lims-space-3) var(--lims-space-4) !important; gap: var(--lims-space-1) !important; }
-.lims-chart-card .lims-chart-frame { max-height: 8.5rem; }
-.lims-chart-card .lims-chart-svg { max-height: 7.5rem !important; width: 100% !important; height: auto !important; }
+.lims-chart-card { display: flex; flex-direction: column; box-sizing: border-box !important; padding: var(--lims-space-3) var(--lims-space-4) !important; gap: var(--lims-space-2) !important; }
+.lims-chart-card .lims-chart-frame { position: relative; min-width: 0; }
+.lims-chart-card .lims-chart-svg { max-height: 6rem !important; width: 100% !important; height: auto !important; }
 .lims-chart-card .lims-chart-legend { margin-top: var(--lims-space-1) !important; gap: var(--lims-space-2) !important; font-size: var(--lims-font-size-xs-size) !important; }
-.lims-dash-row > .lims-card { padding: var(--lims-space-3) var(--lims-space-4) !important; }
+.lims-dash-row > .lims-card { display: flex; flex-direction: column; box-sizing: border-box !important; padding: var(--lims-space-3) var(--lims-space-4) !important; }

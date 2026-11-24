@@ -431,15 +431,25 @@ a.lims-menuitem { display: block; color: inherit; text-decoration: none; }
 /* (7) Semantic chips with glowing indicator dots */
 .lims-chip { display: inline-flex; align-items: center; gap: var(--lims-space-1); min-height: 1.375rem; line-height: 1.375rem; padding: 0 var(--lims-space-2); border: 0.0625rem solid; border-radius: var(--lims-radius-full); font-size: var(--lims-font-size-xs-size); font-weight: var(--lims-font-weight-medium); font-variant-numeric: tabular-nums; letter-spacing: 0.01em; white-space: nowrap; box-shadow: 0 0.0625rem 0.125rem color-mix(in srgb, var(--lims-neutral-900) 4%, transparent); }
 .lims-chip::before { content: ''; display: inline-block; width: 0.375rem; height: 0.375rem; border-radius: var(--lims-radius-full); background: currentColor; flex: none; opacity: 0.9; box-shadow: 0 0 0.25rem currentColor; }
-.lims-tone-neutral, .lims-chip.lims-tone-neutral, [data-tone='neutral'] { color: var(--lims-tone-neutral-fg); background: var(--lims-tone-neutral-bg); border-color: var(--lims-tone-neutral-border); }
-.lims-tone-info, .lims-chip.lims-tone-info, [data-tone='info'] { color: var(--lims-tone-info-fg); background: var(--lims-tone-info-bg); border-color: var(--lims-tone-info-border); }
-.lims-tone-success, .lims-chip.lims-tone-success, [data-tone='success'] { color: var(--lims-tone-success-fg); background: var(--lims-tone-success-bg); border-color: var(--lims-tone-success-border); }
-.lims-tone-warning, .lims-chip.lims-tone-warning, [data-tone='warning'] { color: var(--lims-tone-warning-fg); background: var(--lims-tone-warning-bg); border-color: var(--lims-tone-warning-border); }
-.lims-tone-danger, .lims-chip.lims-tone-danger, [data-tone='danger'] { color: var(--lims-tone-danger-fg); background: var(--lims-tone-danger-bg); border-color: var(--lims-tone-danger-border); }
-.lims-tone-critical, .lims-chip.lims-tone-critical, [data-tone='critical'] { color: var(--lims-tone-critical-fg); background: var(--lims-tone-critical-bg); border-color: var(--lims-tone-critical-border); }
+.lims-chip.lims-tone-neutral, .lims-chip[data-tone='neutral'] { color: var(--lims-tone-neutral-fg); background: var(--lims-tone-neutral-bg); border-color: var(--lims-tone-neutral-border); }
+.lims-chip.lims-tone-info, .lims-chip[data-tone='info'] { color: var(--lims-tone-info-fg); background: var(--lims-tone-info-bg); border-color: var(--lims-tone-info-border); }
+.lims-chip.lims-tone-success, .lims-chip[data-tone='success'] { color: var(--lims-tone-success-fg); background: var(--lims-tone-success-bg); border-color: var(--lims-tone-success-border); }
+.lims-chip.lims-tone-warning, .lims-chip[data-tone='warning'] { color: var(--lims-tone-warning-fg); background: var(--lims-tone-warning-bg); border-color: var(--lims-tone-warning-border); }
+.lims-chip.lims-tone-danger, .lims-chip[data-tone='danger'] { color: var(--lims-tone-danger-fg); background: var(--lims-tone-danger-bg); border-color: var(--lims-tone-danger-border); }
+.lims-chip.lims-tone-critical, .lims-chip[data-tone='critical'] { color: var(--lims-tone-critical-fg); background: var(--lims-tone-critical-bg); border-color: var(--lims-tone-critical-border); }
 /* (8) Frontdesk 3-column registration workspace & summary dock */
 .lims-reg-col:nth-child(1) > .lims-card { border-top: 0.25rem solid var(--lims-accent) !important; }
 .lims-reg-col:nth-child(2) > .lims-card { border-top: 0.25rem solid var(--lims-tone-info-fg) !important; }
 .lims-reg-col:nth-child(3) > .lims-card { border-top: 0.25rem solid var(--lims-tone-success-fg) !important; }
-.lims-reg-summary { border: 0.0625rem solid color-mix(in srgb, var(--lims-neutral-300) 40%, var(--lims-neutral-200)) !important; border-radius: var(--lims-radius-md) !important; background: var(--lims-neutral-0) !important; box-shadow: 0 -0.25rem 1rem -0.125rem color-mix(in srgb, var(--lims-accent) 8%, transparent), 0 -0.0625rem 0.1875rem color-mix(in srgb, var(--lims-accent) 4%, transparent), inset 0 0.0625rem 0 0 var(--lims-neutral-0) !important; }
+.lims-reg-summary { border: 0.0625rem solid color-mix(in srgb, var(--lims-neutral-300) 40%, var(--lims-neutral-200)) !important; border-radius: var(--lims-radius-md) !important; background: var(--lims-neutral-0) !important; box-shadow: 0 -0.25rem 1rem -0.125rem color-mix(in srgb, var(--lims-accent) 8%, transparent), 0 -0.0625rem .1875rem color-mix(in srgb, var(--lims-accent) 4%, transparent), inset 0 0.0625rem 0 0 var(--lims-neutral-0) !important; }
 .lims-reg-summary-balance { font-weight: var(--lims-font-weight-bold); color: var(--lims-accent-hover) !important; }
+/* (9) Dashboard UI layout refinements: Stepper horizontal pipeline, ActionList box-sizing & clean chart title */
+.lims-stepper { width: 100%; overflow-x: auto; }
+.lims-stepper-list { display: flex !important; flex-wrap: nowrap !important; align-items: center !important; justify-content: space-between !important; gap: var(--lims-space-2) !important; list-style: none !important; padding: 0 !important; margin: 0 !important; }
+.lims-step { display: inline-flex !important; align-items: center !important; gap: var(--lims-space-1) !important; white-space: nowrap !important; font-size: var(--lims-font-size-xs-size) !important; background: transparent !important; flex: 0 1 auto; }
+.lims-step.lims-step-current { background: var(--lims-tone-info-bg) !important; border: 0.0625rem solid var(--lims-tone-info-border) !important; border-radius: var(--lims-radius-sm) !important; padding: var(--lims-space-1) var(--lims-space-2) !important; }
+.lims-step-figures { display: inline-flex !important; align-items: baseline !important; gap: var(--lims-space-1) !important; flex-basis: auto !important; }
+@media (max-width: 64rem) { .lims-stepper-list { flex-wrap: wrap !important; gap: var(--lims-space-2) var(--lims-space-4) !important; } }
+.lims-action-item { overflow: hidden; }
+.lims-action-row { box-sizing: border-box !important; max-width: 100% !important; width: 100% !important; padding: var(--lims-space-2) var(--lims-space-3) !important; }
+.lims-chart-card .lims-chart-title { position: absolute !important; width: 1px !important; height: 1px !important; padding: 0 !important; margin: -1px !important; overflow: hidden !important; clip: rect(0, 0, 0, 0) !important; white-space: nowrap !important; border: 0 !important; }

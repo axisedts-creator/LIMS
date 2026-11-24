@@ -15,6 +15,10 @@ export interface TextBeeConfig {
  * Strict security guarantee: Never hardcodes secrets and never reads from repo root or client code.
  */
 export function getTextBeeConfig(): TextBeeConfig | null {
+  if ((process.env.NODE_ENV === 'test' || process.env.VITEST) && !process.env.TEXTBEE_ENABLE_TEST) {
+    return null;
+  }
+
   if (process.env.TEXTBEE_DEVICE_ID && process.env.TEXTBEE_API_KEY) {
     return {
       deviceId: process.env.TEXTBEE_DEVICE_ID,

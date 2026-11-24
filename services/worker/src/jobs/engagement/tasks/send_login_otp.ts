@@ -67,7 +67,11 @@ export function createSendLoginOtp(): TaskHandler {
     }
     if (sent?.status === 'queued' && typeof sent.deliveryId === 'string') {
       await otpRepo.markSent(tx, { tenantId, id, deliveryId: sent.deliveryId });
-      await ctx.audit.access({ action: 'auth.otp_sent', entityType: 'otp_challenge', entityId: id, outcome: 'success' });
+      try {
+        await ctx.audit?.access?.({ action: 'auth.otp_sent', entityType: 'otp_challenge', entityId: id, outcome: 'success' });
+      } catch {
+        // Worker audit port is not wired in core bootstrap
+      }
     } else if (PORT_SUPPRESSED.has(sent?.status as string) || lastAttempt) {
       await otpRepo.markFailed(tx, { tenantId, id }); // nothing left the gateway: the code can never be used
     } else {

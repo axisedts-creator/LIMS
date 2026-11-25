@@ -95,6 +95,14 @@ describe('failures are retryable, coded, and leak nothing', () => {
     expect((await rejection(wired().assembler.assemble(assembleReq))).code).toBe('reporting.render_unavailable');
   });
 
+  it('a redirect is refused, not followed: the bearer token and the PDF never reach another address', async () => {
+    reply = (s, res) => (s.url === '/elsewhere' ? void res.writeHead(200).end('{}') : void res.writeHead(307, { location: '/elsewhere' }).end());
+    const c = wired();
+    expect((await rejection(c.assembler.assemble(assembleReq))).code).toBe('reporting.render_unavailable');
+    expect((await rejection(c.sandbox.sanitize(new Uint8Array(PDF)))).message).toBe('pdf_sandbox_unreachable');
+    expect(seen.map((s) => s.url)).toEqual(['/internal/assemble', '/internal/sanitize']);
+  });
+
   it('service unreachable', async () => {
     const c = createReportingClients({ LIMS_REPORTING_RENDERER_URL: 'http://127.0.0.1:1', LIMS_REPORTING_RENDERER_TOKEN_FILE: tokenFile,
       LIMS_REPORTING_SANDBOX_URL: 'http://127.0.0.1:1', LIMS_REPORTING_SANDBOX_TOKEN_FILE: tokenFile });

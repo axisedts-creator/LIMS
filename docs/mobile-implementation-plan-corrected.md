@@ -115,6 +115,32 @@ elsewhere requires the `cr-approved-breaking` label.
   mirror of the server's `validateMutationPayload` plus the GPS range check). Open: a row
   already in a device's outbox from an older build is not rescued; that needs a CR.
 
+## Progress, second pass (2026-11-25)
+
+- Step 1 proven end to end: `services/renderer/src/__tests__/worker-clients.e2e.test.ts` runs
+  the worker clients against the real renderer server (Chromium) and the real PDF sandbox
+  (qpdf): render, assemble with page stamps, sanitize, bad hash, wrong token. In-process
+  servers, not the compose containers. The sandbox clients refuse HTTP redirects.
+- Step 2 closed without changes: the patient app payment flow already exists and never trusts
+  the return link (HTTPS app link `/payments/{payment_request_id}/done`, result read from the
+  API only). Its 51 tests pass.
+- Step 3 gate added: `apps/phlebo_app/__tests__/sync_engine_bulk_test.dart` (500 queued, 5
+  rejected by the server: 495 applied, queue drains in one cycle).
+- Validator drift guard: `packages/test-fixtures/homecollection/mutation-payload-cases.json`
+  (100 cases, from `generate.py`) is run by both the server validator and the Dart mirror.
+- `db_ci_guards_test.dart` fixed for CRLF checkouts (comment stripping split on `\r?\n`).
+- Gapless numbering and tenant isolation already have suites: `counter.concurrency.test.ts`,
+  `counter.live.test.ts` and the generated probes under `db/tests/isolation`.
+  A local run of both on a throwaway Postgres was INCONCLUSIVE: 16 of 104 isolation suites
+  (billing, engagement, homecollection, payments) and all 7 live counter tests failed, but the
+  run used image 17.11.0.018 instead of the pinned 17.6.1.136, skipped the seeds and skipped
+  probe generation, and several failures are of the "rows seeded" kind. They must be rerun
+  the standard way (`bash db/tests/run-suites.sh`) before either gate is called green.
+  No SQL, migration or policy was changed in this work.
+- Step 4 (mobile BFF) stays deferred: needs a measured problem and an approved CR.
+- Not done: the 50-concurrent-render latency gate (needs a running API and a recorded
+  baseline), a run inside the compose containers, a device run of `integration_test/`.
+
 ## Not verified
 
 - Server behaviour for an invalid barcode in `/sync/mutations` (per-mutation vs batch error).

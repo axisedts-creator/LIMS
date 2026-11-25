@@ -1,7 +1,8 @@
 // Worker-side clients of the renderer (/internal/render) and the PDF sandbox (/internal/sanitize, /internal/assemble), 02-TRD §5.1-§5.2.
 // LAZY, like api ports/renderPort.lazy.ts: nothing is read at import; settings and token files are read on the first call.
 // Unset / unreadable settings fail the call the same way the old stubs did (retryable), so a missing setting is loud, never a silent success.
-// Errors never carry the URL, the token file path, the token or a response body.
+// Errors never carry the URL, the token file path, the token or a response body. Redirects are refused: an internal service never redirects,
+// and following one could send the bearer token or a patient PDF somewhere else.
 import { readFileSync } from 'node:fs';
 import { loadRendererConfig } from '../../../../api/src/modules/reporting/config.js';
 import { createRenderClient, type RenderClient } from '../../../../api/src/modules/reporting/renderer-client/render.client.js';
@@ -61,7 +62,7 @@ export function createReportingClients(env: Env = process.env): { renderer: Rend
         try {
           const form = new FormData();
           form.set('file', new Blob([bytes as BlobPart], { type: 'application/pdf' }), 'file.pdf');
-          res = await fetch(`${s.url}/internal/sanitize`, { method: 'POST', headers: { authorization: s.auth }, body: form, signal: AbortSignal.timeout(TIMEOUT_MS) });
+          res = await fetch(`${s.url}/internal/sanitize`, { method: 'POST', headers: { authorization: s.auth }, body: form, redirect: 'error', signal: AbortSignal.timeout(TIMEOUT_MS) });
           // 200 = sanitised, 422 = rejected with a reason; both are answers the task validates itself (nothing in the reply is trusted).
           if (res.status === 200 || res.status === 422) return (await res.json()) as SanitizeReply;
         } catch (e) {
@@ -79,7 +80,7 @@ export function createReportingClients(env: Env = process.env): { renderer: Rend
         let res: Response; let body: Uint8Array;
         try {
           res = await fetch(`${s.url}/internal/assemble`, { method: 'POST', headers: { 'content-type': 'application/json', authorization: s.auth },
-            body: JSON.stringify(req), signal: AbortSignal.timeout(TIMEOUT_MS) });
+            body: JSON.stringify(req), redirect: 'error', signal: AbortSignal.timeout(TIMEOUT_MS) });
           // ponytail: a 422 (a part the sandbox rejects) is retried like an outage and ends in render_failed after the last attempt; the spec names no code for it.
           if (!res.ok) throw new Error('not ok');
           body = new Uint8Array(await res.arrayBuffer());

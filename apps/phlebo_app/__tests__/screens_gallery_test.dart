@@ -134,6 +134,13 @@ void main() {
         home: home,
       ),
     ));
+    // decode the brand marks before the first capture (otherwise the shot is taken with the logo still loading)
+    await t.runAsync(() async {
+      final ctx = t.element(find.byType(MaterialApp));
+      for (final n in ['ml-logo-white', 'ml-logo-landscape-white']) {
+        await precacheImage(AssetImage('assets/brand/$n.png'), ctx);
+      }
+    });
     // one frame, then past the 450 ms card fade; no pumpAndSettle (the splash spinner never settles)
     await t.pump();
     await t.pump(const Duration(milliseconds: 600));

@@ -8,6 +8,7 @@ import '../../../core/platform/monotonic_clock.dart';
 import '../../../core/sync/clock_anchor.dart';
 import '../../visit/data/mutation_sink.dart' show MutationSink;
 import '../domain/outbox_row.dart';
+import 'mutation_payload.dart';
 import 'outbox_lock.dart';
 import 'sha256.dart';
 import 'time_format.dart';
@@ -141,6 +142,8 @@ class OutboxRepository implements MutationSink {
       }
       final phi = _phiKeyIn(payload);
       if (phi != null) throw ArgumentError('payload key "$phi" is not allowed (no PHI in the outbox)');
+      // No value in the message: a payload can hold a barcode or a reference.
+      if (!mutationPayloadIsValid(type, payload)) throw ArgumentError('payload does not match $type');
       payloadJson = jsonEncode(_canonical(payload));
       if (_bytes(payloadJson) > maxPayloadBytes) throw ArgumentError('payload exceeds $maxPayloadBytes bytes');
     } catch (e) {

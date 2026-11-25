@@ -4,7 +4,7 @@ import '@lims/ui/tokens.css'; // LD-198: kit.css needs dist/tokens.css (generate
 import '@lims/ui/kit.css';
 import '@/core/shell/shell.css';
 import '@/core/shell/layout.css';
-import '@lims/ui/web-redesign.css'; // ui/redesign visual layer, must stay last
+import '../../../../packages/ui/src/theme/web-redesign.css'; // ui/redesign visual layer, must stay last (relative: the live web deploy cannot change package.json)
 import { Providers } from '@/core/shell/Providers';
 
 // T0D-FAVICON-1 (LD-310): tabs read "Page - Metro Labs"; icons + manifest come from the app/ file conventions.

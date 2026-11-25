@@ -8,8 +8,7 @@
     "./tokens": "./src/tokens.ts",
     "./tokens.css": "./dist/tokens.css",
     "./fonts.css": "./assets/fonts/fonts.css",
-    "./kit.css": "./src/components/kit.css",
-    "./web-redesign.css": "./src/theme/web-redesign.css"
+    "./kit.css": "./src/components/kit.css"
   },
   "scripts": {
     "build": "node scripts/build-tokens.ts",

@@ -3,11 +3,11 @@
    shell.css / layout.css / frontdesk.css already use it. Delete the one import line to go back to the previous look. */
 
 /* ===== 1. font ===== */
-@font-face { font-family: 'Plus Jakarta Sans'; font-style: normal; font-display: swap; font-weight: 400; src: url(./fonts/plus-jakarta-sans-latin-400-normal.woff2) format('woff2'); }
-@font-face { font-family: 'Plus Jakarta Sans'; font-style: normal; font-display: swap; font-weight: 500; src: url(./fonts/plus-jakarta-sans-latin-500-normal.woff2) format('woff2'); }
-@font-face { font-family: 'Plus Jakarta Sans'; font-style: normal; font-display: swap; font-weight: 600; src: url(./fonts/plus-jakarta-sans-latin-600-normal.woff2) format('woff2'); }
-@font-face { font-family: 'Plus Jakarta Sans'; font-style: normal; font-display: swap; font-weight: 700; src: url(./fonts/plus-jakarta-sans-latin-700-normal.woff2) format('woff2'); }
-@font-face { font-family: 'Plus Jakarta Sans'; font-style: normal; font-display: swap; font-weight: 800; src: url(./fonts/plus-jakarta-sans-latin-800-normal.woff2) format('woff2'); }
+@font-face { font-family: 'Plus Jakarta Sans'; font-style: normal; font-display: swap; font-weight: 400; src: url('../../node_modules/@fontsource/plus-jakarta-sans/files/plus-jakarta-sans-latin-400-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Plus Jakarta Sans'; font-style: normal; font-display: swap; font-weight: 500; src: url('../../node_modules/@fontsource/plus-jakarta-sans/files/plus-jakarta-sans-latin-500-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Plus Jakarta Sans'; font-style: normal; font-display: swap; font-weight: 600; src: url('../../node_modules/@fontsource/plus-jakarta-sans/files/plus-jakarta-sans-latin-600-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Plus Jakarta Sans'; font-style: normal; font-display: swap; font-weight: 700; src: url('../../node_modules/@fontsource/plus-jakarta-sans/files/plus-jakarta-sans-latin-700-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Plus Jakarta Sans'; font-style: normal; font-display: swap; font-weight: 800; src: url('../../node_modules/@fontsource/plus-jakarta-sans/files/plus-jakarta-sans-latin-800-normal.woff2') format('woff2'); }
 
 /* ===== 2. tokens ===== */
 :root {

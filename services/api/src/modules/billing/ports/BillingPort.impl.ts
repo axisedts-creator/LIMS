@@ -12,6 +12,7 @@ import { fiscalYearOf } from '../domain/fiscalYear.js';
 import { toPaisa } from '../domain/money/paisa.js';
 import { createBillingEvents, type BillingEvents } from '../events/publish.js';
 import { billingRepo, type BillingRepo } from '../repository/index.js';
+import { createAccountsService, type AccountsService } from '../service/accounts.service.js';
 import { createBalanceService } from '../service/balance.service.js';
 import { isRec, UTC_INSTANT, UUID } from '../service/invoiceRead.service.js';
 import { DEFAULT_TZ, localDate } from '../service/ledgerDto.js';
@@ -241,8 +242,20 @@ export function createBillingPort(deps: { repo?: BillingRepo; events: BillingEve
     recordGatewayPayment: recordGatewayPayment as unknown as BillingPortV1['recordGatewayPayment'],
     getOrderBalance: getOrderBalance as BillingPortV1['getOrderBalance'],
     recordGatewayRefund: recordGatewayRefund as unknown as BillingPortV1['recordGatewayRefund'],
+    async recordAccountEntry(ctx, input) {                                                // CR-C13-016: same service as the accounts endpoint, caller's tx
+      const c = ctx as unknown as { tenantId?: unknown; tx?: unknown };
+      if (typeof c?.tenantId !== 'string' || !c.tx) throw new LimsError('auth.unauthenticated');
+      const entry = await accounts().createEntry(ctx as never, {
+        centre_id: input.centreId, party_kind: input.partyKind, party_id: input.partyId, entry_date: input.entryDate, account_particular_id: input.accountParticularId,
+        entry_type: input.entryType, amount_paisa: input.amount.amountPaisa, payment_mode: input.paymentMode, ...(input.comments === undefined ? {} : { comments: input.comments }),
+      });
+      return { entryId: (entry as Record<string, unknown>)['id'] as Awaited<ReturnType<BillingPortV1['recordAccountEntry']>>['entryId'] };
+    },
   };
 }
+
+let accountsSvc: AccountsService | undefined;
+const accounts = (): AccountsService => (accountsSvc ??= createAccountsService());   // built on first use (no I/O at import time)
 
 /** Production wiring for the manifest: real core event publisher, built on first use (no I/O at import time). */
 let built: BillingPortV1 | undefined;
@@ -252,4 +265,5 @@ export const billingPort: BillingPortV1 = {
   recordGatewayPayment: (c, i) => real().recordGatewayPayment(c, i),
   getOrderBalance: (c, i) => real().getOrderBalance(c, i),
   recordGatewayRefund: (c, i) => real().recordGatewayRefund(c, i),
+  recordAccountEntry: (c, i) => real().recordAccountEntry(c, i),
 };

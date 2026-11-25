@@ -352,6 +352,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version-file: package.json
+      # The runner image ships no gitleaks. Pinned release, checksum from the GitHub release asset digest (read 2026-11-25).
+      - name: install gitleaks 8.30.1
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/gitleaks.tar.gz" https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz
+          echo "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb  $RUNNER_TEMP/gitleaks.tar.gz" | sha256sum -c -
+          mkdir -p "$RUNNER_TEMP/bin" && tar -xzf "$RUNNER_TEMP/gitleaks.tar.gz" -C "$RUNNER_TEMP/bin" gitleaks
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
       - name: gitleaks (gate 11)
         run: gitleaks detect --redact --source .
 
@@ -376,6 +383,15 @@ jobs:
       - name: plan
         id: plan
         run: node tools/lint/ci-plan.ts --files "$RUNNER_TEMP/changed.txt" --job "$GITHUB_JOB" >> "$GITHUB_OUTPUT"
+      # The runner image ships no osv-scanner. Pinned release, checksum from the GitHub release asset digest (read 2026-11-25).
+      - if: steps.plan.outputs.run == 'true'
+        name: install osv-scanner 2.7.1
+        run: |
+          mkdir -p "$RUNNER_TEMP/bin"
+          curl -fsSL -o "$RUNNER_TEMP/bin/osv-scanner" https://github.com/google/osv-scanner/releases/download/v2.7.1/osv-scanner_linux_amd64
+          echo "fb7dab19a8bd9bbe5c3189f09d4b7ee1820c9553a23bac202648a56efd2f6ee8  $RUNNER_TEMP/bin/osv-scanner" | sha256sum -c -
+          chmod +x "$RUNNER_TEMP/bin/osv-scanner"
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
       - if: steps.plan.outputs.run == 'true'
         name: osv-scanner (gate 12)
         run: osv-scanner --lockfile=pnpm-lock.yaml

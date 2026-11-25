@@ -65,10 +65,10 @@ export function InventoryHome(p: HomeProps) {
       <PageHeader title="Inventory" helpKey="inventory.home" {...(p.canNewPo || p.canReceive ? { actions } : {})} />
       <Stack>
         <Grid columns={4}>
-          <StatTile label="Below reorder" value={p.counts.belowReorder} href="/inventory/alerts?alert_kind=below_reorder" />
-          <StatTile label={`Expiring in ${p.expiryDays} days`} value={p.counts.expiring} href="/inventory/alerts?alert_kind=expiry_soon" />
-          <StatTile label="Expired on hand" value={p.counts.expired} href="/inventory/alerts?alert_kind=expired_on_hand" />
-          <StatTile label="Waiting consumption" value={p.counts.waiting} href="/inventory/unresolved" />
+          <StatTile data-stat-tone="amber" label="Below reorder" value={p.counts.belowReorder} href="/inventory/alerts?alert_kind=below_reorder" />
+          <StatTile data-stat-tone="blue" label={`Expiring in ${p.expiryDays} days`} value={p.counts.expiring} href="/inventory/alerts?alert_kind=expiry_soon" />
+          <StatTile data-stat-tone="red" label="Expired on hand" value={p.counts.expired} href="/inventory/alerts?alert_kind=expired_on_hand" />
+          <StatTile data-stat-tone="violet" label="Waiting consumption" value={p.counts.waiting} href="/inventory/unresolved" />
         </Grid>
         {p.consumptionOn ? null : (
           <Banner tone="warning" title={OFF_COPY} {...(p.canManageSettings ? { action: { label: 'Open settings', onPress: () => router.push('/inventory/settings') } } : {})} />

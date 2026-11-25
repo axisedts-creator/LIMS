@@ -81,7 +81,7 @@ export function TatView({ page, generatedAt, sp, canAck, departments = [], centr
       id: 'level', header: 'Level',
       cell: (r) => (
         <>
-          <StatusChip kind="generic" status={r.alert_level} label={TAT_LEVEL[r.alert_level].label} tone={TAT_LEVEL[r.alert_level].tone} />
+          <span className={`lims-level-${r.alert_level}`}><StatusChip kind="generic" status={r.alert_level} label={TAT_LEVEL[r.alert_level].label} tone={TAT_LEVEL[r.alert_level].tone} /></span>
           {isReRaised(r) ? <Badge tone="warning">New level since acknowledgement</Badge> : null}
         </>
       ),
@@ -143,7 +143,7 @@ export function TatView({ page, generatedAt, sp, canAck, departments = [], centr
       <Checkbox label="Acknowledged only" isSelected={sp['acknowledged'] === 'true'} onChange={(on) => go({ acknowledged: on ? 'true' : undefined })} />
       {/* T0D-UIDASH-1, LD-353 template 5: tiles and the bar count the alerts of this page (no new operation) */}
       <StatTileRow>
-        {LEVEL_OPTIONS.map((l) => <StatTile key={l.value} label={l.label} value={` ${shown(level(l.value))} `} />)}
+        {LEVEL_OPTIONS.map((l) => <StatTile key={l.value} data-stat-tone={l.value === 'warning' ? 'amber' : l.value === 'breached' ? 'red' : 'violet'} label={l.label} value={` ${shown(level(l.value))} `} />)}
       </StatTileRow>
       <ChartCard title="Alerts by level" isEmpty={rows.length === 0} {...(more ? { note: 'Counts of this page only: there are at least this many, other pages hold more.' } : {})}>
         <ChartTable title="Alerts by level" label="Level" valueHeader="Alerts" rows={LEVEL_OPTIONS.map((l) => ({ label: l.label, value: level(l.value) }))} />

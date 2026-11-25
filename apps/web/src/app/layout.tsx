@@ -17,6 +17,12 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <body className="lims-root">
+        <svg className="lims-svg-defs" width="0" height="0" aria-hidden="true" focusable="false">
+          <linearGradient id="lims-bar-grad" x1="0" y1="0" x2="0" y2="1">
+            <stop className="lims-grad-top" offset="0" />
+            <stop className="lims-grad-bottom" offset="1" />
+          </linearGradient>
+        </svg>
         <Providers>{children}</Providers>
       </body>
     </html>

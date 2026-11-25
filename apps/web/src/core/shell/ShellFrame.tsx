@@ -28,6 +28,12 @@ type Props = {
   children: ReactNode;
 };
 
+/** ui/redesign: a styling class only, from the crumb text already shown */
+const crumbSize = (c: Crumb) => {
+  const n = c ? `${c.group} / ${c.entry}`.length : 0;
+  return n > 42 ? ' lims-crumb-xlong' : n > 34 ? ' lims-crumb-long' : '';
+};
+
 const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex="0"]';
 
 export function ShellFrame({ groups, crumb, tenant, user, memberId, logoSrc, search, centres, children }: Props) {
@@ -80,7 +86,7 @@ export function ShellFrame({ groups, crumb, tenant, user, memberId, logoSrc, sea
           >
             <NavIcon name="menu" />
           </button>
-          <nav className="lims-breadcrumb" aria-label={t('core.nav.breadcrumb')}>
+          <nav className={`lims-breadcrumb${crumbSize(crumb)}`} aria-label={t('core.nav.breadcrumb')}>
             {crumb ? (
               <ol>
                 {crumb.group.trim().toLowerCase() !== crumb.entry.trim().toLowerCase() ? <li>{crumb.group}</li> : null}

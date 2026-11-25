@@ -14,6 +14,8 @@ export interface StatTileProps {
   refreshedAt?: string;
   staleReason?: FreshnessReason;
   'data-testid'?: string;
+  /** ui/redesign: styling only, the colour of the card's top bar. */
+  'data-stat-tone'?: 'green' | 'amber' | 'red' | 'blue' | 'violet';
 }
 
 const WORD = { up: 'Up', down: 'Down', flat: 'No change' } as const;

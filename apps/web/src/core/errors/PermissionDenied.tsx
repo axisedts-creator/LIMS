@@ -2,7 +2,7 @@ import { t } from '../i18n/messages';
 
 export function PermissionDenied() {
   return (
-    <section data-testid="permission-denied" role="alert">
+    <section className="lims-denied" data-testid="permission-denied" role="alert">
       <h1>{t('core.permission_denied.title')}</h1>
       <p>{t('core.permission_denied.body')}</p>
     </section>

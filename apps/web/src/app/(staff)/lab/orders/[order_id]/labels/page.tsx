@@ -16,6 +16,6 @@ export default async function Page({ params }: { params: Promise<{ order_id: str
   const { order_id } = await params;
   if (!UUID.test(order_id)) notFound();
   const permissions = (await getShellSession())?.actor.permissions ?? [];
-  if (!permissions.includes('lab.specimen.label_print')) return <div className="lims-state"><p className="lims-state-title">{NO_ACCESS}</p></div>;
+  if (!permissions.includes('lab.specimen.label_print')) return <div className="lims-state lims-denied"><p className="lims-state-title">{NO_ACCESS}</p></div>;
   return <LabelPage orderId={order_id} waitSeconds={waitSeconds()} permissions={permissions} />;
 }

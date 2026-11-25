@@ -67,7 +67,7 @@ export function DictionariesTab({ canManage }: { canManage: boolean }) {
       <Select<CodedSetName> label="Dictionary" name="set" value={set} onChange={setSet} options={SETS} />
       {fixed ? <Banner tone="info" title={AST_NOTE} /> : null}
       <FailNotice fail={fail} />
-      {canEdit ? <div><Button onPress={() => setEditing('new')}>Add code</Button></div> : null}
+      {canEdit ? <div className="lims-lime"><Button onPress={() => setEditing('new')}>Add code</Button></div> : null}
       {/* T0D-UILIST-1, LD-353 rule 5: kit cellTitle keeps cells on one line (title on cut cells), the table scrolls in its box, so "Escherichia coli" does not wrap at 1366 px */}
       <DataTable<MicroCodeDto> cellTitle caption="Codes" columns={columns} rows={rows} getRowId={(c) => c.code} isLoading={!loaded} emptyState={{ title: 'No codes.' }} />
       </Card>

@@ -42,7 +42,7 @@ export const GROUP_ICON: Record<string, string> = {
 
 export function NavIcon({ name, className }: { name?: string | undefined; className?: string }) {
   return (
-    <svg className={className ?? 'lims-rail-icon'} aria-hidden="true" focusable="false" viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+    <svg className={className ?? 'lims-rail-icon'} {...(name && name !== 'dot' && PATHS[name] ? {} : { 'data-dot': '' })} aria-hidden="true" focusable="false" viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
       <path d={PATHS[name ?? ''] ?? PATHS['dot']} />
     </svg>
   );

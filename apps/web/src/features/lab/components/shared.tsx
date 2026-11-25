@@ -59,7 +59,7 @@ export const NOT_VISIBLE = "This item doesn't exist or isn't visible to you.";
 
 /** The failure states every T-26 screen shares: 403 (no Retry, no data), 404, anything else = ErrorState with the request id and Retry (AC-07.5). */
 export function Failure({ r, onRetry }: { r: Extract<ActionResult<unknown>, { ok: false }>; onRetry: () => void }) {
-  if (r.status === 403) return <div className="lims-state"><p className="lims-state-title">{NO_ACCESS}</p></div>;
+  if (r.status === 403) return <div className="lims-state lims-denied"><p className="lims-state-title">{NO_ACCESS}</p></div>;
   if (r.status === 404) return <div className="lims-state"><p className="lims-state-title">{NOT_VISIBLE}</p></div>;
   // T0D-UILIST-1, LD-353 rule 6: 501 operation_pending is the calm "Not available yet" state, never a red error
   if (r.status === 501 && r.code === 'operation_pending') return <EmptyState title="Not available yet" body="This part of the system is being built. It appears here once it is switched on." />;

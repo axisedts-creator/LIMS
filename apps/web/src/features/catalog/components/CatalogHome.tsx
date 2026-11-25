@@ -59,7 +59,7 @@ export function CatalogHome({ health, counts, revision, permissions, requestId }
       <div className="lims-stat-row">
         {tests ? <StatTile label="Tests (active)" value={n(c?.tests)} /> : null}
         {tests ? <StatTile label="Panels & packages" value={n(c?.panels)} /> : null}
-        {has(permissions, 'catalog.referrer.read') ? <StatTile label="Doctors" value={c ? `${n(c.doctors)} (${n(c.doctors_unverified)} unverified)` : '—'} /> : null}
+        {has(permissions, 'catalog.referrer.read') ? <StatTile label="Doctors" value={c ? <>{n(c.doctors)} <span className="lims-stat-note">({n(c.doctors_unverified)} unverified)</span></> : '—'} /> : null}
         {has(permissions, 'catalog.price_list.read') ? <StatTile label="Price lists" value={n(c?.price_lists)} /> : null}
         <StatTile label="Catalog revision" value={failed || revision === null ? '—' : String(revision)} />
       </div>

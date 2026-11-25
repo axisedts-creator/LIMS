@@ -100,10 +100,10 @@ export function StatusBoardView({ rows, generatedAt, sp, canManage }: { rows: St
       <Checkbox label="Overdue only" isSelected={sp['overdue_only'] === 'true'} onChange={(on) => go({ overdue_only: on ? 'true' : undefined })} />
       {/* T0D-UIDASH-1, LD-353 template 5: tiles and the bar count the rows already on the screen (no new operation) */}
       <StatTileRow>
-        <StatTile label="In control" value={` ${count('in_control')}`} />
-        <StatTile label="Warning" value={` ${count('warning')}`} />
-        <StatTile label="Out of control" value={` ${out}`} />
-        <StatTile label="QC overdue" value={` ${data.filter((r) => r.qc_overdue).length}`} />
+        <StatTile data-stat-tone="green" label="In control" value={` ${count('in_control')}`} />
+        <StatTile data-stat-tone="amber" label="Warning" value={` ${count('warning')}`} />
+        <StatTile data-stat-tone="red" label="Out of control" value={` ${out}`} />
+        <StatTile data-stat-tone="blue" label="QC overdue" value={` ${data.filter((r) => r.qc_overdue).length}`} />
       </StatTileRow>
       <DataTable<StatusRow>
         columns={columns} rows={data} getRowId={(r) => r.plan_id} density="compact" caption="QC status by instrument and analyte"

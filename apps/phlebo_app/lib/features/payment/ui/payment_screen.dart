@@ -3,6 +3,9 @@
 import 'package:flutter/material.dart';
 import 'package:lims_ui/lims_ui.dart';
 
+import '../../../ui/visit_stepper.dart';
+import '../../visit/domain/visit_guard.dart' show VisitStep;
+
 import '../../visit/data/mutation_sink.dart';
 import '../../visit/domain/visit_models.dart';
 import '../../visit/ui/save_once.dart';
@@ -89,6 +92,8 @@ class _PaymentScreenState extends State<PaymentScreen> with SaveOnce<PaymentScre
       child: LimsScaffold(
         title: 'Payment',
         body: ListView(padding: const EdgeInsets.all(LimsTokens.space4), children: [
+          const VisitStepper(current: VisitStep.payment),
+          const SizedBox(height: LimsTokens.space3),
           LimsCard(
             child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
               Text('Amount due: NPR ${formatPaisa(v.amountDuePaisa)} as of ${v.amountAsOf}', style: Theme.of(context).textTheme.titleMedium),

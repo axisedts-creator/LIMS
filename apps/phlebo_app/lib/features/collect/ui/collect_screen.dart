@@ -7,6 +7,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:lims_ui/lims_ui.dart';
 
+import '../../../ui/phlebo_kit.dart' show tubeToneFor;
+import '../../../ui/visit_stepper.dart';
+import '../../visit/domain/visit_guard.dart' show VisitStep;
+
 import '../../visit/data/mutation_sink.dart';
 import '../../visit/domain/visit_models.dart';
 import '../../visit/ui/save_once.dart';
@@ -177,6 +181,26 @@ class _CollectScreenState extends State<CollectScreen> with SaveOnce<CollectScre
   String _reasonDisplay(String code) =>
       widget.config.notCollectedReasons.where((r) => r.code == code).firstOrNull?.display ?? code;
 
+  /// "1 of 3 tubes done" with a bar (board M5 per-tube checklist header). Counts both outcomes: a tube is done once resolved.
+  Widget _progressCard() {
+    final total = widget.visit.tubes.length;
+    final resolved = widget.visit.tubes.where((t) => _collected.containsKey(t.specimenId) || _notCollected.containsKey(t.specimenId)).length;
+    final t = Theme.of(context).textTheme;
+    return LimsCard(
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Expanded(child: Text('$resolved of $total tubes done', style: t.titleSmall?.copyWith(fontWeight: FontWeight.w700))),
+          if (resolved == total && total > 0) const Icon(Icons.check_circle, color: LimsTokens.colorToneSuccessFg),
+        ]),
+        const SizedBox(height: LimsTokens.space2),
+        ClipRRect(
+          borderRadius: const BorderRadius.all(Radius.circular(LimsTokens.radiusSm)),
+          child: LinearProgressIndicator(value: total == 0 ? 0 : resolved / total, minHeight: LimsTokens.space2, backgroundColor: LimsTokens.colorToneNeutralBg, color: LimsTokens.colorAccentHighlight),
+        ),
+      ]),
+    );
+  }
+
   Widget _tubeRow(ExpectedTube tube) {
     final id = tube.specimenId;
     final done = _collected.containsKey(id) || _notCollected.containsKey(id);
@@ -193,13 +217,20 @@ class _CollectScreenState extends State<CollectScreen> with SaveOnce<CollectScre
       label = 'Waiting';
     }
     final t = Theme.of(context).textTheme;
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: LimsTokens.space2),
-      child: Row(children: [
+    return Card(
+      margin: const EdgeInsets.only(bottom: LimsTokens.space2),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(LimsTokens.space4, LimsTokens.space3, LimsTokens.space2, LimsTokens.space3),
+        child: Row(children: [
+        Padding(
+          padding: const EdgeInsets.only(right: LimsTokens.space3),
+          child: Icon(done ? Icons.check_circle : Icons.science_outlined, color: limsTone(done ? tone : tubeToneFor('${tube.typeDisplay} ${tube.container}')).fg),
+        ),
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text('${tube.typeDisplay} · ${tube.container}', style: t.titleSmall),
             Text(tube.last4, style: t.bodyMedium),
+            if (tube.tests.isNotEmpty) Text(tube.tests.join(', '), style: t.bodySmall?.copyWith(color: LimsTokens.colorNeutral600)),
             const SizedBox(height: LimsTokens.space1),
             LimsStatusChip(kind: 'generic', status: label, tone: tone, label: label),
           ]),
@@ -215,6 +246,7 @@ class _CollectScreenState extends State<CollectScreen> with SaveOnce<CollectScre
           ],
         ),
       ]),
+      ),
     );
   }
 
@@ -233,6 +265,10 @@ class _CollectScreenState extends State<CollectScreen> with SaveOnce<CollectScre
       child: LimsScaffold(
         title: 'Collect tubes',
         body: ListView(padding: const EdgeInsets.all(LimsTokens.space4), children: [
+          const VisitStepper(current: VisitStep.collect),
+          const SizedBox(height: LimsTokens.space3),
+          _progressCard(),
+          const SizedBox(height: LimsTokens.space3),
           LimsButton(
             key: const ValueKey('collect.camera_toggle'),
             label: _camera ? 'Stop camera' : 'Use camera',

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:lims_ui/lims_ui.dart';
+import '../ui/phlebo_theme.dart';
 
 class PhleboApp extends StatelessWidget {
   const PhleboApp({super.key, required this.router});
@@ -10,7 +10,7 @@ class PhleboApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) => MaterialApp.router(
         title: 'LIMS Phlebo',
-        theme: LimsTheme.light(),
+        theme: PhleboTheme.light(),
         routerConfig: router,
       );
 }

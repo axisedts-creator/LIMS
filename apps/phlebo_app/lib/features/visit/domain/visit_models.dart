@@ -8,6 +8,7 @@ class ExpectedTube {
     required this.typeDisplay,
     required this.container,
     required this.barcode,
+    this.tests = const [],
   });
 
   final String specimenId;
@@ -15,6 +16,9 @@ class ExpectedTube {
   final String typeDisplay;
   final String container;
   final String barcode;
+
+  /// Names of the tests that go into this tube ("Lipid Profile"): shown on the checklist, never in a mutation.
+  final List<String> tests;
 
   /// "…0042": only the last 4 characters are ever shown (04-UI-UX §3.3).
   String get last4 => '…${barcode.length <= 4 ? barcode : barcode.substring(barcode.length - 4)}';
@@ -38,6 +42,12 @@ class VisitView {
     required this.amountAsOf,
     required this.specimensStale,
     required this.tubes,
+    this.ageSex,
+    this.kind = 'booking',
+    this.locality,
+    this.fastingTests = const [],
+    this.flags = const [],
+    this.recollectionReason,
   });
 
   final String visitId;
@@ -58,6 +68,24 @@ class VisitView {
   final String amountAsOf;
   final bool specimensStale;
   final List<ExpectedTube> tubes;
+
+  /// "46 yrs · Female" (display only).
+  final String? ageSex;
+
+  /// booking | front_desk | recollection | revisit.
+  final String kind;
+  final String? locality;
+
+  /// Names of the ordered tests that need a fasting sample (empty = no fasting requirement).
+  final List<String> fastingTests;
+
+  /// address_missing | recollection_required | specimens_stale ... (open flags the centre raised).
+  final List<String> flags;
+
+  /// Why the lab asked for a recollection (kind recollection): shown on the visit.
+  final String? recollectionReason;
+
+  bool get needsFasting => fastingTests.isNotEmpty;
 
   /// Sequence + window, never a name (TRD §6.3 / M11): the outbox `visit_label`.
   String get label => '#$sequence · $windowStart–$windowEnd';

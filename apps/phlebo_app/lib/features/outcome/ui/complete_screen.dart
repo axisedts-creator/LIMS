@@ -2,6 +2,10 @@
 import 'package:flutter/material.dart';
 import 'package:lims_ui/lims_ui.dart';
 
+import '../../../ui/phlebo_kit.dart';
+import '../../../ui/visit_stepper.dart';
+import '../../visit/domain/visit_guard.dart' show VisitStep;
+
 import '../../visit/data/mutation_sink.dart';
 import '../../visit/domain/visit_models.dart';
 import '../../visit/ui/save_once.dart';
@@ -56,6 +60,23 @@ class _CompleteScreenState extends State<CompleteScreen> with SaveOnce<CompleteS
       child: LimsScaffold(
         title: 'Visit summary',
         body: ListView(padding: const EdgeInsets.all(LimsTokens.space4), children: [
+          const VisitStepper(current: VisitStep.complete),
+          const SizedBox(height: LimsTokens.space3),
+          Builder(builder: (context) {
+            final partial = widget.notCollectedCount > 0;
+            final t = Theme.of(context).textTheme;
+            return Column(children: [
+              PhleboStatusDisc(icon: partial ? Icons.warning_amber_rounded : Icons.check_circle_outline, tone: partial ? 'warning' : 'success'),
+              const SizedBox(height: LimsTokens.space3),
+              Text(partial ? 'Collection partly completed' : 'Ready to finish', textAlign: TextAlign.center, style: t.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
+              Text(widget.visit.label, style: t.bodyMedium?.copyWith(color: LimsTokens.colorNeutral600)),
+            ]);
+          }),
+          if (widget.notCollectedCount > 0) ...[
+            const SizedBox(height: LimsTokens.space3),
+            const PhleboNotice(tone: 'warning', title: 'Some tubes were not collected', text: 'The centre sees this visit as partly done and can arrange a revisit for the missing tubes.'),
+          ],
+          const SizedBox(height: LimsTokens.space3),
           LimsCard(
             title: 'Tubes',
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [

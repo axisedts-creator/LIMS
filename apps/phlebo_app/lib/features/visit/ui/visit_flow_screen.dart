@@ -10,6 +10,7 @@ import '../../identity/ui/identity_screen.dart';
 import '../../outcome/ui/complete_screen.dart';
 import '../../outcome/ui/fail_visit_screen.dart';
 import '../../payment/ui/payment_screen.dart';
+import '../../travel/domain/travel_models.dart';
 import '../data/mutation_sink.dart';
 import '../domain/visit_guard.dart';
 import '../domain/visit_models.dart';
@@ -30,6 +31,9 @@ class VisitFlowScreen extends StatefulWidget {
     required this.onExit,
     this.initialLog = const [],
     this.scannerBuilder,
+    this.travel,
+    this.onStartTravel,
+    this.onOpenLocationSettings,
   });
 
   final VisitView visit;
@@ -43,6 +47,11 @@ class VisitFlowScreen extends StatefulWidget {
   /// This visit's mutations already on the phone (type, payload), oldest first.
   final List<LogEntry> initialLog;
   final Widget Function(ValueChanged<String> onScanned)? scannerBuilder;
+
+  /// Optional "On my way" step for hosts that have it (null = the visit opens straight at "I've arrived").
+  final TravelState? travel;
+  final VoidCallback? onStartTravel;
+  final VoidCallback? onOpenLocationSettings;
 
   /// 'completed' | 'failed'
   final ValueChanged<String> onExit;
@@ -123,6 +132,9 @@ class _VisitFlowScreenState extends State<VisitFlowScreen> implements MutationSi
           launchUri: widget.launchUri,
           onArrived: () => _go(VisitStep.identity),
           onCannotDo: () => _go(VisitStep.fail),
+          travel: widget.travel,
+          onStartTravel: widget.onStartTravel,
+          onOpenLocationSettings: widget.onOpenLocationSettings,
         );
       case VisitStep.identity:
         return IdentityScreen(

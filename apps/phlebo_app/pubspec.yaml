@@ -29,6 +29,9 @@ dev_dependencies:
     sdk: flutter
 flutter:
   uses-material-design: true
+  # Brand marks copied from spec/program/design-m-series/logos (13-M-SERIES s5); no network fetch.
+  assets:
+    - assets/brand/
 # HC-T22: package:sqlite3 build hook -> SQLCipher (TRD §2 / 04 A15). [CONV] C0 picks sqlcipher over sqlite3mc.
 hooks:
   user_defines:

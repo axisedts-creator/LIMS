@@ -15,10 +15,23 @@ String _today() {
 // Placeholder screen: deliberately renders nothing from the URL (no PHI / unvalidated input on screen).
 Widget _placeholder(String id) => Scaffold(body: Center(child: Text(id)));
 
-GoRouter buildRouter() => GoRouter(
+/// The screens behind the two contract routes. The dev flavour supplies the synthetic-data preview (lib/preview); the real
+/// shell (cache DB + sync engine) implements this seam next. With none, a route renders the placeholder, as before.
+abstract interface class PhleboScreens {
+  Widget route(BuildContext context, String routeDate);
+  Widget visit(BuildContext context, String visitId);
+}
+
+GoRouter buildRouter({PhleboScreens? screens}) => GoRouter(
       initialLocation: phleboRouteLocation(_today()),
       routes: [
-        GoRoute(path: _colon(limsRoutePaths['phlebo_app.route']!), builder: (_, __) => _placeholder('phlebo_app.route')),
-        GoRoute(path: _colon(limsRoutePaths['phlebo_app.visit']!), builder: (_, __) => _placeholder('phlebo_app.visit')),
+        GoRoute(
+          path: _colon(limsRoutePaths['phlebo_app.route']!),
+          builder: (c, st) => screens == null ? _placeholder('phlebo_app.route') : screens.route(c, st.pathParameters['route_date'] ?? ''),
+        ),
+        GoRoute(
+          path: _colon(limsRoutePaths['phlebo_app.visit']!),
+          builder: (c, st) => screens == null ? _placeholder('phlebo_app.visit') : screens.visit(c, st.pathParameters['visit_id'] ?? ''),
+        ),
       ],
     );

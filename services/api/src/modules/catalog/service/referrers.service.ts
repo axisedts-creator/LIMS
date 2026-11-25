@@ -6,7 +6,7 @@
 // [CONV] auto code DR{seq:5} from code_counters (`next_value` = next to hand out); a merged doctor can be neither verified nor reactivated (409 catalog.version_in_use).
 import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';   // [CONV] relative import (same as masters.service.ts)
 import { LimsError, type FieldError } from '../../../core/errors.js';
-import { isIdNumber, maskedOrAbsent } from '../../partners/domain/id-number.js';   // T0B-PARTYSET-1: the one masking place (done_when 5)
+import { isIdNumber, maskedOrAbsent } from '../../../core/validation/id-number.js';   // T0B-PARTYSET-1: the one masking place (done_when 5)
 import { decodeCursor, encodeCursor } from '../mappers/masters.mapper.js';
 import * as repo from '../repo/masters.repo.js';
 import {

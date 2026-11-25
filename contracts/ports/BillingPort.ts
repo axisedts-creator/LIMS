@@ -1,5 +1,5 @@
 // contracts/ports/BillingPort.ts
-import type { RequestContext, Uuidv7, IsoUtc, Money, Code } from './common.js';
+import type { RequestContext, Uuidv7, IsoUtc, IsoDate, Money, Code } from './common.js';
 export const BILLING_PORT_VERSION = 1 as const;
 
 export type ReleaseBasis = 'paid_in_full' | 'zero_balance' | 'credit_party' | 'override' | 'policy_not_enforced'
@@ -35,5 +35,10 @@ export interface BillingPortV1 {
   // ---- added by 08
   /** Idempotent on refundId (idempotency_key 'gw_refund:'+refundId). @throws billing.ledger_reversal_invalid */
   recordGatewayRefund(ctx: RequestContext, input: GatewayRefundInput): Promise<{ ledgerEntryId: Uuidv7; duplicate: boolean; balance: OrderBalance }>;
+  /** CR-C13-016 (draft, .orchestra/cr/MODBOUNDARY-PARTNERS-BILLING): posts ONE account ledger entry with the rules and the access_log row of the
+   *  accounts endpoint (T0B-ACCT-1). Runs in the caller's transaction: any failure throws and the caller rolls back. Not a fiscal invoice.
+   *  @throws common.validation_failed, common.not_found (centre, particular or party unknown) */
+  recordAccountEntry(ctx: RequestContext, input: { centreId: Uuidv7; partyKind: 'credit_party'; partyId: Uuidv7; entryDate: IsoDate;
+    accountParticularId: Uuidv7; entryType: 'debit'; amount: Money; paymentMode: Code; comments?: string }): Promise<{ entryId: Uuidv7 }>;
 }
 export type BillingPort = BillingPortV1;

@@ -101,6 +101,12 @@ export function createFakeBillingPort(opts: FakeOpts<BillingFixtures>) {
         const t = guard(ctx);
         return balance(ctx, orderOf(t, input.orderId));
       },
+      async recordAccountEntry(ctx, input) {             // CR-C13-016: one debit entry on the party ledger; ids only
+        guard(ctx);
+        requireStr(input.partyId);
+        if (!Number.isSafeInteger(input.amount?.amountPaisa) || input.amount.amountPaisa < 1) throw invalid();
+        return { entryId: s.nextId() } as any;
+      },
       async recordGatewayRefund(ctx, input) {
         const t = guard(ctx);
         const key = `gw_refund:${requireStr(input.refundId)}`;

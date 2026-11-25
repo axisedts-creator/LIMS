@@ -6,7 +6,7 @@
 // [CONV] auto code CP{seq:5} from code_counters (key party_code; `next_value` = next to hand out); a blank party_code is an absent one.
 import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';   // [CONV] relative import (same as masters.service.ts)
 import { LimsError, type FieldError } from '../../../core/errors.js';
-import { maskedOrAbsent } from '../../partners/domain/id-number.js';   // T0B-PARTYSET-1: the one masking place
+import { maskedOrAbsent } from '../../../core/validation/id-number.js';   // T0B-PARTYSET-1: the one masking place
 import { decodeCursor, encodeCursor } from '../mappers/masters.mapper.js';
 import * as repo from '../repo/masters.repo.js';
 import {

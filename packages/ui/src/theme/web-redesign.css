@@ -116,6 +116,7 @@
 /* one block gap: the flex gap replaces the per-block margins */
 .lims-shell-main > section { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
 .lims-shell-main > section > [hidden] { display: none; }
+.lims-shell-main > section > :is(a, button, label, .lims-btn, .lims-chip, .lims-check-wrap) { align-self: flex-start; }
 .lims-shell .lims-page-header { margin: 0; padding: 0; border: 0; }
 .lims-shell .lims-page-header-row { align-items: center; gap: 10px; }
 .lims-shell .lims-page-title { font-size: 1.75rem !important; line-height: 2.125rem; font-weight: 800; color: var(--ink); letter-spacing: -.02em; }

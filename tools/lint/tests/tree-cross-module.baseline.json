@@ -195,7 +195,6 @@
   "services/api/src/modules/instruments/__tests__/ingest.events.test.ts :: no-foreign-schema-sql: SQL naming core.event_log is allowed only in services/api/src/core/** and modules/identity/repository/**",
   "services/api/src/modules/instruments/repo/agents.repo.ts :: no-foreign-schema-sql: SQL naming core.collection_centres is allowed only in services/api/src/core/** and modules/identity/repository/**",
   "services/api/src/modules/instruments/repo/agents.repo.ts :: no-foreign-schema-sql: SQL naming core.users is allowed only in services/api/src/core/** and modules/identity/repository/**",
-  "services/api/src/modules/instruments/repo/config.repo.ts :: no-foreign-schema-sql: SQL naming core.tenants is allowed only in services/api/src/core/** and modules/identity/repository/**",
   "services/api/src/modules/instruments/repo/instruments.repo.ts :: no-foreign-schema-sql: SQL naming core.users is allowed only in services/api/src/core/** and modules/identity/repository/**",
   "services/api/src/modules/instruments/repo/messages.repo.ts :: no-foreign-schema-sql: SQL naming core.users is allowed only in services/api/src/core/** and modules/identity/repository/**",
   "services/api/src/modules/inventory/__tests__/gate/gate.helpers.ts :: no-foreign-schema-sql: SQL naming core.branches is allowed only in services/api/src/core/** and modules/identity/repository/**",

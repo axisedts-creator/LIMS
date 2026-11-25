@@ -24,7 +24,7 @@ import { ApiError } from '@/core/api/server-fetch';
 import { expectEmptyTable, headersOf, tableOf } from './emptytbl2.helpers';
 import { API, ID, MANAGE, READ, TM, api, blobText, blobs, captureDownloads, downloads, openLists } from './pricetools1.harness';
 
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterAll(() => api.close());
 beforeEach(() => { API.reset(); TM.session.permissions = MANAGE; TM.nav.search = ''; captureDownloads(); TM.navLog.length = 0; });
 afterEach(() => { cleanup(); api.resetHandlers(); TM.push.mockClear(); TM.replace.mockClear(); });

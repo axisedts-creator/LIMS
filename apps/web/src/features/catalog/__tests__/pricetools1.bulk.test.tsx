@@ -23,7 +23,7 @@ import { ToastProvider } from '@lims/ui/components/Toast';
 import { headersOf, tableOf } from './emptytbl2.helpers';
 import { API, ID, MANAGE, READ, TM, api, prob, ver } from './pricetools1.harness';
 
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterAll(() => api.close());
 beforeEach(() => { API.reset(); TM.session.permissions = MANAGE; });
 afterEach(() => { cleanup(); api.resetHandlers(); TM.refresh.mockReset(); });
@@ -120,7 +120,7 @@ describe('the preview is exact integer maths, as the server will apply it', () =
     if (c.kind === 'pct') await typePercent(d, c.value);
     else await typeAmount(d, c.value);
     await waitFor(() => expect(Object.keys(shown(d)).sort()).toEqual(Object.keys(c.expect).sort()));
-    expect(Object.fromEntries(Object.entries(shown(d)).map(([k, v]) => [k, v[1]]))).toEqual(c.expect);
+    expect(Object.fromEntries(Object.entries(shown(d)).map(([k, v]) => [k, (v as unknown[])[1]]))).toEqual(c.expect);
     expect(shown(d)['CBC']![0]).toBe('900.00'); // the current price column
     expect(posts()).toHaveLength(0);
   });

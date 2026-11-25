@@ -23,7 +23,7 @@ import { API, ID, IDEM, PATH, R2, R4, READ, TM, api, headers, isDisabled, norm, 
 
 const R_NAMES = ['Synthetic Root Manager', 'Synthetic Area Lead', 'Synthetic Field Seller', 'Synthetic Peer Manager', 'Synthetic Retired Seller'];
 
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 beforeEach(() => { API.reset(); TM.refresh.mockReset(); TM.push.mockClear(); TM.replace.mockClear(); });
 afterEach(() => { cleanup(); api.resetHandlers(); });
 afterAll(() => api.close());

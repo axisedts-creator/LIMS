@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 // C5 T-25 — Lab settings "QC holds" tab (04-UI-UX §3.13: "QC holds (list; Release with comment — Phase 2 copy 'Holds are created by the QC module')"; 02-TRD §5.7 rows 45-46; 03-APP-FLOW QC hold lifecycle;
-// 07-SECURITY S-16, REQ-SEC-062/067 `auth.mfa_required`). Real HTTP goes to LIMS_ORIGIN_API (MSW); `onUnhandledRequest: 'error'`.
+// 07-SECURITY S-16, REQ-SEC-062/067 `auth.mfa_required`). Real HTTP goes to LIMS_ORIGIN_API (MSW); `onUnhandledFrame: 'error'`.
 // ASSUMED contract (T-29 owns the page; this task adds the fourth tab to components/settings/LabSettingsPage.tsx — the writer matches the names or disputes):
 //   Tab (role="tab") "QC holds" next to General / Delta rules / Reason codes; it loads GET /v1/lab/qc-holds?status=active (bearer token) when opened — the other tabs' requests are not made for it.
 //   A "Status" select (options "Active" / "Released") switches the list: GET /v1/lab/qc-holds?status=released.

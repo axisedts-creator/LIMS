@@ -76,7 +76,7 @@ const props = { searchParams: Promise.resolve({}), params: Promise.resolve({}) }
 describe('7a Billing > Dues passes the centre list (page -> DuesList)', () => {
   const show = async () => {
     const mod = await import('../app/(staff)/billing/dues/page');
-    return render(<ToastProvider>{await (mod.default as (p: never) => Promise<never>)(props)}</ToastProvider>);
+    return render(<ToastProvider>{await (mod.default as unknown as (p: never) => Promise<never>)(props)}</ToastProvider>);
   };
   it('every row shows the centre name; the centre id is never rendered; an unknown centre is a dash', async () => {
     set('__FIX3_CENTRES', CENTRES);
@@ -100,7 +100,7 @@ describe('7a Billing > Dues passes the centre list (page -> DuesList)', () => {
 describe('7b Reports worklist shows centre names, not codes', () => {
   const show = async () => {
     const mod = await import('../app/(staff)/reporting/page');
-    return render(<ToastProvider>{await (mod.default as (p: never) => Promise<never>)(props)}</ToastProvider>);
+    return render(<ToastProvider>{await (mod.default as unknown as (p: never) => Promise<never>)(props)}</ToastProvider>);
   };
   it('Centre cell = name resolved from the centre list; the code SYN-A1 is not printed', async () => {
     set('__FIX3_CENTRES', CENTRES);
@@ -151,7 +151,7 @@ describe('Dues by age: the bar takes the first colour of the chart palette (not 
     set('__FIX3_CENTRES', CENTRES);
     set('__FIX3_DUES', [due(1, A)]);
     const mod = await import('../app/(staff)/billing/dues/page');
-    const { container } = render(<ToastProvider>{await (mod.default as (p: never) => Promise<never>)(props)}</ToastProvider>);
+    const { container } = render(<ToastProvider>{await (mod.default as unknown as (p: never) => Promise<never>)(props)}</ToastProvider>);
     const bars = [...container.querySelectorAll('rect.lims-chart-bar')];
     expect(bars.length).toBeGreaterThan(0);
     expect(bars.every((b) => b.classList.contains('lims-series-0'))).toBe(true);

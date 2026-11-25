@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 // C5 T-10 — label page behaviour with MSW (PRD AC-02.1, AC-02.2, AC-02.5; 03-APP-FLOW §3.1; 04-UI-UX §3.1; 08 A13 D-4). done_when: "print CSS sized from #14 response; inactive per-id error;
-// page calls neither #15 nor #47; 409 then 200 retry path without key". Real HTTP goes to LIMS_ORIGIN_API (MSW); `onUnhandledRequest: 'error'` => any call outside the handlers below
+// page calls neither #15 nor #47; 409 then 200 retry path without key". Real HTTP goes to LIMS_ORIGIN_API (MSW); `onUnhandledFrame: 'error'` => any call outside the handlers below
 // (getLabOrder #15 = GET /v1/lab/orders/{id}, getLabSettings #47 = GET /v1/lab/settings, anything else) fails the test.
 // ASSUMED module/prop contract (spec fixes folders + names of server file / renderer only; dispute via writer if wrong):
 //   apps/web/src/features/lab/components/labels/LabelPage.tsx   export const LabelPage({ orderId, waitSeconds, permissions }) — client component; `waitSeconds` is LIMS_LAB_LABEL_WAIT_SECONDS read by the

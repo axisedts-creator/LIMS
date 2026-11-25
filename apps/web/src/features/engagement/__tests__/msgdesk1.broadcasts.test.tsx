@@ -25,7 +25,7 @@ import { t } from '@/core/i18n/messages';
 import { expectListScreen, expectStateInPage } from '@/features/catalog/__tests__/uilist3.helpers';
 import { API, APPROVE, B_DRAFT, B_PEND, B_SENT, BROADCASTS_ROUTE, ID, IDEM, MANAGE, PATH, READ, SAMPLE, T_MAIL, T_SMS, TM, USER_A, USER_B, api, isDisabled, norm, openPage, pickOption, prob, quiet, reasonOf, rowOf, selectTrigger } from './msgdesk1.harness';
 
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 beforeEach(() => { API.reset(); TM.refresh.mockReset(); TM.push.mockClear(); TM.replace.mockClear(); });
 afterEach(() => { cleanup(); api.resetHandlers(); });
 afterAll(() => api.close());

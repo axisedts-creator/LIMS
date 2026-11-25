@@ -18,7 +18,7 @@ import { t } from '@/core/i18n/messages';
 import { expectListScreen, expectStateInPage } from '@/features/catalog/__tests__/uilist3.helpers';
 import { API, CLIENT_A, ID, IDEM, PARTY, PATH, R2, R3, R4, READ, TM, api, headers, isDisabled, norm, openSales, optionNames, pickOption, prob, quiet, reasonOf, rowOf, selectTrigger } from './sales1.harness';
 
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 beforeEach(() => { API.reset(); TM.refresh.mockReset(); TM.push.mockClear(); TM.replace.mockClear(); });
 afterEach(() => { cleanup(); api.resetHandlers(); });
 afterAll(() => api.close());

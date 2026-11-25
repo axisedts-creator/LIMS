@@ -17,7 +17,7 @@ import axe from 'axe-core';
 import { t } from '@/core/i18n/messages';
 import { API, DOCTOR, P, PARTNER, PERM, ROUTE, TM, api, isDisabled, norm, openPage, prob, quiet, reasonOf } from './partyset1.harness';
 
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 beforeEach(() => { API.reset(); TM.refresh.mockReset(); TM.push.mockClear(); TM.replace.mockClear(); localStorage.clear(); sessionStorage.clear(); });
 afterEach(() => { cleanup(); api.resetHandlers(); });
 afterAll(() => api.close());

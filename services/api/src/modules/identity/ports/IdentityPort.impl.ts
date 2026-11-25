@@ -74,6 +74,8 @@ const DEFAULT_SETTINGS: TenantSettings = {
   retentionYears: 5, retention: { clinicalYears: 5, auditYears: 5, rawInstrumentYears: 1 },
   featureFlags: {}, referralIncentiveReportEnabled: false, autoVerificationEnabled: false, westgardMode: 'classic',
   ird: { cbmsRealtimeRequired: false, annexReadiness: 'incomplete' },
+  trainingMode: false,
+  downtime_backentry_max_hours: 72,
 };
 const SETTING_KEYS = new Set<string>(Object.keys(DEFAULT_SETTINGS));
 

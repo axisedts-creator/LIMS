@@ -57,7 +57,13 @@ export async function derivedStatus(c: OrderCtx, row: Obj, activeIds: ReadonlySe
   const stored = row['status'] as OrderStatus;
   if (stored !== 'registered' && stored !== 'in_progress') return stored;
   const pc = portCtx(c);
-  const states = await c.ports.LabPort.getOrderItemProcessingState(pc, { orderId: row['id'] });
+  let states: readonly { orderItemId: string; processingStatus: ItemProcessingStatus }[] = [];
+  try {
+    states = await c.ports.LabPort.getOrderItemProcessingState(pc, { orderId: row['id'] });
+  } catch (e: unknown) {
+    if ((e as { code?: string } | null)?.code === 'common.not_found') states = [];
+    else throw e;
+  }
   const by = new Map(states.map((s) => [s.orderItemId, s.processingStatus]));
   return deriveOrderStatus(stored, [...activeIds].map((id) => by.get(id) ?? 'not_started'));
 }

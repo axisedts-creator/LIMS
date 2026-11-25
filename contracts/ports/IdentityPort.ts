@@ -50,6 +50,8 @@ export interface TenantSettings {                                // final shape 
   readonly westgardMode: 'classic' | 'modern';                   // 04 L23 per-lab flag; default set in C9 PRD
   readonly ird: { readonly pan?: string; readonly cbmsRealtimeRequired: boolean; readonly abbreviatedInvoiceLimitPaisa?: number;
                   readonly annexReadiness: 'complete' | 'incomplete' };   // 04 L6/L9/L26; values BLOCKED B6; annexReadiness tracking-derived, not a legal determination
+  readonly trainingMode?: boolean;                               // LD-26 / CR C2.T16
+  readonly downtime_backentry_max_hours?: number;                // LD-25 default 72
 }
 export type TenantSettingKey = keyof TenantSettings;
 

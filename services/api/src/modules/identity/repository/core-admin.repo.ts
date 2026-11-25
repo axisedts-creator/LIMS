@@ -200,6 +200,8 @@ function mapSettings(r: any): TenantSettings {
     ird: { pan: opt(r.ird_pan), cbmsRealtimeRequired: r.cbms_realtime_required,
       abbreviatedInvoiceLimitPaisa: r.abbreviated_invoice_limit_paisa == null ? undefined : Number(r.abbreviated_invoice_limit_paisa),
       annexReadiness: r.annex_complete === true ? 'complete' : 'incomplete' },
+    trainingMode: r.training_mode === true,
+    downtime_backentry_max_hours: 72,
   };
   return JSON.parse(JSON.stringify(s));   // drops undefined optionals
 }

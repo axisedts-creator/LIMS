@@ -10,8 +10,8 @@ import (
 
 const (
 	isoUTC         = "2006-01-02T15:04:05.000Z"
-	maxResults     = 20            // E03 command_results[<=20]
-	maxCodeLen     = 64            // result_code <= 64
+	maxResults     = 20             // E03 command_results[<=20]
+	maxCodeLen     = 64             // result_code <= 64
 	logWindow      = 24 * time.Hour // AC-24.1
 	reuploadWindow = 72 * time.Hour // retention of uploaded messages (AC-24.2)
 	maxLogLines    = 20000          // E07

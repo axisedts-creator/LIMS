@@ -7,6 +7,9 @@ import { fileURLToPath } from 'node:url';
 
 const KEY = ['LIMS', 'IDENTITY', 'GOTRUE', 'SERVICE', 'KEY'].join('_');
 const ALLOWED = 'services/api/src/modules/identity/gotrue/gateway.http.ts';
+// Owner decision 2026-11-26 (PR 9): the health check lists the variable NAME among the required env names (LD-277) and only
+// tests that it is set. The name may appear there exactly once, as a quoted list entry; anything else in that file still fails.
+const NAME_ONLY = 'services/api/src/core/health.ts';
 const TOP = ['services', 'apps', 'packages'];
 const EXT = /\.(ts|tsx|js|mjs|cjs|dart|go|py|sh|yml|yaml)$/;
 const SKIP_DIR = new Set(['node_modules', '.git', 'dist', 'build', '.next']);
@@ -24,7 +27,10 @@ function walk(dir) {
     if (!e.isFile() || !EXT.test(e.name)) continue;
     const rel = relative(root, full).split(sep).join('/');
     if (rel === ALLOWED || isTest(rel)) continue;
-    if (readFileSync(full, 'utf8').includes(KEY)) bad.push(rel);
+    const text = readFileSync(full, 'utf8');
+    if (!text.includes(KEY)) continue;
+    if (rel === NAME_ONLY && text.split(KEY).length === 2 && text.includes(`'${KEY}',`) && !new RegExp(`env[^\n]*${KEY}`).test(text)) continue;
+    bad.push(rel);
   }
 }
 

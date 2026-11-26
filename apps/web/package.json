@@ -8,7 +8,9 @@
     "dev": "pnpm run build:nav && next dev",
     "build": "pnpm run build:nav && next build",
     "bundle:budget": "node scripts/bundle-budget.mjs .next",
-    "typecheck": "pnpm run build:nav && tsc -p tsconfig.json --noEmit"
+    "typecheck": "pnpm run build:nav && tsc -p tsconfig.json --noEmit",
+    "test:ui": "vitest run",
+    "test:axe": "vitest run -t axe --passWithNoTests"
   },
   "dependencies": {
     "@lims/ui": "workspace:*",

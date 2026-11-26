@@ -46,17 +46,20 @@ class ApiClient {
 
   Future<Map<String, Object?>> getJson(String path, {Map<String, String>? query}) => _send('GET', path, query: query);
 
-  Future<Map<String, Object?>> postJson(String path, Map<String, Object?> body, {String? idempotencyKey}) {
+  /// [headers]: extra request headers (pre-auth credentials of a caller who is not signed in).
+  Future<Map<String, Object?>> postJson(String path, Map<String, Object?> body, {String? idempotencyKey, Map<String, String>? headers}) {
     // Sync throw: validated before any I/O.
     if (idempotencyKey != null && !_idemKey.hasMatch(idempotencyKey)) {
       throw ArgumentError.value('<redacted>', 'idempotencyKey', 'must match ${_idemKey.pattern}');
     }
-    return _send('POST', path, body: body, idempotencyKey: idempotencyKey);
+    return _send('POST', path, body: body, idempotencyKey: idempotencyKey, headers: headers);
   }
+
+  Future<Map<String, Object?>> putJson(String path, Map<String, Object?> body) => _send('PUT', path, body: body);
 
   void close() => _http.close(force: true);
 
-  Future<Map<String, Object?>> _send(String method, String path, {Map<String, String>? query, Map<String, Object?>? body, String? idempotencyKey}) async {
+  Future<Map<String, Object?>> _send(String method, String path, {Map<String, String>? query, Map<String, Object?>? body, String? idempotencyKey, Map<String, String>? headers}) async {
     final prefix = _base.path.endsWith('/') ? _base.path.substring(0, _base.path.length - 1) : _base.path;
     final uri = _base.replace(path: '$prefix$path', queryParameters: (query == null || query.isEmpty) ? null : query);
     final token = await _token();
@@ -70,6 +73,7 @@ class ApiClient {
         ..set('X-Lims-Device-Id', _deviceId);
       if (token != null) req.headers.set(HttpHeaders.authorizationHeader, 'Bearer $token');
       if (idempotencyKey != null) req.headers.set('Idempotency-Key', idempotencyKey);
+      headers?.forEach(req.headers.set);
       if (body != null) {
         final data = utf8.encode(jsonEncode(body));
         req.headers.contentType = ContentType('application', 'json', charset: 'utf-8');

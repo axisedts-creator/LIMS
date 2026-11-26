@@ -13,6 +13,10 @@ rules:
     owner: C0-0A
   - pattern: "pubspec.yaml"
     owner: C0-0A
+  - pattern: "pubspec.lock"
+    owner: C0-0A
+  - pattern: ".orchestra/**"
+    owner: C0-0A
   - pattern: "analysis_options.yaml"
     owner: C0-0A
   - pattern: "tsconfig.base.json"
@@ -22,6 +26,10 @@ rules:
   - pattern: "eslint.config.*"
     owner: C0-0A
   - pattern: ".prettierrc*"
+    owner: C0-0A
+  - pattern: ".prettierignore"
+    owner: C0-0A
+  - pattern: "tools/test-env/**"
     owner: C0-0A
   - pattern: ".nvmrc"
     owner: C0-0A
@@ -72,6 +80,12 @@ rules:
     owner: C0-0D
   - pattern: "services/worker/package.json"
     owner: C0-0D
+  - pattern: "services/worker/vitest.config.ts"
+    owner: C0-0D
+  - pattern: "services/api/vitest.config.ts"
+    owner: C0-0D
+  - pattern: "services/api/src/__tests__/**"
+    owner: C0-0D
   - pattern: "services/worker/tsconfig.json"
     owner: C0-0D
   - pattern: "services/worker/Dockerfile"
@@ -95,6 +109,16 @@ rules:
   - pattern: "apps/web/src/app/layout.tsx"
     owner: C0-0D
   - pattern: "apps/web/src/app/(staff)/layout.tsx"
+    owner: C0-0D
+  - pattern: "apps/web/src/app/(staff)/_lib/**"
+    owner: C0-0D
+  - pattern: "apps/web/src/__tests__/**"
+    owner: C0-0D
+  - pattern: "apps/web/src/next-assets.d.ts"
+    owner: C0-0D
+  - pattern: "apps/web/src/app/manifest.ts"
+    owner: C0-0D
+  - pattern: "apps/web/vitest.config.ts"
     owner: C0-0D
   # Docs (founder)
   - pattern: "docs/program/**"

@@ -10,6 +10,8 @@ import (
 	"golang.org/x/sys/windows/svc"
 )
 
+const serviceName = "LimsBridgeAgent"
+
 type handler struct{ run func(context.Context) error }
 
 func (h handler) Execute(_ []string, req <-chan svc.ChangeRequest, st chan<- svc.Status) (bool, uint32) {

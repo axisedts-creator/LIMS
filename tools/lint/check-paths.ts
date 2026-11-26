@@ -1,6 +1,8 @@
 // CI gate 1 `paths` (02-TRD §15): path ownership + CR-reference check; also generates .github/CODEOWNERS.
 // Usage:
-//   node tools/lint/check-paths.ts --branch <HEAD_REF> --files <changed-paths.txt> --body <pr-body.txt>
+//   node tools/lint/check-paths.ts --branch <HEAD_REF> --files <changed-paths.txt> --body <pr-body.txt> [--cross-chunk true|false]
+//   --cross-chunk true (owner decision 2026-11-26; CI sets it from the PR label `cross-chunk-approved`): the branch need not
+//   name one chunk and files may belong to several chunks. Every other rule still applies.
 //   node tools/lint/check-paths.ts --codeowners-out <file>
 // Exit 0 pass, 1 gate failure, 2 bad usage / unreadable input / unknown branch (fail closed).
 // Rules: tools/lint/ownership.yaml (most specific pattern wins: longest literal prefix, then longest pattern).
@@ -84,10 +86,10 @@ function normalise(p: string): string | null {
   return n.replace(/^\.\//, '');
 }
 
-function gate(branch: string, filesFile: string, bodyFile: string): number {
+function gate(branch: string, filesFile: string, bodyFile: string, crossChunk: boolean): number {
   const rules = loadRules();
   const me = branchOwner(branch);
-  if (!me || !rules.some((r) => r.owner === me)) throw new Usage(`branch "${branch}" has no owning chunk (expected c<NN>/<topic> or c00-0<a-d>/<topic>)`);
+  if (!crossChunk && (!me || !rules.some((r) => r.owner === me))) throw new Usage(`branch "${branch}" has no owning chunk (expected c<NN>/<topic> or c00-0<a-d>/<topic>)`);
   const files = readFileSync(filesFile, 'utf8').split('\n').map((l) => l.replace(/\r$/, '')).filter((l) => l !== '');
   const body = readFileSync(bodyFile, 'utf8').replace(/\r\n?/g, '\n');
   const errors: string[] = [];
@@ -97,7 +99,7 @@ function gate(branch: string, filesFile: string, bodyFile: string): number {
     if (p === null) { errors.push(`path outside repo: ${JSON.stringify(raw)}`); continue; }
     const owner = ownerOf(rules, p);
     if (owner === null) errors.push(`no single owner for ${p} (gap or overlap in tools/lint/ownership.yaml)`);
-    else if (owner !== me) errors.push(`${p} is owned by ${owner}, not ${me}`);
+    else if (!crossChunk && owner !== me) errors.push(`${p} is owned by ${owner}, not ${me}`);
     if (CONTRACT.some((re) => re.test(p))) contract = true;
   }
   if (contract && !REFS.test(body)) errors.push('contract change without CR reference (PR body needs a line "Refs: CR-C<n>-<nnn>")');
@@ -122,7 +124,7 @@ function main(argv: string[]): number {
   const args: Record<string, string> = {};
   for (let i = 0; i < argv.length; i += 2) {
     const k = argv[i], v = argv[i + 1];
-    if (!['--branch', '--files', '--body', '--codeowners-out'].includes(k) || v === undefined) throw new Usage(`bad argument: ${k}`);
+    if (!['--branch', '--files', '--body', '--codeowners-out', '--cross-chunk'].includes(k) || v === undefined) throw new Usage(`bad argument: ${k}`);
     args[k] = v;
   }
   if (args['--codeowners-out'] !== undefined) {
@@ -131,7 +133,9 @@ function main(argv: string[]): number {
     return 0;
   }
   if (args['--branch'] === undefined || !args['--files'] || !args['--body']) throw new Usage('need --branch, --files and --body');
-  return gate(args['--branch'], args['--files'], args['--body']);
+  const cross = args['--cross-chunk'] ?? 'false';
+  if (cross !== 'true' && cross !== 'false') throw new Usage('--cross-chunk takes true or false');
+  return gate(args['--branch'], args['--files'], args['--body'], cross === 'true');
 }
 
 try {

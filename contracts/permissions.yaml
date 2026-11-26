@@ -27,6 +27,7 @@ fixed_actor_permissions:        # replaced by 08 §4.1
             reporting.portal.download, engagement.self.manage, engagement.link.redeem, engagement.payment.create,
             engagement.enquiry.create]                                                            # + CR-C16-002
   patient_pre_auth: [engagement.auth.challenge]                                                   # new key
+  job_applicant_pre_auth: [homecollection.application.submit]   # CR-C17-017: applicantPreAuth credential (actor patient, patient_stage job_applicant)
   partner:                      # by partner role (CR-C13-002)
     partner_member: [partners.order.read, partners.manifest.submit, partners.report.read, partners.statement.read,
                      partners.price_list.read, partners.pickup.request, partners.referrer.read,
@@ -277,3 +278,5 @@ permissions:
   - { code: homecollection.handover.receive, privileged: false, roles: [centre_staff, front_desk, lab_technologist], phase: 3 }   # CR-C17-008
   - { code: homecollection.device.manage, privileged: true, roles: [tenant_admin, lab_manager], phase: 3 }   # CR-C17-008
   - { code: homecollection.settings.manage, privileged: true, roles: [tenant_admin, lab_manager], phase: 3 }   # CR-C17-008
+  - { code: homecollection.application.manage, privileged: true, roles: [tenant_admin, lab_manager], phase: 3 }   # PHLEBO-UI-FULL-1
+  - { code: homecollection.application.submit, privileged: false, roles: [], phase: 3 }   # applicant pre_auth stage only   # PHLEBO-UI-FULL-1

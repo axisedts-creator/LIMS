@@ -40,6 +40,23 @@ const CONTENT_CODES = ["engagement.content.manage", "engagement.content.read"];
 // T0C-FINCTRL-1 (LD-321): discount policy read and manage (manage privileged); pinned in tools/codegen/__tests__/finctrl1-openapi.test.ts.
 const FINCTRL_CODES = ["billing.discount_policy.manage", "billing.discount_policy.read"];
 const PARTYSET_CODES = ["catalog.icd.manage", "partners.onboarding.decide", "partners.party_id_number.read", "partners.party_setting.manage", "partners.party_setting.read", "partners.penalty.manage"];
+// Owner decision 2026-11-26 (PR 9): current contracts accepted beyond IC; a further entry needs a new decision and an edit of this list.
+// Route ids in routes.yaml beyond IC §7.
+const OWNER_20261126_ROUTE_IDS = ["staff.catalog.icd", "staff.partners.sales_designations", "staff.partners.sales_representatives", "staff.partners.sales_clients", "staff.partners.sales_areas",
+  "staff.partners.onboarding", "staff.partners.penalties", "staff.partners.penalty_events", "staff.partners.tickets", "staff.partners.ticket", "staff.engagement.content",
+  "staff.engagement.msg_templates", "staff.engagement.msg_broadcasts", "staff.homecollection.applications", "staff.billing.discount_reasons", "staff.billing.discount_slabs",
+  "staff.billing.discount_limits", "staff.billing.discount_authorities", "staff.billing.bill_of_the_day", "staff.offline"];
+// Permission codes in permissions.yaml beyond IC §11 and beyond the lists above.
+const OWNER_20261126_PERMISSION_CODES = ["homecollection.application.manage", "homecollection.application.submit"];
+// Actor keys beyond IC §11 fixed_actor_permissions: key -> exactly these codes; every IC actor keeps exactly its IC grants.
+// CR-C17-017: the job applicant credential has its own actor key; patient_pre_auth is back to the IC grant.
+const OWNER_20261126_FIXED_ACTOR_KEYS: Record<string, string[]> = { job_applicant_pre_auth: ["homecollection.application.submit"] };
+// Role grants on IC §11 permission codes beyond the IC roles: code -> exactly these roles, after the IC roles (tenant_admin on nine front desk, lab and reporting codes).
+const OWNER_20261126_ROLE_GRANTS: Record<string, string[]> = {
+  "frontdesk.registration.create": ["tenant_admin"], "frontdesk.order.edit": ["tenant_admin"], "lab.worklist.read": ["tenant_admin"], "lab.result.read": ["tenant_admin"],
+  "lab.result.enter": ["tenant_admin"], "lab.result.verify": ["tenant_admin"], "reporting.report.release": ["tenant_admin"], "reporting.report.print": ["tenant_admin"],
+  "reporting.delivery.resend": ["tenant_admin"],
+};
 
 /** Strict parse: duplicate map keys are errors (IC §7 says "CI parses the file with a YAML parser"). */
 const strictParse = (src: string, what: string): any => {
@@ -144,9 +161,14 @@ describe("AC-0C-1.3 routes.yaml == IC §7", () => {
     expect(file.version).toBe(1);
     expect(sortKeys(file.origins)).toEqual(sortKeys(ic.origins));
     expect(file.fallbacks).toEqual(ic.fallbacks);
-    expect(diffByKey(ic.routes, file.routes, "id")).toEqual([]);
-    expect(file.routes.map((r: Entry) => r.id)).toEqual(ic.routes.map((r: Entry) => r.id));
-    expect(file).toEqual(ic);
+    // Owner decision 2026-11-26 (PR 9): EXACTLY the listed route ids may exist beyond IC §7; every IC route stays unchanged and in order.
+    const icIds: string[] = ic.routes.map((r: Entry) => r.id);
+    const extra: Entry[] = file.routes.filter((r: Entry) => !icIds.includes(String(r.id)));
+    expect(extra.map((r) => String(r.id)).sort()).toEqual([...OWNER_20261126_ROUTE_IDS].sort());
+    const core: Entry[] = file.routes.filter((r: Entry) => icIds.includes(String(r.id)));
+    expect(diffByKey(ic.routes, core, "id")).toEqual([]);
+    expect(core.map((r) => r.id)).toEqual(icIds); // order preserved
+    expect({ ...file, routes: core }).toEqual(ic);
   });
 
   it("route ids unique; origins and fallbacks resolve", () => {
@@ -206,16 +228,34 @@ describe("AC-0C-1.3 permissions.yaml == IC §11", () => {
     }
     // LD-330: drop the two MSGDESK codes from the fixed actor grants before comparing (same filtering as the extra permissions).
     const noMsgdesk = (v: unknown): unknown => Array.isArray(v) ? v.filter((c) => !MSGDESK_CODES.includes(String(c))) : v && typeof v === "object" ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, noMsgdesk(x)])) : v;
-    const fileFixed = noMsgdesk(file.fixed_actor_permissions) as Record<string, unknown>;
+    const fileFixed = { ...(noMsgdesk(file.fixed_actor_permissions) as Record<string, unknown>) };
+    // Owner decision 2026-11-26 (PR 9): EXACTLY the listed actor keys may exist beside the IC ones; they are dropped before the comparison with IC.
+    for (const [actor, codes] of Object.entries(OWNER_20261126_FIXED_ACTOR_KEYS)) {
+      expect(ic.fixed_actor_permissions[actor], actor).toBeUndefined();
+      expect(fileFixed[actor], actor).toEqual(codes);
+      delete fileFixed[actor];
+    }
     expect(sortKeys(fileFixed)).toEqual(sortKeys(ic.fixed_actor_permissions));
     // T0C-ACCT-1 (LD-313 c, founder blanket authority LD-310): the registry may hold EXACTLY the 7 billing accounting codes on top of IC §11 (spec/ is read-only, the lead records
     // the widening in the CR register). Every IC code stays, unchanged and in order (never renamed or removed); the new codes come after the IC codes of the billing block or at the end.
     const icCodes = ic.permissions.map((p: Entry) => p.code);
     const extra = file.permissions.filter((p: Entry) => !icCodes.includes(p.code));
-    expect(diffByKey(ic.permissions, file.permissions, "code").filter((d) => !d.startsWith("extra "))).toEqual([]);
-    expect(extra.map((p: Entry) => p.code).sort()).toEqual([...LD313_ACCOUNTING_CODES, ...LD321_SALES_CODES, ...LD322_SYNC_CODES, ...LD316_VERLEVEL_CODES, ...MSGDESK_CODES, ...CONTENT_CODES, ...PARTYSET_CODES, ...FINCTRL_CODES].sort());
+    // Owner decision 2026-11-26 (PR 9): on the listed IC codes EXACTLY the listed roles may follow the IC roles; they are dropped before the comparison with IC.
+    const icRoles = new Map<string, string[]>(ic.permissions.map((p: Entry) => [String(p.code), p.roles as string[]]));
+    const seenGrants: string[] = [];
+    const filePermissions: Entry[] = file.permissions.map((p: Entry) => {
+      const more = OWNER_20261126_ROLE_GRANTS[String(p.code)];
+      if (!more) return p;
+      seenGrants.push(String(p.code));
+      const n = icRoles.get(String(p.code))!.length;
+      expect((p.roles as string[]).slice(n), String(p.code)).toEqual(more);
+      return { ...p, roles: (p.roles as string[]).slice(0, n) };
+    });
+    expect(seenGrants.sort()).toEqual(Object.keys(OWNER_20261126_ROLE_GRANTS).sort());
+    expect(diffByKey(ic.permissions, filePermissions, "code").filter((d) => !d.startsWith("extra "))).toEqual([]);
+    expect(extra.map((p: Entry) => p.code).sort()).toEqual([...LD313_ACCOUNTING_CODES, ...LD321_SALES_CODES, ...LD322_SYNC_CODES, ...LD316_VERLEVEL_CODES, ...MSGDESK_CODES, ...CONTENT_CODES, ...PARTYSET_CODES, ...FINCTRL_CODES, ...OWNER_20261126_PERMISSION_CODES].sort());
     expect(file.permissions.filter((p: Entry) => icCodes.includes(p.code)).map((p: Entry) => p.code)).toEqual(icCodes);
-    expect({ ...file, fixed_actor_permissions: fileFixed, permissions: file.permissions.filter((p: Entry) => icCodes.includes(p.code)) }).toEqual(ic);
+    expect({ ...file, fixed_actor_permissions: fileFixed, permissions: filePermissions.filter((p: Entry) => icCodes.includes(p.code)) }).toEqual(ic);
   });
 
   it("permission codes unique and match ^[a-z_]+\\.[a-z_]+\\.[a-z_]+$ (IC §11 CI rule)", () => {

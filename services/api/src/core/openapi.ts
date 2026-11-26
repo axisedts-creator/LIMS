@@ -92,6 +92,7 @@ function securityHandlers(auth: CoreAuth): Record<string, (req: FastifyRequest) 
 
     registerResolver('portalSession', (req) => header(req.headers['x-lims-portal-credential']));
     registerResolver('patientPreAuth', (req) => header(req.headers['x-lims-patient-preauth']));
+    registerResolver('applicantPreAuth', (req) => header(req.headers['x-lims-applicant-preauth']));
     registerResolver('queueDisplayToken', (req) => header(req.headers['x-lims-display-token']));
     registerResolver('deviceToken', (req) => {
       const m = BEARER.exec(header(req.headers.authorization) ?? '');

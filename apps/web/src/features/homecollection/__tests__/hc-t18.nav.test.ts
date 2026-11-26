@@ -17,6 +17,8 @@ const EXPECTED = [
   { id: 'homecollection.dispatch', label: 'homecollection.nav.dispatch', routeId: 'staff.homecollection.dispatch', permission: 'homecollection.visit.read', order: 10, chord: 'g h' },
   { id: 'homecollection.handovers', label: 'homecollection.nav.handovers', routeId: 'staff.homecollection.handovers', permission: 'homecollection.handover.receive', order: 20, chord: 'g t' },
   { id: 'homecollection.devices', label: 'homecollection.nav.devices', routeId: 'staff.homecollection.devices', permission: 'homecollection.device.manage', order: 30, chord: undefined },
+  // PHLEBO-UI-FULL-1 (founder request 2026-11-26): Phlebo applications, between phones and settings.
+  { id: 'homecollection.applications', label: 'homecollection.nav.applications', routeId: 'staff.homecollection.applications', permission: 'homecollection.application.manage', order: 35, chord: undefined },
   { id: 'homecollection.settings', label: 'homecollection.nav.settings', routeId: 'staff.homecollection.settings', permission: 'homecollection.settings.manage', order: 40, chord: undefined },
 ] as const;
 

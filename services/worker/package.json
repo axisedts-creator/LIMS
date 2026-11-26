@@ -8,7 +8,9 @@
     "test": "vitest run",
     "start": "node --import ../../tools/node-ts/register.mjs src/main.ts",
     "registry-sync": "node --import ../../tools/node-ts/register.mjs src/core/registry-sync.ts",
-    "worker:replay": "node --import ../../tools/node-ts/register.mjs src/core/replay.ts"
+    "worker:replay": "node --import ../../tools/node-ts/register.mjs src/core/replay.ts",
+    "test:unit": "vitest run --exclude \"**/*.live.test.*\" --exclude \"**/*.integration.test.*\" --exclude \"**/integration/**\" --exclude \"**/probes/**\" --exclude \"**/isolation/**\" --exclude \"**/perf/**\" --exclude \"**/e2e/**\"",
+    "test:integration": "vitest run .live.test. .integration.test. /integration/ --passWithNoTests"
   },
   "dependencies": {
     "@lims/shared-ts": "workspace:*",

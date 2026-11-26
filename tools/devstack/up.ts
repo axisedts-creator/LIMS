@@ -64,15 +64,36 @@ if (psqlAdmin(['-tAc', "SELECT 1 FROM pg_roles WHERE rolname = 'lims_migrator'"]
     // SP-5 runner contract (Atlas revisions schema).
     `GRANT CONNECT ON DATABASE ${DB} TO supabase_auth_admin, supabase_storage_admin, authenticator;`,
     'CREATE SCHEMA migrations_meta AUTHORIZATION lims_migrator;',
-    'GRANT USAGE ON SCHEMA migrations_meta TO lims_owner;',
-    'ALTER DEFAULT PRIVILEGES FOR ROLE lims_migrator IN SCHEMA migrations_meta GRANT SELECT, INSERT, UPDATE ON TABLES TO lims_owner;',
+    // Atlas updates its revision row after every statement, under whatever role the migration has set at that point.
+    // Migrations switch to lims_owner, lims_queue and lims_reporting_lookup, so all three need the revisions table.
+    'GRANT USAGE ON SCHEMA migrations_meta TO lims_owner, lims_queue, lims_reporting_lookup;',
+    'ALTER DEFAULT PRIVILEGES FOR ROLE lims_migrator IN SCHEMA migrations_meta GRANT SELECT, INSERT, UPDATE ON TABLES TO lims_owner, lims_queue, lims_reporting_lookup;',
   ].join('\n');
   psqlAdmin(['-1', '-q', '-f', '-'], sql);
 }
 
 // 4. migrations as lims_migrator (Atlas, SP-5 runner contract; compose service `migrate`)
 step('migrations (lims_migrator)');
-run('docker', [...COMPOSE, '--profile', 'tools', 'run', '--rm', 'migrate']);
+const MIGRATE = [...COMPOSE, '--profile', 'tools', 'run', '--rm', 'migrate'];
+// SP-2 / LD-31 (same split as db/tests/run-suites.sh; CR LEAD-DB-02): 20261105001200 needs the graphile_worker schema.
+//   (a) the migrations before it (..001100 grants CREATE to lims_queue), (b) graphile-worker --schema-only as lims_migrator with
+//   session role lims_queue on a direct connection, (c) the rest (wrapper + REVOKE CREATE). Skipped once the schema exists.
+const STEP_C = '20261105001200';
+if (psqlAdmin(['-At', '-c', "SELECT to_regnamespace('graphile_worker') IS NOT NULL"]).trim() !== 't') {
+  const before = readdirSync(join(ROOT, 'db/migrations')).filter((f) => f.endsWith('.sql') && f < STEP_C).length;
+  run('docker', [...MIGRATE, 'migrate', 'apply', String(before), '--dir', 'file:///migrations', '--revisions-schema', 'migrations_meta', '--allow-dirty',
+    '--url', 'postgres://lims_migrator@db:5432/postgres?sslmode=disable&lock_timeout=5s&statement_timeout=15min']);
+  const b = spawnSync('pnpm', ['exec', 'graphile-worker', '--schema-only', '-c', `postgres://lims_migrator@127.0.0.1:5432/${DB}`], {
+    cwd: ROOT, stdio: 'inherit', shell: process.platform === 'win32',
+    env: { ...process.env, PGOPTIONS: '-c role=lims_queue', PGPASSWORD: env()['LIMS_MIGRATOR_PASSWORD'] ?? '' },
+  });
+  if (b.status !== 0) {
+    psqlAdmin(['-q', '-c', `REVOKE CREATE ON SCHEMA app FROM lims_queue; REVOKE CREATE ON DATABASE ${DB} FROM lims_queue`]);
+    console.error('dev:up: graphile-worker --schema-only failed (SP-2 step b); CREATE revoked');
+    process.exit(1);
+  }
+}
+run('docker', MIGRATE);
 
 // 5. db/seeds — each file in one transaction as lims_migrator (files do SET LOCAL ROLE lims_owner)
 step('db/seeds');
@@ -97,7 +118,10 @@ if (seedMod) {
 // 7. task-registry sync as lims_migrator (02-TRD worker core registry-sync.ts)
 step('registry-sync');
 const sync = join(ROOT, 'services/worker/src/core/registry-sync.ts');
-if (existsSync(sync)) run(process.execPath, [sync], { env: pgEnv('lims_migrator', E.LIMS_MIGRATOR_PASSWORD) });
+// the worker imports its workspace packages from their build output (dist/), so build those first
+if (existsSync(sync)) run('pnpm', ['--filter', '@lims/worker^...', 'run', 'build'], { shell: process.platform === 'win32' });
+// the worker sources import './x.js' for x.ts; the repo's resolver hook maps them (tools/node-ts/register.mjs)
+if (existsSync(sync)) run(process.execPath, ['--import', pathToFileURL(join(ROOT, 'tools/node-ts/register.mjs')).href, sync], { env: pgEnv('lims_migrator', E.LIMS_MIGRATOR_PASSWORD) });
 else console.log('skipped: services/worker/src/core/registry-sync.ts not present yet');
 
 // 8. URLs (all loopback, 04 S6)

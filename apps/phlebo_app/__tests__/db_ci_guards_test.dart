@@ -14,7 +14,8 @@ Directory _appDir() {
   throw StateError('apps/phlebo_app/pubspec.yaml not found from ${Directory.current.path}');
 }
 
-String _stripComments(String s) => s.replaceAll(RegExp(r'/\*[\s\S]*?\*/'), '').split('\n').map((l) => l.replaceFirst(RegExp(r'//.*$'), '')).join('\n');
+// CRLF checkouts (git autocrlf on Windows): split on \r?\n, else `//.*$` cannot match a line that still ends in \r and the comment stays.
+String _stripComments(String s) => s.replaceAll(RegExp(r'/\*[\s\S]*?\*/'), '').split(RegExp(r'\r?\n')).map((l) => l.replaceFirst(RegExp(r'//.*$'), '')).join('\n');
 
 void main() {
   final app = _appDir();

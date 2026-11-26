@@ -15,7 +15,21 @@
     },
     "test:integration": {
       "dependsOn": ["^build"],
-      "cache": false
+      "cache": false,
+      "passThroughEnv": ["LIMS_CI_DB_*", "LIMS_TEST_*"]
+    },
+    "test:isolation": {
+      "dependsOn": ["^build"],
+      "cache": false,
+      "passThroughEnv": ["LIMS_CI_DB_*", "LIMS_TEST_*"]
+    },
+    "test:ui": {
+      "dependsOn": ["^build"],
+      "outputs": []
+    },
+    "test:axe": {
+      "dependsOn": ["^build"],
+      "outputs": []
     }
   }
 }

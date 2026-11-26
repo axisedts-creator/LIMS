@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:lims_ui/lims_ui.dart';
 
+import '../../../app/theme.dart';
 import '../../visit/data/mutation_sink.dart';
 import '../../visit/domain/visit_models.dart';
 import '../../visit/ui/save_once.dart';
@@ -44,6 +45,7 @@ class _ConsentScreenState extends State<ConsentScreen> with SaveOnce<ConsentScre
       child: LimsScaffold(
         title: 'Consent',
         body: ListView(padding: const EdgeInsets.all(LimsTokens.space4), children: [
+          const StepBar(3),
           // T0A-M5-PHLEBO-1 (LD-258, 13-M-SERIES s5): the consent text and its version sit on a white LimsCard.
           LimsCard(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [

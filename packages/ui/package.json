@@ -13,7 +13,9 @@
   "scripts": {
     "build": "node scripts/build-tokens.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:ui": "vitest run",
+    "test:axe": "vitest run -t axe --passWithNoTests"
   },
   "dependencies": {
     "react-aria-components": "1.22.1"

@@ -120,6 +120,7 @@ export const PORT_OWNERS: Readonly<Record<string, ModuleName>> = Object.freeze({
 export const AUTH_RESOLVER_OWNERS: Readonly<Record<string, ModuleName>> = {
   deviceToken: 'instruments', portalSession: 'reporting', paymentCallback: 'payments',
   patientPreAuth: 'engagement', queueDisplayToken: 'engagement',
+  applicantPreAuth: 'homecollection', // CR-C17-017
 };
 
 const HTTP_METHODS = ['get', 'put', 'post', 'delete', 'options', 'head', 'patch', 'trace'];

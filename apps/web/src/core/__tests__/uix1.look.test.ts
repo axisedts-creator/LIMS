@@ -95,7 +95,7 @@ function matches(el: Element, sel: string): boolean {
 const BOX = ['top', 'right', 'bottom', 'left'] as const;
 function box(v: string): string[] {
   const p = splitTop(v.replace(/\s+/g, ' ').trim(), ' ');
-  return p.length === 1 ? [p[0], p[0], p[0], p[0]] : p.length === 2 ? [p[0], p[1], p[0], p[1]] : p.length === 3 ? [p[0], p[1], p[2], p[1]] : p.slice(0, 4);
+  return p.length === 1 ? [p[0]!, p[0]!, p[0]!, p[0]!] : p.length === 2 ? [p[0]!, p[1]!, p[0]!, p[1]!] : p.length === 3 ? [p[0]!, p[1]!, p[2]!, p[1]!] : p.slice(0, 4);
 }
 function borderParts(v: string): { w: string; s: string; c: string } {
   let w = 'medium'; let s = 'none'; let c = 'currentcolor';
@@ -110,8 +110,8 @@ function borderParts(v: string): { w: string; s: string; c: string } {
 function setProp(m: Map<string, string>, prop: string, v: string) {
   const sides = (pre: string, suf: string, val: string) => box(val).forEach((x, i) => m.set(`${pre}-${BOX[i]}${suf}`, x));
   if (prop === 'padding' || prop === 'margin') sides(prop, '', v);
-  else if (prop === 'padding-inline' || prop === 'margin-inline') { const b = box(v); m.set(`${prop.split('-')[0]}-left`, b[0]); m.set(`${prop.split('-')[0]}-right`, b[1]); }
-  else if (prop === 'padding-block' || prop === 'margin-block') { const b = box(v); m.set(`${prop.split('-')[0]}-top`, b[0]); m.set(`${prop.split('-')[0]}-bottom`, b[1]); }
+  else if (prop === 'padding-inline' || prop === 'margin-inline') { const b = box(v); m.set(`${prop.split('-')[0]}-left`, b[0]!); m.set(`${prop.split('-')[0]}-right`, b[1]!); }
+  else if (prop === 'padding-block' || prop === 'margin-block') { const b = box(v); m.set(`${prop.split('-')[0]}-top`, b[0]!); m.set(`${prop.split('-')[0]}-bottom`, b[1]!); }
   else if (/^(padding|margin)-inline-start$/.test(prop)) m.set(`${prop.split('-')[0]}-left`, v);
   else if (/^(padding|margin)-inline-end$/.test(prop)) m.set(`${prop.split('-')[0]}-right`, v);
   else if (/^(padding|margin)-block-start$/.test(prop)) m.set(`${prop.split('-')[0]}-top`, v);
@@ -123,7 +123,7 @@ function setProp(m: Map<string, string>, prop: string, v: string) {
   else if (prop === 'border-inline-start') { const b = borderParts(v); m.set('border-left-width', b.w); m.set('border-left-style', b.s); m.set('border-left-color', b.c); }
   else if (prop === 'border-width' || prop === 'border-style' || prop === 'border-color') box(v).forEach((x, i) => m.set(`border-${BOX[i]}-${prop.slice(7)}`, x));
   else if (prop === 'border-radius') m.set('border-radius', v);
-  else if (prop === 'gap') { const g = splitTop(v, ' '); m.set('row-gap', g[0]); m.set('column-gap', g[1] ?? g[0]); }
+  else if (prop === 'gap') { const g = splitTop(v, ' '); m.set('row-gap', g[0]!); m.set('column-gap', g[1] ?? g[0]!); }
   else if (prop === 'background') m.set('background-color', v);
   else if (prop === 'font') { /* font: inherit only; size and weight come from their own declarations */ }
   else m.set(prop, v);
@@ -145,7 +145,7 @@ function resolve(el: Element, width = 1100): Map<string, string> {
 
 /* ---------- value helpers ---------- */
 const shellRoot = new Map<string, number>();
-for (const r of shellRules) if (r.sels.includes(':root')) for (const d of r.decls) { const mm = /^--lims-font-size-([\w]+)-size$/.exec(d.prop); if (mm) shellRoot.set(mm[1], len(d.value)); }
+for (const r of shellRules) if (r.sels.includes(':root')) for (const d of r.decls) { const mm = /^--lims-font-size-([\w]+)-size$/.exec(d.prop); if (mm) shellRoot.set(mm[1]!, len(d.value)); }
 function len(v: string | undefined): number {
   if (v === undefined) return NaN;
   v = v.trim();
@@ -153,13 +153,13 @@ function len(v: string | undefined): number {
   if (v === '0') return 0;
   if ((m = /^(-?[\d.]+)px$/.exec(v))) return Number(m[1]);
   if ((m = /^(-?[\d.]+)rem$/.exec(v))) return Number(m[1]) * 16;
-  if ((m = /^var\(--lims-space-([\d-]+)\)$/.exec(v))) return TOKENS.space[m[1].replace('-', '_')] ?? NaN;
-  if ((m = /^var\(--lims-radius-(\w+)\)$/.exec(v))) return TOKENS.radius[m[1]] ?? NaN;
-  if ((m = /^var\(--lims-font-size-(\w+)-size\)$/.exec(v))) return shellRoot.get(m[1]) ?? TOKENS.font.size[m[1]]?.size ?? NaN;
+  if ((m = /^var\(--lims-space-([\d-]+)\)$/.exec(v))) return TOKENS.space[m[1]!.replace('-', '_')] ?? NaN;
+  if ((m = /^var\(--lims-radius-(\w+)\)$/.exec(v))) return TOKENS.radius[m[1]!] ?? NaN;
+  if ((m = /^var\(--lims-font-size-(\w+)-size\)$/.exec(v))) return shellRoot.get(m[1]!) ?? TOKENS.font.size[m[1]!]?.size ?? NaN;
   if ((m = /^var\(--lims-touch-target-web\)$/.exec(v))) return 48;
   return NaN;
 }
-const weight = (v: string | undefined) => (v === undefined ? NaN : /^\d+$/.test(v) ? Number(v) : (TOKENS.font.weight[(/^var\(--lims-font-weight-(\w+)\)$/.exec(v) ?? [])[1]] ?? NaN));
+const weight = (v: string | undefined) => (v === undefined ? NaN : /^\d+$/.test(v) ? Number(v) : (TOKENS.font.weight[(/^var\(--lims-font-weight-(\w+)\)$/.exec(v) ?? [])[1]!] ?? NaN));
 const px = (m: Map<string, string>, p: string) => len(m.get(p));
 const col = (m: Map<string, string>, p: string) => m.get(p);
 function bordered(m: Map<string, string>, side: string): { w: number; c: string } | null {
@@ -231,33 +231,33 @@ describe('(1) BUTTONS (LD-442 DONE WHEN 1)', () => {
     m = Object.fromEntries([...variants.map(([k]) => k), 'sm', 'psm'].map((k) => [k, resolve(q(c, `[data-k="${k}"]`))]));
   });
   it.each(variants.map(([k]) => k))('%s: height and min-height 30px, radius 8px, base size 12.6px, weight 500', (k) => {
-    expectHeight(m[k], 30, true);
-    expect(radius(m[k])).toBe(8);
-    expect(fs(m[k])).toBeCloseTo(BASE, 5);
-    expect(weight(m[k].get('font-weight'))).toBe(500);
+    expectHeight(m[k]!, 30, true);
+    expect(radius(m[k]!)).toBe(8);
+    expect(fs(m[k]!)).toBeCloseTo(BASE, 5);
+    expect(weight(m[k]!.get('font-weight'))).toBe(500);
   });
-  it.each(['default', 'secondary', 'primary', 'danger'])('%s: padding 0 12px', (k) => expectPad(m[k], 0, 12, 0, 12));
+  it.each(['default', 'secondary', 'primary', 'danger'])('%s: padding 0 12px', (k) => expectPad(m[k]!, 0, 12, 0, 12));
   // T0D-UIX-6 (LD-444) replaces the secondary colours (accent tint, asserted in uix6.buttons.test.ts); the bare .lims-btn keeps the neutral look.
   it('default (bare .lims-btn): white fill, 1px neutral.300 border, neutral.700 text', () => {
-    expect(col(m.default, 'background-color')).toBe('var(--lims-neutral-0)');
-    expectBorder(m.default, 1, 'neutral-300');
-    expect(col(m.default, 'color')).toBe('var(--lims-neutral-700)');
+    expect(col(m.default!, 'background-color')).toBe('var(--lims-neutral-0)');
+    expectBorder(m.default!, 1, 'neutral-300');
+    expect(col(m.default!, 'color')).toBe('var(--lims-neutral-700)');
   });
   // T0D-UIX-6 (LD-444 / done_when 1) replaces "no border" with a 1px accent border; the border itself is asserted in uix6.buttons.test.ts.
   it('primary: accent fill, white text', () => {
-    expect(col(m.primary, 'background-color')).toBe('var(--lims-accent)');
-    expect(['var(--lims-accent-fg)', 'var(--lims-neutral-0)']).toContain(col(m.primary, 'color'));
+    expect(col(m.primary!, 'background-color')).toBe('var(--lims-accent)');
+    expect(['var(--lims-accent-fg)', 'var(--lims-neutral-0)']).toContain(col(m.primary!, 'color'));
   });
   it('ghost: transparent fill, accent text, no border, padding 0 8px', () => {
-    expect(['transparent', 'none']).toContain(col(m.ghost, 'background-color'));
-    expect(col(m.ghost, 'color')).toBe('var(--lims-accent)');
-    expectNoBorder(m.ghost);
-    expectPad(m.ghost, 0, 8, 0, 8);
+    expect(['transparent', 'none']).toContain(col(m.ghost!, 'background-color'));
+    expect(col(m.ghost!, 'color')).toBe('var(--lims-accent)');
+    expectNoBorder(m.ghost!);
+    expectPad(m.ghost!, 0, 8, 0, 8);
   });
   it('danger keeps the danger fill with the same height and radius as the others', () => {
-    expect(col(m.danger, 'background-color')).toBe('var(--lims-tone-danger-fg)');
+    expect(col(m.danger!, 'background-color')).toBe('var(--lims-tone-danger-fg)');
   });
-  it('small: 24px height and min-height', () => { expectHeight(m.sm, 24, true); expectHeight(m.psm, 24, true); });
+  it('small: 24px height and min-height', () => { expectHeight(m.sm!, 24, true); expectHeight(m.psm!, 24, true); });
   it('IconButton (ghost and secondary): 30 x 30, radius 8px, 1px neutral.200 border, white fill', () => {
     const c = mount('<button class="lims-btn lims-btn-ghost lims-icon-btn" data-k="g">i</button><button class="lims-btn lims-btn-secondary lims-icon-btn" data-k="s">i</button>');
     for (const k of ['g', 's']) {
@@ -271,9 +271,9 @@ describe('(1) BUTTONS (LD-442 DONE WHEN 1)', () => {
     }
   });
   it('no pill remains on a button, a chip-button or a tab (StatusChip, Badge and avatars stay pill)', () => {
-    for (const k of Object.keys(m)) expect(radius(m[k]), k).toBeLessThan(TOKENS.radius.full);
+    for (const k of Object.keys(m)) expect(radius(m[k]!), k).toBeLessThan(TOKENS.radius.full!);
     const c = mount('<div class="lims-tablist"><div class="lims-tab" data-selected="true" aria-selected="true">t</div><div class="lims-tab" aria-selected="false">u</div></div>');
-    for (const t of c.querySelectorAll('.lims-tab')) expect(radius(resolve(t))).toBeLessThan(TOKENS.radius.full);
+    for (const t of c.querySelectorAll('.lims-tab')) expect(radius(resolve(t))).toBeLessThan(TOKENS.radius.full!);
   });
 });
 
@@ -321,7 +321,7 @@ describe('(2) FORM CONTROLS (LD-442 DONE WHEN 2)', () => {
     }
   });
   it('the calendar icon of a date input sits inside the input at its right edge, not as a separate bordered box', () => {
-    const c = mount(controls[4][1]);
+    const c = mount(controls[4]![1]);
     const grp = resolve(q(c, '.lims-input-group')); const icon = resolve(q(c, '[data-k="icon"]')); const inp = resolve(q(c, '.lims-input'));
     expect(grp.get('position')).toBe('relative');
     expect(icon.get('position')).toBe('absolute');
@@ -458,7 +458,7 @@ describe('(5) TABS (LD-442 DONE WHEN 5)', () => {
     for (const k of ['on', 'off']) {
       const r = resolve(q(c, `[data-k="${k}"]`));
       expectHeight(r, 32, false);
-      expect(radius(r)).toBeLessThan(TOKENS.radius.full);
+      expect(radius(r)).toBeLessThan(TOKENS.radius.full!);
       expect(['transparent', 'none']).toContain(col(r, 'background-color'));
       for (const s of ['top', 'left', 'right']) expect(bordered(r, s), `${k} border-${s}`).toBeNull();
     }

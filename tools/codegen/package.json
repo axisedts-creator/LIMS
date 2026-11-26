@@ -6,7 +6,8 @@
     "lint:openapi": "tsx lint-openapi.ts",
     "codegen": "tsx codegen.ts",
     "codegen:check": "tsx codegen.ts --check",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:unit": "vitest run"
   },
   "dependencies": {
     "ajv": "8.20.0",

@@ -6,7 +6,6 @@
 //   SecurityContext buildPinnedSecurityContext(List<String> caPems)   // ArgumentError if empty or any PEM is not a certificate
 //   HttpClient createPinnedHttpClient(List<String> caPems)            // HttpClient(context: buildPinnedSecurityContext(..)); never sets badCertificateCallback
 // The MITM is a real TLS server whose leaf is signed by a CA with the SAME subject DN as the pinned CA but another key.
-import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';

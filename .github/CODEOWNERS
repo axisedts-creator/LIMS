@@ -6,6 +6,7 @@
 /.eslintrc* @lims/c0-0a
 /contracts/** @lims/c0-0c
 /.prettierrc* @lims/c0-0a
+/.orchestra/** @lims/c0-0a
 /tools/lint/** @lims/c0-0a
 /packages/ui/** @lims/c0-0d
 /docs/chunks/** @lims/doc-owner
@@ -14,6 +15,7 @@
 /apps/partner/** @lims/c13
 /eslint.config.* @lims/c0-0a
 /tools/codegen/** @lims/c0-0c
+/tools/test-env/** @lims/c0-0a
 /tools/devstack/** @lims/c0-0a
 /packages/fakes/** @lims/c0-0c
 /apps/phlebo_app/** @lims/c17
@@ -44,6 +46,7 @@
 /docs/manual/inventory/** @lims/c12
 /packages/test-fixtures/** @lims/c0-0a
 /packages/api-client-ts/** @lims/c0-0c
+/apps/web/src/__tests__/** @lims/c0-0d
 /apps/web/tests/e2e/lab/** @lims/c5
 /docs/manual/engagement/** @lims/c16
 /apps/web/src/app/(auth)/** @lims/c2
@@ -54,6 +57,7 @@
 /apps/web/tests/e2e/admin/** @lims/c2
 /apps/web/tests/e2e/micro/** @lims/c10
 /apps/web/src/features/lab/** @lims/c5
+/services/api/src/__tests__/** @lims/c0-0d
 /apps/web/src/app/(display)/** @lims/c16
 /apps/web/tests/e2e/catalog/** @lims/c3
 /apps/web/tests/e2e/billing/** @lims/c4
@@ -74,6 +78,7 @@
 /apps/web/tests/e2e/reporting/** @lims/c6
 /apps/web/tests/e2e/analytics/** @lims/c8
 /apps/web/tests/e2e/inventory/** @lims/c12
+/apps/web/src/app/(staff)/_lib/** @lims/c0-0d
 /apps/web/src/features/catalog/** @lims/c3
 /apps/web/src/features/billing/** @lims/c4
 /apps/web/src/features/quality/** @lims/c9
@@ -151,8 +156,10 @@
 /.gitignore @lims/c0-0a
 /package.json @lims/c0-0a
 /pubspec.yaml @lims/c0-0a
+/pubspec.lock @lims/c0-0a
 /pnpm-lock.yaml @lims/c0-0a
 /.gitleaks.toml @lims/c0-0a
+/.prettierignore @lims/c0-0a
 /tsconfig.base.json @lims/c0-0a
 /pnpm-workspace.yaml @lims/c0-0a
 /apps/web/Dockerfile @lims/c0-0d
@@ -162,11 +169,16 @@
 /services/api/Dockerfile @lims/c0-0d
 /services/api/src/main.ts @lims/c0-0d
 /services/api/package.json @lims/c0-0d
+/apps/web/vitest.config.ts @lims/c0-0d
 /services/api/tsconfig.json @lims/c0-0d
 /services/worker/Dockerfile @lims/c0-0d
 /apps/web/src/middleware.ts @lims/c0-0d
 /services/worker/src/main.ts @lims/c0-0d
 /apps/web/src/app/layout.tsx @lims/c0-0d
 /services/worker/package.json @lims/c0-0d
+/apps/web/src/app/manifest.ts @lims/c0-0d
+/services/api/vitest.config.ts @lims/c0-0d
 /services/worker/tsconfig.json @lims/c0-0d
+/apps/web/src/next-assets.d.ts @lims/c0-0d
+/services/worker/vitest.config.ts @lims/c0-0d
 /apps/web/src/app/(staff)/layout.tsx @lims/c0-0d

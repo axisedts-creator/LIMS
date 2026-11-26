@@ -48,6 +48,7 @@ const EXTRA_CLAIMS: Readonly<Partial<Record<ModuleName, readonly string[]>>> = {
   instruments: ['credential_kind', 'credential_id'],
   payments: ['payment_intent_id'],
   engagement: ['patient_stage', 'otp_token_sha256', 'device_kind'],
+  homecollection: ['patient_stage'], // applicantPreAuth sets only the value job_applicant (CR-C17-017)
 };
 const RESOLVER_ACTORS: readonly string[] = ['device', 'portal', 'patient', 'system'];
 

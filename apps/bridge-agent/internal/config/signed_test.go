@@ -52,20 +52,20 @@ func TestVerify_BadSignature(t *testing.T) {
 	_, attackerPriv := newKey(t, "attacker")
 
 	cases := map[string][]byte{
-		"tampered document value (bit flip)": []byte(strings.Replace(string(good), "SIM-CHEM-1", "SIM-CHEM-2", 1)),
-		"tampered version (downgrade->up)":   []byte(strings.Replace(string(good), `"config_version":8`, `"config_version":9`, 1)),
-		"tampered signature char":            envelopeRaw("Ed25519", testKeyID, flipFirst, canon),
-		"truncated signature":                envelopeRaw("Ed25519", testKeyID, sig[:len(sig)-4], canon),
-		"empty signature":                    envelopeRaw("Ed25519", testKeyID, "", canon),
-		"not base64url":                      envelopeRaw("Ed25519", testKeyID, "!!!not base64!!!", canon),
-		"signature of another document":      envelopeRaw("Ed25519", testKeyID, b64(signedSig(priv, docJSON(testAgentID, 8, "OTHER"))), canon),
+		"tampered document value (bit flip)":  []byte(strings.Replace(string(good), "SIM-CHEM-1", "SIM-CHEM-2", 1)),
+		"tampered version (downgrade->up)":    []byte(strings.Replace(string(good), `"config_version":8`, `"config_version":9`, 1)),
+		"tampered signature char":             envelopeRaw("Ed25519", testKeyID, flipFirst, canon),
+		"truncated signature":                 envelopeRaw("Ed25519", testKeyID, sig[:len(sig)-4], canon),
+		"empty signature":                     envelopeRaw("Ed25519", testKeyID, "", canon),
+		"not base64url":                       envelopeRaw("Ed25519", testKeyID, "!!!not base64!!!", canon),
+		"signature of another document":       envelopeRaw("Ed25519", testKeyID, b64(signedSig(priv, docJSON(testAgentID, 8, "OTHER"))), canon),
 		"signed by attacker under trusted id": signed(attackerPriv, testKeyID, canon),
-		"wrong key id":                       signed(priv, "cfg-unknown", canon),
-		"empty key id":                       signed(priv, "", canon),
-		"alg none":                           envelopeRaw("none", testKeyID, sig, canon),
-		"alg lower-case":                     envelopeRaw("ed25519", testKeyID, sig, canon),
-		"alg HS256":                          envelopeRaw("HS256", testKeyID, sig, canon),
-		"alg empty":                          envelopeRaw("", testKeyID, sig, canon),
+		"wrong key id":                        signed(priv, "cfg-unknown", canon),
+		"empty key id":                        signed(priv, "", canon),
+		"alg none":                            envelopeRaw("none", testKeyID, sig, canon),
+		"alg lower-case":                      envelopeRaw("ed25519", testKeyID, sig, canon),
+		"alg HS256":                           envelopeRaw("HS256", testKeyID, sig, canon),
+		"alg empty":                           envelopeRaw("", testKeyID, sig, canon),
 	}
 	for name, env := range cases {
 		d, err := Verify(env, trusted(t), testAgentID)
@@ -118,15 +118,15 @@ func TestVerify_SchemaInvalid_ValidlySigned(t *testing.T) {
 		return strings.Replace(base, old, nw, 1)
 	}
 	cases := map[string]string{
-		"wrong schema id":        rep(`"schema":"lims.bridge.config.v1"`, `"schema":"lims.bridge.config.v2"`),
-		"schema missing":         rep(`"schema":"lims.bridge.config.v1",`, ``),
-		"config_version missing": rep(`"config_version":7,`, ``),
-		"config_version string":  rep(`"config_version":7`, `"config_version":"7"`),
-		"config_version zero":    rep(`"config_version":7`, `"config_version":0`),
+		"wrong schema id":         rep(`"schema":"lims.bridge.config.v1"`, `"schema":"lims.bridge.config.v2"`),
+		"schema missing":          rep(`"schema":"lims.bridge.config.v1",`, ``),
+		"config_version missing":  rep(`"config_version":7,`, ``),
+		"config_version string":   rep(`"config_version":7`, `"config_version":"7"`),
+		"config_version zero":     rep(`"config_version":7`, `"config_version":0`),
 		"config_version negative": rep(`"config_version":7`, `"config_version":-1`),
-		"instruments not array":  rep(`"instruments":[{"instrument_code":"SIM-CHEM-1"}]`, `"instruments":{}`),
-		"document is array":      `[]`,
-		"document is null":       `null`,
+		"instruments not array":   rep(`"instruments":[{"instrument_code":"SIM-CHEM-1"}]`, `"instruments":{}`),
+		"document is array":       `[]`,
+		"document is null":        `null`,
 	}
 	for name, doc := range cases {
 		_, err := Verify(signed(goldenPriv(t), testKeyID, doc), trusted(t), testAgentID)
@@ -173,19 +173,19 @@ func TestVerify_MalformedEnvelopes_RejectedNeverPanic(t *testing.T) {
 	sig := b64(signedSig(goldenPriv(t), canon))
 	dup := `{"agent_id":"` + otherAgentID + `","agent_id":"` + testAgentID + `",` + canon[1:]
 	cases := map[string][]byte{
-		"nil":                nil,
-		"empty":              []byte(``),
-		"null":               []byte(`null`),
-		"array":              []byte(`[]`),
-		"empty object":       []byte(`{}`),
-		"not json":           []byte(`not json`),
-		"alg only":           []byte(`{"alg":"Ed25519"}`),
-		"document missing":   []byte(`{"alg":"Ed25519","key_id":"` + testKeyID + `","signature":"` + sig + `"}`),
-		"document null":      envelopeRaw("Ed25519", testKeyID, sig, `null`),
-		"document string":    envelopeRaw("Ed25519", testKeyID, sig, `"x"`),
-		"signature number":   []byte(`{"alg":"Ed25519","key_id":"` + testKeyID + `","signature":1,"document":` + canon + `}`),
+		"nil":              nil,
+		"empty":            []byte(``),
+		"null":             []byte(`null`),
+		"array":            []byte(`[]`),
+		"empty object":     []byte(`{}`),
+		"not json":         []byte(`not json`),
+		"alg only":         []byte(`{"alg":"Ed25519"}`),
+		"document missing": []byte(`{"alg":"Ed25519","key_id":"` + testKeyID + `","signature":"` + sig + `"}`),
+		"document null":    envelopeRaw("Ed25519", testKeyID, sig, `null`),
+		"document string":  envelopeRaw("Ed25519", testKeyID, sig, `"x"`),
+		"signature number": []byte(`{"alg":"Ed25519","key_id":"` + testKeyID + `","signature":1,"document":` + canon + `}`),
 		"duplicate key in document (parser differential)": envelopeRaw("Ed25519", testKeyID, sig, dup),
-		"truncated envelope": goldenEnvelope(t)[:40],
+		"truncated envelope":                              goldenEnvelope(t)[:40],
 	}
 	for name, env := range cases {
 		func() {

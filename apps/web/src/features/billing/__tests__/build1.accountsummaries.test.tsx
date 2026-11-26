@@ -58,7 +58,7 @@ const serve = (h: () => Response) => api.use(http.get(`${ORIGIN}${LIST}`, h), ht
 const body = (data: unknown[], next?: string) => () => HttpResponse.json({ data, page: { limit: 50, ...(next ? { next_cursor: next } : {}) } });
 async function show(sp: Record<string, string | string[]> = {}) {
   const mod = await import(/* @vite-ignore */ '../../../app/(staff)/billing/accounts/summary/page.tsx');
-  const tree = await (mod.default as (p: never) => Promise<never>)({ searchParams: Promise.resolve(sp), params: Promise.resolve({}) } as never)
+  const tree = await (mod.default as (p: never) => Promise<React.ReactNode>)({ searchParams: Promise.resolve(sp), params: Promise.resolve({}) } as never)
     .catch((e: unknown) => { throw new Error(`the page threw instead of keeping its title: ${String(e)}`); });
   return render(<ToastProvider>{tree}</ToastProvider>);
 }

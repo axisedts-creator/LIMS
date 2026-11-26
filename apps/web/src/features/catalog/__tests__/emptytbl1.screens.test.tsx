@@ -117,7 +117,8 @@ describe('kit-level tables', () => {
   });
   it('SimpleTable (reporting): headers + message row + 4 placeholder rows, selection column kept', () => {
     const cols = [{ id: 'a', header: 'Report', cell: () => '' }, { id: 'b', header: 'Patient', cell: () => '' }, { id: 'c', header: 'Status', cell: () => '' }];
-    const { container } = render(<SimpleTable columns={cols} rows={[]} getRowId={() => 'x'} caption="Reports" empty={{ title: 'No reports.' }} selection={{ selectedIds: new Set(), onChange: () => undefined, label: (i) => i }} />);
+    const stale = { selection: { selectedIds: new Set(), onChange: () => undefined, label: (i: unknown) => i } }; // SimpleTable has had no `selection` prop since T0D-UIX-4; spread so the stale prop still reaches it
+    const { container } = render(<SimpleTable columns={cols} rows={[]} getRowId={() => 'x'} caption="Reports" empty={{ title: 'No reports.' }} {...stale} />);
     expectEmptyTable(container, /No reports\./);
     expect(within(container).getByRole('checkbox', { name: /select all rows/i })).toBeTruthy(); // header checkbox is a header control, not a row
   });

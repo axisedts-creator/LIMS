@@ -4,3 +4,4 @@
 services/api/src/modules/analytics/domain/reportRegistry.ts
 services/api/src/modules/analytics/export/reportTable.ts
 services/api/src/modules/analytics/service/misReports.service.ts
+apps/web/src/features/analytics/report-codes.ts

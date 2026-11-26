@@ -7,7 +7,7 @@ const ENT: Record<string, string> = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"
 /** Element-content escape only (every dynamic value below lands in element content, never in an attribute). */
 const esc = (v: unknown): string => String(v ?? '').replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, '').replace(/[&<>"']/g, (c) => ENT[c]!);
 
-const CSS = `@page{size:A4;margin:20mm}body{font-family:Arial,Helvetica,sans-serif;font-size:11pt;color:#000}h1{font-size:16pt;margin:0 0 2mm}` +
+const CSS = `@page{size:A4;margin:20mm}body{font-family:Arial,Helvetica,sans-serif;font-size:11pt;color:#000;font-variant-ligatures:no-common-ligatures}h1{font-size:16pt;margin:0 0 2mm}` +
   `.sub{margin:0 0 8mm;font-size:12pt}table{border-collapse:collapse}td{padding:1.5mm 6mm 1.5mm 0;vertical-align:top}td.k{color:#444}` +
   `.qr{margin:10mm 0 3mm}.qr img{width:50mm;height:50mm}.note{font-size:9pt;color:#444}`;
 const ROWS = [['Partner', 'partnerName'], ['Patient', 'patientDisplayName'], ['Order', 'orderRef'], ['Issued', 'issuedAtLocal'], ['Valid until', 'expiresAtLocal']] as const;

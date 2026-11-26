@@ -13,8 +13,6 @@ import (
 	"lims/apps/bridge-agent/internal/update"
 )
 
-const serviceName = "LimsBridgeAgent"
-
 func main() {
 	pd := os.Getenv("ProgramData")
 	if pd == "" {

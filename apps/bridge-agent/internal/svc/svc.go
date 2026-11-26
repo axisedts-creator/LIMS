@@ -131,7 +131,7 @@ func FirewallAddArgs(exe string) ([]string, error) {
 	}
 	for _, seg := range strings.FieldsFunc(exe, func(r rune) bool { return r == '\\' || r == '/' }) {
 		if seg == ".." {
-			return nil, fmt.Errorf("%w: firewall program path must not contain ..", ErrInvalidOptions)
+			return nil, fmt.Errorf("%w: firewall program path must not contain \"..\"", ErrInvalidOptions)
 		}
 	}
 	return []string{"advfirewall", "firewall", "add", "rule", "name=" + FirewallRuleName, "dir=in", "action=allow",

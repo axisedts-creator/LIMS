@@ -8,14 +8,21 @@ import { bodyObject, invalid } from './verifyMfaChallenge.js';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-/** MobileSessionOpenRequest { email, password, app_instance_id (uuid), app_platform android|ios } (additionalProperties: false) */
+const PHONE_RE = /^\+[1-9][0-9]{7,14}$/;
+
+/** MobileSessionOpenRequest { email | phone_e164 (exactly one), password, app_instance_id (uuid), app_platform android|ios } (additionalProperties: false).
+ *  PHLEBO-UI-FULL-1: with phone_e164 the service resolves the account's email itself; an unknown phone fails like a wrong password. */
 function parseMobile(b: unknown): MobileLoginInput {
-  const o = bodyObject(b, ['email', 'password', 'app_instance_id', 'app_platform']);
-  const { email, password } = parseBody({ email: o['email'], password: o['password'] });
+  const o = bodyObject(b, ['email', 'phone_e164', 'password', 'app_instance_id', 'app_platform']);
+  const phone = o['phone_e164'];
+  if ((phone === undefined) === (o['email'] === undefined)) throw invalid();
+  if (phone !== undefined && (typeof phone !== 'string' || !PHONE_RE.test(phone))) throw invalid();
+  // parseBody keeps its email/password rules; for a phone login the phone stands in until the service resolves it.
+  const { email, password } = parseBody({ email: phone ?? o['email'], password: o['password'] });
   const id = o['app_instance_id']; const platform = o['app_platform'];
   if (typeof id !== 'string' || !UUID_RE.test(id)) throw invalid();
   if (platform !== 'android' && platform !== 'ios') throw invalid();
-  return { email, password, appInstanceId: id.toLowerCase(), appPlatform: platform };
+  return { email, password, appInstanceId: id.toLowerCase(), appPlatform: platform, ...(typeof phone === 'string' ? { phoneE164: phone } : {}) };
 }
 
 export const createOpenMobileSession = (deps: AuthDeps): Handler =>

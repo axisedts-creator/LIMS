@@ -1,6 +1,8 @@
 // CI job `supabase-pin` (02-TRD §15.1, DoD §1.7, 08 A25 D-208): image digests in tools/devstack/compose.yaml
 // must equal infra/compose/supabase/upstream/UPSTREAM.lock.
-// Usage: node tools/lint/check-supabase-pin.ts --compose <compose.yaml> --lock <UPSTREAM.lock>
+// Usage: node tools/lint/check-supabase-pin.ts --compose <compose.yaml> --lock <UPSTREAM.lock> [--allow-unused <repo>[,<repo>]]
+//   --allow-unused names lock images this compose file leaves out on purpose (the dev stack runs no imgproxy). A named repo that
+//   IS used is still compared, and a name that is not in the lock is a usage error.
 // Lock entries are tokens `<repo>@sha256:<64 hex>`; every lock image must appear in compose (`image:`) with that
 // digest, and no compose service may name a lock repo by tag or another digest. Compose images not in the lock are ignored.
 // Exit 0 equal, 1 differ, 2 bad usage / unreadable file / lock without digests (fail closed).
@@ -19,7 +21,7 @@ function repoOf(ref: string): string {
 function main(argv: string[]): number {
   const a: Record<string, string> = {};
   for (let i = 0; i < argv.length; i += 2) {
-    if (!['--compose', '--lock'].includes(argv[i]) || argv[i + 1] === undefined) throw new Usage(`bad argument ${argv[i]}`);
+    if (!['--compose', '--lock', '--allow-unused'].includes(argv[i]) || argv[i + 1] === undefined) throw new Usage(`bad argument ${argv[i]}`);
     a[argv[i]] = argv[i + 1];
   }
   if (!a['--compose'] || !a['--lock']) throw new Usage('need --compose and --lock');
@@ -38,13 +40,22 @@ function main(argv: string[]): number {
     if (prev && prev !== m[2]) throw new Usage(`lock pins ${repo} to two digests`);
     lock.set(repo, m[2]);
   }
+  // UPSTREAM.lock writes each image as three lines (image / tag / digest); read that form too.
+  for (const m of lockText.matchAll(/^[ \t]*image:[ \t]*([^\s#"']+)[^\n]*\n[ \t]*tag:[^\n]*\n[ \t]*digest:[ \t]*sha256:([0-9a-f]{64})\b/gm)) {
+    const repo = repoOf(m[1]);
+    const prev = lock.get(repo);
+    if (prev && prev !== m[2]) throw new Usage(`lock pins ${repo} to two digests`);
+    lock.set(repo, m[2]);
+  }
   if (!lock.size) throw new Usage('lock contains no <repo>@sha256:<digest> entries');
 
   const images = [...compose.matchAll(/^\s*-?\s*image:\s*["']?([^"'\s#]+)/gm)].map((m) => m[1]);
   const errs: string[] = [];
+  const allowUnused = new Set((a['--allow-unused'] ?? '').split(',').map((x) => x.trim()).filter(Boolean));
+  for (const r of allowUnused) if (!lock.has(r)) throw new Usage(`--allow-unused names ${r}, which the lock does not pin`);
   for (const [repo, digest] of lock) {
     const uses = images.filter((i) => repoOf(i) === repo);
-    if (!uses.length) errs.push(`${repo}: pinned in lock but not used in compose`);
+    if (!uses.length && !allowUnused.has(repo)) errs.push(`${repo}: pinned in lock but not used in compose`);
     for (const u of uses) {
       const d = /@sha256:([0-9a-f]{64})$/.exec(u)?.[1];
       if (d !== digest) errs.push(`${repo}: compose has ${u}, lock pins sha256:${digest}`);

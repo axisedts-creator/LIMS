@@ -1,4 +1,30 @@
 {
   "advisories": [],
-  "licenceReviews": []
+  "licenceReviews": [
+    {
+      "name": "argparse",
+      "licence": "Python-2.0",
+      "approval": "founder approval 2026-11-26 (PR 9); dev-only, reached via eslint > js-yaml"
+    },
+    {
+      "name": "axe-core",
+      "licence": "MPL-2.0",
+      "approval": "founder approval 2026-11-26 (PR 9); test-only accessibility checks, not modified"
+    },
+    {
+      "name": "caniuse-lite",
+      "licence": "CC-BY-4.0",
+      "approval": "founder approval 2026-11-26 (PR 9); build-time browser data"
+    },
+    {
+      "name": "@img/sharp-win32-x64",
+      "licence": "Apache-2.0 AND LGPL-3.0-or-later",
+      "approval": "founder approval 2026-11-26 (PR 9); prebuilt libvips, dynamically linked, unmodified"
+    },
+    {
+      "name": "@img/sharp-libvips-linux-x64",
+      "licence": "LGPL-3.0-or-later",
+      "approval": "founder approval 2026-11-26 (PR 9); prebuilt libvips, dynamically linked, unmodified"
+    }
+  ]
 }

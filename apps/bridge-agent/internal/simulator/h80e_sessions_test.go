@@ -17,12 +17,12 @@ import (
 )
 
 var h80eSessions = []string{
-	"h80e-oru-patient",       // ORU^R01 patient result -> AA, queued kind=data
-	"h80e-qry-found",         // QRY^Q02 -> QCK OK, DSR written at once, ACK^Q03 consumed
-	"h80e-qry-not-found",     // QRY^Q02 unknown barcode -> QCK NF only
-	"h80e-qry-no-order-nf",   // known tube, no HbA1c order pending -> QCK NF only
-	"h80e-q03-id-mismatch",   // ACK^Q03 MSA-2 = query id (126) not DSR id (12602) -> accepted
-	"h80e-api-down",          // API unreachable -> the agent writes nothing (AC-10.6)
+	"h80e-oru-patient",     // ORU^R01 patient result -> AA, queued kind=data
+	"h80e-qry-found",       // QRY^Q02 -> QCK OK, DSR written at once, ACK^Q03 consumed
+	"h80e-qry-not-found",   // QRY^Q02 unknown barcode -> QCK NF only
+	"h80e-qry-no-order-nf", // known tube, no HbA1c order pending -> QCK NF only
+	"h80e-q03-id-mismatch", // ACK^Q03 MSA-2 = query id (126) not DSR id (12602) -> accepted
+	"h80e-api-down",        // API unreachable -> the agent writes nothing (AC-10.6)
 }
 
 func TestH80E_SessionsExistNameTheProfileAndRunGreen(t *testing.T) {

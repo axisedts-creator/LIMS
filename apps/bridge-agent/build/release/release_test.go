@@ -230,9 +230,13 @@ func (e *env) mustRun(args ...string) result {
 	return r
 }
 
-func (e *env) zipPath(v string) string { return filepath.Join(e.out, "bridge-agent-"+v+"-windows-amd64.zip") }
+func (e *env) zipPath(v string) string {
+	return filepath.Join(e.out, "bridge-agent-"+v+"-windows-amd64.zip")
+}
 func (e *env) relPath(v string) string { return filepath.Join(e.out, "release-"+v+".json") }
-func (e *env) sqlPath(v string) string { return filepath.Join(e.out, "g_agent_releases-"+v+".seed.sql") }
+func (e *env) sqlPath(v string) string {
+	return filepath.Join(e.out, "g_agent_releases-"+v+".seed.sql")
+}
 
 func (e *env) noArtefacts() {
 	e.t.Helper()
@@ -305,7 +309,7 @@ func (f fakeAuth) Publisher(p string) (string, error) {
 	return f.cn, nil
 }
 
-// stripLiterals blanks every single-quoted SQL literal ('' is an escaped quote); ok=false on an unterminated literal.
+// stripLiterals blanks every single-quoted SQL literal (” is an escaped quote); ok=false on an unterminated literal.
 func stripLiterals(s string) (string, bool) {
 	var b strings.Builder
 	in := false
@@ -444,7 +448,7 @@ func TestSeedSQLIsOneIdempotentInsertWithTheReleaseRow(t *testing.T) {
 			t.Fatalf("seed lacks value %s:\n%s", lit, sql)
 		}
 	}
-	if !regexp.MustCompile(`[,(\s]` + fmt.Sprint(rel.PackageSize) + `[,)\s]`).MatchString(stripped) || !strings.Contains(stripped, "17763") {
+	if !regexp.MustCompile(`[,(\s]`+fmt.Sprint(rel.PackageSize)+`[,)\s]`).MatchString(stripped) || !strings.Contains(stripped, "17763") {
 		t.Fatalf("package_size %d / min_windows_build 17763 must appear as bare integers:\n%s", rel.PackageSize, stripped)
 	}
 	if !strings.Contains(sql, "2026-11-11") {

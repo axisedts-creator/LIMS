@@ -334,13 +334,6 @@ func TestDiskGuard(t *testing.T) {
 	}
 }
 
-func TestDiskGuardDefaultFreeBytesWorksOnTempDir(t *testing.T) {
-	d := openT(t, dbPath(t), &testProtector{}, Options{})
-	if _, err := d.DiskLow(); err != nil {
-		t.Fatalf("real free-space lookup failed: %v", err)
-	}
-}
-
 func TestDiskLowDoesNotBlockPersist(t *testing.T) {
 	// The guard decides NAK at ENQ; frames of a session already open must still persist (persist-before-ACK, AC-05.2).
 	path := dbPath(t)

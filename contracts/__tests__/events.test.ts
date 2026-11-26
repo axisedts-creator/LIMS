@@ -14,6 +14,13 @@ const IC_PATH = resolve(here, "../../spec/program/03-INTERFACE-CATALOG.md");
 const IC = readFileSync(IC_PATH, "utf8").replace(/\r\n/g, "\n");
 
 const EXPECTED_COUNT = 25;
+// Owner decision 2026-11-26 (PR 9): current contracts accepted beyond IC; a further entry needs a new decision and an edit of this list.
+// Event schema files in contracts/events/ that IC §3.25 does not list.
+const OWNER_20261126_EVENTS = ["lab.result.signed_off.v1"];
+// Enum values beyond the IC fenced definitions: event type -> path below $defs -> the values, appended after the IC values.
+const OWNER_20261126_EVENT_ENUM_VALUES: Record<string, { path: string[]; values: string[] }> = {
+  "catalog.changed.v1": { path: ["Payload", "properties", "entity_type"], values: ["test_category"] },
+};
 const V7 = (n: string) => `01a1a98a-ac40-7000-8000-${n}`;
 
 // ---------- IC extraction ----------
@@ -114,9 +121,10 @@ describe("T0C-01 package + file set (AC-0C-1.1)", () => {
       "_defs.v1.schema.json",
       "_envelope.v1.schema.json",
       ...icEvents.map((e) => fileOf(e.type)),
+      ...OWNER_20261126_EVENTS.map(fileOf),
     ].sort();
     expect(readdirSync(eventsDir).sort()).toEqual(expected);
-    expect(expected).toHaveLength(EXPECTED_COUNT + 2);
+    expect(expected).toHaveLength(EXPECTED_COUNT + 2 + OWNER_20261126_EVENTS.length);
   });
 });
 
@@ -147,7 +155,16 @@ describe.each(icEvents)("T0C-01 $type (IC §$num)", (e) => {
   });
 
   it("$defs equal the IC fenced definitions", () => {
-    expect(schema().$defs).toEqual(e.defs);
+    const defs = schema().$defs;
+    const more = OWNER_20261126_EVENT_ENUM_VALUES[e.type];
+    if (more) {
+      // The IC values stay first and in order (checked by the toEqual below); exactly the listed values follow.
+      const at = (root: any) => more.path.reduce((n, k) => n[k], root);
+      const icEnum: string[] = at(e.defs).enum;
+      expect(at(defs).enum.slice(icEnum.length)).toEqual(more.values);
+      at(defs).enum = at(defs).enum.slice(0, icEnum.length);
+    }
+    expect(defs).toEqual(e.defs);
   });
 
   it("IC example validates (full envelope)", () => {
@@ -246,6 +263,8 @@ describe("T0C-01 event_type pattern + envelope strictness", () => {
 });
 
 describe("T0C-01 payload strictness + PHI hygiene (REQ-SEC-080, IC §1 PHI class)", () => {
+  // The accepted events beyond IC get the same two checks.
+  const allEvents = [...icEvents.map((e) => ({ type: e.type })), ...OWNER_20261126_EVENTS.map((type) => ({ type }))];
   /** Every object schema with `properties` must say additionalProperties:false. */
   function lax(node: any, path: string, out: string[]) {
     if (Array.isArray(node)) return node.forEach((n, i) => lax(n, `${path}[${i}]`, out));
@@ -253,14 +272,14 @@ describe("T0C-01 payload strictness + PHI hygiene (REQ-SEC-080, IC §1 PHI class
     if (node.properties && node.additionalProperties !== false) out.push(path);
     for (const [k, v] of Object.entries(node)) if (!["enum", "const", "required", "if", "then", "else", "not"].includes(k)) lax(v, `${path}/${k}`, out);
   }
-  it.each(icEvents)("$type: no payload object allows unknown fields", (e) => {
+  it.each(allEvents)("$type: no payload object allows unknown fields", (e) => {
     const out: string[] = [];
     lax(readJson(fileOf(e.type)).$defs, "$defs", out);
     expect(out).toEqual([]);
   });
 
   const DIRECT_IDENTIFIERS = /^(patient_)?(first_|last_|full_)?name$|^phone|^mobile|^email|^dob$|^date_of_birth$|^registration_no$|^national_id$|^address$/;
-  it.each(icEvents)("$type: no direct-identifier property names in payload", (e) => {
+  it.each(allEvents)("$type: no direct-identifier property names in payload", (e) => {
     const names: string[] = [];
     const walk = (n: any) => {
       if (Array.isArray(n)) return n.forEach(walk);

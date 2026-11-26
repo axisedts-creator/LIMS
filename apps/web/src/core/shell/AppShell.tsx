@@ -13,7 +13,7 @@ import { LOGO_ON_DARK } from './brand';
 import type { Centre } from './CentreSwitcher';
 import type { RailGroup } from './Rail';
 import { SessionTimeoutDialog } from './SessionTimeoutDialog';
-import { ShellFrame, type Crumb } from './ShellFrame';
+import { ShellFrame, type Crumb, type ShellNotice } from './ShellFrame';
 
 /** Keeps each section in one run (its first entry's place), so a sub-heading prints once even when manifest orders tie
  *  across modules (micro and anatomic both use 60..63, spec-fixed). Stable: order within a section is unchanged. */
@@ -34,6 +34,8 @@ type Props = {
   counts?: Readonly<Record<string, number | string>>;
   /** entry ids shown with the "view only" tag */
   viewOnly?: readonly string[];
+  /** bell items; omit when the session has no notification source */
+  notifications?: readonly ShellNotice[];
   /** LD-340: 'elab' = ElabAssist menu (the staff layout); default 'modules' = the 14 module groups */
   menu?: 'modules' | 'elab';
   children: ReactNode;
@@ -44,7 +46,7 @@ const badgeOf = (counts: Props['counts'], id: string): number | string | undefin
   return typeof v === 'number' ? (Number.isFinite(v) ? v : undefined) : typeof v === 'string' && v.trim() ? v.trim() : undefined;
 };
 
-export function AppShell({ session, pathname, centres, counts, viewOnly, menu = 'modules', children }: Props) {
+export function AppShell({ session, pathname, centres, counts, viewOnly, notifications, menu = 'modules', children }: Props) {
   const perms = session.actor.permissions;
   const platform = session.kind === 'platform';
   const toItem = (e: ResolvedNavEntry, section: string | undefined) => ({
@@ -94,6 +96,7 @@ export function AppShell({ session, pathname, centres, counts, viewOnly, menu = 
       logoSrc={LOGO_ON_DARK}
       search={{ canPatients: hasPermission(perms, 'frontdesk.patient.read'), canSpecimens: hasPermission(perms, 'lab.specimen.read') }}
       centres={centres}
+      notifications={notifications}
     >
       {children}
       <SessionTimeoutDialog

@@ -23,12 +23,18 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
+    // The flavours below name the app with resValue, which AGP leaves off by default.
+    buildFeatures {
+        resValues = true
+    }
+
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "np.lims.phlebo_app"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
+        // C17 02-TRD s7.6: Android 10+ staff phones (sentry_flutter also needs 26 or newer).
+        minSdk = maxOf(flutter.minSdkVersion, 29)
         targetSdk = flutter.targetSdkVersion
         // Uses the version code from pubspec.yaml. When using split APKs, 1000 * ABI_VERSION
         // is added automatically by Flutter. (https://developer.android.com/studio/build/configure-apk-splits#configure-APK-versions)
@@ -36,6 +42,11 @@ android {
         // flag during build.
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+    }
+
+    // The flavours below set app_name through resValue, which AGP 8+ only allows when this is on.
+    buildFeatures {
+        resValues = true
     }
 
     // HC-T21 flavours; Dart side reads --dart-define=FLAVOR (lib/app/flavor.dart). Release signing config is

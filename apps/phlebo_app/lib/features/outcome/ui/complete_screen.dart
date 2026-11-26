@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:lims_ui/lims_ui.dart';
 
+import '../../../app/theme.dart';
 import '../../visit/data/mutation_sink.dart';
 import '../../visit/domain/visit_models.dart';
 import '../../visit/ui/save_once.dart';
@@ -52,10 +53,26 @@ class _CompleteScreenState extends State<CompleteScreen> with SaveOnce<CompleteS
   @override
   Widget build(BuildContext context) {
     final pay = widget.payment;
+    final partial = widget.notCollectedCount > 0;
     return LimsSecureScreen(
       child: LimsScaffold(
         title: 'Visit summary',
         body: ListView(padding: const EdgeInsets.all(LimsTokens.space4), children: [
+          const StepBar(6),
+          StatePage(
+            icon: partial ? Icons.warning_amber_outlined : Icons.check_circle_outline,
+            tone: partial ? 'warning' : 'success',
+            title: partial ? 'Collection partly completed' : 'Ready to finish',
+            message: widget.visit.label,
+          ),
+          if (partial) ...[
+            const NoticeCard(
+              tone: 'warning',
+              title: 'Some tubes were not collected',
+              text: 'The centre sees this visit as partly done and can arrange a revisit for the missing tubes.',
+            ),
+            const SizedBox(height: LimsTokens.space3),
+          ],
           LimsCard(
             title: 'Tubes',
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [

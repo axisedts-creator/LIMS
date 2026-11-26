@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:unit": "vitest run --exclude \"**/*.live.test.*\" --exclude \"**/*.integration.test.*\" --exclude \"**/integration/**\" --exclude \"**/probes/**\" --exclude \"**/isolation/**\" --exclude \"**/perf/**\" --exclude \"**/e2e/**\"",
+    "test:integration": "vitest run .live.test. .integration.test. /integration/ --passWithNoTests"
   },
   "dependencies": {
     "@cantoo/pdf-lib": "2.11.1",

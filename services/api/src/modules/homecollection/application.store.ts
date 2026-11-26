@@ -38,7 +38,7 @@ export async function writePiece(tenantId: string, applicationId: string, docume
   await mkdir(dir, { recursive: true });
   const prefix = `${seg(documentId)}.part`;
   const have = (await readdir(dir)).filter((f) => f.startsWith(prefix));
-  if (have.length !== index) throw new LimsError('homecollection.application_incomplete');
+  if (have.length !== index) throw new LimsError('common.validation_failed');
   let total = bytes.length;
   for (const f of have) total += (await stat(join(dir, f))).size;
   if (total > MAX_DOCUMENT_BYTES) { await discardPieces(tenantId, applicationId, documentId); throw new LimsError('common.payload_too_large'); }

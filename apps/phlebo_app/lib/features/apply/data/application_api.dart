@@ -46,7 +46,7 @@ Future<String?> sendApplication(ApiClient api, String tenantCode, ApplicationDra
     return applicationSendFailed;
   } on LimsException catch (e) {
     return switch (e.code) {
-      'homecollection.application_exists' => 'An application for this mobile number is already waiting for review.',
+      'common.immutable_record' => 'An application for this mobile number is already waiting for review.',
       LimsErrorCodes.commonRateLimited => 'Too many tries for this number. Wait an hour, then try again.',
       'common.payload_too_large' => 'A file is larger than 2 MB. Remove it and add a smaller one.',
       'common.unsupported_media_type' => 'A file is not a real JPG, PNG or PDF. Remove it and add another.',

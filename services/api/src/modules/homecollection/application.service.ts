@@ -89,7 +89,7 @@ export async function createPhleboApplication(hctx: unknown, body: unknown): Pro
   const token = randomBytes(32).toString('base64url');
   const r = await one(ctx, 'SELECT app.homecollection_application_create($1, $2, $3, $4, $5, $6, $7, $8, $9) AS r',
     [id, fullName, phone, email, area, employment, shift, slots, createHash('sha256').update(token).digest()]);
-  if (r === 'exists') throw new LimsError('homecollection.application_exists');
+  if (r === 'exists') throw new LimsError('common.immutable_record');
   if (r !== 'created') throw new LimsError('auth.forbidden');
   return { status: 201, body: { application_id: id, upload_token: token }, headers: NO_STORE };
 }
@@ -119,7 +119,7 @@ export async function uploadPhleboApplicationDocumentChunk(hctx: unknown, params
   const state = (await ctx.tx.query('SELECT kind, n FROM app.homecollection_application_upload_state($1, $2)', [applicationId, hash])).rows;
   if (state.length === 0) throw new LimsError('auth.unauthenticated');
   const have = Number(state.find((s) => s['kind'] === kind)?.['n'] ?? 0);
-  if (have >= (kind === 'training_certificate' ? 5 : kind === 'identity' ? 2 : 1)) throw new LimsError('homecollection.application_incomplete');
+  if (have >= (kind === 'training_certificate' ? 5 : kind === 'identity' ? 2 : 1)) throw new LimsError('common.validation_failed');
 
   await writePiece(ctx.tenantId, applicationId, documentId, index, bytes);
   if (!body['last']) return { status: 200, body: { complete: false }, headers: NO_STORE };
@@ -135,7 +135,7 @@ export async function uploadPhleboApplicationDocumentChunk(hctx: unknown, params
   }
   if (r !== 'added') {
     await removeDocument(ctx.tenantId, applicationId, documentId);
-    throw new LimsError(r === 'too_many' ? 'homecollection.application_incomplete' : 'auth.unauthenticated');
+    throw new LimsError(r === 'too_many' ? 'common.validation_failed' : 'auth.unauthenticated');
   }
   return { status: 200, body: { complete: true }, headers: NO_STORE };
 }
@@ -144,7 +144,7 @@ export async function submitPhleboApplication(hctx: unknown, params: unknown, he
   const ctx = ctxOf(hctx);
   await ctx.ports.IdentityPort.assertRole(ctx, { permission: PERM_SUBMIT });
   const r = await one(ctx, 'SELECT app.homecollection_application_submit($1, $2) AS r', [idOf(params, 'application_id'), tokenHash(headers)]);
-  if (r === 'incomplete') throw new LimsError('homecollection.application_incomplete');
+  if (r === 'incomplete') throw new LimsError('common.validation_failed');
   if (r !== 'submitted') throw new LimsError('auth.unauthenticated');
   return { status: 204, headers: NO_STORE };
 }
@@ -246,7 +246,7 @@ export async function decidePhleboApplication(hctx: unknown, params: unknown, he
   if (!me) throw new LimsError('auth.forbidden');
 
   const a = await load(ctx, id);
-  if (a['status'] !== 'submitted') throw new LimsError('homecollection.application_incomplete');
+  if (a['status'] !== 'submitted') throw new LimsError('common.immutable_record');
   if (a['version'] !== expected) throw new LimsError('common.version_conflict');
   const u = (await ctx.tx.query(
     `UPDATE homecollection.phlebo_applications

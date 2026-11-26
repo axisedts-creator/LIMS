@@ -89,7 +89,7 @@ describe('create', () => {
 
   it('an open application for the phone is a 409; no limiter means no service', async () => {
     answers['homecollection_application_create'] = [{ r: 'exists' }];
-    expect(await code(createPhleboApplication(ctx(), valid))).toBe('homecollection.application_exists');
+    expect(await code(createPhleboApplication(ctx(), valid))).toBe('common.immutable_record');
     expect(await code(createPhleboApplication(ctx({ rateLimit: undefined }), valid))).toBe('common.service_unavailable');
   });
 });
@@ -107,9 +107,9 @@ describe('document pieces', () => {
 
   it('two pieces in order are joined; out-of-order or repeated pieces are refused', async () => {
     const a = JPEG.subarray(0, 1000), b = JPEG.subarray(1000);
-    expect(await code(uploadPhleboApplicationDocumentChunk(ctx(), params, headers, chunk(b, { index: 1 })))).toBe('homecollection.application_incomplete');
+    expect(await code(uploadPhleboApplicationDocumentChunk(ctx(), params, headers, chunk(b, { index: 1 })))).toBe('common.validation_failed');
     expect(((await uploadPhleboApplicationDocumentChunk(ctx(), params, headers, chunk(a, { last: false }))) as any).body).toEqual({ complete: false });
-    expect(await code(uploadPhleboApplicationDocumentChunk(ctx(), params, headers, chunk(a, { last: false })))).toBe('homecollection.application_incomplete');
+    expect(await code(uploadPhleboApplicationDocumentChunk(ctx(), params, headers, chunk(a, { last: false })))).toBe('common.validation_failed');
     expect(((await uploadPhleboApplicationDocumentChunk(ctx(), params, headers, chunk(b, { index: 1 }))) as any).body).toEqual({ complete: true });
     expect(calls.find((c) => c.sql.includes('add_document'))!.values[6]).toBe(JPEG.length);
   });
@@ -146,7 +146,7 @@ describe('document pieces', () => {
 
   it('a document the database refuses (too many of a kind) is deleted from disk', async () => {
     answers['homecollection_application_add_document'] = [{ r: 'too_many' }];
-    expect(await code(uploadPhleboApplicationDocumentChunk(ctx(), params, headers, chunk(JPEG)))).toBe('homecollection.application_incomplete');
+    expect(await code(uploadPhleboApplicationDocumentChunk(ctx(), params, headers, chunk(JPEG)))).toBe('common.validation_failed');
     expect(readdirSync(join(dir, TENANT, APP))).toEqual([]);
   });
 
@@ -160,7 +160,7 @@ describe('submit and staff side', () => {
   it('submit maps the database answers', async () => {
     expect(((await submitPhleboApplication(ctx(), { application_id: APP }, headers)) as any).status).toBe(204);
     answers['homecollection_application_submit'] = [{ r: 'incomplete' }];
-    expect(await code(submitPhleboApplication(ctx(), { application_id: APP }, headers))).toBe('homecollection.application_incomplete');
+    expect(await code(submitPhleboApplication(ctx(), { application_id: APP }, headers))).toBe('common.validation_failed');
     answers['homecollection_application_submit'] = [{ r: 'denied' }];
     expect(await code(submitPhleboApplication(ctx(), { application_id: APP }, headers))).toBe('auth.unauthenticated');
   });
@@ -188,6 +188,6 @@ describe('submit and staff side', () => {
     expect(await code(decidePhleboApplication(staff, { application_id: APP }, { 'if-match': '"2"' }, { decision: 'reject' }))).toBe('common.validation_failed');
     expect(await code(decidePhleboApplication(staff, { application_id: APP }, { 'if-match': '"1"' }, { decision: 'approve' }))).toBe('common.version_conflict');
     answers['FROM homecollection.phlebo_applications'] = [{ id: APP, status: 'rejected', version: 3 }];
-    expect(await code(decidePhleboApplication(staff, { application_id: APP }, { 'if-match': '"3"' }, { decision: 'approve' }))).toBe('homecollection.application_incomplete');
+    expect(await code(decidePhleboApplication(staff, { application_id: APP }, { 'if-match': '"3"' }, { decision: 'approve' }))).toBe('common.immutable_record');
   });
 });

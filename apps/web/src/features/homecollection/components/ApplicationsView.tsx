@@ -23,7 +23,7 @@ type Iso = DateTextProps['value'];
 const BASE = '/homecollection/applications';
 const FAIL: Record<string, string> = {
   'common.version_conflict': 'Someone else changed this application. Refresh and try again.',
-  'homecollection.application_incomplete': 'This application was already decided. Refresh the list.',
+  'common.immutable_record': 'This application was already decided. Refresh the list.',
   'common.validation_failed': 'Write a reason before rejecting.',
   'identity.user_exists': 'A staff account with this email already exists. Check Admin > Users, then reject or contact the applicant.',
   'auth.forbidden': 'You are not allowed to create staff accounts. Ask a lab administrator to approve.',

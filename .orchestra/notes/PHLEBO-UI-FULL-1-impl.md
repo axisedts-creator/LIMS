@@ -24,7 +24,7 @@ Design source: PhleboApp_UI_Screens.pdf. Founder decisions 2026-11-25 and 2026-1
   `submitPhleboApplication`, `listPhleboApplications`, `getPhleboApplication`, `decidePhleboApplication`,
   `downloadPhleboApplicationDocument`. `MobileSessionOpenRequest` gained `phone_e164` (email no longer required alone).
 - Permissions: `homecollection.application.manage` (tenant_admin, lab_manager), `homecollection.application.submit`
-  (added to `patient_pre_auth`). Errors: `homecollection.application_exists`, `homecollection.application_incomplete`.
+  (added to `patient_pre_auth`). Errors: none new (existing `common.immutable_record`, `common.validation_failed` reused; IC §8 gate forbids new codes without a lead decision).
 - Admin notice kind `phlebo_application_received` / subject `phlebo_application`. Route `staff.homecollection.applications`.
 - Env: `LIMS_HOMECOLLECTION_APPLICATION_DIR` (document folder on the API host), app defines `TENANT_CODE`, `PINNED_CA_PEM_B64`, `APP_VERSION`.
 - Phlebo app dependencies: `local_auth`, `url_launcher`, `geolocator` (already pinned for lims_ui), `file_picker 12.3.0`,

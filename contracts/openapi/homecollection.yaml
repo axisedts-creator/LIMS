@@ -2914,8 +2914,7 @@ paths:
         - auth.unauthenticated
         - common.rate_limited
         - common.internal
-        - homecollection.application_exists
-        - homecollection.application_incomplete
+        - common.immutable_record
       requestBody:
         required: true
         content:
@@ -3026,8 +3025,7 @@ paths:
         - auth.unauthenticated
         - common.rate_limited
         - common.internal
-        - homecollection.application_exists
-        - homecollection.application_incomplete
+        - common.immutable_record
         - common.payload_too_large
         - common.unsupported_media_type
       parameters:
@@ -3111,8 +3109,7 @@ paths:
         - auth.unauthenticated
         - common.rate_limited
         - common.internal
-        - homecollection.application_exists
-        - homecollection.application_incomplete
+        - common.immutable_record
       parameters:
         - name: application_id
           in: path
@@ -3224,8 +3221,7 @@ paths:
         - common.not_found
         - common.version_conflict
         - common.precondition_required
-        - homecollection.application_exists
-        - homecollection.application_incomplete
+        - common.immutable_record
       parameters:
         - name: application_id
           in: path

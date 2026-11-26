@@ -339,6 +339,37 @@ export function csvQueryParams(spec: any, operationId: string): string[] {
     .map((p) => p.name as string);
 }
 
+/** What the multipart parser (uploads/multipart.ts) hands over for a file part. `bytes` is a Buffer: checked by ctx.uploads.accept, not here. */
+const FILE_PART_SCHEMA = Object.freeze({
+  type: 'object', required: ['filename', 'mimeType', 'bytes'],
+  properties: { filename: { type: 'string', maxLength: 255 }, mimeType: { type: 'string', maxLength: 127 }, bytes: {} },
+});
+
+/**
+ * CR TENANT-LOGO-1: body schema of an operation whose requestBody is multipart/form-data, or undefined for every other operation.
+ * The spec writes a file as `{ type: string, format: binary }`; after parsing it is an object, so those properties are swapped for
+ * FILE_PART_SCHEMA. Text properties keep the spec's schema (enum, maxLength, ...). Unknown fields are refused.
+ */
+export function uploadBodySchema(spec: any, operationId: string): object | undefined {
+  const body = deref(spec, findOp(spec, operationId)?.op?.requestBody);
+  const s = deref(spec, body?.content?.['multipart/form-data']?.schema);
+  if (!s || typeof s !== 'object') return undefined;
+  // The schema built here stands alone (it no longer sits inside the document), so every local $ref below it is resolved in place;
+  // a reference cycle (none in the contracts today) stops at depth 12 with an "anything" schema rather than hanging the boot.
+  const inline = (v: any, depth: number): any => {
+    if (depth > 12) return {};
+    const d = deref(spec, v);
+    if (Array.isArray(d)) return d.map((x) => inline(x, depth + 1));
+    if (!d || typeof d !== 'object') return d;
+    return Object.fromEntries(Object.entries(d).map(([k, x]) => [k, inline(x, depth + 1)]));
+  };
+  const properties = Object.fromEntries(Object.entries<any>(s.properties ?? {}).map(([k, v]) => {
+    const p = deref(spec, v);
+    return [k, p?.format === 'binary' ? FILE_PART_SCHEMA : inline(p, 0)];
+  }));
+  return { type: 'object', additionalProperties: false, ...(Array.isArray(s.required) ? { required: s.required } : {}), properties };
+}
+
 /** Split once at commas, before validation; repeated parameters are flattened. Empty elements are kept so validation rejects them. */
 export function splitCsvQuery(query: Record<string, unknown>, names: readonly string[]): void {
   for (const n of names) {
@@ -364,6 +395,21 @@ export async function mountSpec(
     // route config.module labels the stage-13 log line and metrics (observability/logging.ts).
     scope.addHook('onRoute', (route) => {
       route.config = { ...(route.config as object), module: name };
+      // CR TENANT-LOGO-1 (multipart layer): multipart/form-data is accepted ONLY by operations whose requestBody declares it, and those
+      // accept nothing else. Checked before the body is read, so a JSON route never buffers a multipart body.
+      const opId = (route.schema as any)?.operationId;
+      if (typeof opId === 'string') {
+        const upload = uploadBodySchema(spec, opId);
+        if (upload) (route.schema as any).body = upload;   // file parts validate as IncomingFile objects, text parts as the spec says
+        const gate = async (req: FastifyRequest) => {
+          const multipart = /^multipart\/form-data\s*(;|$)/i.test(String(req.headers['content-type'] ?? ''));
+          if (multipart !== (upload !== undefined) && (multipart || req.headers['content-length'] !== undefined || req.headers['transfer-encoding'] !== undefined)) {
+            throw new LimsError('common.unsupported_media_type');
+          }
+        };
+        const before = route.onRequest;
+        route.onRequest = [...(before ? (Array.isArray(before) ? before : [before]) : []), gate] as any;
+      }
       const names = csvQueryParams(spec, (route.schema as any)?.operationId);
       if (!names.length) return;
       // preValidation runs before the querystring schema, so enum / maxLength / maxItems apply per split element.

@@ -1,0 +1,62 @@
+# CR TENANT-LOGO-1 fixture (multipart layer): one upload operation shaped like identity uploadBrandingAsset (file + kind via $ref),
+# and one JSON operation. Test-only spec, not a real contract. Public ops so no security handlers are needed.
+openapi: 3.0.3
+info: { title: fixture catalog, version: 1.0.0 }
+paths:
+  /v1/catalog/files:
+    post:
+      operationId: uploadThing
+      security: []
+      x-public: "fixture"
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-upload: [ image/png, image/jpeg ]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema: { $ref: "#/components/schemas/ThingUpload" }
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: true }
+  /v1/catalog/notes:
+    post:
+      operationId: createNote
+      security: []
+      x-public: "fixture"
+      x-idempotency: none
+      x-rate-limit-tier: general
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [ kind ]
+              properties:
+                kind: { type: string, maxLength: 17, enum: [ logo, letterhead_header ] }
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: true }
+components:
+  schemas:
+    ThingUpload:
+      type: object
+      additionalProperties: false
+      required: [ file, kind ]
+      properties:
+        file: { type: string, maxLength: 2097152, format: binary }
+        kind: { type: string, maxLength: 17, enum: [ logo, letterhead_header ] }
+        # a shared type by reference, as real upload forms have (frontdesk uploadTrf centre_id): the rewritten body schema must carry it
+        part_id: { $ref: "#/components/schemas/Uuid" }
+    Uuid:
+      type: string
+      maxLength: 36
+      pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"

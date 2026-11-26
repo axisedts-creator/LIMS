@@ -18,6 +18,7 @@ import { childLoggerFactory, createCoreLogger, installRequestLog } from './obser
 import { createMetrics, type CoreMetrics } from './observability/metrics.js';
 import { claimsOf, installRouteHooks, mountSpec, schemaController, withoutPendingBearer, type CoreAuth } from './openapi.js';
 import { bootPipeline } from './pipeline/boot.js';
+import { installMultipart } from './uploads/multipart.js';
 
 export interface BootstrapOptions {
   readonly config: CoreConfig;
@@ -54,6 +55,7 @@ export async function bootstrap(opts: BootstrapOptions): Promise<FastifyInstance
     const metrics = createMetrics();
     app.decorate('metrics', metrics);
     installErrorHandlers(app);
+    installMultipart(app); // 02-TRD 6.2 multipart layer (CR TENANT-LOGO-1): without it every upload was 415 before any handler
     installRequestLog(app, metrics, claimsOf);
     installHttpPerf(app); // T0B-PERF-1 (LD-310): stats scope, Server-Timing, compression, keep-alive
     installSecurityHeaders(app); // SEC-HDR-1 (LD-238): nosniff, Referrer-Policy, no-store on authenticated JSON

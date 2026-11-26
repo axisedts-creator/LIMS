@@ -43,6 +43,9 @@ const RELEASE_SQL = `DELETE FROM core.idempotency_keys WHERE ${WHERE} AND state 
 function canon(v: unknown): string {
   if (v === undefined) return 'null';
   if (Array.isArray(v)) return `[${v.map(canon).join(',')}]`;
+  // CR TENANT-LOGO-1 (multipart layer): the bytes of an uploaded file stand in the hash as their own digest and length. Without this a
+  // Buffer was walked as an object with one key per byte (millions of keys for one image). Same bytes -> same hash, any change -> another.
+  if (v instanceof Uint8Array) return `{"$bytes_sha256":"${createHash('sha256').update(v).digest('hex')}","$length":${v.length}}`;
   if (v && typeof v === 'object') {
     const o = v as Record<string, unknown>;
     return `{${Object.keys(o).filter((k) => o[k] !== undefined).sort().map((k) => `${JSON.stringify(k)}:${canon(o[k])}`).join(',')}}`;

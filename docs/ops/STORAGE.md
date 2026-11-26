@@ -15,6 +15,7 @@ service file); `.env.example` lists them with empty values.
 | `STORAGE_ACCESS_KEY_ID` | S3 access key id. |
 | `STORAGE_SECRET_ACCESS_KEY` | S3 secret access key. Never pasted into chat, a ticket, a commit or a log. |
 | `STORAGE_FORCE_PATH_STYLE` | `true` (endpoint/bucket/key) or `false` (bucket.endpoint/key). Supabase and MinIO: `true`. |
+| `STORAGE_SIGNING_HOST` | Optional. `host` or `host:port` to sign requests with, when it differs from the endpoint. Needed when the Supabase Storage service has `STORAGE_PUBLIC_URL` set: it then checks every S3 signature against that URL's host and port (default ports left out), whatever address the request arrived on. Symptom when missing: every storage call is 403 `SignatureDoesNotMatch`. |
 
 Start up refuses a half set configuration (for example a bucket without `STORAGE_PROVIDER`, or `s3_compatible` with a missing
 key) with a `config:` message that names the missing keys and never a value.

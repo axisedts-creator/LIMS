@@ -4,7 +4,10 @@
 # Boots a throwaway Postgres + storage-api pair on a private docker network, creates one private bucket, runs
 # services/api/src/core/storage/__tests__/kit.live.test.ts, removes everything. Random throwaway secrets; synthetic bytes only.
 # Run from the repo root. Exit code = vitest's.
+# STORAGE_KIT_PUBLIC_URL=https://files.example.test:8443/storage/v1 bash tests/core/STORAGE-KIT-1.pg.sh
+#   = the production shape: the storage server has STORAGE_PUBLIC_URL set; the client must then sign with that host (STORAGE_SIGNING_HOST).
 set -euo pipefail
+PUBLIC_URL="${STORAGE_KIT_PUBLIC_URL:-}"
 PG_IMAGE="${LIMS_PG_IMAGE:-supabase/postgres:17.6.1.136}"
 ST_IMAGE="${LIMS_STORAGE_IMAGE:-supabase/storage-api:v1.89.12}"
 export MSYS_NO_PATHCONV=1
@@ -28,6 +31,7 @@ docker exec "$DBC" pg_isready -U postgres -h localhost >/dev/null
 docker run -d --name "$STC" --network "$NET" -p 127.0.0.1::5000 --env-file tools/devstack/env/storage.env \
   -e DATABASE_URL="postgres://supabase_storage_admin:$PGPW@db:5432/postgres" -e ANON_KEY="$SERVICE_KEY" -e SERVICE_KEY="$SERVICE_KEY" \
   -e PGRST_JWT_SECRET="$JWT_SECRET" -e AUTH_JWT_SECRET="$JWT_SECRET" \
+  ${PUBLIC_URL:+-e STORAGE_PUBLIC_URL="$PUBLIC_URL"} \
   -e S3_PROTOCOL_ACCESS_KEY_ID="$S3_ID" -e S3_PROTOCOL_ACCESS_KEY_SECRET="$S3_SECRET" "$ST_IMAGE" >/dev/null
 PORT=""
 for _ in $(seq 1 60); do
@@ -40,5 +44,7 @@ curl -fsS -X POST "http://127.0.0.1:$PORT/bucket" -H "authorization: Bearer $SER
 
 export LIMS_TEST_STORAGE=1 STORAGE_PROVIDER=s3_compatible STORAGE_ENDPOINT="http://127.0.0.1:$PORT/s3" STORAGE_REGION=stub STORAGE_BUCKET="$BUCKET" \
   STORAGE_ACCESS_KEY_ID="$S3_ID" STORAGE_SECRET_ACCESS_KEY="$S3_SECRET" STORAGE_FORCE_PATH_STYLE=true
+# Production-like mode: the server verifies signatures against the host[:port] of its STORAGE_PUBLIC_URL, so the client signs with it.
+if [ -n "$PUBLIC_URL" ]; then STORAGE_SIGNING_HOST="$(printf '%s' "$PUBLIC_URL" | sed -E 's#^[a-z]+://([^/]+).*#\1#')"; export STORAGE_SIGNING_HOST; fi
 # STORAGE_KIT_CMD: run something else against the same throwaway server (debugging); default = the live test.
 bash -c "${STORAGE_KIT_CMD:-pnpm --dir services/api exec vitest run src/core/storage/__tests__/kit.live.test.ts}"

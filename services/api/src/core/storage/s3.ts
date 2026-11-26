@@ -10,11 +10,15 @@ import type { RawStorage } from './index.js';
 export type StorageConfig =
   | { readonly provider: 'none' }
   | { readonly provider: 's3_compatible'; readonly endpoint: string; readonly region: string; readonly bucket: string;
-      readonly accessKeyId: string; readonly secretAccessKey: string; readonly forcePathStyle: boolean };
+      readonly accessKeyId: string; readonly secretAccessKey: string; readonly forcePathStyle: boolean;
+      /** STORAGE_SIGNING_HOST: the `host[:port]` to SIGN with when it is not the endpoint's (see presignV4). */
+      readonly signingHost?: string };
 type S3Config = Extract<StorageConfig, { provider: 's3_compatible' }>;
 type Env = Readonly<Record<string, string | undefined>>;
 
-const NAMES = ['STORAGE_PROVIDER', 'STORAGE_ENDPOINT', 'STORAGE_REGION', 'STORAGE_BUCKET', 'STORAGE_ACCESS_KEY_ID', 'STORAGE_SECRET_ACCESS_KEY', 'STORAGE_FORCE_PATH_STYLE'] as const;
+const NAMES = ['STORAGE_PROVIDER', 'STORAGE_ENDPOINT', 'STORAGE_REGION', 'STORAGE_BUCKET', 'STORAGE_ACCESS_KEY_ID', 'STORAGE_SECRET_ACCESS_KEY', 'STORAGE_FORCE_PATH_STYLE', 'STORAGE_SIGNING_HOST'] as const;
+/** host or host:port, lower case; nothing a URL parser would read as path, user or query. */
+const SIGNING_HOST = /^[a-z0-9]([a-z0-9.-]{0,251}[a-z0-9])?(:[0-9]{1,5})?$/;
 const REQUIRED = ['STORAGE_ENDPOINT', 'STORAGE_REGION', 'STORAGE_BUCKET', 'STORAGE_ACCESS_KEY_ID', 'STORAGE_SECRET_ACCESS_KEY'] as const;
 /** S3 bucket naming rule (3..63, lower case, digits, dot, hyphen). */
 const BUCKET_NAME = /^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$/;
@@ -43,9 +47,12 @@ export function parseStorageConfig(env: Env): StorageConfig {
   if (!BUCKET_NAME.test(bucket)) throw new Error('config: STORAGE_BUCKET must be an S3 bucket name (3..63 of a-z 0-9 . -)');
   const fps = v('STORAGE_FORCE_PATH_STYLE');
   if (fps !== undefined && fps !== 'true' && fps !== 'false') throw new Error('config: STORAGE_FORCE_PATH_STYLE must be true|false');
+  const sh = v('STORAGE_SIGNING_HOST')?.toLowerCase();
+  if (sh !== undefined && !SIGNING_HOST.test(sh)) throw new Error('config: STORAGE_SIGNING_HOST must be host or host:port (no scheme, no path)');
   return Object.freeze({
     provider: 's3_compatible', endpoint: ep.origin + ep.pathname.replace(/\/+$/, ''), region: v('STORAGE_REGION')!, bucket,
     accessKeyId: v('STORAGE_ACCESS_KEY_ID')!, secretAccessKey: v('STORAGE_SECRET_ACCESS_KEY')!, forcePathStyle: fps === 'true',
+    ...(sh !== undefined ? { signingHost: sh } : {}),
   });
 }
 
@@ -62,6 +69,10 @@ export interface PresignInput {
   now: number; expiresSeconds: number;
   /** Extra headers to bind into the signature (the client must send them exactly). `host` is always signed. */
   headers?: Record<string, string>;
+  /** The `host[:port]` put into the signature instead of the URL's own. A Supabase Storage server that has STORAGE_PUBLIC_URL set verifies
+   *  every S3 signature against THAT URL's host and port, whatever address the request arrived on (found on the production host and
+   *  reproduced with tests/core/STORAGE-KIT-1.pg.sh, CR TENANT-LOGO-1). The request itself still goes to `url`. */
+  signHost?: string;
 }
 
 /** SigV4 query signing (AWS S3 "Authenticating Requests: Using Query Parameters"). The payload hash of a presigned request is ALWAYS the
@@ -74,7 +85,7 @@ export function presignV4(i: PresignInput): string {
   const date = amzDate(i.now);
   const day = date.slice(0, 8);
   const scope = `${day}/${i.region}/s3/aws4_request`;
-  const headers = new Map<string, string>([['host', u.host]]);
+  const headers = new Map<string, string>([['host', i.signHost ?? u.host]]);
   for (const [k, v] of Object.entries(i.headers ?? {})) headers.set(k.toLowerCase(), String(v).trim().replace(/\s+/g, ' '));
   const names = [...headers.keys()].sort();
   const signedHeaders = names.join(';');
@@ -108,7 +119,7 @@ export function createS3RawStorage(cfg: S3Config, deps: { now?: () => number; fe
   const sign = (method: string, name: string, ttl: number, headers?: Record<string, string>, query?: Record<string, string>): string => {
     const u = new URL(urlOf(name));
     for (const [k, v] of Object.entries(query ?? {})) u.searchParams.set(k, v);
-    return presignV4({ method, url: u.toString(), region: cfg.region, accessKeyId: cfg.accessKeyId, secretAccessKey: cfg.secretAccessKey, now: now(), expiresSeconds: ttl, ...(headers ? { headers } : {}) });
+    return presignV4({ method, url: u.toString(), region: cfg.region, accessKeyId: cfg.accessKeyId, secretAccessKey: cfg.secretAccessKey, now: now(), expiresSeconds: ttl, ...(headers ? { headers } : {}), ...(cfg.signingHost ? { signHost: cfg.signingHost } : {}) });
   };
   /** Server side calls: short lived URL; raw errors (they may carry the signed URL) are replaced by op + status only. */
   const SERVER_TTL = 60;

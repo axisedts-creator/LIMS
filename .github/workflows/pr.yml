@@ -124,10 +124,12 @@ jobs:
           node-version-file: package.json
       - name: pnpm install
         run: corepack enable && pnpm install --frozen-lockfile
-      - name: Chromium and qpdf for the renderer tests (Chromium version pinned by the playwright dependency)
+      - name: Chromium, qpdf and the bundled fonts for the renderer tests (Chromium version pinned by the playwright dependency)
         run: |
           pnpm --filter @lims/renderer exec playwright install --with-deps chromium
-          sudo apt-get install -y --no-install-recommends qpdf
+          sudo apt-get install -y --no-install-recommends qpdf fontconfig
+          # same as services/renderer/Dockerfile.renderer: the bundled fonts go into fontconfig, templates name them as system fonts
+          sudo mkdir -p /usr/share/fonts/truetype/lims && sudo cp services/renderer/fonts/* /usr/share/fonts/truetype/lims/ && sudo fc-cache -f
       - name: unit tests of changed packages + dependants (gate 4)
         run: pnpm turbo run test:unit --filter="...[origin/main]"
 

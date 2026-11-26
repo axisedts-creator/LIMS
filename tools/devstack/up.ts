@@ -112,7 +112,13 @@ if (seedMod) {
 // 7. task-registry sync as lims_migrator (02-TRD worker core registry-sync.ts)
 step('registry-sync');
 const sync = join(ROOT, 'services/worker/src/core/registry-sync.ts');
-if (existsSync(sync)) run(process.execPath, [sync], { env: pgEnv('lims_migrator', E.LIMS_MIGRATOR_PASSWORD) });
+if (existsSync(sync)) {
+  // Same as `pnpm --filter @lims/worker registry-sync` (docs/runbooks/environment.md): the worker's workspace deps must be built
+  // (their exports point at dist/), and the TS loader maps the `.js` import specifiers to the `.ts` sources. Plain node does neither.
+  run('pnpm', ['--filter', '"@lims/worker^..."', 'run', '--if-present', 'build'], { shell: true });
+  run(process.execPath, ['--import', pathToFileURL(join(ROOT, 'tools/node-ts/register.mjs')).href, sync],
+    { env: pgEnv('lims_migrator', E.LIMS_MIGRATOR_PASSWORD) });
+}
 else console.log('skipped: services/worker/src/core/registry-sync.ts not present yet');
 
 // 8. URLs (all loopback, 04 S6)

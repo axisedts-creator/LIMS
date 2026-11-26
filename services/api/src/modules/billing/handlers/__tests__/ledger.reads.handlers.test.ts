@@ -53,7 +53,7 @@ function fakeTx(d: Data) {
   };
   return { tx, stmts };
 }
-const identity = { getActor: async () => ({ displayName: 'Synthetic Cashier' }), getTenantSettings: async () => ({ timezone: 'Asia/Kathmandu', releaseRequiresPayment: true }) };
+const identity = { assertRole: async () => undefined, getActor: async () => ({ displayName: 'Synthetic Cashier' }), getTenantSettings: async () => ({ timezone: 'Asia/Kathmandu', releaseRequiresPayment: true }) };
 const hctx = (extra: Record<string, unknown> = {}, tenant: 'A' | 'B' = 'A') => ({
   operationId: 'x', clientIp: '203.0.113.9', log: { info() {}, warn() {}, error() {} },
   ...makeCtxFor()(tenant, { ports: { IdentityPort: identity } as never }), now: () => '2026-11-08T06:00:00.000Z', ...extra,

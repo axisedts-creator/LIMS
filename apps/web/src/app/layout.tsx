@@ -5,6 +5,7 @@ import '@lims/ui/kit.css';
 import '@/core/shell/shell.css';
 import '@/core/shell/layout.css';
 import '../../../../packages/ui/src/theme/web-redesign.css'; // ui/redesign visual layer, must stay last (relative: the live web deploy cannot change package.json)
+import '../../../../packages/ui/src/theme/web-responsive.css'; // ui/responsive fluid scale and narrow layouts, must follow the redesign layer
 import { Providers } from '@/core/shell/Providers';
 
 // T0D-FAVICON-1 (LD-310): tabs read "Page - Metro Labs"; icons + manifest come from the app/ file conventions.

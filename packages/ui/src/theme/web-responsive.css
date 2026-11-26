@@ -1,0 +1,33 @@
+/* ui/responsive: fluid scale and narrow-viewport layout for the staff web app (imported right after web-redesign.css).
+   Presentation only. Every value equals the redesign value from 1024px up and shrinks smoothly below, so text, spacing,
+   cards and controls scale down together. Sizes are rem based, so browser zoom and a larger default font are respected. */
+
+/* ===== a. fluid tokens ===== */
+:root {
+  --text-xs: clamp(.6875rem, .6rem + .23vw, .75rem);
+  --text-base: clamp(.75rem, .66rem + .24vw, .8125rem);
+  --text-sm: clamp(.8125rem, .72rem + .24vw, .875rem);
+  --text-md: clamp(.8125rem, .74rem + .3vw, .9375rem);
+  --text-lg: clamp(.9375rem, .8rem + .5vw, 1.125rem);
+  --text-xl: clamp(1rem, .85rem + .63vw, 1.25rem);
+  --text-2xl: clamp(1.125rem, .9rem + .94vw, 1.5rem);
+  --text-title: clamp(1.25rem, .95rem + 1.25vw, 1.75rem);
+  --space-1: .25rem;
+  --space-2: clamp(.375rem, .3rem + .32vw, .5rem);
+  --space-3: clamp(.5rem, .35rem + .63vw, .75rem);
+  --space-4: clamp(.625rem, .4rem + .94vw, 1rem);
+  --space-5: clamp(.75rem, .45rem + 1.25vw, 1.25rem);
+  --space-page: clamp(.75rem, 3vw, 2rem);
+  --space-page-y: clamp(.75rem, 2.65vw, 1.75rem);
+  --ctl-h: clamp(2.125rem, 1.95rem + .7vw, 2.375rem);
+  --r-card: clamp(.75rem, .55rem + .9vw, 1.125rem);
+
+  --lims-font-size-xs-size: var(--text-xs);
+  --lims-font-size-sm-size: var(--text-base);
+  --lims-font-size-base-size: var(--text-base);
+  --lims-font-size-md-size: var(--text-md);
+  --lims-font-size-lg-size: var(--text-lg);
+  --lims-font-size-xl-size: var(--text-xl);
+  --lims-font-size-2xl-size: var(--text-2xl);
+  --lims-font-size-3xl-size: var(--text-title);
+}

@@ -370,8 +370,10 @@ func TestUploadLogsBodyUnder4MiB(t *testing.T) {
 
 func TestUploadLogsFailureIsReported(t *testing.T) {
 	for name, setup := range map[string]func(*rig){
-		"submit fails": func(r *rig) { r.snd.bundleErr = &uploader.HTTPError{Status: 409, Code: "instruments.invalid_transition"} },
-		"read fails":   func(r *rig) { r.logs.err = errors.New("disk read error " + synthBarcode) },
+		"submit fails": func(r *rig) {
+			r.snd.bundleErr = &uploader.HTTPError{Status: 409, Code: "instruments.invalid_transition"}
+		},
+		"read fails": func(r *rig) { r.logs.err = errors.New("disk read error " + synthBarcode) },
 	} {
 		t.Run(name, func(t *testing.T) {
 			r := newRig(t, resp(cmd(cmdA, "upload_logs")))

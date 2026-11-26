@@ -16,7 +16,7 @@ import { render } from '@testing-library/react';
 import { D1, D2, WIPE_REASONS, U } from '@/features/homecollection/__tests__/hc-t20.helpers';
 import { API, TM, api, norm, prob, quiet, rowOf } from './sales1.harness';
 
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 beforeEach(() => { API.reset(); TM.refresh.mockReset(); });
 afterEach(() => { cleanup(); api.resetHandlers(); });
 afterAll(() => api.close());

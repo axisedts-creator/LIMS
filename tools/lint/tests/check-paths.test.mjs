@@ -211,3 +211,19 @@ test('CODEOWNERS: specific rules come after general ones (last match wins)', () 
     }
   }
 });
+
+// --- cross-chunk (owner decision 2026-11-26; CI passes it from the PR label cross-chunk-approved) ---
+test('--cross-chunk true: several chunks and a free branch name pass; the CR reference and bad values still fail', () => {
+  const two = join(tmp, 'cross-files.txt'), none = join(tmp, 'cross-body.txt'), ref = join(tmp, 'cross-ref.txt');
+  writeFileSync(two, [BILLING, LAB].join('\n') + '\n');
+  writeFileSync(none, '');
+  writeFileSync(ref, 'Refs: CR-C5-001\n');
+  const base = ['--branch', 'feat/anything', '--files', two];
+  pass(run({ raw: [...base, '--body', none, '--cross-chunk', 'true'] }));
+  assert.equal(run({ raw: [...base, '--body', none, '--cross-chunk', 'false'] }).code, 2);
+  assert.equal(run({ raw: [...base, '--body', none, '--cross-chunk', 'yes'] }).code, 2);
+  const withDb = join(tmp, 'cross-db.txt');
+  writeFileSync(withDb, [BILLING, DB].join('\n') + '\n');
+  assert.match(fail(run({ raw: ['--branch', 'feat/anything', '--files', withDb, '--body', none, '--cross-chunk', 'true'] })), /contract change without CR reference/);
+  pass(run({ raw: ['--branch', 'feat/anything', '--files', withDb, '--body', ref, '--cross-chunk', 'true'] }));
+});

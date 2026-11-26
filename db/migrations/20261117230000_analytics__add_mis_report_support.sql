@@ -1,3 +1,4 @@
+-- cr-approved-breaking: owner decision 2026-11-26 (PR 9) accepts the DROP in this already merged migration.
 -- T0C-MISREPORTS-1 (LD-321; founder blanket authority LD-310; priority 2026-11-17 09:18 NPT): the missing ElabAssist MIS reports
 -- become ROWS of the existing global coded set analytics.g_cs_report_codes, so exports.report_code (FK) and
 -- analytics.schedules_codes_guard() accept them with no new route, table, column or index. Definitions: contracts/openapi/analytics.yaml

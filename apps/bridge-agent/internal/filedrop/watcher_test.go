@@ -31,12 +31,12 @@ func TestNewValidates(t *testing.T) {
 	st := &fakeStore{}
 	dir := t.TempDir()
 	cases := map[string]filedrop.Options{
-		"no instrument": {Config: filedrop.Config{Folder: dir}, Store: st},
-		"no folder":     {Config: filedrop.Config{InstrumentID: instID}, Store: st},
-		"no store":      {Config: filedrop.Config{InstrumentID: instID, Folder: dir}},
-		"bad regex":     {Config: filedrop.Config{InstrumentID: instID, Folder: dir, BarcodeRegex: "(["}, Store: st},
-		"bad filename regex":  {Config: filedrop.Config{InstrumentID: instID, Folder: dir, FilenamePattern: "(["}, Store: st},
-		"unknown type":        {Config: filedrop.Config{InstrumentID: instID, Folder: dir, AllowedTypes: []string{"pdf", "exe"}}, Store: st},
+		"no instrument":      {Config: filedrop.Config{Folder: dir}, Store: st},
+		"no folder":          {Config: filedrop.Config{InstrumentID: instID}, Store: st},
+		"no store":           {Config: filedrop.Config{InstrumentID: instID, Folder: dir}},
+		"bad regex":          {Config: filedrop.Config{InstrumentID: instID, Folder: dir, BarcodeRegex: "(["}, Store: st},
+		"bad filename regex": {Config: filedrop.Config{InstrumentID: instID, Folder: dir, FilenamePattern: "(["}, Store: st},
+		"unknown type":       {Config: filedrop.Config{InstrumentID: instID, Folder: dir, AllowedTypes: []string{"pdf", "exe"}}, Store: st},
 	}
 	for name, o := range cases {
 		if _, err := filedrop.New(o); err == nil {

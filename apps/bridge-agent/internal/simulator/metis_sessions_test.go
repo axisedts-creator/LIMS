@@ -81,7 +81,7 @@ func TestMetis_SessionContent(t *testing.T) {
 	has("metis-oru-patient", "ORU^R01|57|P|2.3.1||||0||UTF8", "OBR|1|MT26", ackFor("57", "0"), "kind=data")
 	has("metis-oru-qc", "ORU^R01|58|P|2.3.1||||2||UTF8", ackFor("58", "2"), "kind=data")
 	has("metis-oru-calibration", "ORU^R01|59|P|2.3.1||||1||UTF8", ackFor("59", "1"), "kind=data") // archived, never dropped (D-MET-2)
-	lacks("metis-oru-qc", "PID|")                                                                  // a QC message has no PID (addendum §4)
+	lacks("metis-oru-qc", "PID|")                                                                 // a QC message has no PID (addendum §4)
 
 	has("metis-qry-found", "QRY^Q02", "QCK^Q02", "QAK|SR|OK|", "DSR^Q03", "ACK^Q03",
 		"MSA|AA|61|Message accepted|||0|<CR>ERR|0|<CR>QAK|SR|OK|<CR>", // the manual's QCK, trailing pipe on every segment

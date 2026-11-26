@@ -1,3 +1,4 @@
+-- cr-approved-breaking: owner decision 2026-11-26 (PR 9) accepts the DROP in this already merged migration.
 -- T0B-GREEN-3 / LD-365 (founder approved 2026-11-18 07:40 NPT; CR .orchestra/cr/T0B-GREEN-3.identity-platform-audit.nonblocking.md).
 -- A platform-claims write (no tenant context) to one of four audited identity tables fires app.tg_row_audit (DEFINER), whose
 -- audit row carries the target row's own tenant_id; the original policy (20261105000600) refused it. Same three clauses unchanged,

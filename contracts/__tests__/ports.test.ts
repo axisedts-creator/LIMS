@@ -119,6 +119,19 @@ const LD03_LIMSERROR = `export class LimsError extends Error {
   }
 }`;
 
+// Owner decision 2026-11-26 (PR 9): current contracts accepted beyond IC; a further entry needs a new decision and an edit of this list.
+// Declarations a port file holds beyond its IC §4 block: file -> the exact declarations (each must occur exactly once).
+const OWNER_20261126_PORT_DECLARATIONS: Record<string, string[]> = {
+  IdentityPort: ["readonly trainingMode?: boolean;", "readonly downtime_backentry_max_hours?: number;"],
+};
+// @throws error codes a port file documents beyond its IC §4 block: file -> the codes (one entry per extra occurrence).
+const OWNER_20261126_PORT_THROWS: Record<string, string[]> = {
+  BillingCommandPort: ["billing.fiscal_year_closed", "billing.numbering_pattern_invalid"],
+};
+// Owner decision 2026-11-26 (PR 9): commit 50b9c441c (VERIFY-GREEN-1) added the './x.js' suffix Node needs. The ONE normalisation of the port files:
+// a trailing `.js` is dropped from RELATIVE import specifiers (`from './x.js'`, `import('./x.js')`), on whitespace-free code. Nothing else is normalised.
+const OWNER_20261126_stripRelativeJsSuffix = (normed: string) => normed.replace(/(from|import\()(['"])(\.\.?\/[^'"]*)\.js\2/g, "$1$2$3$2");
+
 describe.each(FILES)("%s.ts equals IC §4 block", (name) => {
   const icRaw = blocks.get(name)!;
   it("exists", () => expect(existsSync(join(portsDir, `${name}.ts`)), `contracts/ports/${name}.ts missing`).toBe(true));
@@ -131,19 +144,33 @@ describe.each(FILES)("%s.ts equals IC §4 block", (name) => {
       want = want.replace(/export class LimsError extends Error \{[\s\S]*?\n\}/, LD03_LIMSERROR);
       expect(want, "LD-03 LimsError replacement did not match the IC block").not.toBe(before);
     }
-    expect(norm(got)).toBe(norm(want));
+    // Every IC declaration is still present verbatim and in order; beyond it the file holds exactly the listed declarations.
+    let gotNorm = OWNER_20261126_stripRelativeJsSuffix(norm(got));
+    for (const d of OWNER_20261126_PORT_DECLARATIONS[name] ?? []) {
+      expect(gotNorm.split(norm(d)).length - 1, `${name}: listed extra declaration "${d}" must occur exactly once`).toBe(1);
+      gotNorm = gotNorm.replace(norm(d), "");
+    }
+    expect(gotNorm).toBe(norm(want));
   });
   it("declares every IC method name (clear failure message)", () => {
     expect(methodNames(split(read(name)).code)).toEqual(methodNames(split(icRaw).code));
   });
   it("keeps the @throws error codes of every method", () => {
-    expect(throwsCodes(split(read(name)).comments)).toEqual(throwsCodes(split(icRaw).comments));
+    // Every IC @throws code is still there (same number of times); beyond them exactly the listed codes.
+    const extra = throwsCodes(split(read(name)).comments);
+    const missing: string[] = [];
+    for (const c of throwsCodes(split(icRaw).comments)) {
+      const i = extra.indexOf(c);
+      if (i < 0) missing.push(c); else extra.splice(i, 1);
+    }
+    expect(missing).toEqual([]);
+    expect(extra).toEqual([...(OWNER_20261126_PORT_THROWS[name] ?? [])].sort());
   });
 });
 
 describe("spot checks on the load-bearing signatures", () => {
   it("common.ts: PortRegistry has all 13 ports, LimsError has the 3-arg constructor (LD-03 explicit fields)", () => {
-    const c = norm(split(read("common")).code);
+    const c = OWNER_20261126_stripRelativeJsSuffix(norm(split(read("common")).code));
     for (const p of PORTS) expect(c).toContain(norm(`readonly ${p}: import('./${p}').${p};`));
     // LD-03 overrides IC §4: explicit fields, no parameter properties.
     expect(c).toContain(norm("readonly code: ErrorCode; readonly safeDetail?: string; readonly fieldErrors?: readonly FieldError[];"));

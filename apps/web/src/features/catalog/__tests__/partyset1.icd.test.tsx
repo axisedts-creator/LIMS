@@ -12,7 +12,7 @@ import axe from 'axe-core';
 import { expectListScreen, expectStateInPage } from './uilist3.helpers';
 import { API, ID, IDEM, PATHS, PERM, ROUTE, TM, api, headers, openPage, prob, quiet, rowOf } from '../../partners/__tests__/partyset1.harness';
 
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 beforeEach(() => { API.reset(); TM.refresh.mockReset(); TM.push.mockClear(); TM.replace.mockClear(); });
 afterEach(() => { cleanup(); api.resetHandlers(); });
 afterAll(() => api.close());

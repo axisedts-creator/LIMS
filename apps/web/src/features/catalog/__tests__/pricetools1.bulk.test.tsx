@@ -23,7 +23,7 @@ import { ToastProvider } from '@lims/ui/components/Toast';
 import { headersOf, tableOf } from './emptytbl2.helpers';
 import { API, ID, MANAGE, READ, TM, api, prob, ver } from './pricetools1.harness';
 
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 afterAll(() => api.close());
 beforeEach(() => { API.reset(); TM.session.permissions = MANAGE; });
 afterEach(() => { cleanup(); api.resetHandlers(); TM.refresh.mockReset(); });
@@ -59,7 +59,7 @@ const radio = (d: HTMLElement, name: RegExp) => within(d).getByRole('radio', { n
 const preview = (d: HTMLElement) => tableOf(d);
 const rowsOf = (t: HTMLElement) => [...t.querySelectorAll<HTMLElement>('tbody tr, [role="rowgroup"] [role="row"]')].filter((r) => r.getAttribute('aria-hidden') !== 'true' && !r.closest('thead') && !r.querySelector('th, [role="columnheader"]') && (r.textContent ?? '').trim() !== '').map((r) => [...r.querySelectorAll('td, [role="cell"], [role="gridcell"]')].map((c) => (c.textContent ?? '').trim()));
 /** code -> [current, new] shown in the preview table. */
-const shown = (d: HTMLElement) => Object.fromEntries(rowsOf(preview(d)).filter((r) => r.length >= 3).map((r) => [r[0], [r[1], r[2]]]));
+const shown = (d: HTMLElement): Record<string, (string | undefined)[]> => Object.fromEntries(rowsOf(preview(d)).filter((r) => r.length >= 3).map((r) => [r[0], [r[1], r[2]]]));
 const choose = async (scope: HTMLElement, label: RegExp, option: string | RegExp) => { await userEvent.click(within(scope).getByLabelText(label)); await userEvent.click(await screen.findByRole('option', { name: option })); };
 const settle = () => new Promise((r) => setTimeout(r, 80));
 const typePercent = async (d: HTMLElement, v: string) => { set(percent(d), v); };

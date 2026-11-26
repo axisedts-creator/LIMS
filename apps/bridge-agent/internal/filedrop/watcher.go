@@ -73,7 +73,7 @@ type obs struct {
 
 type Watcher struct {
 	cfg     Config
-	folder  string // absolute, cleaned
+	folder  string         // absolute, cleaned
 	nameRe  *regexp.Regexp // nil = match all
 	exts    map[string]bool
 	stable  time.Duration

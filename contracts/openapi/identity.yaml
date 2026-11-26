@@ -124,7 +124,7 @@ paths:
               schema: { $ref: "#/components/schemas/MfaEnrolmentStart" }
               examples:
                 synthetic:
-                  value: { factor_id: 0193a5c0-0000-7000-8000-000000000003, otpauth_uri: otpauth://totp/Demo%20Lab?secret=JBSWY3DPEHPK3PXP, secret_base32: JBSWY3DPEHPK3PXP }
+                  value: { factor_id: 0193a5c0-0000-7000-8000-000000000003, otpauth_uri: "otpauth://totp/Demo%20Lab?secret=JBSWY3DPEHPK3PXP", secret_base32: JBSWY3DPEHPK3PXP }
         "400": { $ref: _common.yaml#/components/responses/BadRequest }
         "401": { $ref: _common.yaml#/components/responses/Unauthorized }
         "409": { $ref: _common.yaml#/components/responses/Conflict }
@@ -5304,7 +5304,7 @@ components:
       required: [ factor_id, otpauth_uri, secret_base32 ]
       properties:
         factor_id: { $ref: _common.yaml#/components/schemas/Uuid }
-        otpauth_uri: { type: string, maxLength: 512, pattern: ^otpauth:// }
+        otpauth_uri: { type: string, maxLength: 512, pattern: "^otpauth://" }
         qr_svg_base64: { type: string, maxLength: 20000 }
         secret_base32: { type: string, maxLength: 64, pattern: "^[A-Z2-7]+=*$" }
     SessionResolveRequest:

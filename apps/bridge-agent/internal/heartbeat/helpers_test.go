@@ -169,11 +169,11 @@ type fakeSource struct{}
 func (fakeSource) Snapshot() heartbeat.Report { return snapshot() }
 
 type fakeActions struct {
-	mu                          sync.Mutex
-	refresh, restart, requeue   int
-	since                       []time.Time
+	mu                            sync.Mutex
+	refresh, restart, requeue     int
+	since                         []time.Time
 	refreshErr, restartErr, rqErr error
-	onRestart                   func() // runs inside RestartService, before it returns
+	onRestart                     func() // runs inside RestartService, before it returns
 }
 
 func (a *fakeActions) RefreshConfig(context.Context) error {

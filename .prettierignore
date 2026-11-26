@@ -1,0 +1,24 @@
+# Read-only or orchestration records: never reformatted.
+spec/
+.orchestra/
+
+# Generated or tool-written files: their writer decides the format (codegen-fresh and policy-diff gates compare them byte for byte).
+packages/api-client-ts/src/
+contracts/ports/generated/
+tools/codegen/out/
+db/policies/
+db/migrations/
+pnpm-lock.yaml
+.github/CODEOWNERS
+
+# Prose and YAML keep their hand-made layout (aligned tables, one-line registry rows that tests read as text).
+*.md
+*.yaml
+*.yml
+
+# Build output.
+**/.next/
+**/dist/
+**/build/
+**/.dart_tool/
+**/node_modules/

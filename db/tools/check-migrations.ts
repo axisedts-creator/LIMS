@@ -75,7 +75,8 @@ for (const { file, text, stmts } of readSqlDir(root, "db/migrations")) {
     const g = /^(?:ALTER\s+DEFAULT\s+PRIVILEGES\s+(?:FOR\s+(?:ROLE|USER)\s+[\w",\s]+?\s+)?(?:IN\s+SCHEMA\s+([\w",\s]+?)\s+)?)?GRANT\s+([\s\S]+?)\s+ON\s+([\s\S]+?)\s+TO\s+([\s\S]+?)(?:\s+WITH\s+GRANT\s+OPTION)?$/i.exec(code);
     if (g && /\b(DELETE|ALL)\b/i.test(g[2]) && /\blims_app\b/i.test(g[4])) {
       const list = (x: string) => x.split(",").map((y) => y.trim().replace(/"/g, "").toLowerCase());
-      const hit = (tbl: string) => NO_DELETE.has(meta[tbl]?.class ?? "");
+      // Owner decision 2026-11-26 (PR 9; CR .orchestra/cr/T0B-13.C13-manifest-lines-delete.md): partners.manifest_lines keeps its DELETE grant. No other table is exempt.
+      const hit = (tbl: string) => tbl !== "partners.manifest_lines" && NO_DELETE.has(meta[tbl]?.class ?? "");
       const inSchema = /^ALL\s+TABLES\s+IN\s+SCHEMA\s+([\s\S]+)$/i.exec(g[3]);
       // undefined = explicit table list; null = default privileges without IN SCHEMA (every schema)
       const schemas = inSchema ? list(inSchema[1]) : /^TABLES$/i.test(g[3]) ? (g[1] ? list(g[1]) : null) : undefined;

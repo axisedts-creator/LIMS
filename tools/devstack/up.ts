@@ -64,8 +64,10 @@ if (psqlAdmin(['-tAc', "SELECT 1 FROM pg_roles WHERE rolname = 'lims_migrator'"]
     // SP-5 runner contract (Atlas revisions schema).
     `GRANT CONNECT ON DATABASE ${DB} TO supabase_auth_admin, supabase_storage_admin, authenticator;`,
     'CREATE SCHEMA migrations_meta AUTHORIZATION lims_migrator;',
-    'GRANT USAGE ON SCHEMA migrations_meta TO lims_owner;',
-    'ALTER DEFAULT PRIVILEGES FOR ROLE lims_migrator IN SCHEMA migrations_meta GRANT SELECT, INSERT, UPDATE ON TABLES TO lims_owner;',
+    // Atlas updates its revision row after every statement, under whatever role the migration has set at that point.
+    // Migrations switch to lims_owner, lims_queue and lims_reporting_lookup, so all three need the revisions table.
+    'GRANT USAGE ON SCHEMA migrations_meta TO lims_owner, lims_queue, lims_reporting_lookup;',
+    'ALTER DEFAULT PRIVILEGES FOR ROLE lims_migrator IN SCHEMA migrations_meta GRANT SELECT, INSERT, UPDATE ON TABLES TO lims_owner, lims_queue, lims_reporting_lookup;',
   ].join('\n');
   psqlAdmin(['-1', '-q', '-f', '-'], sql);
 }

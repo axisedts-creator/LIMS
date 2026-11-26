@@ -117,7 +117,7 @@ export async function openPage(rel: string, opts: { perms: string[]; params?: Re
   return render(<ToastProvider>{await mod.default({ params: Promise.resolve(opts.params ?? {}), searchParams: Promise.resolve(Object.fromEntries(new URLSearchParams(opts.search ?? ''))) })}</ToastProvider>);
 }
 export const REPORT_PAGE = 'analytics/reports/[reportCode]';
-export const openReport = (code: string, perms: string[], search = '') => openPage(REPORT_PAGE, { perms, params: { reportCode: slugOf(code) }, search, path: `/analytics/reports/${slugOf(code)}` });
+export const openReport = (code: string, perms: string[], search = ''): Promise<ReturnType<typeof render>> => openPage(REPORT_PAGE, { perms, params: { reportCode: slugOf(code) }, search, path: `/analytics/reports/${slugOf(code)}` });
 export const BOTD_PAGE = 'billing/bill-of-the-day';
 
 export const norm = (s: string | null | undefined) => (s ?? '').replace(/\s+/g, ' ').trim();

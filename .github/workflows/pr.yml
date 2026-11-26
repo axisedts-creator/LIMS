@@ -36,9 +36,10 @@ jobs:
         env:
           HEAD_REF: ${{ github.head_ref }}
           PR_BODY: ${{ github.event.pull_request.body }}
+          CROSS_CHUNK: ${{ contains(github.event.pull_request.labels.*.name, 'cross-chunk-approved') }}
         run: |
           printf '%s' "$PR_BODY" > "$RUNNER_TEMP/body.txt"
-          node tools/lint/check-paths.ts --branch "$HEAD_REF" --files "$RUNNER_TEMP/changed.txt" --body "$RUNNER_TEMP/body.txt"
+          node tools/lint/check-paths.ts --branch "$HEAD_REF" --files "$RUNNER_TEMP/changed.txt" --body "$RUNNER_TEMP/body.txt" --cross-chunk "$CROSS_CHUNK"
 
   typecheck:
     runs-on: ubuntu-24.04
@@ -60,6 +61,10 @@ jobs:
         run: corepack enable && pnpm install --frozen-lockfile
       - name: tsc --noEmit (gate 2)
         run: pnpm -w turbo run typecheck
+      - name: Flutter SDK (brings the dart CLI)
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: packages/ui-flutter/pubspec.yaml # C0 02-TRD §2.2 Flutter pin
       - name: dart analyze on changed Dart packages
         run: |
           for d in packages/shared-dart apps/phlebo_app; do
@@ -88,6 +93,10 @@ jobs:
         run: pnpm exec eslint .
       - name: Prettier check
         run: pnpm exec prettier --check .
+      - name: Flutter SDK
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: packages/ui-flutter/pubspec.yaml # C0 02-TRD §2.2 Flutter pin
       - name: flutter analyze
         run: if [ -f apps/phlebo_app/pubspec.yaml ]; then (cd apps/phlebo_app && flutter analyze); fi
       - name: gofmt -l + staticcheck
@@ -95,7 +104,8 @@ jobs:
           if [ -f apps/bridge-agent/go.mod ]; then
             cd apps/bridge-agent
             test -z "$(gofmt -l .)"
-            staticcheck ./...
+            go install honnef.co/go/tools/cmd/staticcheck@2026.2.2
+            PATH="$(go env GOPATH)/bin:$PATH" staticcheck ./...
           fi
 
   unit:
@@ -353,8 +363,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version-file: package.json
+      - name: install gitleaks 8.30.1
+        run: go install github.com/zricethezav/gitleaks/v8@v8.30.1
       - name: gitleaks (gate 11)
-        run: gitleaks detect --redact --source .
+        run: PATH="$(go env GOPATH)/bin:$PATH" gitleaks detect --redact --source .
 
   deps:
     runs-on: ubuntu-24.04
@@ -378,8 +390,11 @@ jobs:
         id: plan
         run: node tools/lint/ci-plan.ts --files "$RUNNER_TEMP/changed.txt" --job "$GITHUB_JOB" >> "$GITHUB_OUTPUT"
       - if: steps.plan.outputs.run == 'true'
+        name: install osv-scanner 2.7.1
+        run: go install github.com/google/osv-scanner/v2/cmd/osv-scanner@v2.7.1
+      - if: steps.plan.outputs.run == 'true'
         name: osv-scanner (gate 12)
-        run: osv-scanner --lockfile=pnpm-lock.yaml
+        run: PATH="$(go env GOPATH)/bin:$PATH" osv-scanner --lockfile=pnpm-lock.yaml
       - if: steps.plan.outputs.run == 'true'
         name: pnpm install
         run: corepack enable && pnpm install --frozen-lockfile
@@ -842,6 +857,9 @@ jobs:
         id: plan
         run: node tools/lint/ci-plan.ts --files "$RUNNER_TEMP/changed.txt" --job "$GITHUB_JOB" >> "$GITHUB_OUTPUT"
       - if: steps.plan.outputs.run == 'true'
+        name: pnpm install
+        run: corepack enable && pnpm install --frozen-lockfile
+      - if: steps.plan.outputs.run == 'true'
         name: C7 drivers = instruments.g_drivers
         run: node services/api/src/modules/instruments/__tests__/ci/driver-registry-check.ts
 
@@ -932,4 +950,4 @@ jobs:
         with:
           api-level: 34 # [CONV] C17 02-TRD row names no API level
           arch: x86_64
-          script: cd apps/phlebo_app && flutter test integration_test/db_forensics_test.dart
+          script: cd apps/phlebo_app && flutter test integration_test/db_forensics_test.dart --flavor dev

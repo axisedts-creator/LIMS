@@ -65,7 +65,7 @@ export interface RegistrationFormProps {
   permissions: readonly string[];
   defaultCentreId?: string | undefined;
   /** Tenant's current consent text version for new patients; no operation exposes it to front_desk yet (open point in FD-T13-impl). */
-  consentTextVersion?: string;
+  consentTextVersion?: string | undefined;
 }
 
 const COLLECTION = [{ value: 'walk_in', label: 'Walk-in' }, { value: 'centre', label: 'Centre' }, { value: 'home', label: 'Home' }, { value: 'partner', label: 'Partner' }] as const;

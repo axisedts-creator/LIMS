@@ -14,3 +14,7 @@ allowBuilds:
 # pnpm 12 ignores the package.json "pnpm" field, so the override lives here.
 overrides:
   'lodash@<4.18.1': 4.18.1
+  # osv-scanner (gate 12), 2026-11-26: GHSA-w5hq-g745-h8pq (uuid), only under
+  # @stoplight/prism-cli > postman-collection (local mock server). GHSA-qxc2-j82w-r537 (@faker-js/faker 5.5.3) is NOT fixed:
+  # faker 10 removes the API the mock server calls (mock:core then dies on start).
+  'uuid@<11.1.1': 11.1.1

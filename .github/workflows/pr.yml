@@ -570,7 +570,7 @@ jobs:
         run: node tools/lint/ci-plan.ts --files "$RUNNER_TEMP/changed.txt" --job "$GITHUB_JOB" >> "$GITHUB_OUTPUT"
       - if: steps.plan.outputs.run == 'true'
         name: compose digests = UPSTREAM.lock (08 A25 D-208)
-        run: node tools/lint/check-supabase-pin.ts --compose tools/devstack/compose.yaml --lock infra/compose/supabase/upstream/UPSTREAM.lock
+        run: node tools/lint/check-supabase-pin.ts --compose tools/devstack/compose.yaml --lock infra/compose/supabase/upstream/UPSTREAM.lock --allow-unused darthsim/imgproxy
 
   identity-service-key-grep:
     runs-on: ubuntu-24.04

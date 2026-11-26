@@ -53,22 +53,32 @@ export async function getAnalytes(ids: readonly string[]): Promise<AnalyteMap> {
     }
   }
 
-  // Fetch missing analytes in chunks of 4 to prevent 429 rate limits
-  const CHUNK_SIZE = 4;
+  // Fetch missing analytes in chunks of 2 with retry on 429 to avoid rate limits
+  const CHUNK_SIZE = 2;
   for (let i = 0; i < missing.length; i += CHUNK_SIZE) {
     const chunk = missing.slice(i, i + CHUNK_SIZE);
     await Promise.all(chunk.map(async (id) => {
-      try {
-        const d = await serverFetch<Detail>(`/v1/catalog/analytes/${id}`);
-        const rt = d.current_version?.result_type;
-        const info: AnalyteInfo = { name: d.name, value_type: rt === 'numeric' || rt === 'ordinal' ? rt : 'text' };
-        if (typeof d.current_version?.decimals === 'number') info.decimals = d.current_version.decimals;
-        analyteCache.set(id, info);
-        result[id] = info;
-      } catch {
-        // Any error (403, 404, 429) drops that analyte; ResultGrid falls back gracefully to code
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          const d = await serverFetch<Detail>(`/v1/catalog/analytes/${id}`);
+          const rt = d.current_version?.result_type;
+          const info: AnalyteInfo = { name: d.name, value_type: rt === 'numeric' || rt === 'ordinal' ? rt : 'text' };
+          if (typeof d.current_version?.decimals === 'number') info.decimals = d.current_version.decimals;
+          analyteCache.set(id, info);
+          result[id] = info;
+          break;
+        } catch (err: unknown) {
+          if (err instanceof ApiError && err.status === 429 && attempt < 2) {
+            await new Promise((resolve) => setTimeout(resolve, 150 * (attempt + 1)));
+            continue;
+          }
+          break;
+        }
       }
     }));
+    if (i + CHUNK_SIZE < missing.length) {
+      await new Promise((resolve) => setTimeout(resolve, 60));
+    }
   }
 
   return result;

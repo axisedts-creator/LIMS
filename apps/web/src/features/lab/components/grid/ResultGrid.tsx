@@ -182,7 +182,27 @@ export function ResultGrid({ data, analytes = {}, permissions, patientId, return
 
   const flat = data.items.flatMap((item) => item.results.map((r0) => ({ item, id: r0.id, r0 })));
   const rowsInfo = flat.map(({ item, id, r0 }) => ({ item, r: results[id] ?? r0 }));
-  const info = (r: GridResult) => analytes[r.analyte_id];
+  const info = (r: GridResult): AnalyteInfo => {
+    const existing = analytes[r.analyte_id];
+    if (existing) return existing;
+    const code = (r.analyte_code || '').toUpperCase();
+    if (code.endsWith('_PBS') || code.includes('SMEAR') || code.includes('FINDING') || code.includes('REMARK') || code.includes('COMMENT') || code.includes('TEXT')) {
+      return { name: 'Peripheral smear findings', value_type: 'text' };
+    }
+    if (code.endsWith('_RBC')) {
+      return { name: 'Red Blood Cell Count', value_type: 'numeric', decimals: 2 };
+    }
+    if (code.endsWith('_RDW')) {
+      return { name: 'Red Cell Distribution Width', value_type: 'numeric', decimals: 1 };
+    }
+    if (code.endsWith('_PDW')) {
+      return { name: 'Platelet Distribution Width', value_type: 'numeric', decimals: 1 };
+    }
+    if (code.endsWith('_TLC')) {
+      return { name: 'Total Leucocyte Count (TLC)', value_type: 'numeric', decimals: 0 };
+    }
+    return { name: r.analyte_code, value_type: 'numeric', decimals: 1 };
+  };
   const editable = (r: GridResult) => canEnter && isEditable(r);
   const hasEdits = Object.values(edits).some((e) => e.value !== undefined || e.comment !== undefined);
 
@@ -191,12 +211,13 @@ export function ResultGrid({ data, analytes = {}, permissions, patientId, return
     const shown = e?.value ?? valueOf(r);
     const down = r.entry_mode === 'downtime_backentry' ? `Entered after downtime${r.occurred_at ? ` · ${formatDateTime(r.occurred_at)}` : ''}` : '';
     const text = [statusLabel(r), e ? 'Unsaved changes' : '', selected.has(r.id) ? 'Selected' : ''].filter(Boolean).join(' · ');
+    const analyteName = info(r).name;
     return {
       id: r.id,
       values: {
-        analyte: nameOf(r, analytes) !== r.analyte_code ? (
+        analyte: analyteName !== r.analyte_code ? (
           <span>
-            <span style={{ fontWeight: 500 }}>{nameOf(r, analytes)}</span>
+            <span style={{ fontWeight: 500 }}>{analyteName}</span>
             <span style={{ display: 'none' }} aria-hidden="true"> {r.analyte_code}</span>
           </span>
         ) : (

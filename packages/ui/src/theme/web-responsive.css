@@ -187,10 +187,9 @@
 /* a bare table (no DataTable wrapper) scrolls inside its nearest block instead of widening the page */
 .lims-shell-main :is(div, form, article, li, dd, details):not(.lims-table-scroll, .lims-data-table):has(> table) { overflow-x: auto; max-width: 100%; }
 
-/* settings forms: on narrow screens the Save bar sits after the last field; on wide ones it stays sticky but opaque */
+/* settings forms: the Save bar sits after the last field at every width, so it never covers a field or toggle */
 .lims-shell .lims-settings-form { max-width: min(100%, 44rem); min-width: 0; }
-.lims-shell .lims-settings-bar { background: var(--surface-2); }
-@media (max-width: 63.99rem) { .lims-shell .lims-settings-bar { position: static; background: transparent; } }
+.lims-shell .lims-settings-bar { position: static; }
 
 /* two-pane console and banners on narrow screens */
 .lims-shell .lims-console { min-width: 0; }
@@ -201,3 +200,45 @@
 /* dialogs and drawers fit the viewport */
 .lims-overlay .lims-dialog, .lims-overlay .lims-drawer { max-width: calc(100vw - 2 * var(--space-3)); }
 .lims-overlay .lims-dialog-footer { flex-wrap: wrap; }
+
+/* ===== d. page-specific fixes ===== */
+/* permission matrix (admin roles): the kit table has no scroll wrapper, so it scrolls itself on narrow screens */
+@media (max-width: 80rem) { .lims-shell-main table.lims-permmatrix { display: block; max-width: 100%; overflow-x: auto; } }
+/* invoice detail: the side column may shrink and wrap under the document */
+.lims-shell .lims-invoice-detail { gap: var(--space-5); min-width: 0; }
+.lims-shell .lims-invoice-detail-side { flex: 1 1 16rem; min-width: 0; max-width: 100%; }
+.lims-shell .lims-invoice-detail-doc { flex: 1 1 min(100%, 30rem); }
+/* report preview: the paper keeps its padding inside the available width */
+.lims-shell :is(.rpt-preview, .rpt-preview-paper) { box-sizing: border-box; max-width: 100%; min-width: 0; }
+/* slot calendar: day pills wrap inside the cell */
+.lims-shell .lims-table td .lims-inline:has(> .lims-chip) { flex-wrap: wrap; max-width: 22rem; }
+/* one-time-code cells stay square and never shrink below a digit */
+.lims-otp { flex-wrap: wrap; }
+.lims-otp .lims-otp-cell { flex: none; min-width: 2.5em; }
+/* stepper labels wrap inside the card */
+.lims-shell .lims-step { max-width: 100%; }
+.lims-shell .lims-step-label { flex: 0 1 auto; min-width: 0; max-width: 100%; white-space: normal; overflow-wrap: break-word; }
+/* 96-well plate keeps its 12 columns and scrolls inside its box when the cells would get too small */
+.lims-shell .lims-plate { grid-template-columns: repeat(12, minmax(6.5rem, 1fr)); overflow-x: auto; max-width: 100%; padding-block-end: var(--space-2); }
+/* label print controls (screen only): copies selector and button keep a gap and wrap */
+.lims-shell-main .lbl-noprint > div { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-3); }
+.lims-shell-main .lbl-noprint select { min-width: 4.5rem; }
+/* Verify and Approve: the fixed desktop column widths only apply while the sidebar layout has room for them */
+@media (max-width: 63.99rem) { .lims-shell .lims-console:has(> .lims-console-detail[aria-label='Registration']) .lims-console-list .lims-table :is(th, td):is(:nth-child(1), :nth-child(2), :nth-child(4)) { width: auto; } }
+/* switches and checkboxes placed side by side in a card keep a gap */
+.lims-shell .lims-card > :is(.lims-switch, .lims-check, .lims-radio, .lims-check-wrap) + :is(.lims-switch, .lims-check, .lims-radio, .lims-check-wrap) { margin-inline-start: var(--space-4); }
+/* chart legend: swatch and label keep a gap; a wrapped delta pill uses the control radius */
+.lims-shell .lims-chart-legend > * { display: inline-flex; align-items: center; gap: var(--space-1); }
+.lims-shell .lims-dash-money .lims-stat-delta { border-radius: var(--r-ctl); }
+/* registration summary: figures never squeeze; on phones the bar sits after the form instead of covering it */
+/* frontdesk.css pins this bar to one line with !important; below the sidebar breakpoint it has to wrap */
+@media (max-width: 63.99rem) {
+  .lims-shell .lims-reg-summary { flex-wrap: wrap !important; }
+  .lims-shell .lims-reg-summary > .lims-dl { flex: 1 1 14rem; min-width: min(100%, 12rem); }
+}
+.lims-shell .lims-reg-summary > .lims-dl { flex-shrink: 0; }
+@media (max-width: 40rem) { .lims-shell .lims-reg-summary { position: static; } }
+/* an action cell with helper text: buttons on the first line, each helper line below, in a compact column */
+.lims-shell .lims-table td :is(.lims-inline, .lims-row-actions):has(> :is(.lims-description, .lims-error)) { max-width: 22rem; padding-block: var(--space-2); }
+/* a button or button row directly above a table inside a card keeps a gap */
+.lims-shell .lims-card > :is(.lims-btn, .lims-inline, .lims-row-actions) + :is(.lims-data-table, .lims-table-scroll) { margin-block-start: var(--space-3); }

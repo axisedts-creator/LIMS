@@ -242,3 +242,7 @@
 .lims-shell .lims-table td :is(.lims-inline, .lims-row-actions):has(> :is(.lims-description, .lims-error)) { max-width: 22rem; padding-block: var(--space-2); }
 /* a button or button row directly above a table inside a card keeps a gap */
 .lims-shell .lims-card > :is(.lims-btn, .lims-inline, .lims-row-actions) + :is(.lims-data-table, .lims-table-scroll) { margin-block-start: var(--space-3); }
+/* select trigger: the chosen value stays on one line inside the control (long names end with an ellipsis, as a native select clips) */
+.lims-shell .lims-select-trigger, .lims-overlay .lims-select-trigger { min-width: 0; gap: var(--space-2); }
+.lims-shell .lims-select-trigger > :not(svg), .lims-overlay .lims-select-trigger > :not(svg) { flex: 1 1 auto; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; text-align: start; }
+.lims-shell .lims-select-trigger > svg, .lims-overlay .lims-select-trigger > svg { flex: none; }

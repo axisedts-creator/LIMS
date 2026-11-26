@@ -16,7 +16,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lims_shared/lims_shared.dart';
 import 'package:phlebo_app/features/outbox/data/outbox_repository.dart';
 
-import 'support/db_fixture.dart';
 import 'support/outbox_fixture.dart';
 import 'support/sha256.dart';
 

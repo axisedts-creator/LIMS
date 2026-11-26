@@ -129,6 +129,8 @@ export type ErrorCode =
   | "frontdesk.referrer_required"
   | "frontdesk.retention_not_elapsed"
   | "homecollection.app_version_unsupported"
+  | "homecollection.application_exists"
+  | "homecollection.application_incomplete"
   | "homecollection.barcode_mismatch"
   | "homecollection.collection_not_held"
   | "homecollection.device_not_registered"
@@ -449,6 +451,8 @@ export const ERROR_META: Readonly<Record<ErrorCode, { readonly http: number; rea
   "frontdesk.referrer_required": { http: 422, owner: "C4", title: "Referrer required" },
   "frontdesk.retention_not_elapsed": { http: 409, owner: "C4", title: "Retention period not elapsed" },
   "homecollection.app_version_unsupported": { http: 426, owner: "C17", title: "App update required" },
+  "homecollection.application_exists": { http: 409, owner: "C17", title: "Application already open" },
+  "homecollection.application_incomplete": { http: 409, owner: "C17", title: "Application incomplete" },
   "homecollection.barcode_mismatch": { http: 422, owner: "C17", title: "Scanned barcode does not match" },
   "homecollection.collection_not_held": { http: 409, owner: "C17", title: "Collection is not awaiting review" },
   "homecollection.device_not_registered": { http: 409, owner: "C17", title: "Device not registered" },

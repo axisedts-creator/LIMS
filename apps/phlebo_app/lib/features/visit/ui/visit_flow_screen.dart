@@ -30,7 +30,17 @@ class VisitFlowScreen extends StatefulWidget {
     required this.onExit,
     this.initialLog = const [],
     this.scannerBuilder,
+    this.onMyWay,
+    this.travelStatus,
+    this.onLeftTravel,
   });
+
+  /// PHLEBO-UI-FULL-1 live sharing, passed to the first step only (see VisitScreen).
+  final Future<String?> Function()? onMyWay;
+  final String? travelStatus;
+
+  /// The visit moved past travelling (arrived, or cannot be done): sharing must stop.
+  final VoidCallback? onLeftTravel;
 
   final VisitView visit;
   final VisitConfig config;
@@ -121,8 +131,16 @@ class _VisitFlowScreenState extends State<VisitFlowScreen> implements MutationSi
           sink: this,
           readGps: widget.readGps,
           launchUri: widget.launchUri,
-          onArrived: () => _go(VisitStep.identity),
-          onCannotDo: () => _go(VisitStep.fail),
+          onMyWay: widget.onMyWay,
+          travelStatus: widget.travelStatus,
+          onArrived: () {
+            widget.onLeftTravel?.call();
+            _go(VisitStep.identity);
+          },
+          onCannotDo: () {
+            widget.onLeftTravel?.call();
+            _go(VisitStep.fail);
+          },
         );
       case VisitStep.identity:
         return IdentityScreen(

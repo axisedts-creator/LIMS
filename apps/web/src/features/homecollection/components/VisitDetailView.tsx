@@ -31,6 +31,7 @@ import {
 } from '../labels';
 import { resolveFlagAction, revealPhoneAction, revisitAction, reviewAction } from '../server/actions';
 import { useSubmissionKey } from '../submission';
+import { useBoardRefresh } from '../hooks/useBoardRefresh';
 import type { CodedValue, Collection, SpecimenRow, VisitCodes, VisitDetail, VisitFlag } from '../types';
 import { AssignDialog } from './AssignDialog';
 import { CancelVisitDialog } from './CancelVisitDialog';
@@ -174,6 +175,7 @@ const latestOf = (cols: readonly Collection[], specimenId: string) => [...cols].
 export function VisitDetailView({ visit, permissions, codes }: VisitDetailViewProps) {
   const router = useRouter();
   const [dlg, setDlg] = useState<Dlg | null>(null);
+  useBoardRefresh(dlg !== null);
   const canAssign = hasPerm(permissions, ASSIGN);
   const canLabels = canAssign && hasPerm(permissions, LABELS) && !!visit.order_id;
   const close = () => setDlg(null);

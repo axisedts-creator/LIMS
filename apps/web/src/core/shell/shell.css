@@ -13,6 +13,13 @@
 .lims-menuitem[aria-checked='true'] { background: var(--lims-accent-subtle); font-weight: var(--lims-font-weight-medium); }
 .lims-topbar-bell { display: inline-grid; place-items: center; min-width: var(--lims-touch-target-web); min-height: var(--lims-touch-target-web); padding: 0; border-radius: var(--lims-radius-full); }
 .lims-topbar-bell:disabled { grid-auto-flow: column; gap: var(--lims-space-2); padding-inline: var(--lims-space-3); }
+.lims-topbar-bell-wrap { position: relative; }
+.lims-topbar-bell-count { position: absolute; inset-block-start: 0; inset-inline-end: 0; min-width: 1.25rem; padding-inline: var(--lims-space-1); border-radius: var(--lims-radius-full); background: var(--lims-tone-danger-fg); color: var(--lims-neutral-0); font-size: var(--lims-font-size-xs-size); font-weight: var(--lims-font-weight-semibold); text-align: center; }
+.lims-topbar-bell-menu { position: absolute; inset-inline-end: 0; z-index: var(--lims-z-dropdown); width: min(22rem, 90vw); margin-block-start: var(--lims-space-1); padding: var(--lims-space-2); border-radius: var(--lims-radius-md); background: var(--lims-neutral-0); box-shadow: var(--lims-elevation-2); }
+.lims-topbar-bell-menu ul { margin: 0; padding: 0; list-style: none; }
+.lims-topbar-bell-menu a { display: grid; gap: var(--lims-space-0x5); min-height: var(--lims-touch-target-web); padding: var(--lims-space-2); border-radius: var(--lims-radius-sm); color: var(--lims-neutral-900); text-decoration: none; }
+.lims-topbar-bell-menu a:hover, .lims-topbar-bell-menu a:focus-visible { background: var(--lims-neutral-100); }
+.lims-topbar-bell-menu span { color: var(--lims-neutral-700); font-size: var(--lims-font-size-sm-size); }
 .lims-topbar-bell-note { font-size: var(--lims-font-size-xs-size); color: var(--lims-neutral-700); }
 .lims-breadcrumb ol { display: flex; gap: var(--lims-space-2); margin: 0; padding: 0; list-style: none; color: var(--lims-neutral-700); }
 .lims-breadcrumb li + li::before { content: '/'; margin-inline-end: var(--lims-space-2); color: var(--lims-neutral-500); }

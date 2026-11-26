@@ -61,8 +61,8 @@ describe('in-app help for every web screen (DoD §3.8)', () => {
   const app = join(web, 'src', 'app', '(staff)', 'homecollection');
   const screens = existsSync(app) ? readdirSync(app).filter((n) => statSync(join(app, n)).isDirectory()) : [];
   const helpName = (s: string) => (s === 'visits' ? 'visit' : s);
-  it('screens found', () => { expect([...screens].sort()).toEqual(['devices', 'dispatch', 'handovers', 'settings', 'visits']); });
-  it.each(['dispatch', 'visit', 'handovers', 'devices', 'settings'])('help/%s.md exists, has Purpose, no placeholders', (n) => {
+  it('screens found', () => { expect([...screens].sort()).toEqual(['applications', 'devices', 'dispatch', 'handovers', 'settings', 'visits']); });   // + applications (PHLEBO-UI-FULL-1)
+  it.each(['dispatch', 'visit', 'handovers', 'devices', 'settings', 'applications'])('help/%s.md exists, has Purpose, no placeholders', (n) => {
     const p = join(feat, 'help', `${n}.md`);
     expect(existsSync(p), p).toBe(true);
     const t = read(p);

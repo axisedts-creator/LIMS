@@ -28,6 +28,7 @@ import * as syncBatches from './repository/syncBatches.repo.js';
 import { insertVisitFlag, listVisitFlagsByVisit } from './repository/visitFlags.repo.js';
 import { listAssignmentsByVisit } from './repository/visitAssignments.repo.js';
 import { insertVisitLocation } from './repository/visitLocations.repo.js';
+import { stopTracking } from './repository/visitTracking.repo.js';
 import { listCollectionsByVisit } from './repository/visitQueries.repo.js';
 import { insertVisitTransition } from './repository/visitTransitions.repo.js';
 import { lockVisitsForUpdate, updateVisit } from './repository/visits.repo.js';
@@ -259,7 +260,7 @@ async function applyEffects(S: State, m: Mut, visit: Obj, row: Obj, t: Corrected
     if (v.outcome === 'applied') { await startVisit(S, visit, row['id'], t); await gpsRow(S, S.visits.get(visit['id'])!, row['id'], t, 'collected', p['gps']); }
   } else if (v.outcome === 'applied') {
     switch (m.type) {
-      case 'visit.arrived': await startVisit(S, visit, row['id'], t); await gpsRow(S, visit, row['id'], t, 'arrived', p['gps']); break;
+      case 'visit.arrived': await startVisit(S, visit, row['id'], t); await gpsRow(S, visit, row['id'], t, 'arrived', p['gps']); await stopTracking(S.tx, S.tenantId, visit['id'], 'arrived', new Date(t.iso)); break;
       case 'specimen.not_collected': related = p['specimen_id']; break;
       case 'payment.captured':
         accOf(S, visit['id']).payments.push({ client_mutation_id: m.clientMutationId, payment_method_code: p['payment_method_code'], amount: { amount_paisa: p['amount']['amount_paisa'], currency: p['amount']['currency'] },
@@ -269,11 +270,13 @@ async function applyEffects(S: State, m: Mut, visit: Obj, row: Obj, t: Corrected
         const applied = (await listCollectionsByVisit(S.tx, S.tenantId, visit['id'])).filter((c) => c['status'] === 'applied').length;
         await startVisit(S, visit, row['id'], t);
         await moveVisit(S, S.visits.get(visit['id'])!, 'completed', { outcome: applied === 0 ? 'none' : p['outcome'], completed_at: t.iso }, row['id'], t);
+        await stopTracking(S.tx, S.tenantId, visit['id'], 'completed', new Date(t.iso));
         break;
       }
       case 'visit.failed':
         await moveVisit(S, visit, 'failed', { failed_at: t.iso, status_reason_code: p['reason_code'], ...(p['reason_text'] !== undefined ? { status_reason_text: p['reason_text'] } : {}) }, row['id'], t, p['reason_code']);
         await gpsRow(S, S.visits.get(visit['id'])!, row['id'], t, 'failed', p['gps']);
+        await stopTracking(S.tx, S.tenantId, visit['id'], 'failed', new Date(t.iso));
         break;
       default: break;
     }

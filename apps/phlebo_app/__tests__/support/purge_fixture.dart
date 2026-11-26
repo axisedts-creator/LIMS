@@ -22,8 +22,8 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:lims_shared/lims_shared.dart';
 import 'package:phlebo_app/core/db/cache_db.dart';
+import 'package:phlebo_app/core/db/outbox_db.dart';
 import 'package:phlebo_app/core/db/wipe.dart';
 import 'package:phlebo_app/core/net/api_factory.dart';
 import 'package:phlebo_app/core/sync/purge_triggers.dart';
@@ -49,7 +49,7 @@ class TracingWipe extends DbWipe {
   }
 
   @override
-  Future<void> destroyOutbox({dynamic open}) async {
+  Future<void> destroyOutbox({OutboxDb? open}) async {
     trace.add('destroy:outbox');
     await super.destroyOutbox(open: open);
   }

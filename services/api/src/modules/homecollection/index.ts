@@ -26,6 +26,8 @@ import { handler as registerPhleboDevice } from './handlers/registerPhleboDevice
 import { handler as requestDeviceWipe } from './handlers/requestDeviceWipe.js';
 import { handler as revealHomeVisitPhone } from './handlers/revealHomeVisitPhone.js';
 import { handler as signOffPhleboDevice } from './handlers/signOffPhleboDevice.js';
+import { handler as updateVisitTracking } from './handlers/updateVisitTracking.js';
+import { createPhleboApplication, uploadPhleboApplicationDocumentChunk, submitPhleboApplication, listPhleboApplications, getPhleboApplication, downloadPhleboApplicationDocument, decidePhleboApplication } from './handlers/phleboApplications.js';
 import { handler as updateHomecollectionSettings } from './handlers/updateHomecollectionSettings.js';
 import { handler as listHandovers } from './handlers/listHandovers.js';
 import { handler as getHandover } from './handlers/getHandover.js';
@@ -37,7 +39,8 @@ const OPERATION_IDS = [
   'resolveHomeVisitFlag', 'reviewHeldCollection', 'listHomeRoutes', 'resequenceHomeRoute', 'listEligiblePhlebotomists', 'listHandovers',
   'getHandover', 'confirmHandover', 'listPhleboDevices', 'requestDeviceWipe', 'getHomecollectionSettings', 'updateHomecollectionSettings',
   'listHomecollectionReasons', 'revealHomeVisitPhone',
-  'registerPhleboDevice', 'getSyncSnapshot', 'pushSyncMutations', 'ackSync', 'signOffPhleboDevice',
+  'registerPhleboDevice', 'getSyncSnapshot', 'pushSyncMutations', 'ackSync', 'signOffPhleboDevice', 'updateVisitTracking',
+  'createPhleboApplication', 'uploadPhleboApplicationDocumentChunk', 'submitPhleboApplication', 'listPhleboApplications', 'getPhleboApplication', 'downloadPhleboApplicationDocument', 'decidePhleboApplication',
   'updateCollectorFlags',
 ] as const;
 
@@ -53,6 +56,7 @@ const implemented: Partial<Record<HomecollectionOperationId, Handler>> = {
   getHomecollectionSettings, updateHomecollectionSettings, listHomecollectionReasons,
   listHomeVisits, getHomeVisit, listHomeRoutes, listEligiblePhlebotomists, revealHomeVisitPhone,
   registerPhleboDevice, signOffPhleboDevice,   // HC-T10: A1, A5
+  updateVisitTracking, createPhleboApplication, uploadPhleboApplicationDocumentChunk, submitPhleboApplication, listPhleboApplications, getPhleboApplication, downloadPhleboApplicationDocument, decidePhleboApplication,   // PHLEBO-UI-FULL-1
   listPhleboDevices, requestDeviceWipe,   // HC-T15: H16, H17
   assignHomeVisit, unassignHomeVisit, scheduleHomeVisit, cancelHomeVisit, createHomeRevisit, resolveHomeVisitFlag, resequenceHomeRoute,   // HC-T09: H3-H8, H11
   getSyncSnapshot, ackSync,   // HC-T11: A2, A4

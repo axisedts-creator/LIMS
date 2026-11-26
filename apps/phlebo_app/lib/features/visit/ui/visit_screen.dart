@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:lims_ui/lims_ui.dart';
 
+import '../../../app/theme.dart';
 import '../data/mutation_sink.dart';
 import '../domain/visit_models.dart';
 import 'save_once.dart';
@@ -16,7 +17,16 @@ class VisitScreen extends StatefulWidget {
     required this.launchUri,
     required this.onArrived,
     required this.onCannotDo,
+    this.onMyWay,
+    this.travelStatus,
   });
+
+  /// PHLEBO-UI-FULL-1 "On my way": starts sharing the position with the patient. Null on success, else the sentence to
+  /// show. When this is null (preview without it, tests) the screen is as before.
+  final Future<String?> Function()? onMyWay;
+
+  /// Null = not travelling. 'live' | 'no_position' | 'offline' while on the way.
+  final String? travelStatus;
 
   final VisitView visit;
   final VisitConfig config;
@@ -31,6 +41,24 @@ class VisitScreen extends StatefulWidget {
 }
 
 class _VisitScreenState extends State<VisitScreen> with SaveOnce<VisitScreen> {
+  bool _starting = false;
+  String? _travelError;
+
+  Future<void> _onMyWay() async {
+    if (_starting) return;
+    setState(() {
+      _starting = true;
+      _travelError = null;
+    });
+    final error = await widget.onMyWay!();
+    if (mounted) {
+      setState(() {
+        _starting = false;
+        _travelError = error;
+      });
+    }
+  }
+
   Future<void> _arrive() async {
     final ok = await runSave(() async {
       final gps = await widget.readGps();
@@ -51,12 +79,40 @@ class _VisitScreenState extends State<VisitScreen> with SaveOnce<VisitScreen> {
     return LimsSecureScreen(
       child: LimsScaffold(
         title: v.label,
+        // PHLEBO-UI-FULL-1 C01: the two actions stay pinned under the scrolling details.
+        bottomNavigationBar: BottomActions(children: [
+          saveErrorNotice(),
+          if (_travelError != null) NoticeCard(tone: 'warning', text: _travelError!),
+          if (widget.onMyWay != null && widget.travelStatus == null) ...[
+            LimsButton(key: const ValueKey('visit.on_my_way'), label: _starting ? 'Starting…' : 'On my way', icon: Icons.navigation_outlined, onPressed: saving || _starting ? null : _onMyWay),
+            LimsButton(label: "I've already arrived", secondary: true, onPressed: saving || _starting ? null : _arrive),
+          ] else
+            LimsButton(label: "I've arrived", onPressed: saving ? null : _arrive),
+          LimsButton(label: "Can't do this visit", secondary: true, onPressed: saving ? null : widget.onCannotDo),
+        ]),
         body: ListView(padding: const EdgeInsets.all(LimsTokens.space4), children: [
+          if (widget.travelStatus != null) ...[
+            NoticeCard(
+              tone: widget.travelStatus == 'live' ? 'success' : 'warning',
+              icon: Icons.navigation_outlined,
+              title: 'On the way',
+              text: switch (widget.travelStatus) {
+                'live' => 'The patient can see that you are coming and where you are. Sharing stops when you arrive.',
+                'offline' => 'No connection: the patient sees your last position until you are back online.',
+                _ => 'The patient is told you are coming. Your position is not available: check that location is on.',
+              },
+            ),
+            const SizedBox(height: LimsTokens.space3),
+          ],
           LimsCard(
             title: 'Patient',
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(v.patientName, style: t.titleMedium),
-              const SizedBox(height: LimsTokens.space2),
+              Row(children: [
+                PersonAvatar(name: v.patientName),
+                const SizedBox(width: LimsTokens.space3),
+                Expanded(child: Text(v.patientName, style: t.titleLarge)),
+              ]),
+              const SizedBox(height: LimsTokens.space3),
               LimsButton(
                 label: 'Call',
                 icon: Icons.call_outlined,
@@ -110,12 +166,6 @@ class _VisitScreenState extends State<VisitScreen> with SaveOnce<VisitScreen> {
             title: 'Amount due',
             child: Text('NPR ${formatPaisa(v.amountDuePaisa)} as of ${v.amountAsOf}'),
           ),
-          const SizedBox(height: LimsTokens.space4),
-          saveErrorNotice(),
-          const SizedBox(height: LimsTokens.space3),
-          LimsButton(label: "I've arrived", onPressed: saving ? null : _arrive),
-          const SizedBox(height: LimsTokens.space2),
-          LimsButton(label: "Can't do this visit", secondary: true, onPressed: saving ? null : widget.onCannotDo),
         ]),
       ),
     );

@@ -731,6 +731,12 @@ export const ROUTES = {
     "path": "/frontdesk/worklist",
     "permission": "frontdesk.order.read"
   },
+  "staff.homecollection.applications": {
+    "origin": "staff_web",
+    "owner": "C17",
+    "path": "/homecollection/applications",
+    "permission": "homecollection.application.manage"
+  },
   "staff.homecollection.devices": {
     "origin": "staff_web",
     "owner": "C17",

@@ -21,6 +21,7 @@ import { DEVICE_CHANGED, PLATFORM, deviceStatus, failText, hasPerm, humanize, se
 import { DEVICE_STATUSES } from '../query';
 import { updateCollectorFlagsAction, wipeDeviceAction } from '../server/actions';
 import { useSubmissionKey } from '../submission';
+import { useBoardRefresh } from '../hooks/useBoardRefresh';
 import type { DeviceRow, WipeCodes } from '../types';
 
 type Iso = DateTextProps['value'];
@@ -151,6 +152,7 @@ export function DevicesView({ devices, codes, minAppVersion, permissions, nextCu
   const router = useRouter();
   const [wipe, setWipe] = useState<DeviceRow | null>(null);
   const [flags, setFlags] = useState<DeviceRow | null>(null);
+  useBoardRefresh(wipe !== null || flags !== null);
   const canWipe = hasPerm(permissions, MANAGE) && codes.wipe_reasons.length > 0;
   const canFlags = hasPerm(permissions, SETTINGS);
 

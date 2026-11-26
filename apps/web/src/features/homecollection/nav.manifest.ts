@@ -9,5 +9,6 @@ export const navManifest: NavManifest = {
     { id: 'homecollection.handovers', label: 'homecollection.nav.handovers', routeId: 'staff.homecollection.handovers', permission: 'homecollection.handover.receive', group: 'home_collection', order: 20, icon: 'inbox', chord: 'g t', phase: '3' },
     { id: 'homecollection.devices', label: 'homecollection.nav.devices', routeId: 'staff.homecollection.devices', permission: 'homecollection.device.manage', group: 'home_collection', order: 30, icon: 'table', phase: '3' },
     { id: 'homecollection.settings', label: 'homecollection.nav.settings', routeId: 'staff.homecollection.settings', permission: 'homecollection.settings.manage', group: 'home_collection', order: 40, icon: 'settings', phase: '3' },
+    { id: 'homecollection.applications', label: 'homecollection.nav.applications', routeId: 'staff.homecollection.applications', permission: 'homecollection.application.manage', group: 'home_collection', order: 35, icon: 'inbox', phase: '3' },
   ],
 };

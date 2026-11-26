@@ -10309,7 +10309,8 @@ export interface operations {
     requestBody: {
       content: {
         "application/json": {
-          email: string;
+          email?: string;
+          phone_e164?: string;
           password: string;
           app_instance_id: string;
           app_platform: "android" | "ios";

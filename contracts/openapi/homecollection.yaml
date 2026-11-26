@@ -2830,6 +2830,551 @@ paths:
           $ref: _common.yaml#/components/responses/TooManyRequests
         "500":
           $ref: _common.yaml#/components/responses/Internal
+  /v1/homecollection/visits/{visit_id}/tracking:
+    put:
+      operationId: updateVisitTracking
+      tags:
+        - homecollection
+      summary: Start, update or stop live tracking of my assigned visit (PHLEBO-UI-FULL-1)
+      security:
+        - bearerJwt: []
+      x-permission: homecollection.sync.upload
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - homecollection.visit_not_assigned
+        - homecollection.visit_closed
+      parameters:
+        - name: visit_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VisitTrackingUpdate"
+            examples:
+              synthetic:
+                value:
+                  state: en_route
+                  position:
+                    latitude: "27.700000"
+                    longitude: "85.300000"
+                    accuracy_m: 12
+      responses:
+        "200":
+          description: Tracking state.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VisitTrackingState"
+              examples:
+                synthetic:
+                  value:
+                    state: en_route
+                    started_at: 2026-11-26T04:15:00.000Z
+                    position_at: 2026-11-26T04:16:00.000Z
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/homecollection/applications:
+    post:
+      operationId: createPhleboApplication
+      tags:
+        - homecollection
+      summary: Apply to work as a phlebotomist (not signed in; PHLEBO-UI-FULL-1)
+      security:
+        - patientPreAuth: []
+      x-permission: homecollection.application.submit
+      x-context: tenant
+      x-idempotency: none
+      x-idempotency-justification: E1 secret shown once (the 2xx body carries the upload token); a repeat for the same phone answers 409
+      x-rate-limit-tier: otp_request
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - homecollection.application_exists
+        - homecollection.application_incomplete
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PhleboApplicationCreate"
+            examples:
+              synthetic:
+                value:
+                  full_name: Synthetic Applicant
+                  phone_e164: <synthetic-phone>
+                  email: <synthetic-email>
+                  area: Synthetic Tole
+                  employment_type: part_time
+                  shift_count: single
+                  day_slots:
+                    - morning
+      responses:
+        "201":
+          description: Created; documents can now be uploaded.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PhleboApplicationCreated"
+              examples:
+                synthetic:
+                  value:
+                    application_id: 01950c17-0000-7000-8000-0000002a0001
+                    upload_token: SyntheticUploadToken_xxxxxxxxxxxxxxxxxxxxxxx
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+    get:
+      operationId: listPhleboApplications
+      tags:
+        - homecollection
+      summary: List phlebotomist applications (PHLEBO-UI-FULL-1)
+      security:
+        - bearerJwt: []
+      x-permission: homecollection.application.manage
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 9
+            enum:
+              - submitted
+              - approved
+              - rejected
+      responses:
+        "200":
+          description: Newest first, at most 200.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PhleboApplicationList"
+              examples:
+                synthetic:
+                  value:
+                    items: []
+                    submitted_count: 0
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/homecollection/applications/{application_id}/documents/{document_id}/chunks:
+    post:
+      operationId: uploadPhleboApplicationDocumentChunk
+      tags:
+        - homecollection
+      summary: Upload one piece of an application document (not signed in)
+      security:
+        - patientPreAuth: []
+      x-permission: homecollection.application.submit
+      x-context: tenant
+      x-idempotency: none
+      x-idempotency-justification: E3 token-bound append; the piece index makes a repeat a no-op or a 409
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - homecollection.application_exists
+        - homecollection.application_incomplete
+        - common.payload_too_large
+        - common.unsupported_media_type
+      parameters:
+        - name: application_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - name: document_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - name: X-Lims-Application-Token
+          in: header
+          required: true
+          description: Upload token returned once by createPhleboApplication.
+          schema:
+            type: string
+            minLength: 43
+            maxLength: 43
+            pattern: ^[A-Za-z0-9_-]{43}$
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PhleboApplicationDocumentChunk"
+            examples:
+              synthetic:
+                value:
+                  kind: licence
+                  file_name: licence.jpg
+                  content_type: image/jpeg
+                  index: 0
+                  last: true
+                  data: c3ludGhldGlj
+      responses:
+        "200":
+          description: Piece stored; `complete` is true once the document is checked and saved.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PhleboApplicationChunkResult"
+              examples:
+                synthetic:
+                  value:
+                    complete: true
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "413":
+          $ref: _common.yaml#/components/responses/PayloadTooLarge
+        "415":
+          $ref: _common.yaml#/components/responses/UnsupportedMediaType
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/homecollection/applications/{application_id}/submit:
+    post:
+      operationId: submitPhleboApplication
+      tags:
+        - homecollection
+      summary: Send the application for review (not signed in)
+      security:
+        - patientPreAuth: []
+      x-permission: homecollection.application.submit
+      x-context: tenant
+      x-idempotency: none
+      x-idempotency-justification: E3 token-bound state change; the token stops working after the first success
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - homecollection.application_exists
+        - homecollection.application_incomplete
+      parameters:
+        - name: application_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - name: X-Lims-Application-Token
+          in: header
+          required: true
+          description: Upload token returned once by createPhleboApplication.
+          schema:
+            type: string
+            minLength: 43
+            maxLength: 43
+            pattern: ^[A-Za-z0-9_-]{43}$
+      responses:
+        "204":
+          description: Submitted.
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/homecollection/applications/{application_id}:
+    get:
+      operationId: getPhleboApplication
+      tags:
+        - homecollection
+      summary: Get one phlebotomist application (PHLEBO-UI-FULL-1)
+      security:
+        - bearerJwt: []
+      x-permission: homecollection.application.manage
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.not_found
+      parameters:
+        - name: application_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+      responses:
+        "200":
+          description: Application with its documents.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PhleboApplication"
+              examples:
+                synthetic:
+                  value:
+                    id: 01950c17-0000-7000-8000-0000002a0001
+                    version: 1
+                    status: submitted
+                    full_name: Synthetic Applicant
+                    phone_e164: <synthetic-phone>
+                    email: <synthetic-email>
+                    area: Synthetic Tole
+                    employment_type: part_time
+                    shift_count: single
+                    day_slots:
+                      - morning
+                    submitted_at: 2026-11-26T04:15:00.000Z
+                    documents: []
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/homecollection/applications/{application_id}/decision:
+    post:
+      operationId: decidePhleboApplication
+      tags:
+        - homecollection
+      summary: Approve or reject an application (PHLEBO-UI-FULL-1)
+      security:
+        - bearerJwt: []
+      x-permission: homecollection.application.manage
+      x-context: tenant
+      x-idempotency: optional
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.not_found
+        - common.version_conflict
+        - common.precondition_required
+        - homecollection.application_exists
+        - homecollection.application_incomplete
+      parameters:
+        - name: application_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - $ref: _common.yaml#/components/parameters/IfMatch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PhleboApplicationDecision"
+            examples:
+              synthetic:
+                value:
+                  decision: reject
+                  note: Synthetic reason
+      responses:
+        "200":
+          description: Decided.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PhleboApplication"
+              examples:
+                synthetic:
+                  value:
+                    id: 01950c17-0000-7000-8000-0000002a0001
+                    version: 1
+                    status: rejected
+                    full_name: Synthetic Applicant
+                    phone_e164: <synthetic-phone>
+                    email: <synthetic-email>
+                    area: Synthetic Tole
+                    employment_type: part_time
+                    shift_count: single
+                    day_slots:
+                      - morning
+                    submitted_at: 2026-11-26T04:15:00.000Z
+                    documents: []
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "409":
+          $ref: _common.yaml#/components/responses/Conflict
+        "428":
+          $ref: _common.yaml#/components/responses/PreconditionRequired
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
+  /v1/homecollection/applications/{application_id}/documents/{document_id}:
+    get:
+      operationId: downloadPhleboApplicationDocument
+      tags:
+        - homecollection
+      summary: Download an application document (PHLEBO-UI-FULL-1)
+      security:
+        - bearerJwt: []
+      x-permission: homecollection.application.manage
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes:
+        - common.validation_failed
+        - auth.forbidden
+        - auth.unauthenticated
+        - common.rate_limited
+        - common.internal
+        - common.not_found
+      parameters:
+        - name: application_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+        - name: document_id
+          in: path
+          required: true
+          schema:
+            $ref: _common.yaml#/components/schemas/Uuid
+      responses:
+        "200":
+          description: File content.
+          headers:
+            Content-Disposition:
+              description: Always attachment.
+              schema:
+                type: string
+                maxLength: 300
+                pattern: ^attachment
+            X-Content-Type-Options:
+              schema:
+                type: string
+                maxLength: 7
+                enum:
+                  - nosniff
+            Cache-Control:
+              schema:
+                type: string
+                maxLength: 8
+                enum:
+                  - no-store
+          content:
+            application/pdf:
+              schema:
+                type: string
+                maxLength: 2097152
+                format: binary
+              examples:
+                synthetic:
+                  summary: binary content
+                  value: (binary)
+            image/png:
+              schema:
+                type: string
+                maxLength: 2097152
+                format: binary
+              examples:
+                synthetic:
+                  summary: binary content
+                  value: (binary)
+            image/jpeg:
+              schema:
+                type: string
+                maxLength: 2097152
+                format: binary
+              examples:
+                synthetic:
+                  summary: binary content
+                  value: (binary)
+        "400":
+          $ref: _common.yaml#/components/responses/BadRequest
+        "401":
+          $ref: _common.yaml#/components/responses/Unauthorized
+        "403":
+          $ref: _common.yaml#/components/responses/Forbidden
+        "404":
+          $ref: _common.yaml#/components/responses/NotFound
+        "429":
+          $ref: _common.yaml#/components/responses/TooManyRequests
+        "500":
+          $ref: _common.yaml#/components/responses/Internal
 components:
   parameters:
     AppVersion:
@@ -2864,6 +3409,325 @@ components:
                 code: homecollection.app_version_unsupported
                 request_id: 01950c17-0000-7000-8000-0000001f0001
   schemas:
+    VisitTrackingUpdate:
+      type: object
+      additionalProperties: false
+      required:
+        - state
+      properties:
+        state:
+          type: string
+          maxLength: 8
+          enum:
+            - en_route
+            - stopped
+        position:
+          type: object
+          additionalProperties: false
+          required:
+            - latitude
+            - longitude
+          properties:
+            latitude:
+              $ref: _common.yaml#/components/schemas/DecimalString
+            longitude:
+              $ref: _common.yaml#/components/schemas/DecimalString
+            accuracy_m:
+              type: integer
+              minimum: 0
+              maximum: 10000
+    VisitTrackingState:
+      type: object
+      additionalProperties: false
+      required:
+        - state
+      properties:
+        state:
+          type: string
+          maxLength: 11
+          enum:
+            - not_started
+            - en_route
+            - stopped
+        started_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        stop_reason:
+          type: string
+          maxLength: 9
+          enum:
+            - arrived
+            - completed
+            - failed
+            - cancelled
+            - stopped
+        position_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+    PhleboApplicationCreate:
+      type: object
+      additionalProperties: false
+      required:
+        - full_name
+        - phone_e164
+        - email
+        - area
+        - employment_type
+      properties:
+        full_name:
+          type: string
+          minLength: 3
+          maxLength: 120
+        phone_e164:
+          type: string
+          minLength: 14
+          maxLength: 14
+          pattern: ^\+9779[678][0-9]{8}$
+        email:
+          type: string
+          format: email
+          minLength: 6
+          maxLength: 254
+        area:
+          type: string
+          minLength: 1
+          maxLength: 120
+        employment_type:
+          type: string
+          maxLength: 9
+          enum:
+            - full_time
+            - part_time
+        shift_count:
+          type: string
+          maxLength: 6
+          enum:
+            - single
+            - double
+        day_slots:
+          type: array
+          maxItems: 2
+          uniqueItems: true
+          items:
+            type: string
+            maxLength: 9
+            enum:
+              - morning
+              - afternoon
+              - evening
+    PhleboApplicationCreated:
+      type: object
+      additionalProperties: false
+      required:
+        - application_id
+        - upload_token
+      properties:
+        application_id:
+          $ref: _common.yaml#/components/schemas/Uuidv7
+        upload_token:
+          type: string
+          minLength: 43
+          maxLength: 43
+          pattern: ^[A-Za-z0-9_-]{43}$
+    PhleboApplicationDocumentChunk:
+      type: object
+      additionalProperties: false
+      required:
+        - kind
+        - file_name
+        - content_type
+        - index
+        - last
+        - data
+      properties:
+        kind:
+          type: string
+          maxLength: 20
+          enum:
+            - licence
+            - training_certificate
+            - identity
+            - photo
+        file_name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        content_type:
+          type: string
+          maxLength: 15
+          enum:
+            - image/jpeg
+            - image/png
+            - application/pdf
+        index:
+          type: integer
+          minimum: 0
+          maximum: 7
+        last:
+          type: boolean
+        data:
+          type: string
+          description: Base64 of at most 524288 bytes.
+          minLength: 4
+          maxLength: 699052
+          pattern: ^[A-Za-z0-9+/]+={0,2}$
+    PhleboApplicationChunkResult:
+      type: object
+      additionalProperties: false
+      required:
+        - complete
+      properties:
+        complete:
+          type: boolean
+    PhleboApplicationDocument:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - kind
+        - file_name
+        - content_type
+        - byte_size
+      properties:
+        id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        kind:
+          type: string
+          maxLength: 20
+          enum:
+            - licence
+            - training_certificate
+            - identity
+            - photo
+        file_name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        content_type:
+          type: string
+          maxLength: 15
+          enum:
+            - image/jpeg
+            - image/png
+            - application/pdf
+        byte_size:
+          type: integer
+          minimum: 1
+          maximum: 2097152
+    PhleboApplication:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - version
+        - status
+        - full_name
+        - phone_e164
+        - email
+        - area
+        - employment_type
+        - day_slots
+        - documents
+      properties:
+        id:
+          $ref: _common.yaml#/components/schemas/Uuid
+        version:
+          $ref: _common.yaml#/components/schemas/Version
+        status:
+          type: string
+          maxLength: 9
+          enum:
+            - submitted
+            - approved
+            - rejected
+        full_name:
+          type: string
+          minLength: 3
+          maxLength: 120
+        phone_e164:
+          type: string
+          minLength: 14
+          maxLength: 14
+          pattern: ^\+9779[678][0-9]{8}$
+        email:
+          type: string
+          format: email
+          minLength: 6
+          maxLength: 254
+        area:
+          type: string
+          minLength: 1
+          maxLength: 120
+        employment_type:
+          type: string
+          maxLength: 9
+          enum:
+            - full_time
+            - part_time
+        shift_count:
+          type: string
+          maxLength: 6
+          enum:
+            - single
+            - double
+        day_slots:
+          type: array
+          maxItems: 2
+          uniqueItems: true
+          items:
+            type: string
+            maxLength: 9
+            enum:
+              - morning
+              - afternoon
+              - evening
+        submitted_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        decided_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        decided_by_display:
+          type: string
+          minLength: 1
+          maxLength: 120
+        decision_note:
+          type: string
+          minLength: 1
+          maxLength: 500
+        documents:
+          type: array
+          maxItems: 9
+          items:
+            $ref: "#/components/schemas/PhleboApplicationDocument"
+    PhleboApplicationList:
+      type: object
+      additionalProperties: false
+      required:
+        - items
+        - submitted_count
+      properties:
+        items:
+          type: array
+          maxItems: 200
+          items:
+            $ref: "#/components/schemas/PhleboApplication"
+        submitted_count:
+          type: integer
+          minimum: 0
+          maximum: 100000
+    PhleboApplicationDecision:
+      type: object
+      additionalProperties: false
+      required:
+        - decision
+      properties:
+        decision:
+          type: string
+          maxLength: 7
+          enum:
+            - approve
+            - reject
+        note:
+          type: string
+          minLength: 1
+          maxLength: 500
     MembershipRef:
       type: object
       additionalProperties: false

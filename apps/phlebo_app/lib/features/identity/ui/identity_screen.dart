@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:lims_ui/lims_ui.dart';
 
+import '../../../app/theme.dart';
 import '../../visit/data/mutation_sink.dart';
 import '../../visit/domain/visit_models.dart';
 import '../../visit/ui/save_once.dart';
@@ -84,6 +85,7 @@ class _IdentityScreenState extends State<IdentityScreen> with SaveOnce<IdentityS
       child: LimsScaffold(
         title: 'Identity check',
         body: ListView(padding: const EdgeInsets.all(LimsTokens.space4), children: [
+          const StepBar(2),
           // T0A-M5-PHLEBO-1 (LD-258, 13-M-SERIES s5): the instruction on one white LimsCard, the record and its four choices on another.
           LimsCard(child: Text("Ask the patient to tell you their full name and $what. Don't read them out.")),
           const SizedBox(height: LimsTokens.space3),

@@ -56,6 +56,7 @@ Without it the worker or `registry-sync` stops with `ERR_MODULE_NOT_FOUND` (for 
 | `LIMS_ORIGIN_PORTAL` | core | required | Portal links in report delivery, engagement links and portal payment tasks cannot be built; the payments return-URL default cannot be built (same as LIMS_ORIGIN_STAFF_WEB). |
 | `LIMS_CORE_RESPONSE_VALIDATION` | core | optional | Default: on everywhere except production, off in production. |
 | `LIMS_CORE_LOAD_SAMPLE_MODULE` | core | optional | Default 0: the ci-only sample module is not mounted. |
+| `LIMS_ALLOW_PENDING_OPS` | core | optional | Unset: with NODE_ENV=production the API refuses to start while any operation is still marked pending. Only the exact value 1 lets it start anyway. |
 | `LIMS_CORE_LOG_LEVEL` | core | optional | Default info (API and worker). |
 | `LIMS_CORE_TRUSTED_PROXY_CIDRS` | core | optional | No trusted proxy: the client IP is the direct peer address and forwarded headers are ignored. |
 | `LIMS_CORE_TX_RETRY_MAX` | core | optional | Default 3 whole-request retries on serialization failure or deadlock. |

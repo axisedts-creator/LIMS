@@ -10,7 +10,7 @@
       "outputs": []
     },
     "test:unit": {
-      "dependsOn": ["^build"],
+      "dependsOn": ["^build", "@lims/shared-ts#build"],
       "outputs": []
     },
     "test:integration": {

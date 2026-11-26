@@ -18,7 +18,7 @@ const bad = (): never => { throw new Error('analytics.report: data violates the 
 const css = (cols: number): string => {
   const pt = cols <= 8 ? 9 : cols <= 16 ? 7.5 : 6;
   return `@page{size:A4 ${cols > 8 ? 'landscape' : 'portrait'};margin:10mm}` +
-    `body{font-family:"Noto Sans","Noto Sans Devanagari",Arial,Helvetica,sans-serif;font-size:${pt}pt;line-height:1.25;color:#000;margin:0}` +
+    `body{font-family:"Noto Sans","Noto Sans Devanagari",Arial,Helvetica,sans-serif;font-size:${pt}pt;line-height:1.25;color:#000;margin:0;font-variant-ligatures:no-common-ligatures}` +
     `h1{font-size:${pt + 5}pt;margin:0 0 1.5mm}.sub{margin:0 0 3mm;font-size:${pt + 1}pt}` +
     `.meta{margin:0 0 4mm}.meta div{margin:0 0 .6mm}.meta b{font-weight:600}.note{margin:0 0 3mm;font-weight:600}` +
     `table.data{width:100%;border-collapse:collapse;table-layout:fixed}` +

@@ -44,7 +44,7 @@ describe('transport contract and the recording adapter (REQ-SEC-136)', () => {
     for (const f of [...TASKS, HANDLER]) { const s = strip(read(f)); expect(NETWORK.test(s), f).toBe(false); expect(/\bconsole\.(log|info|warn|error|debug)\b/.test(s), f).toBe(false); }
   });
   it('production gating is read in the send task (NODE_ENV + LIMS_REPORTING_ALLOW_REAL_PROVIDERS), never decided by tenant data alone', () => {
-    const s = strip(read(join(tasks, 'send_delivery.ts'))); expect(s).toMatch(/NODE_ENV/); expect(s).toMatch(/LIMS_REPORTING_ALLOW_REAL_PROVIDERS/); expect(s).toMatch(/recording/);
+    const s = strip(read(join(tasks, 'send_delivery.ts'))); expect(s).toMatch(/NODE_ENV|isProductionEnv\(/); /* SEC-ENV-1 (LD-236): the NODE_ENV read now lives in isProductionEnv; production-env.test.ts forbids a direct comparison here */ expect(s).toMatch(/LIMS_REPORTING_ALLOW_REAL_PROVIDERS/); expect(s).toMatch(/recording/);
   });
   it('the handlers do not read process.env (config comes from the module config / ctx)', () => { expect(/process\.env/.test(strip(read(HANDLER)))).toBe(false); });
 });

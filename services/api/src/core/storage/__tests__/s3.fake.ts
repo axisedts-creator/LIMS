@@ -42,7 +42,9 @@ function verify(req: IncomingMessage, url: URL, method: string, accessKeyId: str
   const canonicalQuery = [...q.entries()].filter(([k]) => k !== 'X-Amz-Signature').map(([k, v]) => [enc(k), enc(v)] as const)
     .sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : a[1] < b[1] ? -1 : 1)).map(([k, v]) => `${k}=${v}`).join('&');
   const headers = signedHeaders.map((h) => `${h}:${String(req.headers[h] ?? '').trim().replace(/\s+/g, ' ')}\n`).join('');
-  const payload = typeof req.headers['x-amz-content-sha256'] === 'string' ? req.headers['x-amz-content-sha256'] : 'UNSIGNED-PAYLOAD';
+  // CR TENANT-LOGO-1: presigned requests always sign UNSIGNED-PAYLOAD (AWS rule). The fake used the header value before, which a real
+  // Supabase Storage server answers with 403 (tests/core/STORAGE-KIT-1.pg.sh); the fake now behaves like the real server.
+  const payload = 'UNSIGNED-PAYLOAD';
   const canonical = [method, encPath(decodeURIComponent(url.pathname)), canonicalQuery, headers, signedHeaders.join(';'), payload].join('\n');
   const sts = ['AWS4-HMAC-SHA256', date, `${date.slice(0, 8)}/${region}/s3/aws4_request`, sha256hex(canonical)].join('\n');
   const key = hmac(hmac(hmac(hmac(`AWS4${secret}`, date.slice(0, 8)), region), 's3'), 'aws4_request');

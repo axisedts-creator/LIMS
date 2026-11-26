@@ -59,13 +59,28 @@ describe('createS3RawStorage.getStream', () => {
 describe('createS3RawStorage.putStream', () => {
   it('PUT with the body as a stream (not a whole buffer), create only, with the content type; every byte reaches the server', async () => {
     const seen: any[] = []; let got = { size: 0, sha256: '' };
-    const fetchStub = (async (url: string, init: any) => { seen.push({ url: String(url), init }); got = await sink(init.body); return new Response('', { status: 200 }); }) as unknown as typeof fetch;
+    // CR TENANT-LOGO-1: create only now looks the object up first (HEAD, 404 = absent), because a real Supabase Storage server ignores
+    // if-none-match; the stub answers that HEAD and records the PUT (it was: exactly one request).
+    const heads: string[] = [];
+    const fetchStub = (async (url: string, init: any) => {
+      if (init.method === 'HEAD') { heads.push(String(url)); return new Response(null, { status: 404 }); }
+      seen.push({ url: String(url), init }); got = await sink(init.body); return new Response('', { status: 200 });
+    }) as unknown as typeof fetch;
     const raw = createS3RawStorage(cfg, { now: () => NOW, fetch: fetchStub });
     await raw.putStream!('frontdesk-trf', 'T/2026/11/up.pdf', source(3 * MiB), { contentType: 'application/pdf', ifAbsent: true, byteSize: 3 * MiB });
+    expect(heads).toHaveLength(1); expect(new URL(heads[0]!).pathname).toBe(new URL(seen[0].url).pathname);
     expect(seen).toHaveLength(1); expect(seen[0].init.method).toBe('PUT');
     expect(seen[0].init.body instanceof Uint8Array, 'body must not be a whole in-memory buffer').toBe(false);
     expect(got).toEqual({ size: 3 * MiB, sha256: expectedSha(3 * MiB) });
     const h = new Headers(seen[0].init.headers); expect(h.get('if-none-match')).toBe('*'); expect(h.get('content-type') ?? new URL(seen[0].url).searchParams.get('X-Amz-SignedHeaders')).toBeTruthy();
+  });
+  it('create only: an object that already exists (HEAD 200) is refused and NO byte is sent', async () => {
+    let puts = 0;
+    const raw = createS3RawStorage(cfg, { now: () => NOW, fetch: (async (_u: string, init: any) => { if (init.method === 'HEAD') return new Response(null, { status: 200 }); puts++; return new Response('', { status: 200 }); }) as unknown as typeof fetch });
+    const e = await rejection(raw.putStream!('frontdesk-trf', 'T/2026/11/up.pdf', source(1000), { contentType: 'application/pdf', ifAbsent: true, byteSize: 1000 }));
+    expect(String(e?.message)).toBe('storage: put failed (412)'); expect(puts).toBe(0);
+    const e2 = await rejection(raw.put('frontdesk-trf', 'T/2026/11/up.pdf', new Uint8Array([1]), { contentType: 'application/pdf', ifAbsent: true }));
+    expect(String(e2?.message)).toBe('storage: put failed (412)'); expect(puts).toBe(0);
   });
   it('a 412 (object exists) or 5xx answer is an Error without the URL or the secret', async () => {
     for (const status of [412, 500, 403]) {

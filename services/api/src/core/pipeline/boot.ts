@@ -19,10 +19,13 @@ import { resolvePorts, type PortLog, type PortMetrics, type PortRegistry } from 
 import { createRateLimiter, type RateLimiter } from '../ratelimit/index.js';
 import { createPgBackend } from '../ratelimit/pg.js';
 import type { HealthChecks } from '../health.js';
-import { createFiles } from '../uploads/index.js';
+import { createDownload } from '../storage/download.js';
+import { createStorage } from '../storage/index.js';
+import { createS3RawStorage } from '../storage/s3.js';
+import { createFiles, createUploads } from '../uploads/index.js';
 import { createHealthChecks } from './healthChecks.js';
 import { loadAuthzExceptions } from './authz-central.js';
-import { createPipeline, type Pipeline } from './index.js';
+import { createPipeline, type Pipeline, type SharedCore } from './index.js';
 
 const FAKES_DIR = join(REPO_ROOT, 'packages', 'fakes', 'src');
 const LENIENT = new Set(['dev', 'ci']);
@@ -184,11 +187,24 @@ export async function bootPipeline(o: {
   const internal = (): never => { throw new LimsError('common.internal'); };
   const core = createCoreRepo({ withTenantScope: internal, systemActorOf: internal, log });
   const files = createFiles({ log });
+  // T0B-STORAGE-1 next step (CR TENANT-LOGO-1): with STORAGE_PROVIDER=s3_compatible every tenant request gets storage / uploads / download
+  // bound to its module and tenant, over ONE raw client built here (config.ts already refused a half set). STORAGE_PROVIDER=none (or no
+  // STORAGE_* name at all) keeps the members below: every file operation answers 503, as before.
+  const rawStorage = config.storage.provider === 's3_compatible' ? createS3RawStorage(config.storage) : undefined;
+  const fileKit: SharedCore['fileKit'] = rawStorage && ((i) => {
+    const storage = createStorage({ raw: rawStorage, module: i.module, tenantId: i.tenantId, log, metrics: o.metrics });
+    return {
+      storage,
+      uploads: createUploads({ files, storage, module: i.module, tenantId: i.tenantId, log }),
+      download: createDownload({ storage, audit: i.audit, log }),
+    };
+  });
   const shared = {
     core, files,
     uploads: unwired('accept'),
     storage: unwired('put', 'read', 'move', 'signedUrl', 'delete'),
     download: unwired('stream'),
+    ...(fileKit ? { fileKit } : {}),
   };
 
   // LD-193: same pg.query as the limiter; nothing is issued until a readiness call.

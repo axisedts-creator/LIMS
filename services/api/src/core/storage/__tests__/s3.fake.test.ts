@@ -29,7 +29,7 @@ describe('fake S3 server verifies like S3 (path style)', () => {
   let fake: FakeS3; let host: string;
   const body = Buffer.from('synthetic bytes');
   const sha = createHash('sha256').update(body).digest('hex');
-  const sign = (o: Partial<Parameters<typeof ref>[0]> = {}) => ref({ method: 'PUT', host, path: `/${TEST_BUCKET}/k/a b.pdf`, headers: { 'content-length': String(body.length), 'x-amz-content-sha256': sha, 'if-none-match': '*' }, payload: sha, akid: TEST_ACCESS_KEY_ID, secret: TEST_SECRET, region: TEST_REGION, now: clock.t, expires: 60, ...o });
+  const sign = (o: Partial<Parameters<typeof ref>[0]> = {}) => ref({ method: 'PUT', host, path: `/${TEST_BUCKET}/k/a b.pdf`, headers: { 'content-length': String(body.length), 'x-amz-content-sha256': sha, 'if-none-match': '*' }, akid: TEST_ACCESS_KEY_ID, secret: TEST_SECRET, region: TEST_REGION, now: clock.t, expires: 60, ...o });
   const hdrs = { 'content-length': String(body.length), 'x-amz-content-sha256': sha, 'if-none-match': '*' };
   beforeAll(async () => { fake = await startFakeS3({ style: 'path', clock: () => clock.t }); host = `localhost:${fake.port}`; });
   afterAll(async () => { await fake.close(); });

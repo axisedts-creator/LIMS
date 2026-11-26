@@ -631,7 +631,7 @@ export function createTenantService(deps: {
     /** CR TENANT-LOGO-1: a platform operator uploads a branding image (the logo at provisioning) FOR one tenant. The tenant is the path's and must
      *  exist (404 before any byte is stored); the checks are uploadBrandingAsset's (acceptBrandingImage); the object key starts with that tenant's id;
      *  the row, the settings pointer, the re-scan job and the tenant's access-log line are written inside ONE withTenantScope(target) window. */
-    async uploadBrandingAssetAsPlatform(ctx: Ctx & Pick<SettingsCtx, 'uploads' | 'storage'>, input: Record<string, unknown> = {}): Promise<Result> {
+    async uploadBrandingAssetAsPlatform(ctx: Ctx & { tenantFiles?: (tenantId: string) => Pick<SettingsCtx, 'uploads' | 'storage'> }, input: Record<string, unknown> = {}): Promise<Result> {
       const s = guard(ctx, MANAGE);
       const i = isObj(input) ? input : {};
       const kind = i['kind'];
@@ -639,7 +639,10 @@ export function createTenantService(deps: {
       const t = await load(s, i['tenantId']);
       if (t.status === 'offboarded') throw conflict();   // [CONV] same as inviteTenantAdmin: nothing new for a terminated tenant
       const id = newId();
-      const body = await acceptBrandingImage(ctx, { tenantId: t.id, id, kind, file: i['file'] }, (a) => scoped(ctx, t.id, async () => {
+      // A platform session has no storage of its own: the core hands out the kit of the tenant just loaded from core.tenants (it refuses any key
+      // outside `<t.id>/`). Absent -> fail closed.
+      if (typeof ctx.tenantFiles !== 'function') throw new LimsError('common.internal');
+      const body = await acceptBrandingImage(ctx.tenantFiles(t.id), { tenantId: t.id, id, kind, file: i['file'] }, (a) => scoped(ctx, t.id, async () => {
         await assets.insertAsset(s.tx, t.id, { ...a, actorId: s.actorId });
         await assets.setAssetPointer(s.tx, t.id, BRANDING_KINDS[kind]!, id, s.actorId);
         if (a.scan_state === 'pending') await repo.enqueue(s.tx, RESCAN_UPLOAD_TASK, { tenant_id: t.id, asset_id: id, kind }, `rescan:branding_assets:${id}`);

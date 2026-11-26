@@ -103,8 +103,10 @@ describe('uploadBrandingAssetAsPlatform: the platform super admin sets a logo fo
   /** platform request context; uploads + storage are bound to `storageTenant` (the real adapter refuses any key outside it) */
   const ctxFor = async (storageTenant: string, o: Record<string, unknown> = {}, scan?: S.ScanMode) => {
     const k = await S.makeCtx({ tenantId: storageTenant, ...(scan ? { scan } : {}) });
-    const p = T.makeCtx(f, { uploads: k.ctx.uploads, storage: k.ctx.storage, ...o });
-    return { k, p, ctx: p.ctx };
+    const asked: string[] = [];
+    // what the core gives a platform session: the kit of the tenant asked for (here: one real kit, bound to `storageTenant`)
+    const p = T.makeCtx(f, { tenantFiles: (t: string) => { asked.push(t); return { uploads: k.ctx.uploads, storage: k.ctx.storage }; }, ...o });
+    return { k, p, ctx: p.ctx, asked };
   };
   const upload = (ctx: any, tenantId: unknown, file: unknown = S.incoming(S.png(40, 12)), kind: unknown = 'logo') =>
     svc.uploadBrandingAssetAsPlatform(ctx, { tenantId, file, kind }) as Promise<any>;
@@ -124,6 +126,13 @@ describe('uploadBrandingAssetAsPlatform: the platform super admin sets a logo fo
     expect(R.settingsOf(B)['logo_asset_id']).toBeNull(); expect(R.st.assets.some((a) => a.tenant_id === B)).toBe(false);
     expect(R.calls.filter((c) => ['insertAsset', 'setAssetPointer'].includes(c.m)).every((c) => c.tenantId === A)).toBe(true);
     expect(p.scopes).toEqual([A]);   // one scope window, for the target only
+  });
+  it('storage is asked for the TARGET tenant only, and only after the tenant was found; without the core member the call fails closed', async () => {
+    const a = await ctxFor(A); await upload(a.ctx, A); expect(a.asked).toEqual([A]);
+    const u = await ctxFor(A); await rejection(upload(u.ctx, UNKNOWN_TENANT)); expect(u.asked).toEqual([]);
+    world();
+    const n = await ctxFor(A, { tenantFiles: undefined }); const e = await rejection(upload(n.ctx, A));
+    expect(e.code).toBe('common.internal'); nothingStored(n.k);
   });
   it('the tenant sees the change: one settings.change access-log line in the TARGET tenant naming the field, none in the other', async () => {
     const { ctx } = await ctxFor(A); await upload(ctx, A);

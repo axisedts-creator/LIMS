@@ -8,7 +8,7 @@ service file); `.env.example` lists them with empty values.
 
 | Name | Meaning |
 |---|---|
-| `STORAGE_PROVIDER` | `s3_compatible` or `none`. Unset or `none`: the API keeps streaming files through itself (today's behaviour). |
+| `STORAGE_PROVIDER` | `s3_compatible` or `none`. Unset or `none`: no object storage; every file operation of the API answers 503. |
 | `STORAGE_ENDPOINT` | S3 endpoint URL, `https://` (no user or password in it). |
 | `STORAGE_REGION` | Region shown by the provider. |
 | `STORAGE_BUCKET` | The one private bucket. Each logical bucket (`reports`, `frontdesk-trf`, ...) is a key prefix inside it. |
@@ -55,6 +55,23 @@ Real patient data must not be uploaded to the free Supabase test project; use sy
 
 ## Not done yet (P-2)
 
-No route uses this adapter yet. Returning signed URLs to the browser needs the P-2 amendment (CR-C0-FILES-1,
+Since CR TENANT-LOGO-1 the API uses this adapter for its own file work: with `STORAGE_PROVIDER=s3_compatible` every upload,
+read and download of a tenant request goes to the bucket, under `<logical bucket>/<tenant id>/...`. With `none` (or nothing set)
+those operations answer 503 (`common.dependency_unavailable`), as before.
+
+Still not done: returning signed URLs to the browser. That needs the P-2 amendment (CR-C0-FILES-1,
 `.orchestra/cr/T0B-FILES-1.nonblocking.md`): new `uploads:init` / `uploads:confirm` routes and a `mode=direct` download per module.
 Until then every file still moves through the API.
+
+## Supabase Storage on the own server (what the API needs)
+
+Checked against `supabase/storage-api:v1.89.12` (`bash tests/core/STORAGE-KIT-1.pg.sh`):
+
+- The storage service needs the S3 protocol keys `S3_PROTOCOL_ACCESS_KEY_ID` and `S3_PROTOCOL_ACCESS_KEY_SECRET` in its environment
+  (new random values, kept with the other secrets). The API gets the same pair as `STORAGE_ACCESS_KEY_ID` / `STORAGE_SECRET_ACCESS_KEY`.
+- `STORAGE_ENDPOINT` is the storage service address plus `/s3` when the API talks to it directly (for example
+  `http://<storage host>:5000/s3`), or `<gateway>/storage/v1/s3` through the Supabase gateway. `STORAGE_REGION` must equal the
+  storage service `REGION` value. `STORAGE_FORCE_PATH_STYLE=true`.
+- One private bucket, created once (Storage REST `POST /bucket` with the service key, or the dashboard). Its name is `STORAGE_BUCKET`.
+- The api containers must be able to reach the storage service on the network (and nothing else needs to).
+- This server ignores `if-none-match` and does not check a signed body digest; the API does both itself for its own writes.

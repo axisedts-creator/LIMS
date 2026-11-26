@@ -17,7 +17,7 @@ const localNow = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.g
 type Values = typeof EMPTY;
 type Errors = Partial<Record<keyof Values | 'form' | 'logo', string>>;
 // CR TENANT-LOGO-1: the lab's own logo, optional. Same limits as the API (which re-checks, re-encodes and scans the image).
-const LOGO_ERROR = 'Logo must be a PNG or JPEG image of at most 2 MB.';
+const LOGO_ERROR = 'Logo must be a PNG image of at most 2 MB.';
 const logoOk = (f: File | undefined) => !f || ((LOGO_TYPES as readonly string[]).includes(f.type) && f.size > 0 && f.size <= LOGO_MAX_BYTES);
 
 function validate(v: Values, logo?: File): Errors {
@@ -125,10 +125,10 @@ export function ProvisionForm() {
           options={[{ value: 'AD_BS', label: 'AD (BS)' }, { value: 'BS_AD', label: 'BS (AD)' }, { value: 'AD', label: 'AD only' }, { value: 'BS', label: 'BS only' }]} />
         <div className="lims-field">
           <label className="lims-label" htmlFor="pl2-logo">Lab logo (optional)</label>
-          <input id="pl2-logo" type="file" accept="image/png,image/jpeg,.png,.jpg,.jpeg" aria-describedby="pl2-logo-h"
+          <input id="pl2-logo" type="file" accept="image/png,.png" aria-describedby="pl2-logo-h"
             aria-invalid={errors.logo ? true : undefined}
             onChange={(e) => { const f = e.target.files?.[0]; setLogo(f); setErrors(({ logo: _old, ...rest }) => (logoOk(f) ? rest : { ...rest, logo: LOGO_ERROR })); }} />
-          <p id="pl2-logo-h" className="lims-description">PNG or JPEG, up to 2 MB. Shown to this lab&apos;s staff in place of the default logo. The lab can change it later in Settings.</p>
+          <p id="pl2-logo-h" className="lims-description">PNG, up to 2 MB. Shown to this lab&apos;s staff in place of the default logo. The lab can change it later in Settings.</p>
           <Alert>{errors.logo}</Alert>
         </div>
       </fieldset>

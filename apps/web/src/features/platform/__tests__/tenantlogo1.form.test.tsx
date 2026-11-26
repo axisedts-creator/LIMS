@@ -47,10 +47,10 @@ async function fill() {
 }
 
 describe('Provision tenant: lab logo field', () => {
-  it('is an optional file field for PNG or JPEG', async () => {
+  it('is an optional file field for PNG only (the API cannot re-encode JPEG yet)', async () => {
     await show('tenants/new/page');
     expect(logoInput().type).toBe('file'); expect(logoInput().required).toBe(false);
-    expect(logoInput().accept).toContain('image/png'); expect(logoInput().accept).toContain('image/jpeg');
+    expect(logoInput().accept).toBe('image/png,.png');
   });
 
   it('with a logo: the tenant is created, then the logo is sent for THAT tenant id as multipart kind=logo with its own idempotency key', async () => {
@@ -80,14 +80,15 @@ describe('Provision tenant: lab logo field', () => {
   });
 
   it.each([
-    ['a file that is not PNG or JPEG', new File(['<svg/>'], 'logo.svg', { type: 'image/svg+xml' })],
+    ['an SVG', new File(['<svg/>'], 'logo.svg', { type: 'image/svg+xml' })],
+    ['a JPEG (the API would answer 422)', new File([new Uint8Array([0xff, 0xd8, 0xff, 1])], 'logo.jpg', { type: 'image/jpeg' })],
     ['a file over 2 MB', new File([new Uint8Array(2 * 1024 * 1024 + 1)], 'big.png', { type: 'image/png' })],
     ['an empty file', new File([], 'empty.png', { type: 'image/png' })],
   ])('%s is refused in the form: an error is shown and NOTHING is sent (no tenant is created)', async (_n, file) => {
     routes[`POST ${POST}`] = created; routes[`POST ${LOGO}`] = stored;
     await show('tenants/new/page'); const u = await fill();
     fireEvent.change(logoInput(), { target: { files: [file] } });
-    expect(screen.getByText(/logo must be a png or jpeg image of at most 2 mb/i)).toBeTruthy();
+    expect(screen.getByText(/logo must be a png image of at most 2 mb/i)).toBeTruthy();
     await u.click(submit());
     await waitFor(() => expect(screen.getAllByRole('alert').length).toBeGreaterThan(0));
     expect(apiCalls()).toBe(0); expect(screen.queryByText(/provisioned/i)).toBeNull();
@@ -125,9 +126,10 @@ describe('uploadTenantLogoAction re-checks everything on the server (the browser
     expect(await uploadTenantLogoAction(T_GAMMA, form(), 'nope')).toMatchObject({ ok: false, status: 400 });
     expect(apiCalls()).toBe(0);
   });
-  it('over 2 MB -> 413 and a non-image type -> 415, no API call', async () => {
+  it('over 2 MB -> 413; a PDF or a JPEG -> 415; no API call', async () => {
     expect(await uploadTenantLogoAction(T_GAMMA, form(new File([new Uint8Array(2 * 1024 * 1024 + 1)], 'big.png', { type: 'image/png' })), KEY)).toMatchObject({ ok: false, status: 413 });
     expect(await uploadTenantLogoAction(T_GAMMA, form(new File(['%PDF-1.7'], 'doc.pdf', { type: 'application/pdf' })), KEY)).toMatchObject({ ok: false, status: 415 });
+    expect(await uploadTenantLogoAction(T_GAMMA, form(new File([new Uint8Array([0xff, 0xd8, 0xff, 1])], 'logo.jpg', { type: 'image/jpeg' })), KEY)).toMatchObject({ ok: false, status: 415 });
     expect(apiCalls()).toBe(0);
   });
   it('a hostile filename cannot break out of its multipart header', async () => {

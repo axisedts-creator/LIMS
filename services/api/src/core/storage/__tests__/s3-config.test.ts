@@ -133,12 +133,14 @@ describe('repository holds names only; docs; no route wired; no new dependency',
     const all = Object.keys({ ...p.dependencies, ...p.devDependencies, ...p.optionalDependencies });
     expect(all.filter((n) => /^@aws-sdk\/|^aws-sdk$|^aws4|^minio$|s3-request-presigner|^@smithy\//.test(n))).toEqual([]);
   });
-  it('no route is wired: only core/config.ts (parse) and core/storage itself import the S3 adapter', () => {
+  // CR TENANT-LOGO-1 changed this on purpose (it was: config.ts only): boot.ts now builds the ONE raw client for ctx.storage (the "Next" step of
+  // .orchestra/notes/T0B-STORAGE-1-impl.md). Still no module, handler or route imports the adapter (next case).
+  it('only core/config.ts (parse), core/pipeline/boot.ts (the one raw client) and core/storage itself import the S3 adapter', () => {
     const importers = sources(join(API, 'src'))
       .filter((f) => !f.includes(`${sep}core${sep}storage${sep}`))
       .filter((f) => /storage\/s3(\.js)?['"]/.test(read(f)))
       .map((f) => f.slice(API.length + 1).split(sep).join('/'));
-    expect(importers).toEqual(['src/core/config.ts']);
+    expect(importers.sort()).toEqual(['src/core/config.ts', 'src/core/pipeline/boot.ts']);
   });
   it('the adapter is not exported from the module routes: no handler or route file mentions signUpload', () => {
     const hits = sources(join(API, 'src', 'modules')).filter((f) => /signUpload|createS3RawStorage/.test(read(f)));

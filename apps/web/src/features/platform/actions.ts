@@ -132,7 +132,7 @@ export async function uploadAnnexDocumentAction(recordId: string, form: FormData
   return call(`${P}/ird-annexes/${recordId}/documents`, { method: 'POST', ...(await multipart(file, 'document', key)) });
 }
 
-/** CR TENANT-LOGO-1: the logo of ONE tenant, uploaded by the platform operator (Provision tenant). PNG or JPEG, at most 2 MB; the API re-checks,
+/** CR TENANT-LOGO-1: the logo of ONE tenant, uploaded by the platform operator (Provision tenant). PNG, at most 2 MB (LOGO_TYPES); the API re-checks,
  *  re-encodes and scans the image and stores it under that tenant only. */
 export async function uploadTenantLogoAction(tenantId: string, form: FormData, key: string): Promise<Result<unknown>> {
   if (!(await need(PERM.manage))) return forbidden();

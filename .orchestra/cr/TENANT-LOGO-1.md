@@ -34,14 +34,24 @@ Alternatives considered:
 - Lowering the permission of `getBrandingAssetContent` / `getSettings`: rejected, it widens existing operations and still needs the asset id.
 - A flag or URL on the session (`resolveSession`): rejected, changes a core auth operation.
 
+Addendum 2026-11-26 (founder: "fix it"): storage wiring, in the same branch.
+E. services/api/src/core/pipeline/boot.ts + index.ts (C0-0D): with `STORAGE_PROVIDER=s3_compatible` every TENANT request gets `ctx.storage` / `ctx.uploads` / `ctx.download` bound to its module and its verified claims tenant (the "Next" step of `.orchestra/notes/T0B-STORAGE-1-impl.md`). `STORAGE_PROVIDER=none` or unset keeps the 503 members, so nothing changes until the operator sets the seven `STORAGE_*` names. New ctx member for PLATFORM sessions only: `ctx.tenantFiles(tenantId)` (UUID only) returns the kit of that tenant; used by `uploadBrandingAssetAsPlatform` after it loaded the tenant.
+F. services/api/src/core/storage/index.ts: `StorageOptions.raw` (a client built at boot; no key file read per request).
+G. services/api/src/core/storage/s3.ts, two defects found by running it against a REAL Supabase Storage server for the first time (it had only met the in-memory fake): (1) presigned requests signed the `x-amz-content-sha256` value as the payload hash; the AWS rule is the literal `UNSIGNED-PAYLOAD`, and the server answered 403 SignatureDoesNotMatch for every put; fixed in `presignV4`, fake and its test follow. (2) the server ignores `if-none-match: *` and overwrites; create-only now looks the object up first (`refuseExisting`, not atomic, keys carry a fresh UUIDv7).
+H. Provision form accepts PNG only (the API cannot re-encode JPEG; item 2 below).
+
 Open points for the owner:
-1. Runtime dependency (existing, not introduced here): `services/api/src/core/pipeline/boot.ts` still wires `ctx.uploads`, `ctx.storage` and `ctx.download` as `unwired(...)` (503 `common.dependency_unavailable`, `.orchestra/cr/T0D-17.nonblocking.md`). Until storage is wired, NO branding upload or download works at run time, this one included; the sidebar then shows the default logo. Whoever wires per-request storage must bind it to the PATH tenant for `uploadBrandingAssetAsPlatform` (same need as `uploadIrdAnnexDocument`).
-2. JPEG re-encode is not available until an image library is pinned (same CR, item 3): a JPEG logo is refused 422 today; PNG works.
-3. Not verified against a live database (no PG in this session): the `branding_assets` INSERT policy and `app.tg_row_audit()` under `withTenantScope` from a platform session. `updateTenantSettingsAsPlatform` already writes `tenant_settings` the same way.
+1. Storage on the production host is an operator step, not code: one private bucket, S3 protocol keys on the storage service, the seven `STORAGE_*` names on the api containers (`docs/ops/STORAGE.md`). Until then uploads still answer 503 and the sidebar shows the default logo.
+2. JPEG re-encode is not available until an image library is pinned (`.orchestra/cr/T0D-17.nonblocking.md` item 3): the API answers 422 for a JPEG. The Provision form therefore offers PNG only; the tenant Settings screen still offers JPEG (not changed here).
+3. Proven on a live database (tests/identity/TENANT-LOGO-1.pg.sh, PG17 + all migrations): the platform-scoped insert, the pointer, the access-log line, and that tenant_b claims cannot see tenant_a's row.
 4. Changing the logo later from the platform Tenant detail screen is not built (the request was "while creating"); the lab's own admin can already change it in Settings.
+5. Found on the real storage server, not fixed here: it does not check the body against a signed `x-amz-content-sha256` (a wrong body is accepted). Server side puts are unaffected (the API hashes what it sends); the unwired direct browser upload (`signUpload`, P-2) must not rely on the storage server for the digest check.
+6. Other platform file operations (`uploadIrdAnnexDocument`, `downloadIrdAnnexDocument`) still use `ctx.uploads` / `ctx.storage` of a platform session, which stay unbound (503); they need `ctx.tenantFiles` or a platform prefix decision. The worker's `identity.rescan_upload` job (pending scans) also has no storage. Neither is changed here.
+7. Not done: a run of the whole chain in one booted API with a browser (sign in, provision with a logo, see it in the sidebar).
 
 Tests that will prove it:
 - services/api/src/modules/identity/service/__tests__/tenant-logo.service.test.ts (32 cases: cross-tenant read and write, role, aal, bad kind, bad file, orphan clean-up, re-scan job).
 - apps/web: src/features/platform/__tests__/tenantlogo1.form.test.tsx, src/core/shell/__tests__/tenantlogo1.rail.test.tsx, src/core/shell/__tests__/tenantlogo1.route.test.ts (config `vitest.tenantlogo1.config.ts`).
 - Changed expectations, on purpose: `m2.sidebar.test.tsx` (staff sidebar logo is the lab's, was "Metro Labs"); platform operation count 34 -> 35 in `authz-central.platform.test.ts` and `platform-ctx.pipeline.test.ts`.
-- Still to add when a database lane is available: a pgTAP case in db/tests/isolation for a platform-scoped `branding_assets` insert, and a live test of both operations.
+- Live database: `bash tests/identity/TENANT-LOGO-1.pg.sh` (tenant-logo.live.test.ts, 6 cases). Live storage server: `bash tests/core/STORAGE-KIT-1.pg.sh` (kit.live.test.ts, 3 cases). Both need Docker and are skipped in a plain vitest run.
+- Wiring: services/api/src/core/pipeline/__tests__/file-kit.test.ts (16 cases). Changed on purpose: `s3-config.test.ts` (boot.ts now imports the S3 adapter), `s3.fake.ts` / `s3.fake.test.ts` / `s3.stream.test.ts` (signing rule and create-only look-up as the real server needs).

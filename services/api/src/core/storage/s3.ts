@@ -64,8 +64,10 @@ export interface PresignInput {
   headers?: Record<string, string>;
 }
 
-/** SigV4 query signing (AWS S3 "Authenticating Requests: Using Query Parameters"). The payload hash is the
- *  `x-amz-content-sha256` header when bound, else UNSIGNED-PAYLOAD. Existing query parameters on `url` are signed too. */
+/** SigV4 query signing (AWS S3 "Authenticating Requests: Using Query Parameters"). The payload hash of a presigned request is ALWAYS the
+ *  literal UNSIGNED-PAYLOAD (AWS rule); `x-amz-content-sha256`, when bound, is one more signed header. Proven against a real Supabase Storage
+ *  server (tests/core/STORAGE-KIT-1.pg.sh): signing the header value as the payload hash is answered 403 SignatureDoesNotMatch (CR TENANT-LOGO-1).
+ *  Existing query parameters on `url` are signed too. */
 export function presignV4(i: PresignInput): string {
   if (!Number.isInteger(i.expiresSeconds) || i.expiresSeconds < 1 || i.expiresSeconds > S3_MAX_EXPIRES_SECONDS) throw new Error('storage: expiry out of range');
   const u = new URL(i.url);
@@ -83,7 +85,7 @@ export function presignV4(i: PresignInput): string {
     .sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : a[1] < b[1] ? -1 : a[1] > b[1] ? 1 : 0)).map(([k, v]) => `${k}=${v}`).join('&');
   const path = encPath(decodeURIComponent(u.pathname));
   const canonical = [i.method.toUpperCase(), path, query, names.map((n) => `${n}:${headers.get(n)}\n`).join(''), signedHeaders,
-    headers.get('x-amz-content-sha256') ?? 'UNSIGNED-PAYLOAD'].join('\n');
+    'UNSIGNED-PAYLOAD'].join('\n');
   const toSign = ['AWS4-HMAC-SHA256', date, scope, sha256hex(canonical)].join('\n');
   const key = hmac(hmac(hmac(hmac(`AWS4${i.secretAccessKey}`, day), i.region), 's3'), 'aws4_request');
   return `${u.origin}${path}?${query}&X-Amz-Signature=${hmac(key, toSign).toString('hex')}`;
@@ -127,10 +129,20 @@ export function createS3RawStorage(cfg: S3Config, deps: { now?: () => number; fe
     return { ...(etag ? { etag } : {}), ...(Number.isFinite(lm) ? { lastModified: new Date(lm) } : {}) };
   };
 
+  /** Create only. `if-none-match: *` is sent, but not every S3 compatible server honours it: a real Supabase Storage server overwrites
+   *  (tests/core/STORAGE-KIT-1.pg.sh). So the object is looked up first and an existing one is refused here.
+   *  ponytail: look-then-put is not atomic; two writers of ONE key in the same instant could both pass. Keys carry a fresh UUIDv7, so no
+   *  flow writes one key twice; use a server side condition if that ever changes. */
+  async function refuseExisting(bucket: string, key: string): Promise<void> {
+    const r = await send('put', 'HEAD', objectPath(bucket, key), { ok: [404] });
+    await drain(r);
+    if (r.status !== 404) throw new Error('storage: put failed (412)');
+  }
+
   return {
     async put(bucket, key, bytes, o) {
       const signed: Record<string, string> = { 'content-type': o.contentType, 'content-length': String(bytes.length), 'x-amz-content-sha256': sha256hex(bytes) };
-      if (o.ifAbsent) signed['if-none-match'] = '*';
+      if (o.ifAbsent) { signed['if-none-match'] = '*'; await refuseExisting(bucket, key); }
       await drain(await send('put', 'PUT', objectPath(bucket, key), { signed, body: bytes }));
     },
     async get(bucket, key) {
@@ -182,7 +194,7 @@ export function createS3RawStorage(cfg: S3Config, deps: { now?: () => number; fe
     async putStream(bucket, key, body, o) {
       const signed: Record<string, string> = { 'content-type': o.contentType };
       if (o.byteSize !== undefined) signed['content-length'] = String(o.byteSize);
-      if (o.ifAbsent) signed['if-none-match'] = '*';
+      if (o.ifAbsent) { signed['if-none-match'] = '*'; await refuseExisting(bucket, key); }
       const web = Readable.toWeb(Readable.from(body, { objectMode: false })) as unknown as ReadableStream<Uint8Array>;
       await drain(await send('put', 'PUT', objectPath(bucket, key), { signed, body: web }));
     },

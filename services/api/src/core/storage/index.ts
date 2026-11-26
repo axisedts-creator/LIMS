@@ -67,6 +67,9 @@ export interface StorageOptions {
   readonly readFile?: (path: string) => string;
   /** Builds the raw client. Required until the Storage HTTP API shape is pinned (SP-1; .orchestra/cr/T0D-17.nonblocking.md). */
   readonly connect?: (credential: string, url?: string) => RawStorage;
+  /** A raw client that is already built (boot: createS3RawStorage from the STORAGE_* config, T0B-STORAGE-1). Its credential was read
+   *  and checked there, so no key file is read here; the tenant and bucket-owner rules below apply unchanged. */
+  readonly raw?: RawStorage;
   readonly url?: string;
   readonly module: string;
   readonly tenantId: string;
@@ -126,12 +129,14 @@ export function createStorage(o: StorageOptions): StorageAdapter {
   const env = o.env ?? process.env;
   const { module, tenantId } = o;
   if (typeof tenantId !== 'string' || !TENANT.test(tenantId) || typeof module !== 'string') throw internal();
-  const file = env.LIMS_CORE_STORAGE_KEY_FILE;
-  if (!file) throw internal();
-  let credential: string;
-  try { credential = (o.readFile ?? ((p: string) => readFileSync(p, 'utf8')))(file).trim(); } catch { throw internal(); }
-  if (!credential || !o.connect) throw internal();
-  const raw = o.connect(credential, o.url);
+  const raw = o.raw ?? ((): RawStorage => {
+    const file = env.LIMS_CORE_STORAGE_KEY_FILE;
+    if (!file) throw internal();
+    let credential: string;
+    try { credential = (o.readFile ?? ((p: string) => readFileSync(p, 'utf8')))(file).trim(); } catch { throw internal(); }
+    if (!credential || !o.connect) throw internal();
+    return o.connect(credential, o.url);
+  })();
   const now = o.now ?? Date.now;
 
   async function call<T>(op: string, bucket: string, fn: () => Promise<T>): Promise<T> {

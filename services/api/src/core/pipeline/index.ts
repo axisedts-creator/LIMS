@@ -33,6 +33,10 @@ export interface PipelineOp extends IdemOperation {
 export interface SharedCore {
   readonly core: unknown; readonly events: unknown; readonly uploads: unknown;
   readonly files: unknown; readonly storage: unknown; readonly download: unknown;
+  /** Storage wiring (T0B-STORAGE-1 next step; CR TENANT-LOGO-1): present when a storage provider is configured. Builds ctx.storage /
+   *  ctx.uploads / ctx.download bound to ONE module and ONE tenant (createStorage refuses every key outside `<tenantId>/`). */
+  readonly fileKit?: (i: { module: string; tenantId: string; audit: { access(entry: AccessLogEntry): Promise<unknown> } }) =>
+    { readonly storage: unknown; readonly uploads: unknown; readonly download: unknown };
 }
 
 export interface PipelineDeps {
@@ -156,6 +160,12 @@ export function createPipeline(d: PipelineDeps) {
     // verified claims only (UUID, else the key stays absent and the handler answers 401). Device and platform sessions get none.
     const selfSessionId = !platform && typeof claims?.tenant_id === 'string' && (claims.actor_type === 'user' || claims.actor_type === 'partner')
       ? uuidClaim((claims as Record<string, unknown>)['lims_session_id']) : undefined;
+    const audit = Object.freeze({ access: (entry: AccessLogEntry) => (tx ? access(ctx as any, entry) : noTx()) });
+    // Files: a tenant request gets storage / uploads / download bound to ITS tenant (verified claims only). Without a configured
+    // provider the shared members stay (they answer 503). A request without a tenant gets no tenant-bound file member.
+    const unbound = { storage: d.shared.storage, uploads: d.shared.uploads, download: d.shared.download };
+    const kitFor = (tenantId: string) => (d.shared.fileKit ? d.shared.fileKit({ module: c.op.module, tenantId, audit }) : unbound);
+    const kit = uuidClaim(claims?.tenant_id) ? kitFor(claims!.tenant_id as string) : unbound;
     const ctx: HandlerContext = Object.freeze({
       // RequestContext (IC §4.1)
       tenantId: claims?.tenant_id,
@@ -188,24 +198,28 @@ export function createPipeline(d: PipelineDeps) {
         },
       }),
       core: d.shared.core,
-      audit: Object.freeze({ access: (entry: AccessLogEntry) => (tx ? access(ctx as any, entry) : noTx()) }),
+      audit,
       events: d.shared.events,
+      // CR TENANT-LOGO-1: a PLATFORM session has no tenant of its own; an allowlisted platform operation that stores a file FOR one tenant
+      // (uploadBrandingAssetAsPlatform) asks for that tenant's kit. The tenant id must be a UUID the service loaded from core.tenants;
+      // the returned storage refuses every key outside `<tenantId>/`. Never present on a tenant, partner, patient or device session.
+      ...(platform ? { tenantFiles: (tenantId: unknown) => { if (!uuidClaim(tenantId)) throw new LimsError('common.internal'); return kitFor(tenantId as string); } } : {}),
       rateLimit: Object.freeze({
         consume: (tier: RateLimitTier, key: string) => limiter().consume(tier, key),
         // SEC-ABUSE-1 (LD-410): the login failure windows of identity/handlers/loginStaff.ts read and clear their counters here.
         peek: (tier: RateLimitTier, key: string) => limiter().peek(tier, key),
         clear: (tier: RateLimitTier, key: string) => limiter().clear(tier, key),
       }),
-      uploads: d.shared.uploads,
+      uploads: kit.uploads,
       files: d.shared.files,
-      storage: d.shared.storage,
+      storage: kit.storage,
       log: c.log,
       metrics: d.coreMetrics,                                            // LD-190: undefined only when a caller (test) wires none
       services: d.services?.[c.op.module],
       operationId: c.op.operationId,
       clientIp: c.clientIp,
       bffKey: c.bffKey,                                                  // LD-206: own key on every request, undefined when absent
-      download: d.shared.download,
+      download: kit.download,
       commitOnError: () => { onCommitOnError(); },
       noRetry: () => { ctl?.noRetry(); },
     } as unknown as HandlerContext);

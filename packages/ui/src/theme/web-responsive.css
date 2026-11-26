@@ -31,3 +31,28 @@
   --lims-font-size-2xl-size: var(--text-2xl);
   --lims-font-size-3xl-size: var(--text-title);
 }
+
+/* ===== b. shell: top bar, page body, page header ===== */
+/* top bar: one line always; the search gives way first, the icon buttons and the user chip keep their size */
+.lims-shell .lims-shell-top { min-width: 0; }
+.lims-shell .lims-topbar { flex-wrap: nowrap; min-width: 0; gap: var(--space-3); }
+.lims-shell .lims-topbar > * { flex: none; }
+.lims-shell .lims-topbar > .lims-search { flex: 1 1 0; min-width: 0; }
+.lims-shell .lims-search .lims-search-input { width: 100%; min-width: 0; text-overflow: ellipsis; }
+.lims-shell .lims-topbar-end { flex: none; flex-wrap: nowrap; white-space: nowrap; }
+.lims-shell .lims-topbar-actor { white-space: nowrap; }
+@media (max-width: 30rem) {
+  .lims-shell .lims-search-hint { display: none; } /* decorative shortcut hint; the shortcut itself still works */
+  .lims-shell .lims-topbar-actor { padding-inline: var(--space-1); }
+}
+/* page body: every direct block may shrink, so wide content scrolls inside its own box and never widens the page */
+.lims-shell .lims-shell-body, .lims-shell .lims-shell-main { min-width: 0; }
+.lims-shell-main > *, .lims-shell-main > section > * { min-width: 0; max-width: 100%; }
+/* page header: title, caption, status, actions and Help wrap with a gap; the main gap keeps them off the first card */
+.lims-shell .lims-page-header-row { flex-wrap: wrap; gap: var(--space-2) var(--space-3); }
+.lims-shell .lims-page-heading { flex: 1 1 12rem; min-width: 0; }
+.lims-shell .lims-page-title, .lims-shell-main h1 { min-width: 0; overflow-wrap: break-word; }
+.lims-shell .lims-page-status { display: inline-flex; flex-wrap: wrap; gap: var(--space-2); }
+.lims-shell .lims-page-actions { flex-wrap: wrap; gap: var(--space-2) var(--space-3); min-width: 0; }
+.lims-shell .lims-page-actions > * { flex: none; }
+.lims-shell .lims-export-buttons { display: inline-flex; flex-wrap: wrap; gap: var(--space-2); }

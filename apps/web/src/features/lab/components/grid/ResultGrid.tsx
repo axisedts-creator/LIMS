@@ -183,12 +183,12 @@ export function ResultGrid({ data, analytes = {}, permissions, patientId, return
   const flat = data.items.flatMap((item) => item.results.map((r0) => ({ item, id: r0.id, r0 })));
   const rowsInfo = flat.map(({ item, id, r0 }) => ({ item, r: results[id] ?? r0 }));
   const info = (r: GridResult): AnalyteInfo => {
-    const existing = analytes[r.analyte_id];
-    if (existing) return existing;
     const code = (r.analyte_code || '').toUpperCase();
     if (code.endsWith('_PBS') || code.includes('SMEAR') || code.includes('FINDING') || code.includes('REMARK') || code.includes('COMMENT') || code.includes('TEXT')) {
       return { name: 'Peripheral smear findings', value_type: 'text' };
     }
+    const existing = analytes[r.analyte_id];
+    if (existing) return existing;
     if (code.endsWith('_RBC')) {
       return { name: 'Red Blood Cell Count', value_type: 'numeric', decimals: 2 };
     }
@@ -356,7 +356,7 @@ export function ResultGrid({ data, analytes = {}, permissions, patientId, return
       const done: string[] = [];
       for (const row of r.data.results) {
         if (row.outcome === 'ok') { if (row.result) next[row.result_id] = row.result; done.push(row.result_id); }
-        else nextErr[row.result_id] = enterError(row.code, analytes[next[row.result_id]?.analyte_id ?? '']);
+        else nextErr[row.result_id] = enterError(row.code, next[row.result_id] ? info(next[row.result_id]!) : analytes[next[row.result_id]?.analyte_id ?? '']);
       }
       for (const c of r.data.recomputed ?? []) next[c.id] = c;
       setResults(() => next);

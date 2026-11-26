@@ -90,7 +90,7 @@ export function valueField(text: string, info: AnalyteInfo | undefined): { value
 export function enterError(code: string | undefined, info: AnalyteInfo | undefined): string {
   switch (code) {
     case 'common.version_conflict': return 'Changed by someone else — reload this row';
-    case 'lab.result_value_invalid': return validateValue('!', info) ?? 'Enter a valid value.';
+    case 'lab.result_value_invalid': return info?.value_type === 'text' ? 'Enter valid text (up to 2,000 characters).' : (validateValue('!', info) ?? 'Enter a valid value.');
     case 'lab.result_locked': return 'Approved results can only be changed by amendment.';
     case 'lab.result_invalid_transition': return 'This result can no longer be edited.';
     case 'common.not_found': return 'Result not found.';

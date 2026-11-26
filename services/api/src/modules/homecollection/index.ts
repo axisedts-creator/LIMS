@@ -1,8 +1,9 @@
 // ModuleManifest of module homecollection (02-TRD §3.1) — the only file the core autoloader reads.
 // HC-T01: 26 stubs (H1-H21, A1-A5); each later task replaces its own entries. Stub: LIMS_CORE_ENV=dev (and NODE_ENV != production)
 // -> 501 with no body (never echoes request input); anything else -> common.internal (fail closed).
-// Produces one event, owns no port, bearerJwt-only (no authResolvers / claimsResolver).
+// Produces one event, owns no port. bearerJwt for staff and phlebotomists; applicantPreAuth (own resolver) for job applicants.
 import type { Handler, ModuleManifest } from '../../core/module.js';
+import { applicantPreAuth } from './auth/applicant.resolver.js';
 import { LimsError } from '../../core/errors.js';
 import { handler as assignHomeVisit } from './handlers/assignHomeVisit.js';
 import { handler as cancelHomeVisit } from './handlers/cancelHomeVisit.js';
@@ -74,6 +75,7 @@ export const manifest: ModuleManifest = {
   name: 'homecollection',
   openapi: 'contracts/openapi/homecollection.yaml',
   handlers,
+  authResolvers: { applicantPreAuth }, // CR-C17-017: job applicants, tenant only
   pendingOperations: [], // LD-325 b: T0B-SALES-1 implemented updateCollectorFlags (pending since T0C-SALES-1)
   produces: ['homecollection.collection.synced.v1'],
 };

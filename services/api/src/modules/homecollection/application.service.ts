@@ -1,5 +1,5 @@
 // PHLEBO-UI-FULL-1: phlebotomist job applications (founder request 2026-11-26).
-// Anonymous side (patientPreAuth = tenant only, permission homecollection.application.submit): create -> upload document
+// Anonymous side (applicantPreAuth = tenant only, permission homecollection.application.submit): create -> upload document
 // pieces -> submit. It never reads or writes the tables: every statement is one of the DEFINER functions of migration
 // 20261126010000, which check the upload token (only its SHA-256 is stored). Staff side (homecollection.application.manage):
 // list, get, download a document, decide. Applicant data (name, phone, email, documents) is never logged.

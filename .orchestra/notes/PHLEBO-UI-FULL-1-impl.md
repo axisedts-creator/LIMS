@@ -24,14 +24,14 @@ Design source: PhleboApp_UI_Screens.pdf. Founder decisions 2026-11-25 and 2026-1
   `submitPhleboApplication`, `listPhleboApplications`, `getPhleboApplication`, `decidePhleboApplication`,
   `downloadPhleboApplicationDocument`. `MobileSessionOpenRequest` gained `phone_e164` (email no longer required alone).
 - Permissions: `homecollection.application.manage` (tenant_admin, lab_manager), `homecollection.application.submit`
-  (added to `patient_pre_auth`). Errors: none new (existing `common.immutable_record`, `common.validation_failed` reused; IC §8 gate forbids new codes without a lead decision).
+  (own fixed actor key `job_applicant_pre_auth`; `patient_pre_auth` is unchanged). Errors: none new (existing `common.immutable_record`, `common.validation_failed` reused; IC §8 gate forbids new codes without a lead decision).
 - Admin notice kind `phlebo_application_received` / subject `phlebo_application`. Route `staff.homecollection.applications`.
 - Env: `LIMS_HOMECOLLECTION_APPLICATION_DIR` (document folder on the API host), app defines `TENANT_CODE`, `PINNED_CA_PEM_B64`, `APP_VERSION`.
 - Phlebo app dependencies: `local_auth`, `url_launcher`, `geolocator` (already pinned for lims_ui), `file_picker 12.3.0`,
   `flutter_image_compress 2.5.1` (new: need rows in T0-03-dependencies.md).
 
 ## Deliberate shortcuts (each has a `ponytail:` or comment in code)
-- Applicants reuse the `patientPreAuth` scheme (tenant code only) instead of a new pre-auth scheme.
+- Applicants have their own credential (owner decision 2026-11-26, CR-C17-017): scheme `applicantPreAuth`, header `X-Lims-Applicant-PreAuth: t.<tenant_code>`, resolver owned by homecollection. Actor type `patient` with `patient_stage` = `job_applicant` (not `device`: `app.is_staff_or_system()` counts a device as staff). The application SQL functions accept this stage only.
 - Documents: sent as base64 pieces of at most 512 KB over JSON (the API has no multipart parser and a 1 MB body limit),
   stored gzip-compressed on the API host's disk, 2 MB each. No virus scan; one API host. Move to core uploads/storage (SP-1).
 - Bell: lists waiting applications only. Admin notices are written to `identity.admin_notices` but the bell does not read that table yet.

@@ -2902,7 +2902,7 @@ paths:
         - homecollection
       summary: Apply to work as a phlebotomist (not signed in; PHLEBO-UI-FULL-1)
       security:
-        - patientPreAuth: []
+        - applicantPreAuth: []
       x-permission: homecollection.application.submit
       x-context: tenant
       x-idempotency: none
@@ -3013,7 +3013,7 @@ paths:
         - homecollection
       summary: Upload one piece of an application document (not signed in)
       security:
-        - patientPreAuth: []
+        - applicantPreAuth: []
       x-permission: homecollection.application.submit
       x-context: tenant
       x-idempotency: none
@@ -3097,7 +3097,7 @@ paths:
         - homecollection
       summary: Send the application for review (not signed in)
       security:
-        - patientPreAuth: []
+        - applicantPreAuth: []
       x-permission: homecollection.application.submit
       x-context: tenant
       x-idempotency: none

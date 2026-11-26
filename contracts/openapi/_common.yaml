@@ -254,6 +254,11 @@ components:
       in: header
       name: X-Lims-Patient-PreAuth
       description: Patient pre-auth credential. Resolver engagement.
+    applicantPreAuth:
+      type: apiKey
+      in: header
+      name: X-Lims-Applicant-PreAuth
+      description: Job applicant pre-auth credential (tenant only). Resolver homecollection.
     paymentCallbackToken:
       type: apiKey
       in: query

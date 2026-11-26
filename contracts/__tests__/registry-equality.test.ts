@@ -48,8 +48,9 @@ const OWNER_20261126_ROUTE_IDS = ["staff.catalog.icd", "staff.partners.sales_des
   "staff.billing.discount_limits", "staff.billing.discount_authorities", "staff.billing.bill_of_the_day", "staff.offline"];
 // Permission codes in permissions.yaml beyond IC §11 and beyond the lists above.
 const OWNER_20261126_PERMISSION_CODES = ["homecollection.application.manage", "homecollection.application.submit"];
-// Fixed actor grants beyond IC §11 fixed_actor_permissions: actor -> exactly these codes, after the IC codes.
-const OWNER_20261126_FIXED_ACTOR_GRANTS: Record<string, string[]> = { patient_pre_auth: ["homecollection.application.submit"] };
+// Actor keys beyond IC §11 fixed_actor_permissions: key -> exactly these codes; every IC actor keeps exactly its IC grants.
+// CR-C17-017: the job applicant credential has its own actor key; patient_pre_auth is back to the IC grant.
+const OWNER_20261126_FIXED_ACTOR_KEYS: Record<string, string[]> = { job_applicant_pre_auth: ["homecollection.application.submit"] };
 // Role grants on IC §11 permission codes beyond the IC roles: code -> exactly these roles, after the IC roles (tenant_admin on nine front desk, lab and reporting codes).
 const OWNER_20261126_ROLE_GRANTS: Record<string, string[]> = {
   "frontdesk.registration.create": ["tenant_admin"], "frontdesk.order.edit": ["tenant_admin"], "lab.worklist.read": ["tenant_admin"], "lab.result.read": ["tenant_admin"],
@@ -228,11 +229,11 @@ describe("AC-0C-1.3 permissions.yaml == IC §11", () => {
     // LD-330: drop the two MSGDESK codes from the fixed actor grants before comparing (same filtering as the extra permissions).
     const noMsgdesk = (v: unknown): unknown => Array.isArray(v) ? v.filter((c) => !MSGDESK_CODES.includes(String(c))) : v && typeof v === "object" ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, noMsgdesk(x)])) : v;
     const fileFixed = { ...(noMsgdesk(file.fixed_actor_permissions) as Record<string, unknown>) };
-    // Owner decision 2026-11-26 (PR 9): per actor, EXACTLY the listed codes may follow the IC codes; they are dropped before the comparison with IC.
-    for (const [actor, codes] of Object.entries(OWNER_20261126_FIXED_ACTOR_GRANTS)) {
-      const icGrants: string[] = ic.fixed_actor_permissions[actor];
-      expect((fileFixed[actor] as string[]).filter((c) => !icGrants.includes(c)), actor).toEqual(codes);
-      fileFixed[actor] = (fileFixed[actor] as string[]).filter((c) => !codes.includes(c));
+    // Owner decision 2026-11-26 (PR 9): EXACTLY the listed actor keys may exist beside the IC ones; they are dropped before the comparison with IC.
+    for (const [actor, codes] of Object.entries(OWNER_20261126_FIXED_ACTOR_KEYS)) {
+      expect(ic.fixed_actor_permissions[actor], actor).toBeUndefined();
+      expect(fileFixed[actor], actor).toEqual(codes);
+      delete fileFixed[actor];
     }
     expect(sortKeys(fileFixed)).toEqual(sortKeys(ic.fixed_actor_permissions));
     // T0C-ACCT-1 (LD-313 c, founder blanket authority LD-310): the registry may hold EXACTLY the 7 billing accounting codes on top of IC §11 (spec/ is read-only, the lead records

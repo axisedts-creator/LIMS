@@ -1,5 +1,5 @@
 -- PHLEBO-UI-FULL-1 (founder request 2026-11-26, .orchestra/cr/PHLEBO-UI-FULL-1.md): phlebotomist job applications.
--- A person who is not signed in applies from the phlebotomist app (patientPreAuth credential = tenant only). Staff holding
+-- A person who is not signed in applies from the phlebotomist app (applicantPreAuth credential = tenant only). Staff holding
 -- homecollection.application.manage review, approve or reject in the web app. The web bell lists waiting applications.
 -- The anonymous side never touches the tables: it goes through the four DEFINER functions below, which check an upload
 -- token (only its SHA-256 is stored). Document bytes live on the API server's disk, never in the database. P2 (applicant
@@ -88,7 +88,7 @@ CREATE FUNCTION app.homecollection_application_create(
 RETURNS text LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path = '' AS $$
 DECLARE v_tenant uuid := app.current_tenant_id();
 BEGIN
-  IF v_tenant IS NULL OR app.current_actor_type() IS DISTINCT FROM 'patient' THEN RETURN 'denied'; END IF;
+  IF v_tenant IS NULL OR app.current_actor_type() IS DISTINCT FROM 'patient' OR (app.current_claims() ->> 'patient_stage') IS DISTINCT FROM 'job_applicant' THEN RETURN 'denied'; END IF;
   PERFORM set_config('app.maintenance', 'homecollection_phlebo_application', true);
   -- an abandoned upload for the same phone older than one hour is replaced
   DELETE FROM homecollection.phlebo_application_documents d USING homecollection.phlebo_applications a
@@ -111,7 +111,7 @@ CREATE FUNCTION app.homecollection_application_upload_state(p_id uuid, p_token_s
 RETURNS TABLE (kind text, n integer) LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path = '' AS $$
 DECLARE v_tenant uuid := app.current_tenant_id();
 BEGIN
-  IF v_tenant IS NULL OR app.current_actor_type() IS DISTINCT FROM 'patient' THEN RETURN; END IF;
+  IF v_tenant IS NULL OR app.current_actor_type() IS DISTINCT FROM 'patient' OR (app.current_claims() ->> 'patient_stage') IS DISTINCT FROM 'job_applicant' THEN RETURN; END IF;
   PERFORM set_config('app.maintenance', 'homecollection_phlebo_application', true);
   RETURN QUERY
     SELECT k.kind, (SELECT count(*)::integer FROM homecollection.phlebo_application_documents d
@@ -128,7 +128,7 @@ CREATE FUNCTION app.homecollection_application_add_document(
 RETURNS text LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path = '' AS $$
 DECLARE v_tenant uuid := app.current_tenant_id(); v_count integer; v_max integer;
 BEGIN
-  IF v_tenant IS NULL OR app.current_actor_type() IS DISTINCT FROM 'patient' THEN RETURN 'denied'; END IF;
+  IF v_tenant IS NULL OR app.current_actor_type() IS DISTINCT FROM 'patient' OR (app.current_claims() ->> 'patient_stage') IS DISTINCT FROM 'job_applicant' THEN RETURN 'denied'; END IF;
   PERFORM set_config('app.maintenance', 'homecollection_phlebo_application', true);
   PERFORM 1 FROM homecollection.phlebo_applications
     WHERE tenant_id = v_tenant AND id = p_id AND upload_token_sha256 = p_token_sha256 AND status = 'uploading' FOR UPDATE;
@@ -147,7 +147,7 @@ CREATE FUNCTION app.homecollection_application_submit(p_id uuid, p_token_sha256 
 RETURNS text LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path = '' AS $$
 DECLARE v_tenant uuid := app.current_tenant_id(); v_kinds integer;
 BEGIN
-  IF v_tenant IS NULL OR app.current_actor_type() IS DISTINCT FROM 'patient' THEN RETURN 'denied'; END IF;
+  IF v_tenant IS NULL OR app.current_actor_type() IS DISTINCT FROM 'patient' OR (app.current_claims() ->> 'patient_stage') IS DISTINCT FROM 'job_applicant' THEN RETURN 'denied'; END IF;
   PERFORM set_config('app.maintenance', 'homecollection_phlebo_application', true);
   PERFORM 1 FROM homecollection.phlebo_applications
     WHERE tenant_id = v_tenant AND id = p_id AND upload_token_sha256 = p_token_sha256 AND status = 'uploading' FOR UPDATE;

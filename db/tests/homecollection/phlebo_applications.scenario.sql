@@ -14,8 +14,20 @@ BEGIN
   IF ta IS NULL OR tb IS NULL THEN RAISE EXCEPTION 'seed tenants missing'; END IF;
   SET LOCAL ROLE lims_app;
 
+  -- CR-C17-017: only the applicant credential (patient, patient_stage job_applicant) may apply. A patient pre-auth actor, a
+  -- signed-in patient (no stage) and a queue display of the same tenant are refused.
+  PERFORM set_config('request.jwt.claims', json_build_object('tenant_id', ta, 'actor_type', 'patient', 'patient_stage', 'pre_auth', 'sub', '01a1a98a-ac40-7000-8000-0000000f00a1')::text, true);
+  r := app.homecollection_application_create(app1, 'Sita Demo', '+9779800000001', 'sita@example.test', 'Demo Tole', 'full_time', NULL, NULL, tok);
+  IF r <> 'denied' THEN RAISE EXCEPTION 'patient pre-auth actor must not create an application: %', r; END IF;
+  PERFORM set_config('request.jwt.claims', json_build_object('tenant_id', ta, 'actor_type', 'device', 'device_kind', 'queue_display', 'sub', '01a1a98a-ac40-7000-8000-0000000f00a2')::text, true);
+  r := app.homecollection_application_create(app1, 'Sita Demo', '+9779800000001', 'sita@example.test', 'Demo Tole', 'full_time', NULL, NULL, tok);
+  IF r <> 'denied' THEN RAISE EXCEPTION 'queue display must not create an application: %', r; END IF;
+  PERFORM set_config('request.jwt.claims', json_build_object('tenant_id', ta, 'actor_type', 'patient', 'sub', '01a1a98a-ac40-7000-8000-0000000f00a3')::text, true);
+  r := app.homecollection_application_create(app1, 'Sita Demo', '+9779800000001', 'sita@example.test', 'Demo Tole', 'full_time', NULL, NULL, tok);
+  IF r <> 'denied' THEN RAISE EXCEPTION 'signed-in patient (no stage) must not create an application: %', r; END IF;
+
   -- anonymous applicant of tenant_a
-  PERFORM set_config('request.jwt.claims', json_build_object('tenant_id', ta, 'actor_type', 'patient', 'sub', '01a1a98a-ac40-7000-8000-0000000f00aa')::text, true);
+  PERFORM set_config('request.jwt.claims', json_build_object('tenant_id', ta, 'actor_type', 'patient', 'patient_stage', 'job_applicant', 'sub', '01a1a98a-ac40-7000-8000-0000000f00aa')::text, true);
 
   r := app.homecollection_application_create(app1, 'Sita Demo', '+9779800000001', 'Sita@Example.Test', 'Demo Tole', 'part_time', 'double', ARRAY['morning','evening'], tok);
   IF r <> 'created' THEN RAISE EXCEPTION 'create: %', r; END IF;
@@ -65,7 +77,7 @@ BEGIN
   IF n <> 0 THEN RAISE EXCEPTION 'token still works after submit'; END IF;
 
   -- an anonymous caller of ANOTHER tenant with the right token gets nothing
-  PERFORM set_config('request.jwt.claims', json_build_object('tenant_id', tb, 'actor_type', 'patient', 'sub', '01a1a98a-ac40-7000-8000-0000000f00bb')::text, true);
+  PERFORM set_config('request.jwt.claims', json_build_object('tenant_id', tb, 'actor_type', 'patient', 'patient_stage', 'job_applicant', 'sub', '01a1a98a-ac40-7000-8000-0000000f00bb')::text, true);
   IF app.homecollection_application_add_document(app1, tok, '01a1a98a-ac40-7000-8000-0000000d0007', 'identity', 'x.png', 'image/png', 10, 10, tok, tb::text || '/' || app1::text || '/01a1a98a-ac40-7000-8000-0000000d0007.gz') <> 'denied'
     THEN RAISE EXCEPTION 'cross-tenant add'; END IF;
 

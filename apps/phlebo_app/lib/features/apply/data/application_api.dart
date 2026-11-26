@@ -1,5 +1,5 @@
 // PHLEBO-UI-FULL-1: sends an application to the lab. Not signed in: the lab is named by the build's tenant code
-// (X-Lims-Patient-PreAuth: t.<code>). Documents go up in pieces of at most 512 KB through the normal JSON channel.
+// (X-Lims-Applicant-PreAuth: t.<code>). Documents go up in pieces of at most 512 KB through the normal JSON channel.
 // Nothing is stored on the phone and nothing is logged.
 import 'dart:convert';
 import 'dart:math';
@@ -17,7 +17,7 @@ const applicationSendFailed = "Couldn't send. Check your connection and try agai
 /// Null on success, else the sentence to show.
 Future<String?> sendApplication(ApiClient api, String tenantCode, ApplicationDraft draft, {String Function()? newId}) async {
   final id = newId ?? uuidv7;
-  final lab = {'X-Lims-Patient-PreAuth': 't.$tenantCode'};
+  final lab = {'X-Lims-Applicant-PreAuth': 't.$tenantCode'};
   try {
     final created = await api.postJson(_base, draft.toJson(), headers: lab);
     final applicationId = created['application_id'], token = created['upload_token'];

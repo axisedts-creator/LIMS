@@ -979,6 +979,9 @@ export const FIXED_ACTOR_PERMISSIONS = {
       "engagement.queue.board_read",
     ],
   },
+  job_applicant_pre_auth: [
+    "homecollection.application.submit",
+  ],
   partner: {
     partner_admin: [
       "identity.self.manage",
@@ -1020,7 +1023,6 @@ export const FIXED_ACTOR_PERMISSIONS = {
   ],
   patient_pre_auth: [
     "engagement.auth.challenge",
-    "homecollection.application.submit",
   ],
   portal: [
     "reporting.portal.challenge",

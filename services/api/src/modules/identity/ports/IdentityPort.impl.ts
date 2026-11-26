@@ -175,7 +175,9 @@ export function createIdentityPort(deps: IdentityPortDeps): IdentityPortImpl {
       case 'portal':
         return { claims, profile: fixed(ctx, FIXED_ACTOR_PERMISSIONS.portal) };
       case 'patient': {
-        if (claim(claims, 'patient_stage') === 'pre_auth') return { claims, profile: fixed(ctx, FIXED_ACTOR_PERMISSIONS.patient_pre_auth) };
+        const stage = claim(claims, 'patient_stage');
+        if (stage === 'pre_auth') return { claims, profile: fixed(ctx, FIXED_ACTOR_PERMISSIONS.patient_pre_auth) };
+        if (stage === 'job_applicant') return { claims, profile: fixed(ctx, FIXED_ACTOR_PERMISSIONS.job_applicant_pre_auth) }; // CR-C17-017
         const p = fixed(ctx, FIXED_ACTOR_PERMISSIONS.patient);
         const mid = claim(claims, 'membership_id');
         return { claims, profile: mid ? { ...p, actor: { ...p.actor, membershipId: mid } as any } : p };

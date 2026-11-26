@@ -125,16 +125,17 @@ export function WorklistPage({ departmentId, permissions }: { departmentId: stri
   return (
     <section aria-label="Worklist">
       <style>{`
-        .lims-worklist-table tbody tr {
+        .lims-worklist-table-box tbody tr {
           cursor: pointer;
+          transition: background-color 0.15s ease;
         }
-        .lims-worklist-table tbody tr:hover {
-          background-color: rgba(0, 0, 0, 0.03);
+        .lims-worklist-table-box tbody tr:hover {
+          background-color: rgba(16, 185, 129, 0.05);
         }
-        .lims-worklist-table tbody tr[aria-selected="true"],
-        .lims-worklist-table tbody tr[data-selected="true"] {
-          background-color: rgba(16, 185, 129, 0.08) !important;
-          outline: 2px solid rgba(16, 185, 129, 0.5);
+        .lims-worklist-table-box tbody tr[aria-selected="true"],
+        .lims-worklist-table-box tbody tr[data-selected="true"] {
+          background-color: rgba(16, 185, 129, 0.12) !important;
+          outline: 2px solid rgba(16, 185, 129, 0.6);
         }
       `}</style>
       {/* T0D-UILIST-1 (LD-353 template 1, rule 8): title = the menu label in the PageHeader, the one primary action at right; filters in one filter row */}
@@ -157,32 +158,44 @@ export function WorklistPage({ departmentId, permissions }: { departmentId: stri
         ) : null}
       </FilterBar>
 
-      {/* 2-column layout: Column 1 = select box scrollable within box, Column 2 = result viewing/editing box */}
+      {/* 2-row stacked layout: Row 1 = full width scrollable worklist table, Row 2 = full width result viewing/editing box */}
       {load.s !== 'loading' ? (
         <div
-          className="lims-worklist-two-col"
+          className="lims-worklist-two-row"
           style={{
-            display: 'grid',
-            gridTemplateColumns: 'minmax(0, 1.15fr) minmax(0, 1fr)',
+            display: 'flex',
+            flexDirection: 'column',
             gap: '1.25rem',
-            alignItems: 'start',
             width: '100%',
             marginTop: '1rem',
           }}
         >
-          {/* Column 1: Select Box (Table scrollable horizontally and vertically inside this box) */}
-          <div style={{ minWidth: 0, width: '100%' }}>
+          {/* Row 1: Full-width Table Box (Scrollable vertically within box, full width so all columns show) */}
+          <div style={{ width: '100%' }}>
             <div
               className="lims-worklist-table-box"
               style={{
                 width: '100%',
-                overflowX: 'auto',
-                maxHeight: 'calc(100vh - 210px)',
+                maxHeight: '340px',
                 overflowY: 'auto',
+                overflowX: 'auto',
                 background: '#ffffff',
                 border: '1px solid var(--border-color, #e5e7eb)',
                 borderRadius: '8px',
                 boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
+              }}
+              onClick={(e) => {
+                const target = e.target as HTMLElement | null;
+                if (!target) return;
+                // If user clicked inside an interactive element (checkbox, button, anchor, select), let that handle it
+                if (target.closest('input, button, a, select, [role="button"]')) return;
+                const tr = target.closest('tr[data-row-id], [role="row"][data-row-id], tr');
+                if (!tr) return;
+                const rowId = tr.getAttribute('data-row-id') || tr.getAttribute('id');
+                if (rowId) {
+                  const r = rows.find((x) => x.order_test_id === rowId);
+                  if (r) selectRow(r);
+                }
               }}
             >
               <div style={{ minWidth: '850px' }}>
@@ -227,17 +240,12 @@ export function WorklistPage({ departmentId, permissions }: { departmentId: stri
             </div>
           </div>
 
-          {/* Column 2: Result Entry & Review Box */}
+          {/* Row 2: Full-width Result Entry & Review Box */}
           <aside
             aria-label="Result entry"
             ref={panel}
             style={{
-              minWidth: 0,
               width: '100%',
-              maxHeight: 'calc(100vh - 210px)',
-              overflowY: 'auto',
-              position: 'sticky',
-              top: '1rem',
             }}
             onKeyDown={(e) => { if (e.key === 'Escape') { e.stopPropagation(); closePanel(); } }}
           >
@@ -291,10 +299,10 @@ export function WorklistPage({ departmentId, permissions }: { departmentId: stri
               ) : (
                 <div style={{ padding: '3rem 1.5rem', textAlign: 'center' }}>
                   <p className="lims-description" style={{ fontSize: '1.05rem', fontWeight: 500, color: 'var(--text-muted, #4b5563)' }}>
-                    Select a patient sample to enter results
+                    Select a patient sample above to enter or view results
                   </p>
                   <p style={{ fontSize: '0.875rem', marginTop: '0.5rem', color: 'var(--text-muted, #6b7280)' }}>
-                    Tap anywhere on a patient row in the worklist table on the left to view, edit, or enter results here.
+                    Tap anywhere on a patient row in the worklist table above to immediately view, edit, or enter results here.
                   </p>
                 </div>
               )}

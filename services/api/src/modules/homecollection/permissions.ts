@@ -6,6 +6,9 @@ export const HOMECOLLECTION_PERMISSIONS = Object.freeze([
   'homecollection.device.manage',
   'homecollection.settings.manage',
   'homecollection.sync.upload',
+  // CR-C17-017 (appended: services read the six above by index)
+  'homecollection.application.manage',
+  'homecollection.application.submit',
 ] as const);
 
 export type HomecollectionPermission = (typeof HOMECOLLECTION_PERMISSIONS)[number];

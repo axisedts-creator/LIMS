@@ -27,7 +27,12 @@ const SPEC = loadSpec(join(REPO_ROOT, 'contracts', 'openapi', 'homecollection.ya
 // T0C-SALES-1 (LD-321, LD-325(b)): updateCollectorFlags is added after the 26 TRD operations; it is pending until T0B-SALES-1 and is pinned by contract/sales1.pending.test.ts.
 // This file keeps testing exactly the 26 original operations.
 const SALES1_NEW = 'updateCollectorFlags';
-const OPS = operationIds(SPEC).filter((id) => id !== SALES1_NEW);
+// PHLEBO-UI-FULL-1 (CR-C17-017): eight more operations, two more permissions and the applicantPreAuth resolver came after the 26.
+// They are set aside here the same way and pinned one by one in contract/phlebo-ui-full-1.test.ts.
+const LATER_OPS: readonly string[] = [SALES1_NEW, 'updateVisitTracking', 'createPhleboApplication', 'uploadPhleboApplicationDocumentChunk', 'submitPhleboApplication',
+  'listPhleboApplications', 'getPhleboApplication', 'downloadPhleboApplicationDocument', 'decidePhleboApplication'];
+const LATER_PERMS: readonly string[] = ['homecollection.application.manage', 'homecollection.application.submit'];
+const OPS = operationIds(SPEC).filter((id) => !LATER_OPS.includes(id));
 const PERMS = ['homecollection.device.manage', 'homecollection.handover.receive', 'homecollection.settings.manage',
   'homecollection.sync.upload', 'homecollection.visit.assign', 'homecollection.visit.read'];
 // 02-TRD §5.1 H1..H21 + §5.2 A1..A5
@@ -58,7 +63,7 @@ describe('HC-T01 manifest', () => {
     expect([...(eventProducers().homecollection ?? [])]).toEqual(['homecollection.collection.synced.v1']);
     expect(Object.keys(manifest.ports ?? {})).toEqual([]);
     expect(manifest.claimsResolver).toBeUndefined();
-    expect(Object.keys(manifest.authResolvers ?? {})).toEqual([]);
+    expect(Object.keys(manifest.authResolvers ?? {})).toEqual(['applicantPreAuth']); // CR-C17-017; pinned in contract/phlebo-ui-full-1.test.ts
   });
 
   it('core boot validation rejects a handler set that drifts from the spec (missing and extra operationId)', () => {
@@ -78,7 +83,7 @@ describe('HC-T01 handler map (26 operationIds)', () => {
   });
 
   it('binds every operationId of homecollection.yaml to a function, and nothing else (AC-0D-1.2)', () => {
-    expect(Object.keys(manifest.handlers).filter((id) => id !== SALES1_NEW).sort()).toEqual([...OPS].sort());
+    expect(Object.keys(manifest.handlers).filter((id) => !LATER_OPS.includes(id)).sort()).toEqual([...OPS].sort());
     for (const op of OPS) expect(typeof manifest.handlers[op], op).toBe('function');
   });
 
@@ -127,8 +132,9 @@ describe('HC-T01 permissions', () => {
   };
 
   it('HOMECOLLECTION_PERMISSIONS = the 6 homecollection.* codes of contracts/permissions.yaml (no invented code, none missing), frozen', () => {
-    expect([...codes].sort()).toEqual(PERMS);
-    expect([...HOMECOLLECTION_PERMISSIONS].sort()).toEqual(PERMS);
+    expect([...codes].filter((c) => !LATER_PERMS.includes(c)).sort()).toEqual(PERMS);
+    expect([...HOMECOLLECTION_PERMISSIONS].filter((c) => !LATER_PERMS.includes(c)).sort()).toEqual(PERMS);
+    expect([...HOMECOLLECTION_PERMISSIONS].sort()).toEqual([...codes].sort()); // still: no invented code, none missing
     expect(new Set(HOMECOLLECTION_PERMISSIONS).size).toBe(HOMECOLLECTION_PERMISSIONS.length);
     expect(Object.isFrozen(HOMECOLLECTION_PERMISSIONS)).toBe(true);
   });
@@ -137,7 +143,7 @@ describe('HC-T01 permissions', () => {
     const bad: string[] = [];
     for (const [path, item] of Object.entries<any>(SPEC.paths)) {
       for (const [method, op] of Object.entries<any>(item)) {
-        if (!op?.operationId) continue;
+        if (!op?.operationId || LATER_OPS.includes(op.operationId)) continue;
         const where = `${method.toUpperCase()} ${path} (${op.operationId})`;
         const schemes = (op.security ?? []).flatMap((s: object) => Object.keys(s));
         if (schemes.length !== 1 || schemes[0] !== 'bearerJwt') bad.push(`${where}: scheme ${JSON.stringify(schemes)}`);
@@ -210,7 +216,7 @@ describe('HC-T01 boot against the real repo (default modulesDir, real homecollec
     let n = 0;
     for (const [path, item] of Object.entries<any>(SPEC.paths)) {
       for (const [method, op] of Object.entries<any>(item)) {
-        if (!op?.operationId || op.operationId === SALES1_NEW) continue;
+        if (!op?.operationId || LATER_OPS.includes(op.operationId)) continue;
         n++;
         if (!app.hasRoute({ method: method.toUpperCase() as any, url: path.replace(/\{([^}]+)\}/g, ':$1') })) unmounted.push(`${method.toUpperCase()} ${path}`);
       }
@@ -224,7 +230,7 @@ describe('HC-T01 boot against the real repo (default modulesDir, real homecollec
     const probes: { method: string; url: string }[] = [];
     for (const [path, item] of Object.entries<any>(SPEC.paths)) {
       for (const [method, op] of Object.entries<any>(item)) {
-        if (!op?.operationId || op.operationId === SALES1_NEW) continue;
+        if (!op?.operationId || LATER_OPS.includes(op.operationId)) continue;
         const requiredQuery = (op.parameters ?? []).some((p: any) => p.in === 'query' && p.required);
         if (!requiredQuery && !op.requestBody?.required) probes.push({ method: method.toUpperCase(), url: toUrl(path) });
       }

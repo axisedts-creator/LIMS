@@ -6,12 +6,12 @@
   "scripts": {
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
+    "test:unit": "vitest run --config vitest.gates.config.ts --mode unit",
+    "test:integration": "vitest run --config vitest.gates.config.ts --mode integration",
     "start": "node --import ../../tools/node-ts/register.mjs src/main.ts",
     "identity:bootstrap-platform-admin": "node --import ../../tools/node-ts/register.mjs src/modules/identity/cli/bootstrap-platform-admin.ts",
     "identity:apply-role-pack": "node --import ../../tools/node-ts/register.mjs src/modules/identity/cli/apply-role-pack.ts",
     "sweep": "node --import ../../tools/node-ts/register.mjs test-sweep/run.ts",
-    "test:unit": "vitest run --exclude \"**/*.live.test.*\" --exclude \"**/*.integration.test.*\" --exclude \"**/integration/**\" --exclude \"**/probes/**\" --exclude \"**/isolation/**\" --exclude \"**/perf/**\" --exclude \"**/e2e/**\"",
-    "test:integration": "vitest run .live.test. .integration.test. /integration/ --passWithNoTests",
     "test:isolation": "vitest run /probes/ /isolation/ --passWithNoTests"
   },
   "dependencies": {

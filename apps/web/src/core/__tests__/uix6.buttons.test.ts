@@ -78,7 +78,7 @@ const STATE_RE = /:(hover|focus-visible|focus-within|focus|active|visited)(?![\w
 const LINK_RE = /:(any-link|link)(?![\w-])/g;
 const stateOf = (p: string): State | 'other' => (p === 'hover' ? 'hover' : p === 'focus-visible' || p === 'focus' ? 'focus' : p === 'visited' ? 'visited' : 'other');
 function applies(sel: string, state: State): string | null {
-  const pseudos = [...sel.matchAll(STATE_RE)].map((m) => stateOf(m[1]));
+  const pseudos = [...sel.matchAll(STATE_RE)].map((m) => stateOf(m[1]!));
   if (pseudos.some((p) => p !== state)) return null;
   return sel.replace(STATE_RE, '').replace(LINK_RE, '');
 }
@@ -86,7 +86,7 @@ function matches(el: Element, sel: string): boolean { try { return el.matches(se
 const BOX = ['top', 'right', 'bottom', 'left'] as const;
 function box(v: string): string[] {
   const p = splitTop(v.replace(/\s+/g, ' ').trim(), ' ');
-  return p.length === 1 ? [p[0], p[0], p[0], p[0]] : p.length === 2 ? [p[0], p[1], p[0], p[1]] : p.length === 3 ? [p[0], p[1], p[2], p[1]] : p.slice(0, 4);
+  return p.length === 1 ? [p[0]!, p[0]!, p[0]!, p[0]!] : p.length === 2 ? [p[0]!, p[1]!, p[0]!, p[1]!] : p.length === 3 ? [p[0]!, p[1]!, p[2]!, p[1]!] : p.slice(0, 4);
 }
 function borderParts(v: string): { w: string; s: string; c: string } {
   let w = 'medium'; let s = 'none'; let c = 'currentcolor';
@@ -105,7 +105,7 @@ function setProp(m: Map<string, string>, prop: string, v: string) {
   else if (/^border-(top|right|bottom|left)$/.test(prop)) { const b = borderParts(v); m.set(`${prop}-width`, b.w); m.set(`${prop}-style`, b.s); m.set(`${prop}-color`, b.c); }
   else if (prop === 'border-width' || prop === 'border-style' || prop === 'border-color') box(v).forEach((x, i) => m.set(`border-${BOX[i]}-${prop.slice(7)}`, x));
   else if (prop === 'background') m.set('background-color', v);
-  else if (prop === 'text-decoration') { m.set('text-decoration-line', v.split(' ')[0]); }
+  else if (prop === 'text-decoration') { m.set('text-decoration-line', v.split(' ')[0]!); }
   else if (prop === 'outline') { const b = borderParts(v); m.set('outline-width', b.w); m.set('outline-style', b.s); m.set('outline-color', b.c); }
   else m.set(prop, v);
 }

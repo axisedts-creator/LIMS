@@ -448,7 +448,7 @@ describe('markup contract (jsdom): the class names the CSS targets exist', () =>
   const has = (c: Element, cls: string) => c.querySelector(`.${cls}`) !== null || c.classList.contains(cls);
 
   it('PageShell renders lims-shell-main (the padded, flex column page body)', () => {
-    const { container } = render(h(PageShell, { topBar: 'top', nav: 'nav' }, h('p', null, 'body')));
+    const { container } = render(h(PageShell, { topBar: 'top', nav: 'nav', children: h('p', null, 'body') }));
     const main = container.querySelector('main.lims-shell-main');
     expect(main).not.toBeNull();
     expect(main!.textContent).toBe('body');
@@ -464,7 +464,7 @@ describe('markup contract (jsdom): the class names the CSS targets exist', () =>
   });
 
   it('EmptyState renders lims-state with lims-state-art, lims-state-title and lims-state-body', () => {
-    const { container } = render(h(Card, { title: 'Parameters', caption: '0 rows' }, h(EmptyState, { title: 'No parameters yet', body: 'Add the first one.' })));
+    const { container } = render(h(Card, { title: 'Parameters', caption: '0 rows', children: h(EmptyState, { title: 'No parameters yet', body: 'Add the first one.' }) }));
     for (const c of ['lims-card', 'lims-card-head', 'lims-card-title', 'lims-card-caption', 'lims-state', 'lims-state-art', 'lims-state-title', 'lims-state-body']) expect(has(container, c), c).toBe(true);
     expect(container.querySelector('.lims-card > .lims-state')).not.toBeNull();
     expect(container.querySelector('.lims-card-head > h2.lims-card-title')).not.toBeNull();
@@ -496,9 +496,9 @@ describe('markup contract (jsdom): the class names the CSS targets exist', () =>
   it('every .lims-* class named in layout.css exists in the kit, shell.css or the rendered markup (no typo targets)', () => {
     const rendered = new Set<string>();
     const add = (el: Element) => classesOf(el).forEach((c) => rendered.add(c));
-    add(render(h(PageShell, { topBar: 'a', nav: 'b' }, 'c')).container);
+    add(render(h(PageShell, { topBar: 'a', nav: 'b', children: 'c' })).container);
     add(render(h(PageHeader, { title: 't', caption: 'c', helpKey: 'k' })).container);
-    add(render(h(Card, { title: 't', caption: 'c' }, h(EmptyState, { title: 'x', body: 'y' }))).container);
+    add(render(h(Card, { title: 't', caption: 'c', children: h(EmptyState, { title: 'x', body: 'y' }) })).container);
     add(render(h(ErrorState, { title: 'x', onRetry: noop })).container);
     add(render(h(Banner, { tone: 'danger', title: 'x', action: { label: 'r', onPress: noop } })).container);
     add(render(h(NotAvailable, { title: 'x' })).container);

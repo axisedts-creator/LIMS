@@ -20,7 +20,7 @@ import { t } from '@/core/i18n/messages';
 import { expectListScreen, expectStateInPage } from '@/features/catalog/__tests__/uilist3.helpers';
 import { API, ID, IDEM, PARTNER1, PARTNER2, PATH, TICKETS_ROUTE, THREAD_ROUTE, TK_CLO, TK_NEW, TK_REP, TM, TMANAGE, TREAD, api, isDisabled, norm, openPage, pickOption, prob, quiet, reasonOf, rowOf } from '@/features/engagement/__tests__/msgdesk1.harness';
 
-beforeAll(() => api.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => api.listen({ onUnhandledFrame: 'error' }));
 beforeEach(() => { API.reset(); TM.refresh.mockReset(); TM.push.mockClear(); TM.replace.mockClear(); });
 afterEach(() => { cleanup(); api.resetHandlers(); });
 afterAll(() => api.close());

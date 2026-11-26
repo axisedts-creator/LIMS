@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 // C5 T-29 — Lab settings screen `/lab/settings` (04-UI-UX §1 nav row `lab.config.manage` CR-C5-004, §3.13 tabs General / Delta rules / Reason codes; 02-TRD §5.8 rows 47-54, §9.1; PRD AC-12.4; 07-SECURITY S-15).
-// Real HTTP goes to LIMS_ORIGIN_API (MSW); `onUnhandledRequest: 'error'` => any call outside the handlers below fails the test.
+// Real HTTP goes to LIMS_ORIGIN_API (MSW); `onUnhandledFrame: 'error'` => any call outside the handlers below fails the test.
 // ASSUMED module/prop contract (the spec fixes the screen, not the names; the writer matches them or disputes):
 //   apps/web/src/features/lab/components/settings/LabSettingsPage.tsx   export LabSettingsPage({ permissions })   client component; `permissions: readonly string[]` — every write control needs `lab.config.manage`
 //   Tabs (role="tab"): "General" (default), "Delta rules", "Reason codes". (The "QC holds" tab belongs to the QC task and is not pinned here.)

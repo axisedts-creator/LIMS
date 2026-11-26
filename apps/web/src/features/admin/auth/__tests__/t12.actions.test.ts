@@ -296,7 +296,7 @@ describe('logoutAction (AU-6, 03-APP-FLOW §3.6)', () => {
 
 // every API call the auth actions make must target /v1/identity/auth/* only (never GoTrue, never a caller-chosen host)
 describe('transport', () => {
-  it('only ever calls LIMS_ORIGIN_API under /v1/identity/auth/ (msw onUnhandledRequest=error would fail otherwise)', async () => {
+  it('only ever calls LIMS_ORIGIN_API under /v1/identity/auth/ (msw onUnhandledFrame=error would fail otherwise)', async () => {
     reply['/login'] = ok('active');
     await run(() => A.loginStaffAction(LOGIN));
     for (const s of seen) expect(s.path.startsWith(AUTH + '/')).toBe(true);

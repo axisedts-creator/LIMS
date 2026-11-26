@@ -11,7 +11,7 @@ import { checkReply } from '../../../worker/src/jobs/reporting/tasks/process_inp
 import { STAMP } from '../../../worker/src/jobs/reporting/tasks/render_report_version.js';
 import { createPool } from '../pool.js';
 import { startServer as startSandbox } from '../sandbox/server.js';
-import { startServer as startRenderer } from '../server.js';
+import { startFromEnv, startServer as startRenderer } from '../server.js';
 import { makeConfig, makeDoc } from '../templates/__tests__/fixtures.js';
 import { loadRegistry } from '../templates/registry.js';
 import { norm, pdfPages } from './helpers/pdf-text.js';
@@ -26,9 +26,14 @@ let renderer: Awaited<ReturnType<typeof startRenderer>>;
 let sandbox: Awaited<ReturnType<typeof startSandbox>>;
 let dir: string;
 let clients: ReturnType<typeof createReportingClients>;
+// Container mode: with LIMS_E2E_RENDERER_URL / LIMS_E2E_SANDBOX_URL / LIMS_E2E_RENDERER_TOKEN_FILE / LIMS_E2E_SANDBOX_TOKEN_FILE set, the same
+// cases run against already running services (the images of Dockerfile.renderer / Dockerfile.sandbox) and nothing is started in-process.
+const EXT = process.env['LIMS_E2E_RENDERER_URL'] && process.env['LIMS_E2E_SANDBOX_URL'] && process.env['LIMS_E2E_RENDERER_TOKEN_FILE'] && process.env['LIMS_E2E_SANDBOX_TOKEN_FILE']
+  ? { rendererUrl: process.env['LIMS_E2E_RENDERER_URL']!, sandboxUrl: process.env['LIMS_E2E_SANDBOX_URL']!, rendererTokenFile: process.env['LIMS_E2E_RENDERER_TOKEN_FILE']!, sandboxTokenFile: process.env['LIMS_E2E_SANDBOX_TOKEN_FILE']! }
+  : undefined;
 const env = (over: Record<string, string> = {}) => ({
-  LIMS_REPORTING_RENDERER_URL: renderer.url, LIMS_REPORTING_RENDERER_TOKEN_FILE: join(dir, 'renderer'),
-  LIMS_REPORTING_SANDBOX_URL: sandbox.url, LIMS_REPORTING_SANDBOX_TOKEN_FILE: join(dir, 'sandbox'), ...over,
+  LIMS_REPORTING_RENDERER_URL: EXT?.rendererUrl ?? renderer.url, LIMS_REPORTING_RENDERER_TOKEN_FILE: EXT?.rendererTokenFile ?? join(dir, 'renderer'),
+  LIMS_REPORTING_SANDBOX_URL: EXT?.sandboxUrl ?? sandbox.url, LIMS_REPORTING_SANDBOX_TOKEN_FILE: EXT?.sandboxTokenFile ?? join(dir, 'sandbox'), ...over,
 });
 
 beforeAll(async () => {
@@ -36,9 +41,11 @@ beforeAll(async () => {
   writeFileSync(join(dir, 'renderer'), `${RENDER_TOKEN}\n`);
   writeFileSync(join(dir, 'sandbox'), `${SANDBOX_TOKEN}\n`);
   writeFileSync(join(dir, 'wrong'), 'not-the-token-0123456789abcdef0123456789\n');
-  pool = await createPool({ contexts: 2 });
-  renderer = await startRenderer({ pool, token: RENDER_TOKEN, port: 0, host: '127.0.0.1', registry: await loadRegistry() });
-  sandbox = await startSandbox({ token: SANDBOX_TOKEN, workDir: join(dir, 'work') });
+  if (!EXT) {
+    pool = await createPool({ contexts: 2 });
+    renderer = await startRenderer({ pool, token: RENDER_TOKEN, port: 0, host: '127.0.0.1', registry: await loadRegistry() });
+    sandbox = await startSandbox({ token: SANDBOX_TOKEN, workDir: join(dir, 'work') });
+  }
   clients = createReportingClients(env());
 });
 afterAll(async () => {
@@ -82,6 +89,31 @@ describe('worker clients against the real renderer and PDF sandbox', () => {
   it('an unknown template is a permanent template_invalid or a retryable render_unavailable, never a PDF', async () => {
     const e = await clients.renderer.render({ ...renderReq(), template_id: 'no-such-template' }).then(() => undefined, (x: { code?: string }) => x);
     expect(['reporting.template_invalid', 'reporting.render_unavailable']).toContain(e?.code);
+  });
+
+  it('50 simultaneous renders (pool of 2 contexts): each is a correct PDF or a retryable render_unavailable, and the renderer still serves afterwards', async () => {
+    const one = await clients.renderer.render(renderReq());
+    const started = Date.now();
+    const out = await Promise.all(Array.from({ length: 50 }, () => clients.renderer.render(renderReq()).then((r) => ({ ok: r }), (e: { code?: string }) => ({ err: e?.code }))));
+    const ok = out.flatMap((o) => ('ok' in o ? [o.ok] : []));
+    const errs = out.flatMap((o) => ('err' in o ? [o.err] : []));
+    // A saturated pool answers 503 -> render_unavailable (the queue retries, 02-TRD §5.1). Nothing else is acceptable: no hang, no other code, no bad PDF.
+    expect(new Set(errs).size === 0 || [...new Set(errs)].every((c) => c === 'reporting.render_unavailable')).toBe(true);
+    expect(ok.length).toBeGreaterThan(0);
+    for (const r of ok) {
+      expect(Buffer.from(r.pdf.slice(0, 5)).toString()).toBe('%PDF-');
+      expect(r.pageCount).toBe(one.pageCount);
+    }
+    console.log(`50 concurrent renders: ${ok.length} ok, ${errs.length} render_unavailable, ${Date.now() - started} ms`);
+    expect((await clients.renderer.render(renderReq())).pageCount).toBe(one.pageCount);   // recovered
+  });
+
+  it('the process entry path (startFromEnv) serves the report templates: lab-report renders, it is not an unknown template', async () => {
+    const srv = await startFromEnv({ LIMS_RENDERER_TOKEN_FILE: join(dir, 'renderer') }, { port: 0, host: '127.0.0.1' });
+    try {
+      const c = createReportingClients(env({ LIMS_REPORTING_RENDERER_URL: srv.url }));
+      expect((await c.renderer.render(renderReq())).pageCount).toBeGreaterThanOrEqual(1);
+    } finally { await srv.close(); await srv.pool.close(); }
   });
 
   it('a wrong token is refused by both services (401): coded failure, the token never in the error', async () => {

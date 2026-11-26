@@ -32,7 +32,7 @@ const newKey = () => crypto.randomUUID();
 const GONE = ['removed', 'cancelled'];
 const PRIORITIES = [{ value: 'routine', label: 'Routine' }, { value: 'urgent', label: 'Urgent' }] as const;
 const SCAN_TEXT: Record<string, string> = { clean: 'Clean', pending: 'Scan pending', quarantined: 'File rejected by security scan' };
-const BASIS_TEXT = (eligible: boolean, basis: string) => `Report release: ${eligible ? 'eligible' : 'not eligible'} — ${humanize(basis)}`;
+const BASIS_TEXT = (eligible?: boolean, basis?: string) => `Report release: ${eligible ? 'eligible' : 'not eligible'} — ${humanize(basis)}`;
 
 export function OrderView({ order, billing, permissions, cancelReasons, removalReasons, catalogOptions }: { order: Order; billing: OrderBilling | null; permissions: readonly string[]; cancelReasons: readonly Coded[]; removalReasons: readonly Coded[]; catalogOptions: readonly CatalogOption[] }) {
   const router = useRouter();
@@ -172,10 +172,12 @@ export function OrderView({ order, billing, permissions, cancelReasons, removalR
 
 function BillingTab({ billing, permissions, onPay }: { billing: OrderBilling; permissions: readonly string[]; onPay: () => void }) {
   const b = billing.balance;
+  const eligible = billing.eligibility.eligible ?? billing.eligibility.release_eligible ?? false;
+  const basis = billing.eligibility.basis ?? billing.eligibility.release_basis ?? '';
   return (
     <>
       <p>Invoiced {npr(b.invoiced)} · Paid {npr(b.paid)} · Credited {npr(b.credited)} · Balance due <strong>{npr(b.balance_due)}</strong></p>
-      <p>{BASIS_TEXT(billing.eligibility.release_eligible, billing.eligibility.release_basis)}</p>
+      <p>{BASIS_TEXT(eligible, basis)}</p>
       {hasPerm(permissions, 'billing.payment.record') ? <Button variant="primary" onPress={onPay}>Record payment</Button> : null}
       {/* Printing and copies live on the invoice page (billing.invoice.reprint is enforced there). */}
       <DataTable

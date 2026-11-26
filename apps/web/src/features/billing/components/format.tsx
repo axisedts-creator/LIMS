@@ -40,8 +40,9 @@ export function amountInWords(paisa: number): string {
   return `${r} Rupees${ps ? ` and ${below100(ps)} Paisa` : ''} Only`;
 }
 
-export const humanize = (code: string) => {
-  const s = code.replace(/_/g, ' ');
+export const humanize = (code?: string | null) => {
+  if (!code) return '—';
+  const s = String(code).replace(/_/g, ' ');
   return s.charAt(0).toUpperCase() + s.slice(1);
 };
 

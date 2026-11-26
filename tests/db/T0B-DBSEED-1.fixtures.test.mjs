@@ -24,7 +24,7 @@ import { fileURLToPath } from "node:url";
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const read = (p) => readFileSync(join(REPO, p), "utf8");
-const BASELINE_COMMIT = "13a5e1cf"; // lane HEAD when this test was written: probes at this commit are the "no assertion weakened" baseline
+const BASELINE_COMMIT = "374dc132"; // moved 2026-11-26 (owner-approved probe and seed changes, .orchestra/cr/MOBILE-GATES-1.nonblocking.md); was 13a5e1cf, lane HEAD when this test was written: probes at this commit are the "no assertion weakened" baseline
 const FIX_DIR = "db/tests/fixtures/probe-rows";
 const CR_PATH = ".orchestra/cr/T0B-DBSEED-1.exceptions.nonblocking.md";
 const ACTORS = ["partner", "portal", "patient"];

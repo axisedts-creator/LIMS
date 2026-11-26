@@ -15,6 +15,7 @@
 /apps/partner/** @lims/c13
 /eslint.config.* @lims/c0-0a
 /tools/codegen/** @lims/c0-0c
+/tools/test-env/** @lims/c0-0a
 /tools/devstack/** @lims/c0-0a
 /packages/fakes/** @lims/c0-0c
 /apps/phlebo_app/** @lims/c17
@@ -56,6 +57,7 @@
 /apps/web/tests/e2e/admin/** @lims/c2
 /apps/web/tests/e2e/micro/** @lims/c10
 /apps/web/src/features/lab/** @lims/c5
+/services/api/src/__tests__/** @lims/c0-0d
 /apps/web/src/app/(display)/** @lims/c16
 /apps/web/tests/e2e/catalog/** @lims/c3
 /apps/web/tests/e2e/billing/** @lims/c4
@@ -175,6 +177,7 @@
 /apps/web/src/app/layout.tsx @lims/c0-0d
 /services/worker/package.json @lims/c0-0d
 /apps/web/src/app/manifest.ts @lims/c0-0d
+/services/api/vitest.config.ts @lims/c0-0d
 /services/worker/tsconfig.json @lims/c0-0d
 /apps/web/src/next-assets.d.ts @lims/c0-0d
 /services/worker/vitest.config.ts @lims/c0-0d

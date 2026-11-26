@@ -161,6 +161,9 @@ jobs:
         name: dev stack
         run: pnpm dev:up --ci
       - if: steps.plan.outputs.run == 'true'
+        name: test database logins for the suites (masked; tools/test-env/live-db.ts maps them per module)
+        run: node tools/devstack/test-env.ts --github-env "$GITHUB_ENV"
+      - if: steps.plan.outputs.run == 'true'
         name: integration tests (gate 4)
         run: |
           mkdir -p "$RUNNER_TEMP/logs"
@@ -346,6 +349,9 @@ jobs:
       - if: steps.plan.outputs.run == 'true'
         name: dev stack
         run: pnpm dev:up --ci
+      - if: steps.plan.outputs.run == 'true'
+        name: test database logins for the suites (masked; tools/test-env/live-db.ts maps them per module)
+        run: node tools/devstack/test-env.ts --github-env "$GITHUB_ENV"
       - if: steps.plan.outputs.run == 'true'
         name: db/tests suites + API probes (gate 10)
         run: pnpm turbo run test:isolation

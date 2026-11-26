@@ -29,6 +29,8 @@ rules:
     owner: C0-0A
   - pattern: ".prettierignore"
     owner: C0-0A
+  - pattern: "tools/test-env/**"
+    owner: C0-0A
   - pattern: ".nvmrc"
     owner: C0-0A
   - pattern: "turbo.json"
@@ -79,6 +81,10 @@ rules:
   - pattern: "services/worker/package.json"
     owner: C0-0D
   - pattern: "services/worker/vitest.config.ts"
+    owner: C0-0D
+  - pattern: "services/api/vitest.config.ts"
+    owner: C0-0D
+  - pattern: "services/api/src/__tests__/**"
     owner: C0-0D
   - pattern: "services/worker/tsconfig.json"
     owner: C0-0D

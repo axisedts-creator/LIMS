@@ -3,5 +3,6 @@
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
-  test: { testTimeout: 30000, hookTimeout: 30000 },
+  // setupFiles: per-module LIMS_TEST_* database URLs in CI; does nothing unless LIMS_CI_DB_* are set (tools/test-env/live-db.ts)
+  test: { testTimeout: 30000, hookTimeout: 30000, setupFiles: ['../../tools/test-env/vitest.setup.ts'] },
 });

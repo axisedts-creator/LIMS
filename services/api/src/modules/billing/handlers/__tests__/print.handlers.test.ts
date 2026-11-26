@@ -19,7 +19,7 @@ import { handlers } from '../index.js';
 
 const V7 = (n: string) => `01a1a98a-ac40-7000-8000-${n}`;
 const INV = V7('0000000a0001'), CN = V7('0000000c0001');
-const hctx = (extra: Record<string, unknown> = {}) => ({ operationId: 'x', clientIp: '203.0.113.9', log: { info() {}, warn() {}, error() {} }, ...makeCtxFor()('A'), ...extra }) as never;
+const hctx = (extra: Record<string, unknown> = {}) => ({ operationId: 'x', clientIp: '203.0.113.9', log: { info() {}, warn() {}, error() {} }, ...makeCtxFor()('A', { ports: { IdentityPort: { assertRole: async () => undefined } } } as never), ...extra }) as never;
 const req = (o: { params?: unknown; query?: unknown; headers?: unknown; body?: unknown } = {}) => ({ params: {}, query: {}, headers: {}, body: undefined, ...o }) as never;
 const run = (op: string, r: unknown, c: unknown) => (handlers as any)[op](r, c);
 const fail = async (p: Promise<unknown>) => { try { await p; } catch (e) { return e as any; } throw new Error('expected rejection'); };

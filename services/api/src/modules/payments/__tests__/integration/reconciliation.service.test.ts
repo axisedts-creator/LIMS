@@ -20,7 +20,7 @@ let h: PortHarness;
 let svc: ReturnType<typeof createReconciliationService>;
 const ctxOpts = (tenant: string, now: number) => ({ tenantId: tenant, now: () => new Date(now) });
 const call = <T>(fn: (ctx: any) => Promise<T>, tenant: string = A, now: number = CRON_AT): Promise<T> =>
-  h.db.run((c) => fn({ ...c, ports: h.ports }), ctxOpts(tenant, now));
+  h.db.run((c) => fn({ ...c, ports: { ...c.ports, ...h.ports } }), ctxOpts(tenant, now));
 const err = async (p: Promise<unknown>): Promise<any> => p.then(() => { throw new Error('expected rejection'); }, (e) => e);
 const runRow = (n: number, o: Record<string, unknown> = {}) => h.db.put('payments.reconciliation_runs', { id: RUN(n), tenant_id: A, business_date: '2026-11-10', trigger: 'cron', status: 'completed',
   started_at: new Date(T('2026-11-10T20:40:00Z')), finished_at: new Date(T('2026-11-10T20:50:00Z')), checked_count: 4, ok_count: 3, findings_count: 1, critical_count: 1, created_by: A, updated_by: A, ...o });
@@ -309,7 +309,7 @@ describe('P16 resolveReconciliationFinding — payments.intent.resolve + reason,
   });
 
   it('a non user/system actor is refused before any state read', async () => {
-    const e = await err(h.db.run((c) => svc.resolveReconciliationFinding({ ...c, ports: h.ports, actor: { type: 'service', id: A } }, { findingId: FND(1), expectedVersion: 1, body: { resolution_code: 'confirmed_ok' } }), ctxOpts(A, CRON_AT)));
+    const e = await err(h.db.run((c) => svc.resolveReconciliationFinding({ ...c, ports: { ...c.ports, ...h.ports }, actor: { type: 'service', id: A } }, { findingId: FND(1), expectedVersion: 1, body: { resolution_code: 'confirmed_ok' } }), ctxOpts(A, CRON_AT)));
     expect(e.code).toBe('auth.forbidden');
     expect(h.db.findings(A)[0]!.status).toBe('open');
   });

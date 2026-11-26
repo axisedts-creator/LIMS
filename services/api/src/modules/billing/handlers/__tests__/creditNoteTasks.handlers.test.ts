@@ -30,7 +30,7 @@ function fakeTx(rows: Array<Record<string, any>>) {
     },
   };
 }
-const hctx = (tx: unknown, tenant: 'A' | 'B' = 'A') => ({ operationId: 'x', clientIp: '203.0.113.9', log: { info() {}, warn() {}, error() {} }, ...makeCtxFor()(tenant, { tx } as never) }) as never;
+const hctx = (tx: unknown, tenant: 'A' | 'B' = 'A') => ({ operationId: 'x', clientIp: '203.0.113.9', log: { info() {}, warn() {}, error() {} }, ...makeCtxFor()(tenant, { tx, ports: { IdentityPort: { assertRole: async () => undefined } } } as never) }) as never;
 const req = (o: { params?: unknown; query?: unknown; headers?: unknown; body?: unknown } = {}) => ({ params: {}, query: {}, headers: {}, body: undefined, ...o }) as never;
 const run = (op: 'cancelInvoice' | 'issuePartialCreditNote' | 'listCreditNoteTasks', r: unknown, c: unknown) => (handlers[op] as any)(r, c);
 const fail = async (p: Promise<unknown>) => { try { await p; } catch (e) { return e as any; } throw new Error('expected rejection'); };

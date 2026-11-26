@@ -33,7 +33,7 @@ function fakeTx() {
 }
 const hctx = (extra: Record<string, unknown> = {}) => ({
   operationId: 'x', clientIp: '203.0.113.9', log: { info() {}, warn() {}, error() {} },
-  ...makeCtxFor()('A', { ports: { IdentityPort: { getTenantSettings: async () => ({ numbering: { invoiceNoPattern: '{fy}-{seq:6}' } }) } } as never }), ...extra,
+  ...makeCtxFor()('A', { ports: { IdentityPort: { assertRole: async () => undefined, getTenantSettings: async () => ({ numbering: { invoiceNoPattern: '{fy}-{seq:6}' } }) } } as never }), ...extra,
 }) as never;
 const req = (o: { params?: unknown; query?: unknown; headers?: unknown; body?: unknown } = {}) => ({ params: {}, query: {}, headers: {}, body: undefined, ...o }) as never;
 const run = (op: 'getBillingSettings' | 'updateBillingSettings' | 'listBillingCodes', r: unknown, c: unknown) => (handlers[op] as any)(r, c);

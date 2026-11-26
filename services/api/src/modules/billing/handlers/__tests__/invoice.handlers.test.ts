@@ -68,7 +68,7 @@ const A = makeCtxFor()('A').tenantId as string;
 const B = makeCtxFor()('B').tenantId as string;
 const hctx = (extra: Record<string, unknown> = {}, tenant: 'A' | 'B' = 'A') => ({
   operationId: 'x', clientIp: '203.0.113.9', log: { info() {}, warn() {}, error() {} },
-  ...makeCtxFor()(tenant, { ports: { IdentityPort: { getTenantSettings: async () => ({ releaseRequiresPayment: false }) } } as never }), ...extra,
+  ...makeCtxFor()(tenant, { ports: { IdentityPort: { assertRole: async () => undefined, getTenantSettings: async () => ({ releaseRequiresPayment: false }) } } as never }), ...extra,
 }) as never;
 const req = (o: { params?: unknown; query?: unknown; headers?: unknown; body?: unknown } = {}) => ({ params: {}, query: {}, headers: {}, body: undefined, ...o }) as never;
 type Op = 'listInvoices' | 'getInvoice' | 'getOrderBilling' | 'listInvoicePrints';

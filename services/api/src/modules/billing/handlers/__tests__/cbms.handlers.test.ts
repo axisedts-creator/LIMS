@@ -15,7 +15,7 @@ const req = (op: (typeof OPS)[number], over: Record<string, unknown> = {}) => ({
   params: op === 'retryCbmsDocument' ? { document_kind: 'invoice', document_id: DOC } : {}, query: {}, headers: { 'idempotency-key': 'bl14-h-1' }, body: undefined, ...over }) as never;
 const fail = async (p: Promise<unknown>) => { try { await p; } catch (e) { return e as any; } throw new Error('expected rejection'); };
 const run = (op: (typeof OPS)[number], r: unknown, c: unknown) => (handlers[op] as any)(r, c);
-const emptyCtx = () => ({ operationId: 'x', clientIp: '203.0.113.9', log: { info() {}, warn() {}, error() {} }, ...makeCtxFor()('A', { tx: { async query() { return { rows: [] }; } } } as never) }) as never;
+const emptyCtx = () => ({ operationId: 'x', clientIp: '203.0.113.9', log: { info() {}, warn() {}, error() {} }, ...makeCtxFor()('A', { tx: { async query() { return { rows: [] }; } }, ports: { IdentityPort: { assertRole: async () => undefined } } } as never) }) as never;
 
 describe('B30 / B31 are real handlers, not the BL-T01 stub (REQ-SEC-099)', () => {
   for (const op of OPS) {

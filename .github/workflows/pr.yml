@@ -68,7 +68,7 @@ jobs:
       - name: dart analyze on changed Dart packages
         run: |
           for d in packages/shared-dart apps/phlebo_app; do
-            if [ -f "$d/pubspec.yaml" ] && grep -q "^$d/" "$RUNNER_TEMP/changed.txt"; then (cd "$d" && dart analyze); fi
+            if [ -f "$d/pubspec.yaml" ] && grep -q "^$d/" "$RUNNER_TEMP/changed.txt"; then (cd "$d" && flutter pub get && dart analyze); fi
           done
       - name: go vet when apps/bridge-agent/** changed
         run: if grep -q "^apps/bridge-agent/" "$RUNNER_TEMP/changed.txt"; then (cd apps/bridge-agent && go vet ./...); fi

@@ -178,6 +178,7 @@ func metaOf(t *testing.T, in queue.ItemInput) map[string]any {
 
 var errBoom = errors.New("boom")
 
+//lint:ignore U1000 used only by windows_integration_test.go (build tag windows)
 func cfgMove(r *rig) filedrop.Config {
 	return filedrop.Config{InstrumentID: instID, Folder: r.dir, MoveAfterCapture: true, CapturedSubdirectory: "captured"}
 }

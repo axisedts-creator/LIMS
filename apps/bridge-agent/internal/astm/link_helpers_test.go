@@ -40,7 +40,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"os"
 	"path/filepath"
 	"sync"
 	"sync/atomic"
@@ -279,5 +278,3 @@ func (r *lkRig) rawExec(q string) {
 		r.t.Fatalf("raw exec %q: %v", q, err)
 	}
 }
-
-func lkExists(path string) bool { _, err := os.Stat(path); return err == nil }

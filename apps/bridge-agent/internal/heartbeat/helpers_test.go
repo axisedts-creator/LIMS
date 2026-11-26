@@ -32,7 +32,6 @@ package heartbeat_test
 
 import (
 	"context"
-	"encoding/json"
 	"strings"
 	"sync"
 	"testing"
@@ -268,17 +267,4 @@ func (r *rig) results(i int) []heartbeat.CommandResult {
 		r.t.Fatalf("only %d heartbeats sent, wanted index %d", len(r.snd.reports), i)
 	}
 	return r.snd.reports[i].CommandResults
-}
-
-func mustJSON(t *testing.T, v any) map[string]any {
-	t.Helper()
-	b, err := json.Marshal(v)
-	if err != nil {
-		t.Fatal(err)
-	}
-	var m map[string]any
-	if err := json.Unmarshal(b, &m); err != nil {
-		t.Fatal(err)
-	}
-	return m
 }

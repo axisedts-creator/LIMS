@@ -271,17 +271,17 @@ func connectProxy(t *testing.T, mode string) (url string, connects *atomic.Int32
 	connects = new(atomic.Int32)
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodConnect {
-			http.Error(w, "connect only", 405)
+			http.Error(w, "connect only", http.StatusMethodNotAllowed)
 			return
 		}
 		connects.Add(1)
 		if mode == "502" {
-			http.Error(w, "bad gateway", 502)
+			http.Error(w, "bad gateway", http.StatusBadGateway)
 			return
 		}
 		up, err := net.Dial("tcp", r.Host)
 		if err != nil {
-			http.Error(w, err.Error(), 502)
+			http.Error(w, err.Error(), http.StatusBadGateway)
 			return
 		}
 		hj := w.(http.Hijacker)

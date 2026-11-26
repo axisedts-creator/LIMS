@@ -17,3 +17,5 @@ is any one fixture actor. Neither is in this task's scope (LD-233 RULES: no spec
 Backward compatible? yes. Tenant/security impact: none (tests only; synthetic rows; REQ-SEC-041/136).
 Alternatives considered: more centres (core preamble rows are byte-frozen by the "no assertion weakened" baseline); disabling the key (forbidden).
 Tests that will prove it: tests/db/T0B-DBSEED-1.fixtures.test.mjs; founder rerun `LIMS_SKIP_GEN=1 bash db/tests/run-suites.sh <probe files>`.
+
+Status 2026-11-26 (owner-approved, option (b) in effect): the generator now emits the tenant A / B rows of these three tables and skips only the actor-owned rows that cannot exist; the probe drops that actor's step-1 precondition and step 9 asserts the tenant boundary for it. The entries above stay as the record of WHY no actor-owned row exists; tests/db/T0B-DBSEED-1.fixtures.test.mjs reads them as "actor rows impossible", not "no rows".

@@ -318,7 +318,8 @@ describe("AC-0B-3.1..3.7 / LD-233: fixtures exist (done_when: every table has ro
     const bad = [];
     for (const [t, why] of EX.tables) {
       if (why.length < 25) bad.push(`${t}: reason too short ('${why}')`);
-      if (covered(t)) bad.push(`${t}: listed as an exception but also has fixture rows`);
+      // 2026-11-26: an excepted table keeps its tenant rows; the exception covers only actor-owned rows that cannot exist. It is stale once every actor has a row.
+      if (covered(t) && META[t]?.shared_with?.length && ACTORS.every((a) => has(rowsOf(t), ownOf(t), idLit(SUBS[a])))) bad.push(`${t}: listed as an exception but every step-9 actor has a fixture row`);
     }
     none(bad);
     assert.ok(EX.tables.size <= Math.floor(PROBED.length * 0.1), `${EX.tables.size} exceptions > 10% of ${PROBED.length}: a table may be excepted only when no valid synthetic row can be built without disabling a constraint`);
@@ -386,6 +387,7 @@ describe("AC-0B-3.2/3.5/3.6: per-table fixture content (tenant A, tenant B, cent
     const bad = [];
     for (const t of testable.filter((x) => META[x].shared_with?.length)) {
       const oc = ownOf(t), rows = rowsOf(t);
+      if (EX.tables.has(t)) continue; // actor-owned rows impossible (exceptions CR, with the reason); the probe asserts the tenant boundary for those actors
       for (const a of ACTORS) if (!has(rows, oc, idLit(SUBS[a]))) bad.push(`${t}: no row with ${oc} = ${idLit(SUBS[a])} (${a} fixture actor)`);
     }
     none(bad);

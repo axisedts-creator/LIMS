@@ -398,14 +398,34 @@ export function ResultGrid({ data, analytes = {}, permissions, patientId, return
     setResults((p) => ({ ...p, ...Object.fromEntries(ok.filter((id) => p[id]).map((id) => [id, { ...p[id]!, status, version: p[id]!.version + 1 }])) }));
     setErrors((p) => ({ ...Object.fromEntries(Object.entries(p).filter(([id]) => !ok.includes(id))), ...Object.fromEntries(rows.filter((x) => x.outcome === 'error').map((x) => [x.id, actionError(x.code)])) }));
     setSelected((p) => new Set([...p].filter((id) => !ok.includes(id))));
-    if (ok.length) { toast.show({ tone: 'success', title: `${word} ${ok.length}.` }); router.refresh(); }
+    if (ok.length) { toast.show({ tone: 'success', title: `${word} ${ok.length}.` }); onSaved?.(); router.refresh(); }
   }
 
+  const allApproved = rowsInfo.length > 0 && rowsInfo.every(({ r }) => r.status === 'approved');
+
   // ── approve (Alt+A): selected verified or resulted rows; 403 auth.mfa_required → "Verify now" → same request, same key
-  async function approve() {
+  async function approve(fromClick = false) {
     if (!canApprove || busyRef.current) return;
-    const items: VerifyItem[] = rowsInfo.filter(({ r }) => selected.has(r.id) && (r.status === 'verified' || r.status === 'resulted')).map(({ r }) => ({ id: r.id, version: r.version }));
-    if (items.length === 0) return;
+    if (allApproved) {
+      toast.show({ tone: 'info', title: 'All results for this sample are already approved.' });
+      return;
+    }
+    let candidateRows = rowsInfo.filter(({ r }) => selected.has(r.id) && (r.status === 'verified' || r.status === 'resulted'));
+    if (candidateRows.length === 0 && fromClick) {
+      candidateRows = rowsInfo.filter(({ r }) => r.status === 'verified' || r.status === 'resulted');
+    }
+    if (candidateRows.length === 0) {
+      if (fromClick) {
+        const hasPending = rowsInfo.some(({ r }) => r.status === 'pending');
+        if (hasPending) {
+          toast.show({ tone: 'neutral', title: 'Results must be entered and verified before approval.' });
+        } else {
+          toast.show({ tone: 'neutral', title: 'No results are ready for approval.' });
+        }
+      }
+      return;
+    }
+    const items: VerifyItem[] = candidateRows.map(({ r }) => ({ id: r.id, version: r.version }));
     if (items.length > MAX_BATCH) { setBanner({ kind: 'error', text: `Approve at most ${MAX_BATCH} results at a time.` }); return; }
     const sig = JSON.stringify(items);
     if (approveJob.current?.sig !== sig) approveJob.current = { sig, key: newKey(), items };
@@ -415,6 +435,7 @@ export function ResultGrid({ data, analytes = {}, permissions, patientId, return
       if (!r.ok) { setBanner(r.status === 403 && r.code === 'auth.mfa_required' ? { kind: 'mfa', text: MFA } : { kind: 'error', text: actionError(r.code) }); if (!(r.status === 403 && r.code === 'auth.mfa_required')) approveJob.current = null; return; }
       approveJob.current = null;
       applyOutcome(r.data, 'approved', 'Approved');
+      onSaved?.();
     } finally { busyRef.current = false; setBusy(false); }
   }
   async function verifyNow() {
@@ -612,7 +633,15 @@ export function ResultGrid({ data, analytes = {}, permissions, patientId, return
       <div role="toolbar" aria-label="Result actions">
         {canEnter ? <Button variant="primary" isLoading={busy} onPress={() => void save()}>Save</Button> : null}
         {canEnter && canVerify ? <Button isDisabled={busy} onPress={() => void saveAndVerify(focusedRow.current)}>Save &amp; verify</Button> : null}
-        {canApprove ? <Button isDisabled={busy} onPress={() => void approve()}>Approve</Button> : null}
+        {canApprove ? (
+          <Button
+            variant={allApproved ? 'secondary' : 'primary'}
+            isDisabled={busy || allApproved}
+            onPress={() => void approve(true)}
+          >
+            {allApproved ? 'Approved ✓' : 'Approve'}
+          </Button>
+        ) : null}
         {canVerify ? <Button variant="ghost" onPress={() => { const r = focusedResult(); if (r?.status === 'verified') setModal({ kind: 'return', id: r.id }); }}>Return</Button> : null}
         {canAmend ? <Button variant="ghost" onPress={() => { const r = focusedResult(); if (r?.status === 'approved') setModal({ kind: 'amend', id: r.id }); }}>Amend</Button> : null}
       </div>

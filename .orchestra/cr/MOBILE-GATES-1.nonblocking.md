@@ -59,6 +59,13 @@ Tenant/security impact: none (no new surface). With (1) the refused mutation is 
 Alternatives considered: leaving it — a device can be recovered only by reinstalling, which loses unsynced collections.
 Tests that will prove it: api homecollection sync test: a batch of 3 with the middle payload invalid -> 200, outcomes applied / rejected(common.validation_failed) / applied; phlebo `sync_engine_push_test.dart`: a pre-existing invalid row no longer leaves the engine `blocked`.
 
+Status 2026-11-26 (checked, NOT implemented): option (1) cannot be done in services/api alone.
+ - core/openapi.ts validates the request body with ajv against contracts/openapi/homecollection.yaml before the handler runs; `Mutation` is a `oneOf` of 9 variants, each with a closed typed `payload` (`additionalProperties: false`). A payload that fails its type matches no branch, so the batch is a 400 before sync.service.ts sees it.
+ - Option (1) therefore needs: `payload` loosened in the 9 variants (against lint rule 3 of tools/codegen/lint-openapi.ts and REQ-SEC-080 closed schemas; a lead decision like LD-119), `pnpm codegen`, the payload pins of tools/codegen/__tests__/c17-openapi.test.ts changed, and spec text changed: C17 02-TRD §6.3 step 1 (validate envelope (spec)), 03-APP-FLOW (only `common.not_found` is kept out of `mutations`), 05-SCHEMA (`unresolved_mutations` comment).
+ - One case does reach the service today: an out-of-range gps lat/lon (`parseGps` in sync.service.ts) throws the same batch-level 400.
+ - Device: no change needed; `rejected` is already terminal in outbox_repository.dart.
+ Decision needed from C17 / C0-0C: accept an open `payload` in the request schema with per-type validation in the service, or keep closed schemas and take option (2) (client drops or quarantines the offending row).
+
 ---
 
 Title: CR-C17-MOBILE-GATES-1-f: the renderer image (services/renderer/Dockerfile.renderer) cannot be built
@@ -110,3 +117,18 @@ Proposed change (exact): tester: (2) assert the two halves or make the helper jo
 Backward compatible? yes
 Tenant/security impact: none
 Tests that will prove it: the three files pass inside the renderer image.
+
+Status 2026-11-26 of entries a-d, g, h (branch `fix/owner-items`): `bash db/tests/run-suites.sh` on the regenerated probes: 572 suites, 72 `not ok` in 32 suites (before: 293 in 76), 0 psql failures, no suite newly failing.
+ Changed in db/tools/gen-isolation-probes.ts (all 478 probes regenerated):
+ - a read that RLS should hide expects `n=0` when the role holds SELECT (table or column level) and `E42501` when it holds none (migration_staging.*); same in T0B-08_step9_fixed.test.sql;
+ - INSERT probes (steps 3/5/8) and the FK probe (step 6) run with the table's user triggers disabled in a rolled-back subtransaction (RLS and RI triggers stay on), so the refusal must come from RLS or the FK;
+ - step 6 runs `SET CONSTRAINTS ALL IMMEDIATE` (homecollection.mutations deferred FK now refuses);
+ - partner-shared tables with a `partner_id` column are compared by partner (the policy's own predicate), with a precondition that a row of another partner of tenant A exists;
+ - the six engagement tables that patients read by design (C16 05-SCHEMA §5.2 ANY_T, portal_content) assert 0 rows of another tenant for patient claims (generator constant PATIENT_TENANT_READ); policies unchanged.
+ Also: db/tests/policy schema test 24 names `portal_content__select__patient` as an exact exception (must keep the tenant predicate and admit only the patient actor type); db/tests/seeds/_expected.sql regenerated from contracts/permissions.yaml.
+ Checked and deliberately NOT changed (each would remove something in use or hide an open question):
+ - patient SELECT on engagement.settings / number_counters / cs_* / portal_content: read in the patient's own transaction by sign-in, booking, enquiries, linking, payments;
+ - DELETE on partners.manifest_lines: M7 deleteManifestLine of the partner portal (open CR T0B-13.C13-manifest-lines-delete);
+ - db/seeds/010_core__synthetic_tenants.sql: 61 role-permission pairs behind permissions.yaml, but the file is applied to staging and pinned by T0B-DBSEED-1 — with it unchanged, seeds test 12 fails (the run above loaded a regenerated copy that was then reverted);
+ - T0B-DBSEED-1 BASELINE_COMMIT: its "probes equal the baseline" check already failed before these changes; not moved.
+ Still failing, for owners: 26 x step 6 `E23514` (a CHECK refuses the patched row before the FK is checked), 15 x step 1 fixtures (engagement.booking_centres, partners.settings, reporting.settings), C4/C5/C6 schema counts incl. DELETE grants on frontdesk.registration_drafts / favourite_tests and two lab indexes not led by tenant_id, grants (manifest_lines), immutability (42 tables without enforce_mutable_columns), anatomic test 432 (contradicts C11_schema test 63), smartreport 3, payments 1, REGPARITY 2.

@@ -107,6 +107,11 @@ SELECT is_empty($$SELECT schemaname || '.' || tablename || ' ' || policyname FRO
   'schema test 24 (C16 §5.1 exception): each exempted engagement __tenant policy has the tenant predicate and an explicit actor-type list');
 SELECT is_empty($$SELECT p.schemaname || '.' || p.tablename || ' ' || p.policyname FROM mod_policies p
    WHERE p.policyname ~ '__(partner|portal|patient)$'
+     -- engagement.portal_content (T0C-CONTENT-1, LD-313): tenant content every patient of the tenant reads in its date window. It is not
+     -- owner-scoped, so the table is not shared_with (that would make the isolation probe expect own rows only). Exact-name exception;
+     -- the policy must still carry the tenant predicate and admit the patient actor type only.
+     AND NOT (p.schemaname = 'engagement' AND p.tablename = 'portal_content' AND p.policyname = 'portal_content__select__patient'
+              AND coalesce(p.qual,'') ~ 'current_tenant_id' AND coalesce(p.qual,'') ~ 'current_actor_type.*= ''patient''')
      AND NOT EXISTS (SELECT 1 FROM registry g WHERE g.tbl = p.schemaname || '.' || p.tablename
                         AND substring(p.policyname from '__(partner|portal|patient)$') = ANY (g.shared_with))$$,
   'schema test 24: __partner / __portal / __patient policies exist only on tables whose shared_with lists that actor');

@@ -23,7 +23,7 @@ export function rupees(m: unknown): string {
 }
 
 const CSS = (pt: number, top: number, bottom: number) => `@page{size:A4;margin:${top}mm 12mm ${bottom}mm 12mm}*{box-sizing:border-box}html,body{margin:0;padding:0}` +
-  `body{font-family:"Noto Sans","Noto Sans Devanagari",sans-serif;font-size:${pt}pt;color:#000;background:#fff;line-height:1.25}` +
+  `body{font-family:"Noto Sans","Noto Sans Devanagari",sans-serif;font-variant-ligatures:none;font-size:${pt}pt;color:#000;background:#fff;line-height:1.25}` +
   `h1{font-size:${pt + 4}pt;margin:0}h2{font-size:${pt + 2}pt;margin:2mm 0;text-align:center}.c{text-align:center}.r{text-align:right}.b{font-weight:bold}` +
   `table{border-collapse:collapse;width:100%}td,th{padding:0.8mm 1.2mm;text-align:left;vertical-align:top;font-weight:normal}` +
   `.items th{font-weight:bold;border-top:0.3mm solid #000;border-bottom:0.3mm solid #000}.items td.n,.items th.n{text-align:right}` +

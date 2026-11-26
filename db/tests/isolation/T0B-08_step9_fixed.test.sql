@@ -49,7 +49,9 @@ SELECT is(pg_temp.x('lims_api', pg_temp.actor('user', '99'), 'SELECT 1 FROM ' ||
   FROM unnest(ARRAY['core.branches','core.users','core.memberships','audit.audit_log','audit.access_log']) t;
 
 -- probe step 9: every registered tenant table that is not shared_with reads 0 rows for partner, portal and patient claims of tenant A
-SELECT is(pg_temp.x('lims_api', pg_temp.actor(a.a, a.sub), 'SELECT 1 FROM ' || to_regclass(g.tbl)::text, 'n'), 'n=0',
+-- (42501 where lims_api holds no SELECT on the table at all, e.g. migration_staging.*: refused outright instead of filtered to 0 rows)
+SELECT is(pg_temp.x('lims_api', pg_temp.actor(a.a, a.sub), 'SELECT 1 FROM ' || to_regclass(g.tbl)::text, 'n'),
+          CASE WHEN has_any_column_privilege('lims_api', to_regclass(g.tbl), 'SELECT') THEN 'n=0' ELSE 'E42501' END,
           'probe step 9: ' || a.a || ' claims read 0 rows of ' || g.tbl)
   FROM registry g, actors a
  WHERE g.class <> 'G' AND NOT g.rls_exempt AND to_regclass(g.tbl) IS NOT NULL AND cardinality(g.shared_with) = 0;

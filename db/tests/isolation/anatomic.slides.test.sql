@@ -24,9 +24,10 @@ BEGIN
   PERFORM set_config('request.jwt.claims', '', true);
   RETURN r;
 END $f$;
--- expected outcome of a write: 0 rows when p_role holds the privilege (RLS filters), else 42501
+-- expected outcome of a read or write of rows RLS hides: 0 rows when p_role holds the privilege (RLS filters), else 42501
 CREATE FUNCTION pg_temp.want(p_role text, p_tbl regclass, p_priv text, p_col text DEFAULT NULL) RETURNS text LANGUAGE sql AS $$
-  SELECT CASE WHEN (CASE WHEN p_col IS NULL THEN has_table_privilege(p_role, p_tbl, p_priv) ELSE has_column_privilege(p_role, p_tbl, p_col, p_priv) END)
+  SELECT CASE WHEN (CASE WHEN p_col IS NULL AND p_priv = 'SELECT' THEN has_any_column_privilege(p_role, p_tbl, p_priv)   -- table or column-level grant
+                    WHEN p_col IS NULL THEN has_table_privilege(p_role, p_tbl, p_priv) ELSE has_column_privilege(p_role, p_tbl, p_col, p_priv) END)
               THEN 'n=0' ELSE 'E42501' END $$;
 -- the tenant column (tenant_id, or id on the root table) and the column a probe UPDATE touches
 CREATE FUNCTION pg_temp.tcol(p_tbl regclass) RETURNS text LANGUAGE sql AS $$
@@ -87,7 +88,22 @@ BEGIN
     SET LOCAL session_replication_role = replica;
     EXECUTE format('DELETE FROM %s', p_tbl);   -- both tenants: some natural keys are global (e.g. memberships__user_id__p_uq)
     SET LOCAL session_replication_role = origin;
+    EXECUTE format('ALTER TABLE %s DISABLE TRIGGER USER', p_tbl);   -- user triggers only: RI (FK) triggers and RLS stay on
+    SET CONSTRAINTS ALL IMMEDIATE;                                    -- a DEFERRABLE FK must refuse inside the statement
     r := pg_temp.x('lims_api', pg_temp.cl('user', '32', '42'), p_stmt, 'w');
+    RAISE EXCEPTION USING ERRCODE = 'P0001', MESSAGE = 'probe_rollback';
+  EXCEPTION WHEN raise_exception THEN NULL;
+  END;
+  RETURN r;
+END $f$;
+-- INSERT probe runner (steps 3/5/8): a BEFORE INSERT user trigger runs before RLS WITH CHECK and would refuse the probe row first, so the
+-- table's user triggers are switched off (superuser, rolled-back subtransaction). RLS and FK triggers stay on: the refusal must be RLS's.
+CREATE FUNCTION pg_temp.xt(p_tbl regclass, p_role text, p_claims text, p_sql text) RETURNS text LANGUAGE plpgsql AS $f$
+DECLARE r text;
+BEGIN
+  BEGIN
+    EXECUTE format('ALTER TABLE %s DISABLE TRIGGER USER', p_tbl);
+    r := pg_temp.x(p_role, p_claims, p_sql, 'w');
     RAISE EXCEPTION USING ERRCODE = 'P0001', MESSAGE = 'probe_rollback';
   EXCEPTION WHEN raise_exception THEN NULL;
   END;
@@ -198,28 +214,28 @@ SELECT ok(pg_temp.n(pg_temp.q('SELECT 1 FROM %s WHERE %I = pg_temp.id(''02'')', 
 SELECT ok(pg_temp.n('SELECT 1 FROM anatomic.slides WHERE tenant_id = pg_temp.id(''01'') AND centre_id = pg_temp.id(''21'')') > 0, 'probe step 1: centre A1 rows of anatomic.slides seeded');
 SELECT ok(pg_temp.n('SELECT 1 FROM anatomic.slides WHERE tenant_id = pg_temp.id(''01'') AND centre_id = pg_temp.id(''22'')') > 0, 'probe step 1: centre A2 rows of anatomic.slides seeded');
 -- probe step 2/3/4: lims_api, claims of tenant A (all-centres staff): no tenant B row visible, insertable or changeable (expect 0 rows / 42501)
-SELECT is(pg_temp.x('lims_api', pg_temp.cl('user', '32', '42'), pg_temp.q('SELECT 1 FROM %s WHERE %I = pg_temp.id(''02'')', 'anatomic.slides'::regclass), 'n'), 'n=0', 'probe step 2: tenant A claims see 0 tenant B rows of anatomic.slides');
-SELECT is(pg_temp.x('lims_api', pg_temp.cl('user', '32', '42'), pg_temp.q('INSERT INTO %s (%I) VALUES (pg_temp.id(''02''))', 'anatomic.slides'::regclass), 'w'), 'E42501', 'probe step 3: INSERT of a tenant B row into anatomic.slides -> 42501');
+SELECT is(pg_temp.x('lims_api', pg_temp.cl('user', '32', '42'), pg_temp.q('SELECT 1 FROM %s WHERE %I = pg_temp.id(''02'')', 'anatomic.slides'::regclass), 'n'), pg_temp.want('lims_api', 'anatomic.slides'::regclass, 'SELECT'), 'probe step 2: tenant A claims see 0 tenant B rows of anatomic.slides');
+SELECT is(pg_temp.xt('anatomic.slides'::regclass, 'lims_api', pg_temp.cl('user', '32', '42'), pg_temp.q('INSERT INTO %s (%I) VALUES (pg_temp.id(''02''))', 'anatomic.slides'::regclass)), 'E42501', 'probe step 3: INSERT of a tenant B row into anatomic.slides -> 42501');
 SELECT is(pg_temp.x('lims_api', pg_temp.cl('user', '32', '42'), pg_temp.q('UPDATE %1$s SET %3$I = %3$I WHERE %2$I = pg_temp.id(''02'')', 'anatomic.slides'::regclass), 'w'), pg_temp.want('lims_api', 'anatomic.slides'::regclass, 'UPDATE', pg_temp.ucol('anatomic.slides'::regclass)), 'probe step 4: UPDATE of tenant B rows of anatomic.slides affects 0 rows');
 -- probe step 5: centre-A1 membership sees no centre A2 row and cannot insert one (42501)
-SELECT is(pg_temp.x('lims_api', pg_temp.cl('user', '31', '41'), 'SELECT 1 FROM anatomic.slides WHERE centre_id = pg_temp.id(''22'')', 'n'), 'n=0', 'probe step 5: centre A1 claims see 0 centre A2 rows of anatomic.slides');
-SELECT is(pg_temp.x('lims_api', pg_temp.cl('user', '31', '41'), pg_temp.copy('anatomic.slides'::regclass, 'tenant_id = pg_temp.id(''01'') AND centre_id = pg_temp.id(''22'')'), 'w'), 'E42501', 'probe step 5: centre A1 claims INSERT a centre A2 row into anatomic.slides -> 42501');
+SELECT is(pg_temp.x('lims_api', pg_temp.cl('user', '31', '41'), 'SELECT 1 FROM anatomic.slides WHERE centre_id = pg_temp.id(''22'')', 'n'), pg_temp.want('lims_api', 'anatomic.slides'::regclass, 'SELECT'), 'probe step 5: centre A1 claims see 0 centre A2 rows of anatomic.slides');
+SELECT is(pg_temp.xt('anatomic.slides'::regclass, 'lims_api', pg_temp.cl('user', '31', '41'), pg_temp.copy('anatomic.slides'::regclass, 'tenant_id = pg_temp.id(''01'') AND centre_id = pg_temp.id(''22'')')), 'E42501', 'probe step 5: centre A1 claims INSERT a centre A2 row into anatomic.slides -> 42501');
 -- probe step 6: every composite FK carrying the tenant column (pg_constraint): tenant A row referencing a tenant B parent -> 23503 or 42501
 SELECT CASE WHEN f.stmt IS NULL THEN skip('probe step 6: ' || f.conname || ' on anatomic.slides: no tenant A row of the table or no tenant B parent row seeded', 1)
             ELSE is(CASE WHEN r.v IN ('E23503', 'E42501') THEN 'refused' ELSE r.v END, 'refused', 'probe step 6: ' || f.conname || ' on anatomic.slides refuses a tenant B parent (23503/42501)') END
   FROM pg_temp.fk_probes('anatomic.slides'::regclass) f CROSS JOIN LATERAL (SELECT CASE WHEN f.stmt IS NULL THEN NULL ELSE pg_temp.fk_try('anatomic.slides'::regclass, f.stmt) END AS v) r;
 SELECT pass('probe step 6: anatomic.slides has no composite tenant FK') WHERE NOT EXISTS (SELECT 1 FROM pg_temp.fk_probes('anatomic.slides'::regclass));
 -- probe step 7: no claims -> fail closed (AC-0B-3.7)
-SELECT is(pg_temp.x('lims_api', '', 'SELECT 1 FROM anatomic.slides', 'n'), 'n=0', 'probe step 7: lims_api without claims reads 0 rows of anatomic.slides');
+SELECT is(pg_temp.x('lims_api', '', 'SELECT 1 FROM anatomic.slides', 'n'), pg_temp.want('lims_api', 'anatomic.slides'::regclass, 'SELECT'), 'probe step 7: lims_api without claims reads 0 rows of anatomic.slides');
 -- probe step 8: the same probes as lims_worker with system claims of tenant A
-SELECT is(pg_temp.x('lims_worker', pg_temp.cl('system', '99'), pg_temp.q('SELECT 1 FROM %s WHERE %I = pg_temp.id(''02'')', 'anatomic.slides'::regclass), 'n'), 'n=0', 'probe step 8: lims_worker system claims tenant A claims see 0 tenant B rows of anatomic.slides');
-SELECT is(pg_temp.x('lims_worker', pg_temp.cl('system', '99'), pg_temp.q('INSERT INTO %s (%I) VALUES (pg_temp.id(''02''))', 'anatomic.slides'::regclass), 'w'), 'E42501', 'probe step 8: lims_worker system claims INSERT of a tenant B row into anatomic.slides -> 42501');
+SELECT is(pg_temp.x('lims_worker', pg_temp.cl('system', '99'), pg_temp.q('SELECT 1 FROM %s WHERE %I = pg_temp.id(''02'')', 'anatomic.slides'::regclass), 'n'), pg_temp.want('lims_worker', 'anatomic.slides'::regclass, 'SELECT'), 'probe step 8: lims_worker system claims tenant A claims see 0 tenant B rows of anatomic.slides');
+SELECT is(pg_temp.xt('anatomic.slides'::regclass, 'lims_worker', pg_temp.cl('system', '99'), pg_temp.q('INSERT INTO %s (%I) VALUES (pg_temp.id(''02''))', 'anatomic.slides'::regclass)), 'E42501', 'probe step 8: lims_worker system claims INSERT of a tenant B row into anatomic.slides -> 42501');
 SELECT is(pg_temp.x('lims_worker', pg_temp.cl('system', '99'), pg_temp.q('UPDATE %1$s SET %3$I = %3$I WHERE %2$I = pg_temp.id(''02'')', 'anatomic.slides'::regclass), 'w'), pg_temp.want('lims_worker', 'anatomic.slides'::regclass, 'UPDATE', pg_temp.ucol('anatomic.slides'::regclass)), 'probe step 8: lims_worker system claims UPDATE of tenant B rows of anatomic.slides affects 0 rows');
-SELECT is(pg_temp.x('lims_worker', '', 'SELECT 1 FROM anatomic.slides', 'n'), 'n=0', 'probe step 8: lims_worker without claims reads 0 rows of anatomic.slides');
+SELECT is(pg_temp.x('lims_worker', '', 'SELECT 1 FROM anatomic.slides', 'n'), pg_temp.want('lims_worker', 'anatomic.slides'::regclass, 'SELECT'), 'probe step 8: lims_worker without claims reads 0 rows of anatomic.slides');
 -- probe step 9: partner, portal and patient claims of tenant A read 0 rows (table not shared with non-staff actors)
-SELECT is(pg_temp.x('lims_api', pg_temp.cl('partner', '35', '45'), 'SELECT 1 FROM anatomic.slides', 'n'), 'n=0', 'probe step 9: partner claims read 0 rows of anatomic.slides');
-SELECT is(pg_temp.x('lims_api', pg_temp.cl('portal', 'a3'), 'SELECT 1 FROM anatomic.slides', 'n'), 'n=0', 'probe step 9: portal claims read 0 rows of anatomic.slides');
-SELECT is(pg_temp.x('lims_api', pg_temp.cl('patient', '34', '44'), 'SELECT 1 FROM anatomic.slides', 'n'), 'n=0', 'probe step 9: patient claims read 0 rows of anatomic.slides');
+SELECT is(pg_temp.x('lims_api', pg_temp.cl('partner', '35', '45'), 'SELECT 1 FROM anatomic.slides', 'n'), pg_temp.want('lims_api', 'anatomic.slides'::regclass, 'SELECT'), 'probe step 9: partner claims read 0 rows of anatomic.slides');
+SELECT is(pg_temp.x('lims_api', pg_temp.cl('portal', 'a3'), 'SELECT 1 FROM anatomic.slides', 'n'), pg_temp.want('lims_api', 'anatomic.slides'::regclass, 'SELECT'), 'probe step 9: portal claims read 0 rows of anatomic.slides');
+SELECT is(pg_temp.x('lims_api', pg_temp.cl('patient', '34', '44'), 'SELECT 1 FROM anatomic.slides', 'n'), pg_temp.want('lims_api', 'anatomic.slides'::regclass, 'SELECT'), 'probe step 9: patient claims read 0 rows of anatomic.slides');
 
 SELECT * FROM finish();
 ROLLBACK;

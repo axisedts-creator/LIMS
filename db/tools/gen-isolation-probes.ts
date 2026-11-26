@@ -14,6 +14,11 @@ const IDENT = /^[a-z_][a-z0-9_]*\.[a-z_][a-z0-9_]*$/;
 const CLASSES = new Set(["M", "C", "B", "A", "E", "G", "R"]); // CV §5.2 table classes (R: CR-C8-003)
 const ACTORS = ["partner", "portal", "patient"] as const;
 const SCOPE_USER_ONLY = new Set(["core.membership_centres", "core.membership_branches"]); // tables with BEFORE INSERT app.tg_scope_user_only (LD-21)
+// C16 05-SCHEMA §5.2: these tables carry the ANY_T read predicate (tenant_id = T AND actor type IN user|system|patient|device) or, for
+// portal_content, a patient SELECT policy: a patient of tenant A reads tenant reference rows by design (sign-in, booking, enquiries read
+// them in the patient's own transaction). They are not owner-scoped, so they are not shared_with; step 9 asserts 0 tenant B rows for them.
+const PATIENT_TENANT_READ = new Set(["engagement.settings", "engagement.number_counters", "engagement.portal_content",
+  "engagement.cs_booking_cancel_reasons", "engagement.cs_reminder_reasons", "engagement.cs_enquiry_categories"]);
 const SUBS: Record<string, string> = { partner: "35", portal: "a3", patient: "34" }; // step-9 fixture actor ids (pg_temp.id keys)
 const GENERATED = /^[a-z_][a-z0-9_]*\.[a-z_][a-z0-9_]*\.test\.sql$/; // hand-written suites in the same dir (T0B-08_*.test.sql) never match
 
@@ -99,9 +104,10 @@ BEGIN
   PERFORM set_config('request.jwt.claims', '', true);
   RETURN r;
 END $f$;
--- expected outcome of a write: 0 rows when p_role holds the privilege (RLS filters), else 42501
+-- expected outcome of a read or write of rows RLS hides: 0 rows when p_role holds the privilege (RLS filters), else 42501
 CREATE FUNCTION pg_temp.want(p_role text, p_tbl regclass, p_priv text, p_col text DEFAULT NULL) RETURNS text LANGUAGE sql AS $$
-  SELECT CASE WHEN (CASE WHEN p_col IS NULL THEN has_table_privilege(p_role, p_tbl, p_priv) ELSE has_column_privilege(p_role, p_tbl, p_col, p_priv) END)
+  SELECT CASE WHEN (CASE WHEN p_col IS NULL AND p_priv = 'SELECT' THEN has_any_column_privilege(p_role, p_tbl, p_priv)   -- table or column-level grant
+                    WHEN p_col IS NULL THEN has_table_privilege(p_role, p_tbl, p_priv) ELSE has_column_privilege(p_role, p_tbl, p_col, p_priv) END)
               THEN 'n=0' ELSE 'E42501' END $$;
 -- the tenant column (tenant_id, or id on the root table) and the column a probe UPDATE touches
 CREATE FUNCTION pg_temp.tcol(p_tbl regclass) RETURNS text LANGUAGE sql AS $$
@@ -162,7 +168,22 @@ BEGIN
     SET LOCAL session_replication_role = replica;
     EXECUTE format('DELETE FROM %s', p_tbl);   -- both tenants: some natural keys are global (e.g. memberships__user_id__p_uq)
     SET LOCAL session_replication_role = origin;
+    EXECUTE format('ALTER TABLE %s DISABLE TRIGGER USER', p_tbl);   -- user triggers only: RI (FK) triggers and RLS stay on
+    SET CONSTRAINTS ALL IMMEDIATE;                                    -- a DEFERRABLE FK must refuse inside the statement
     r := pg_temp.x('lims_api', pg_temp.cl('user', '32', '42'), p_stmt, 'w');
+    RAISE EXCEPTION USING ERRCODE = 'P0001', MESSAGE = 'probe_rollback';
+  EXCEPTION WHEN raise_exception THEN NULL;
+  END;
+  RETURN r;
+END $f$;
+-- INSERT probe runner (steps 3/5/8): a BEFORE INSERT user trigger runs before RLS WITH CHECK and would refuse the probe row first, so the
+-- table's user triggers are switched off (superuser, rolled-back subtransaction). RLS and FK triggers stay on: the refusal must be RLS's.
+CREATE FUNCTION pg_temp.xt(p_tbl regclass, p_role text, p_claims text, p_sql text) RETURNS text LANGUAGE plpgsql AS $f$
+DECLARE r text;
+BEGIN
+  BEGIN
+    EXECUTE format('ALTER TABLE %s DISABLE TRIGGER USER', p_tbl);
+    r := pg_temp.x(p_role, p_claims, p_sql, 'w');
     RAISE EXCEPTION USING ERRCODE = 'P0001', MESSAGE = 'probe_rollback';
   EXCEPTION WHEN raise_exception THEN NULL;
   END;
@@ -1201,8 +1222,8 @@ function probeSql(t: string): string {
   const sys = "pg_temp.cl('system', '99')"; //      tenant A, system claims
   const writes = (role: string, claims: string, step: number) => {
     const tag = step === 8 ? `probe step 8: ${role} system claims` : `probe step ${step}:`;
-    L.push(`SELECT is(pg_temp.x('${role}', ${claims}, pg_temp.q('SELECT 1 FROM %s WHERE %I = pg_temp.id(''02'')', ${rc}), 'n'), 'n=0', '${step === 8 ? tag : "probe step 2:"} tenant A claims see 0 tenant B rows of ${t}');`);
-    const ins = `pg_temp.x('${role}', ${claims}, pg_temp.q('INSERT INTO %s (%I) VALUES (pg_temp.id(''02''))', ${rc}), 'w')`;
+    L.push(`SELECT is(pg_temp.x('${role}', ${claims}, pg_temp.q('SELECT 1 FROM %s WHERE %I = pg_temp.id(''02'')', ${rc}), 'n'), pg_temp.want('${role}', ${rc}, 'SELECT'), '${step === 8 ? tag : "probe step 2:"} tenant A claims see 0 tenant B rows of ${t}');`);
+    const ins = `pg_temp.xt(${rc}, '${role}', ${claims}, pg_temp.q('INSERT INTO %s (%I) VALUES (pg_temp.id(''02''))', ${rc}))`;
     L.push(scoped
       ? `SELECT is(CASE WHEN ${ins} IN ('E42501', 'E23514') THEN 'refused' ELSE ${ins} END, 'refused', '${step === 8 ? tag : "probe step 3:"} INSERT of a tenant B row into ${t} -> 42501 (23514 scope_user_only, LD-21)');`
       : `SELECT is(${ins}, 'E42501', '${step === 8 ? tag : "probe step 3:"} INSERT of a tenant B row into ${t} -> 42501');`);
@@ -1223,8 +1244,8 @@ function probeSql(t: string): string {
   writes("lims_api", staff, 2);
   if (d.centre_scoped) {
     L.push("-- probe step 5: centre-A1 membership sees no centre A2 row and cannot insert one (42501)");
-    L.push(`SELECT is(pg_temp.x('lims_api', pg_temp.cl('user', '31', '41'), 'SELECT 1 FROM ${t} WHERE ${cc} = pg_temp.id(''22'')', 'n'), 'n=0', 'probe step 5: centre A1 claims see 0 centre A2 rows of ${t}');`);
-    L.push(`SELECT is(pg_temp.x('lims_api', pg_temp.cl('user', '31', '41'), pg_temp.copy(${rc}, 'tenant_id = pg_temp.id(''01'') AND ${cc} = pg_temp.id(''22'')'), 'w'), 'E42501', 'probe step 5: centre A1 claims INSERT a centre A2 row into ${t} -> 42501');`);
+    L.push(`SELECT is(pg_temp.x('lims_api', pg_temp.cl('user', '31', '41'), 'SELECT 1 FROM ${t} WHERE ${cc} = pg_temp.id(''22'')', 'n'), pg_temp.want('lims_api', ${rc}, 'SELECT'), 'probe step 5: centre A1 claims see 0 centre A2 rows of ${t}');`);
+    L.push(`SELECT is(pg_temp.xt(${rc}, 'lims_api', pg_temp.cl('user', '31', '41'), pg_temp.copy(${rc}, 'tenant_id = pg_temp.id(''01'') AND ${cc} = pg_temp.id(''22'')')), 'E42501', 'probe step 5: centre A1 claims INSERT a centre A2 row into ${t} -> 42501');`);
   }
   L.push("-- probe step 6: every composite FK carrying the tenant column (pg_constraint): tenant A row referencing a tenant B parent -> 23503 or 42501");
   L.push(`SELECT CASE WHEN f.stmt IS NULL THEN skip('probe step 6: ' || f.conname || ' on ${t}: no tenant A row of the table or no tenant B parent row seeded', 1)`);
@@ -1232,24 +1253,32 @@ function probeSql(t: string): string {
   L.push(`  FROM pg_temp.fk_probes(${rc}) f CROSS JOIN LATERAL (SELECT CASE WHEN f.stmt IS NULL THEN NULL ELSE pg_temp.fk_try(${rc}, f.stmt) END AS v) r;`);
   L.push(`SELECT pass('probe step 6: ${t} has no composite tenant FK') WHERE NOT EXISTS (SELECT 1 FROM pg_temp.fk_probes(${rc}));`);
   L.push("-- probe step 7: no claims -> fail closed (AC-0B-3.7)");
-  L.push(`SELECT is(pg_temp.x('lims_api', '', 'SELECT 1 FROM ${t}', 'n'), 'n=0', 'probe step 7: lims_api without claims reads 0 rows of ${t}');`);
+  L.push(`SELECT is(pg_temp.x('lims_api', '', 'SELECT 1 FROM ${t}', 'n'), pg_temp.want('lims_api', ${rc}, 'SELECT'), 'probe step 7: lims_api without claims reads 0 rows of ${t}');`);
   L.push("-- probe step 8: the same probes as lims_worker with system claims of tenant A");
   writes("lims_worker", sys, 8);
-  L.push(`SELECT is(pg_temp.x('lims_worker', '', 'SELECT 1 FROM ${t}', 'n'), 'n=0', 'probe step 8: lims_worker without claims reads 0 rows of ${t}');`);
+  L.push(`SELECT is(pg_temp.x('lims_worker', '', 'SELECT 1 FROM ${t}', 'n'), pg_temp.want('lims_worker', ${rc}, 'SELECT'), 'probe step 8: lims_worker without claims reads 0 rows of ${t}');`);
   const fixtures: Record<string, string> = { partner: "pg_temp.cl('partner', '35', '45')", portal: "pg_temp.cl('portal', 'a3')", patient: "pg_temp.cl('patient', '34', '44')" };
   const subs = SUBS;
+  // the partner the fixture partner actor (membership 45) belongs to, read as the superuser while the probe SQL text is built
+  const myPartner = "(SELECT pu.partner_id FROM partners.partner_users pu WHERE pu.tenant_id = pg_temp.id('01') AND pu.membership_id = pg_temp.id('45'))";
+  const byPartner = !!d.shared_with?.includes("partner") && "partner_id" in (d.columns ?? {});
   if (d.shared_with?.length) {
     L.push("-- probe step 9: shared_with table: non-staff actors of tenant A see only the rows their actor policy admits (own rows), never tenant B rows");
     for (const a of ACTORS) {
-      if (d.shared_with.includes(a))
+      if (a === "partner" && byPartner) {
+        L.push(`SELECT ok(pg_temp.n(format('SELECT 1 FROM ${t} WHERE tenant_id = pg_temp.id(''01'') AND partner_id IS DISTINCT FROM %L', ${myPartner})) > 0, 'probe step 9: a tenant A row of ${t} of another partner is seeded');`);
+        L.push(`SELECT is(pg_temp.x('lims_api', ${fixtures[a]}, format('SELECT 1 FROM ${t} WHERE partner_id IS DISTINCT FROM %L OR %I <> pg_temp.id(''01'')', ${myPartner}, pg_temp.tcol(${rc})), 'n'), 'n=0', 'probe step 9: partner claims read only own partner rows of shared_with table ${t} (n=0 foreign rows)');`);
+      } else if (d.shared_with.includes(a))
         L.push(`SELECT is(pg_temp.x('lims_api', ${fixtures[a]}, format('SELECT 1 FROM ${t} WHERE %I IS DISTINCT FROM pg_temp.id(''${subs[a]}'') OR %I <> pg_temp.id(''01'')', pg_temp.owncol(${rc}), pg_temp.tcol(${rc})), 'n'), 'n=0', 'probe step 9: ${a} claims read only own rows of shared_with table ${t} (n=0 foreign rows)');`);
       else
-        L.push(`SELECT is(pg_temp.x('lims_api', ${fixtures[a]}, 'SELECT 1 FROM ${t}', 'n'), 'n=0', 'probe step 9: ${a} claims read 0 rows of ${t} (${a} not in shared_with)');`);
+        L.push(`SELECT is(pg_temp.x('lims_api', ${fixtures[a]}, 'SELECT 1 FROM ${t}', 'n'), pg_temp.want('lims_api', ${rc}, 'SELECT'), 'probe step 9: ${a} claims read 0 rows of ${t} (${a} not in shared_with)');`);
     }
   } else {
     L.push("-- probe step 9: partner, portal and patient claims of tenant A read 0 rows (table not shared with non-staff actors)");
     for (const a of ACTORS)
-      L.push(`SELECT is(pg_temp.x('lims_api', ${fixtures[a]}, 'SELECT 1 FROM ${t}', 'n'), 'n=0', 'probe step 9: ${a} claims read 0 rows of ${t}');`);
+      L.push(a === "patient" && PATIENT_TENANT_READ.has(t)
+        ? `SELECT is(pg_temp.x('lims_api', ${fixtures[a]}, pg_temp.q('SELECT 1 FROM %s WHERE %I <> pg_temp.id(''01'')', ${rc}), 'n'), 'n=0', 'probe step 9: patient claims read 0 rows of another tenant of ${t} (tenant reference data readable by patients, C16 05-SCHEMA §5.2)');`
+        : `SELECT is(pg_temp.x('lims_api', ${fixtures[a]}, 'SELECT 1 FROM ${t}', 'n'), pg_temp.want('lims_api', ${rc}, 'SELECT'), 'probe step 9: ${a} claims read 0 rows of ${t}');`);
   }
   L.push("", "SELECT * FROM finish();", "ROLLBACK;", "");
   return L.join("\n");

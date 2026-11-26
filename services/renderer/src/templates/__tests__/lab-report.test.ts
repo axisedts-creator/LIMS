@@ -321,7 +321,8 @@ describe('AC-03.6 / AC-03.7 / LD-27 signatories', () => {
   });
   it('contact_strip_extra is printed in the footer when configured', async () => {
     const { pages } = await R({ document: makeDoc(), config: makeConfig({ contact_strip_extra: 'Synthetic extra contact line' }) });
-    expect(pages[0]).toContain('Synthetic extra contact line');
+    // the footer strip may wrap between words and the PDF text helper joins wrapped lines without a space: compare without whitespace
+    expect(pages[0]!.replace(/\s/g, '')).toContain('Syntheticextracontactline');
   });
 });
 

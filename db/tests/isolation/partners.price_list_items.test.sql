@@ -24,9 +24,10 @@ BEGIN
   PERFORM set_config('request.jwt.claims', '', true);
   RETURN r;
 END $f$;
--- expected outcome of a write: 0 rows when p_role holds the privilege (RLS filters), else 42501
+-- expected outcome of a read or write of rows RLS hides: 0 rows when p_role holds the privilege (RLS filters), else 42501
 CREATE FUNCTION pg_temp.want(p_role text, p_tbl regclass, p_priv text, p_col text DEFAULT NULL) RETURNS text LANGUAGE sql AS $$
-  SELECT CASE WHEN (CASE WHEN p_col IS NULL THEN has_table_privilege(p_role, p_tbl, p_priv) ELSE has_column_privilege(p_role, p_tbl, p_col, p_priv) END)
+  SELECT CASE WHEN (CASE WHEN p_col IS NULL AND p_priv = 'SELECT' THEN has_any_column_privilege(p_role, p_tbl, p_priv)   -- table or column-level grant
+                    WHEN p_col IS NULL THEN has_table_privilege(p_role, p_tbl, p_priv) ELSE has_column_privilege(p_role, p_tbl, p_col, p_priv) END)
               THEN 'n=0' ELSE 'E42501' END $$;
 -- the tenant column (tenant_id, or id on the root table) and the column a probe UPDATE touches
 CREATE FUNCTION pg_temp.tcol(p_tbl regclass) RETURNS text LANGUAGE sql AS $$
@@ -87,7 +88,22 @@ BEGIN
     SET LOCAL session_replication_role = replica;
     EXECUTE format('DELETE FROM %s', p_tbl);   -- both tenants: some natural keys are global (e.g. memberships__user_id__p_uq)
     SET LOCAL session_replication_role = origin;
+    EXECUTE format('ALTER TABLE %s DISABLE TRIGGER USER', p_tbl);   -- user triggers only: RI (FK) triggers and RLS stay on
+    SET CONSTRAINTS ALL IMMEDIATE;                                    -- a DEFERRABLE FK must refuse inside the statement
     r := pg_temp.x('lims_api', pg_temp.cl('user', '32', '42'), p_stmt, 'w');
+    RAISE EXCEPTION USING ERRCODE = 'P0001', MESSAGE = 'probe_rollback';
+  EXCEPTION WHEN raise_exception THEN NULL;
+  END;
+  RETURN r;
+END $f$;
+-- INSERT probe runner (steps 3/5/8): a BEFORE INSERT user trigger runs before RLS WITH CHECK and would refuse the probe row first, so the
+-- table's user triggers are switched off (superuser, rolled-back subtransaction). RLS and FK triggers stay on: the refusal must be RLS's.
+CREATE FUNCTION pg_temp.xt(p_tbl regclass, p_role text, p_claims text, p_sql text) RETURNS text LANGUAGE plpgsql AS $f$
+DECLARE r text;
+BEGIN
+  BEGIN
+    EXECUTE format('ALTER TABLE %s DISABLE TRIGGER USER', p_tbl);
+    r := pg_temp.x(p_role, p_claims, p_sql, 'w');
     RAISE EXCEPTION USING ERRCODE = 'P0001', MESSAGE = 'probe_rollback';
   EXCEPTION WHEN raise_exception THEN NULL;
   END;
@@ -199,8 +215,8 @@ SELECT ok(pg_temp.n(format('SELECT 1 FROM partners.price_list_items WHERE %I = p
 SELECT ok(pg_temp.n(format('SELECT 1 FROM partners.price_list_items WHERE %I = pg_temp.id(''a3'')', pg_temp.owncol('partners.price_list_items'::regclass))) > 0, 'probe step 1: portal fixture actor rows of partners.price_list_items seeded');
 SELECT ok(pg_temp.n(format('SELECT 1 FROM partners.price_list_items WHERE %I = pg_temp.id(''34'')', pg_temp.owncol('partners.price_list_items'::regclass))) > 0, 'probe step 1: patient fixture actor rows of partners.price_list_items seeded');
 -- probe step 2/3/4: lims_api, claims of tenant A (all-centres staff): no tenant B row visible, insertable or changeable (expect 0 rows / 42501)
-SELECT is(pg_temp.x('lims_api', pg_temp.cl('user', '32', '42'), pg_temp.q('SELECT 1 FROM %s WHERE %I = pg_temp.id(''02'')', 'partners.price_list_items'::regclass), 'n'), 'n=0', 'probe step 2: tenant A claims see 0 tenant B rows of partners.price_list_items');
-SELECT is(pg_temp.x('lims_api', pg_temp.cl('user', '32', '42'), pg_temp.q('INSERT INTO %s (%I) VALUES (pg_temp.id(''02''))', 'partners.price_list_items'::regclass), 'w'), 'E42501', 'probe step 3: INSERT of a tenant B row into partners.price_list_items -> 42501');
+SELECT is(pg_temp.x('lims_api', pg_temp.cl('user', '32', '42'), pg_temp.q('SELECT 1 FROM %s WHERE %I = pg_temp.id(''02'')', 'partners.price_list_items'::regclass), 'n'), pg_temp.want('lims_api', 'partners.price_list_items'::regclass, 'SELECT'), 'probe step 2: tenant A claims see 0 tenant B rows of partners.price_list_items');
+SELECT is(pg_temp.xt('partners.price_list_items'::regclass, 'lims_api', pg_temp.cl('user', '32', '42'), pg_temp.q('INSERT INTO %s (%I) VALUES (pg_temp.id(''02''))', 'partners.price_list_items'::regclass)), 'E42501', 'probe step 3: INSERT of a tenant B row into partners.price_list_items -> 42501');
 SELECT is(pg_temp.x('lims_api', pg_temp.cl('user', '32', '42'), pg_temp.q('UPDATE %1$s SET %3$I = %3$I WHERE %2$I = pg_temp.id(''02'')', 'partners.price_list_items'::regclass), 'w'), pg_temp.want('lims_api', 'partners.price_list_items'::regclass, 'UPDATE', pg_temp.ucol('partners.price_list_items'::regclass)), 'probe step 4: UPDATE of tenant B rows of partners.price_list_items affects 0 rows');
 -- probe step 6: every composite FK carrying the tenant column (pg_constraint): tenant A row referencing a tenant B parent -> 23503 or 42501
 SELECT CASE WHEN f.stmt IS NULL THEN skip('probe step 6: ' || f.conname || ' on partners.price_list_items: no tenant A row of the table or no tenant B parent row seeded', 1)
@@ -208,16 +224,17 @@ SELECT CASE WHEN f.stmt IS NULL THEN skip('probe step 6: ' || f.conname || ' on 
   FROM pg_temp.fk_probes('partners.price_list_items'::regclass) f CROSS JOIN LATERAL (SELECT CASE WHEN f.stmt IS NULL THEN NULL ELSE pg_temp.fk_try('partners.price_list_items'::regclass, f.stmt) END AS v) r;
 SELECT pass('probe step 6: partners.price_list_items has no composite tenant FK') WHERE NOT EXISTS (SELECT 1 FROM pg_temp.fk_probes('partners.price_list_items'::regclass));
 -- probe step 7: no claims -> fail closed (AC-0B-3.7)
-SELECT is(pg_temp.x('lims_api', '', 'SELECT 1 FROM partners.price_list_items', 'n'), 'n=0', 'probe step 7: lims_api without claims reads 0 rows of partners.price_list_items');
+SELECT is(pg_temp.x('lims_api', '', 'SELECT 1 FROM partners.price_list_items', 'n'), pg_temp.want('lims_api', 'partners.price_list_items'::regclass, 'SELECT'), 'probe step 7: lims_api without claims reads 0 rows of partners.price_list_items');
 -- probe step 8: the same probes as lims_worker with system claims of tenant A
-SELECT is(pg_temp.x('lims_worker', pg_temp.cl('system', '99'), pg_temp.q('SELECT 1 FROM %s WHERE %I = pg_temp.id(''02'')', 'partners.price_list_items'::regclass), 'n'), 'n=0', 'probe step 8: lims_worker system claims tenant A claims see 0 tenant B rows of partners.price_list_items');
-SELECT is(pg_temp.x('lims_worker', pg_temp.cl('system', '99'), pg_temp.q('INSERT INTO %s (%I) VALUES (pg_temp.id(''02''))', 'partners.price_list_items'::regclass), 'w'), 'E42501', 'probe step 8: lims_worker system claims INSERT of a tenant B row into partners.price_list_items -> 42501');
+SELECT is(pg_temp.x('lims_worker', pg_temp.cl('system', '99'), pg_temp.q('SELECT 1 FROM %s WHERE %I = pg_temp.id(''02'')', 'partners.price_list_items'::regclass), 'n'), pg_temp.want('lims_worker', 'partners.price_list_items'::regclass, 'SELECT'), 'probe step 8: lims_worker system claims tenant A claims see 0 tenant B rows of partners.price_list_items');
+SELECT is(pg_temp.xt('partners.price_list_items'::regclass, 'lims_worker', pg_temp.cl('system', '99'), pg_temp.q('INSERT INTO %s (%I) VALUES (pg_temp.id(''02''))', 'partners.price_list_items'::regclass)), 'E42501', 'probe step 8: lims_worker system claims INSERT of a tenant B row into partners.price_list_items -> 42501');
 SELECT is(pg_temp.x('lims_worker', pg_temp.cl('system', '99'), pg_temp.q('UPDATE %1$s SET %3$I = %3$I WHERE %2$I = pg_temp.id(''02'')', 'partners.price_list_items'::regclass), 'w'), pg_temp.want('lims_worker', 'partners.price_list_items'::regclass, 'UPDATE', pg_temp.ucol('partners.price_list_items'::regclass)), 'probe step 8: lims_worker system claims UPDATE of tenant B rows of partners.price_list_items affects 0 rows');
-SELECT is(pg_temp.x('lims_worker', '', 'SELECT 1 FROM partners.price_list_items', 'n'), 'n=0', 'probe step 8: lims_worker without claims reads 0 rows of partners.price_list_items');
+SELECT is(pg_temp.x('lims_worker', '', 'SELECT 1 FROM partners.price_list_items', 'n'), pg_temp.want('lims_worker', 'partners.price_list_items'::regclass, 'SELECT'), 'probe step 8: lims_worker without claims reads 0 rows of partners.price_list_items');
 -- probe step 9: shared_with table: non-staff actors of tenant A see only the rows their actor policy admits (own rows), never tenant B rows
-SELECT is(pg_temp.x('lims_api', pg_temp.cl('partner', '35', '45'), format('SELECT 1 FROM partners.price_list_items WHERE %I IS DISTINCT FROM pg_temp.id(''35'') OR %I <> pg_temp.id(''01'')', pg_temp.owncol('partners.price_list_items'::regclass), pg_temp.tcol('partners.price_list_items'::regclass)), 'n'), 'n=0', 'probe step 9: partner claims read only own rows of shared_with table partners.price_list_items (n=0 foreign rows)');
-SELECT is(pg_temp.x('lims_api', pg_temp.cl('portal', 'a3'), 'SELECT 1 FROM partners.price_list_items', 'n'), 'n=0', 'probe step 9: portal claims read 0 rows of partners.price_list_items (portal not in shared_with)');
-SELECT is(pg_temp.x('lims_api', pg_temp.cl('patient', '34', '44'), 'SELECT 1 FROM partners.price_list_items', 'n'), 'n=0', 'probe step 9: patient claims read 0 rows of partners.price_list_items (patient not in shared_with)');
+SELECT ok(pg_temp.n(format('SELECT 1 FROM partners.price_list_items WHERE tenant_id = pg_temp.id(''01'') AND partner_id IS DISTINCT FROM %L', (SELECT pu.partner_id FROM partners.partner_users pu WHERE pu.tenant_id = pg_temp.id('01') AND pu.membership_id = pg_temp.id('45')))) > 0, 'probe step 9: a tenant A row of partners.price_list_items of another partner is seeded');
+SELECT is(pg_temp.x('lims_api', pg_temp.cl('partner', '35', '45'), format('SELECT 1 FROM partners.price_list_items WHERE partner_id IS DISTINCT FROM %L OR %I <> pg_temp.id(''01'')', (SELECT pu.partner_id FROM partners.partner_users pu WHERE pu.tenant_id = pg_temp.id('01') AND pu.membership_id = pg_temp.id('45')), pg_temp.tcol('partners.price_list_items'::regclass)), 'n'), 'n=0', 'probe step 9: partner claims read only own partner rows of shared_with table partners.price_list_items (n=0 foreign rows)');
+SELECT is(pg_temp.x('lims_api', pg_temp.cl('portal', 'a3'), 'SELECT 1 FROM partners.price_list_items', 'n'), pg_temp.want('lims_api', 'partners.price_list_items'::regclass, 'SELECT'), 'probe step 9: portal claims read 0 rows of partners.price_list_items (portal not in shared_with)');
+SELECT is(pg_temp.x('lims_api', pg_temp.cl('patient', '34', '44'), 'SELECT 1 FROM partners.price_list_items', 'n'), pg_temp.want('lims_api', 'partners.price_list_items'::regclass, 'SELECT'), 'probe step 9: patient claims read 0 rows of partners.price_list_items (patient not in shared_with)');
 
 SELECT * FROM finish();
 ROLLBACK;

@@ -157,7 +157,7 @@ export function ResultGrid({ data, analytes = {}, permissions, patientId, return
       id: r.id,
       values: {
         analyte: `${nameOf(r, analytes)} ${r.analyte_code}`, value: shown, unit: r.unit_code ?? '', flag: flagText(r.flag), range: rangeText(r), delta: deltaText(r), calc: calcText(r),
-        origin: r.origin === 'instrument' ? '' : r.origin[0]!.toUpperCase() + r.origin.slice(1), downtime: down, test: item.test.test_code, // instrument: the chip is portalled into the cell (RS-C5, LD-140)
+        origin: r.origin ? (r.origin === 'instrument' ? '' : r.origin[0]!.toUpperCase() + r.origin.slice(1)) : '', downtime: down, test: item.test.test_code, // instrument: the chip is portalled into the cell (RS-C5, LD-140)
       },
       status: errors[r.id] ? 'error' : e ? 'unsaved' : 'saved',
       statusText: text,

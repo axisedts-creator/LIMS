@@ -28,7 +28,8 @@ export const isEditable = (r: GridResult) => !isCalculated(r) && (r.status === '
 export const nameOf = (r: GridResult, a: AnalyteMap) => a[r.analyte_id]?.name ?? r.analyte_code;
 
 export function statusLabel(r: GridResult): string {
-  const base = r.status === 'approved' ? `Approved v${r.current_version_no}` : r.status[0]!.toUpperCase() + r.status.slice(1);
+  const s = r.status || 'pending';
+  const base = s === 'approved' ? `Approved v${r.current_version_no}` : s.charAt(0).toUpperCase() + s.slice(1);
   return [base, r.on_hold ? 'On QC hold' : '', r.qc_review_required ? 'QC review' : ''].filter(Boolean).join(' · ');
 }
 export const flagText = (f?: string) => (f && f !== 'N' && Object.hasOwn(FLAGS, f) ? FLAGS[f as ResultFlag][1] : '');

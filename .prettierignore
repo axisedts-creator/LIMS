@@ -22,3 +22,13 @@ pnpm-lock.yaml
 **/build/
 **/.dart_tool/
 **/node_modules/
+
+# Test data compared as text or by hash.
+packages/test-fixtures/
+**/fixtures/
+**/__fixtures__/
+**/__snapshots__/
+**/testdata/
+
+# Compared to the spec catalog as text by contracts/__tests__.
+contracts/

@@ -164,8 +164,38 @@ elsewhere requires the `cr-approved-breaking` label.
   report template would have been an unknown template in the container.
 - Mobile BFF: no CR filed. A CR needs a problem statement and none has been measured.
 
+## Progress, fourth pass (2026-11-26)
+
+Branch `fix/renderer-image`, pull request 10 into `ui/redesign`.
+
+- Renderer image: builds. Compiled from the repo root (`tsconfig.build.json`) so the bsdate
+  sources and the templates are in the image; `@remotemerge/nepali-date-converter` is a direct
+  dependency; the registry loads `index.js` when `index.ts` is absent. CR (f) points 2-4 closed.
+- Container run: renderer and pdf-sandbox containers under the `compose.app.yml` hardening and
+  limits; container mode of `worker-clients.e2e.test.ts` 7/7. The compose stack itself was not
+  started and `infra/ci/build.sh` was not run.
+- Load on the limited container: one render 220-300 ms warm (about 1 s first); 50 simultaneous
+  renders all ok in 13.1 s and 15.5 s, renderer at its 2-CPU cap, about 330 MB. A stand-in HTTP
+  probe on the host: p95 16.5 ms idle, at most 21.8 ms under load. This is NOT the API
+  registration route. First render after a cold start took up to about 90 s on a loaded host;
+  the compose healthcheck `start_period` is 30 s.
+- Tests on `7bf082270` in a clean worktree: worker reporting 806/806, renderer server and
+  worker-clients e2e 26/26. Seven renderer template tests (lab-report 3, modules-smart 3,
+  printcfg-report 1) fail with and without this change.
+- Device run: both `integration_test/` scenarios pass on a physical Android phone. Scenario 2
+  needs the test PKI injected (`LIMS_TEST_PKI_B64`, `integration_test/device_pki.sh`) because a
+  device has no openssl. The Android build at this commit fails without the uncommitted
+  `android/app/build.gradle.kts` change (`buildFeatures { resValues = true }`).
+- Full db suites (`db/tests/run-suites.sh`): 572 suites, 293 failing assertions in 76 suites,
+  0 psql failures, 9198 s. No cross-tenant row was read. Grouping and owner questions are in
+  CR (g): patient reads on six `engagement` tables, DELETE grant on `partners.manifest_lines`,
+  cross-partner isolation untested, stale count / seed suites. No `db/` file was edited.
+- Mobile BFF: still not started, still no measured problem.
+
 ## Not verified
 
+- API registration p95 under render load on the real route (needs the full stack).
+- The compose stack end to end; GitHub ran no repository workflow on pull request 10.
 - Server behaviour for an invalid barcode in `/sync/mutations` (per-mutation vs batch error).
 - Whether `returnUrlAllowlist` accepts non-HTTPS schemes.
 - SSE/WebSocket use in the API, internal mTLS, the "21 schemas" count.

@@ -20,7 +20,8 @@ const DATA_DIRS = ['billing', 'analytics'] as const;   // a directory may only r
 const KEYS = new Set(['billing.invoice', 'billing.credit_note', 'billing.register', 'analytics.report', 'partners.access_slip']);
 
 const load = async (root: string, dir: string): Promise<Record<string, unknown> | undefined> => {
-  const file = join(root, dir, 'index.ts');
+  const ts = join(root, dir, 'index.ts');
+  const file = existsSync(ts) ? ts : join(root, dir, 'index.js');   // image: compiled templates (Dockerfile.renderer)
   return existsSync(file) ? ((await import(pathToFileURL(file).href)) as Record<string, unknown>) : undefined;
 };
 

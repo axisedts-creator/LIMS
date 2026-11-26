@@ -37,7 +37,17 @@ class TestPki {
     return r.stdout as String;
   }
 
+  // Device runs (Android has no openssl): integration_test/device_pki.sh generates the same throw-away material on the host and the
+  // run passes it as --dart-define=LIMS_TEST_PKI_B64=<base64 JSON, file name -> PEM>. Nothing is committed.
+  static const _injected = String.fromEnvironment('LIMS_TEST_PKI_B64');
+
   static Future<TestPki> create() async {
+    if (_injected.isNotEmpty) {
+      final m = (jsonDecode(utf8.decode(base64Decode(_injected))) as Map).cast<String, String>();
+      final dir = Directory.systemTemp.createTempSync('hc_t21_pki_');
+      String put(String name) => (File('${dir.path}/$name')..writeAsStringSync(m[name]!)).path;
+      return TestPki._(dir, m['a-ca.pem']!, m['b-ca.pem']!, _Leaf(put('a-srv.pem'), put('a-srv.key')), _Leaf(put('b-srv.pem'), put('b-srv.key')));
+    }
     String bin;
     try {
       bin = _bin();

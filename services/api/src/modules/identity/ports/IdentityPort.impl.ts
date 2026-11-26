@@ -8,6 +8,7 @@ import type {
 import { FIXED_ACTOR_PERMISSIONS, PERMISSION_CODES, PRIVILEGED } from '../../../../../../contracts/ports/generated/permissions.js';
 import { createHash, randomBytes } from 'node:crypto';
 import { LimsError } from '../../../core/errors.js';
+import { tenantMfaOff } from '../../../core/auth/mfa-policy.js';
 import type { CoreAdminRepo, MembershipRecord } from '../repository/core-admin.repo.js';
 // [CONV] relative import until @lims/shared-ts is a services/api dependency (same as core/errors.ts).
 import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';
@@ -242,7 +243,8 @@ export function createIdentityPort(deps: IdentityPortDeps): IdentityPortImpl {
     }
     if (!pr.permissions.includes(p)) throw forbidden();
     checkScope(pr, req);
-    if (privileged && ctx.actor.type !== 'system' && ctx.actor.type !== 'device' && r.claims['aal'] !== 'aal2') throw err('auth.mfa_required');
+    // LIMS_IDENTITY_TENANT_MFA=off (core/auth/mfa-policy.ts): the operator switched the second step off for tenant staff.
+    if (privileged && !tenantMfaOff() && ctx.actor.type !== 'system' && ctx.actor.type !== 'device' && r.claims['aal'] !== 'aal2') throw err('auth.mfa_required');
   }
 
   const outcomeOf = (e: unknown): AuthzOutcome | undefined => {

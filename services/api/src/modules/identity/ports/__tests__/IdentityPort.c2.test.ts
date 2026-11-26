@@ -210,6 +210,31 @@ describe('privileged re-validation (IC §4.6 invariants; REQ-SEC-067; AC for mem
     expect(await code(s.port.assertRole(asUser('admin'), { permission: 'identity.user.manage' }))).toBe('auth.mfa_required');
     await expect(s.port.assertRole(asUser('admin'), { permission: 'catalog.test.read' })).resolves.toBeUndefined();   // non-privileged: aal1 ok
   });
+  // CR TENANT-MFA-OFF-1 (founder decision 2026-11-26): the operator switch. Default and every value but `off` keep the rule above.
+  describe('LIMS_IDENTITY_TENANT_MFA', () => {
+    const withEnv = async <T>(v: string | undefined, fn: () => Promise<T>): Promise<T> => {
+      const old = process.env['LIMS_IDENTITY_TENANT_MFA'];
+      if (v === undefined) delete process.env['LIMS_IDENTITY_TENANT_MFA']; else process.env['LIMS_IDENTITY_TENANT_MFA'] = v;
+      try { return await fn(); } finally { if (old === undefined) delete process.env['LIMS_IDENTITY_TENANT_MFA']; else process.env['LIMS_IDENTITY_TENANT_MFA'] = old; }
+    };
+    const aal1Admin = () => { const s = setup(); s.st.claims.set(actorIdFor('A', 'user', 'admin'), { aal: 'aal1', membership_id: mid(2), session_state: 'active' }); return s; };
+    it('off: a privileged permission passes at aal1 for a member who holds it', async () => {
+      await withEnv('off', async () => { await expect(aal1Admin().port.assertRole(asUser('admin'), { permission: 'identity.user.manage' })).resolves.toBeUndefined(); });
+    });
+    it.each([undefined, '', 'OFF', 'false', '0', 'no', 'on', ' off'])('%s is NOT off: aal1 is still refused with auth.mfa_required', async (v) => {
+      await withEnv(v, async () => { expect(await code(aal1Admin().port.assertRole(asUser('admin'), { permission: 'identity.user.manage' }))).toBe('auth.mfa_required'); });
+    });
+    it('off changes nothing else: no grant is still auth.forbidden, platform.* is still refused here, a pending code entry still blocks', async () => {
+      await withEnv('off', async () => {
+        const s = aal1Admin();
+        s.st.claims.set(actorIdFor('A', 'user', 'tech'), { aal: 'aal1', membership_id: mid(1), session_state: 'active' });
+        expect(await code(s.port.assertRole(asUser('tech'), { permission: 'identity.user.manage' }))).toBe('auth.forbidden');
+        expect(await code(s.port.assertRole(asUser('admin'), { permission: 'platform.tenant.manage' }))).toBe('auth.forbidden');
+        s.st.claims.set(actorIdFor('A', 'user', 'admin'), { aal: 'aal1', membership_id: mid(2), session_state: 'mfa_pending' });
+        expect(await code(s.port.assertRole(asUser('admin'), { permission: 'identity.user.manage' }))).toBe('auth.mfa_required');
+      });
+    });
+  });
   it('support session expired mid-request -> identity.support_session_required on a privileged check', async () => {
     const s = setup({ support: [{ tenantId: TENANTS.A, id: SUPPORT_ID, active: true, scope: 'admin', staffDisplayName: 'Support Person' }] });
     const ctx = makeCtx('A', 'user', 'staff', { actor: { type: 'user', id: STAFF_SUB, supportSessionId: SUPPORT_ID } });

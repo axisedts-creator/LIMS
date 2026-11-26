@@ -5,6 +5,7 @@
 // Any failure throws with nothing kept (no commitOnError): the tx rolls back.
 import { createHash } from 'node:crypto';
 import { LimsError } from '../../../core/errors.js';
+import { tenantMfaOff } from '../../../core/auth/mfa-policy.js';
 import type { Handler, HandlerContext, HandlerRequest } from '../../../core/module.js';
 import type { Tx, TxFn, TxInput } from '../../../core/db/tx.js';
 import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';
@@ -78,7 +79,7 @@ export function createSetPasswordFromSetup(deps: SetPasswordDeps) {
       const row: Record<string, any> = (await deps.repo.loginContext(tx, s.userId)) ?? {};
       // SS8 = SS3/SS4 MFA rule: a verified factor -> mfa_pending; platform always needs MFA (08 A28.1); else tenant role rule
       const state = row['has_verified_factor'] === true ? 'mfa_pending'
-        : s.kind === 'platform' || row['mfa_required'] === true ? 'mfa_enrolment_required' : 'active';
+        : s.kind === 'platform' || (row['mfa_required'] === true && !tenantMfaOff()) ? 'mfa_enrolment_required' : 'active';
       const actor = await loadSessionActor((k) => deps.repo.sessionActor(tx, k),
         { userId: s.userId, tenantId: s.kind === 'platform' ? null : s.tenantId, membershipId: s.kind === 'platform' ? null : s.membershipId }, ctx.log, ctx.requestId,
         { state, tenantPermissions: (membershipId) => deps.repo.membershipPermissions(tx, { tenantId: s.tenantId!, membershipId }) });

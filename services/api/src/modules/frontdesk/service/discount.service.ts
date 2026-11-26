@@ -7,6 +7,7 @@
 import { toDate } from '../../../core/clock.js'; // T0D-FIX-6 (LD-448): ctx.now() is an ISO string in the pipeline, a Date in unit fakes
 import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';
 import { LimsError } from '../../../core/errors.js';
+import { tenantMfaOff } from '../../../core/auth/mfa-policy.js';
 import { loadFrontdeskConfig } from '../config.js';
 import { checkApprove, checkConsume, effectiveStatus, APPROVAL_STATUSES, type ApprovalStatus } from '../domain/discountApproval.state.js';
 import type { Discount } from '../domain/discount.js';
@@ -228,7 +229,7 @@ export async function decide(hctx: unknown, params: unknown, headers: unknown, b
   const w = await who(c);
   const verdict = checkApprove({
     approval: { status: row['status'], requestedByMembershipId: row['requested_by_membership_id'], expiresAt: new Date(row['expires_at']) },
-    approverMembershipId: mine, approverAal: w.aal === 'aal2' ? 'aal2' : 'aal1', approverCoversCentre: covers(w, row['centre_id']), now: toDate(c.now()),
+    approverMembershipId: mine, approverAal: w.aal === 'aal2' || tenantMfaOff() ? 'aal2' : 'aal1', approverCoversCentre: covers(w, row['centre_id']), now: toDate(c.now()),
   });
   if (!verdict.ok) throw new LimsError(verdict.code);                              // self-approval (CR-C4-007) | mfa | centre not covered (404) | not pending (409 immutable_record)
   // T0B-FINCTRL-1 done_when 3: when the requester has a limit, approving needs an ACTIVE authority of the approver covering the amount AND the bp (<=)

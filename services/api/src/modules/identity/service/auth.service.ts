@@ -5,6 +5,7 @@
 // No SQL here: repo / events / limits are seams (auth-events.repo.ts, AuthLimits adapter in handlers/loginStaff.ts).
 import { createHash, createHmac, randomBytes } from 'node:crypto';
 import { LimsError, isLimsError } from '../../../core/errors.js';
+import { tenantMfaOff } from '../../../core/auth/mfa-policy.js';
 import { toDate } from '../../../core/clock.js'; // T0D-FIX-6 (LD-448)
 // [CONV] relative import until @lims/shared-ts is a services/api dependency (same as core/errors.ts).
 import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';
@@ -218,7 +219,8 @@ export function createAuthService(deps: AuthDeps) {
     let idle = Number(row['idle_timeout_minutes']); let abs = Number(row['absolute_session_hours']);
     if (mode === 'mobile') { abs = mobileHours(); idle = abs * 60; }   // staff_mobile: no idle timeout, idle = absolute (04 A16, 05-SCHEMA s4.1)
     if (!(idle > 0) || !(abs > 0)) throw new LimsError('common.internal', 'identity: tenant session settings missing');
-    const state = row['has_verified_factor'] === true ? 'mfa_pending' : row['mfa_required'] === true ? 'mfa_enrolment_required' : 'active';
+    // LIMS_IDENTITY_TENANT_MFA=off: no forced enrolment; a user with a verified factor is still asked for the code.
+    const state = row['has_verified_factor'] === true ? 'mfa_pending' : row['mfa_required'] === true && !tenantMfaOff() ? 'mfa_enrolment_required' : 'active';
     const actor = await actorOf(ctx, { userId: t.userId, tenantId, membershipId }, state, mode);
     const now = toDate(ctx.now());
     const kind = mode === 'partner' ? 'partner' : mode === 'mobile' ? 'staff_mobile' : 'tenant_staff';

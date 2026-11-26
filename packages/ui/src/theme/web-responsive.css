@@ -48,11 +48,156 @@
 /* page body: every direct block may shrink, so wide content scrolls inside its own box and never widens the page */
 .lims-shell .lims-shell-body, .lims-shell .lims-shell-main { min-width: 0; }
 .lims-shell-main > *, .lims-shell-main > section > * { min-width: 0; max-width: 100%; }
+/* pages whose content sits in a plain wrapper get the same block gap as pages written as a section */
+.lims-shell-main > div:not([class]) { display: flex; flex-direction: column; gap: var(--space-5); }
+.lims-shell-main > div:not([class]) > [hidden] { display: none; }
+.lims-shell-main > div:not([class]) > :is(a, button, label, .lims-btn, .lims-chip, .lims-check-wrap) { align-self: flex-start; }
 /* page header: title, caption, status, actions and Help wrap with a gap; the main gap keeps them off the first card */
 .lims-shell .lims-page-header-row { flex-wrap: wrap; gap: var(--space-2) var(--space-3); }
 .lims-shell .lims-page-heading { flex: 1 1 12rem; min-width: 0; }
 .lims-shell .lims-page-title, .lims-shell-main h1 { min-width: 0; overflow-wrap: break-word; }
 .lims-shell .lims-page-status { display: inline-flex; flex-wrap: wrap; gap: var(--space-2); }
 .lims-shell .lims-page-actions { flex-wrap: wrap; gap: var(--space-2) var(--space-3); min-width: 0; }
-.lims-shell .lims-page-actions > * { flex: none; }
+.lims-shell .lims-page-actions > * { flex: none; max-width: 100%; }
+.lims-shell .lims-page-actions > :is(.lims-inline, .lims-stack, div, span) { flex: 0 1 auto; flex-wrap: wrap; min-width: 0; }
 .lims-shell .lims-export-buttons { display: inline-flex; flex-wrap: wrap; gap: var(--space-2); }
+
+/* ===== c. shared components ===== */
+/* rows and stacks written without the kit Stack / Inline gap: items never touch, rows wrap instead of colliding */
+.lims-shell-main .lims-inline:not([style*='gap']), .lims-overlay .lims-inline:not([style*='gap']) { gap: var(--space-2) var(--space-3); }
+.lims-shell-main .lims-inline, .lims-overlay .lims-inline { flex-wrap: wrap; min-width: 0; }
+.lims-shell-main .lims-stack:not([style*='gap']) { gap: var(--space-3); }
+.lims-shell-main .lims-stack { min-width: 0; }
+.lims-shell-main fieldset { min-width: 0; }
+.lims-shell-main .lims-check-wrap { display: inline-flex; align-items: center; }
+/* buttons: labels stay on one line; a row of buttons wraps as whole buttons */
+.lims-shell .lims-btn, .lims-overlay .lims-btn { flex: none; max-width: 100%; white-space: nowrap; }
+.lims-shell .lims-btn-label, .lims-overlay .lims-btn-label { white-space: nowrap; }
+.lims-shell-main :is(.lims-row-actions, .lims-thumb-actions, .lims-bulk-bar, .lims-console-actions, .lims-settings-bar) { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+/* a row that holds only buttons and links (action bars, ad-hoc button groups) wraps with a gap */
+.lims-shell-main :is(.lims-action-bar, .lims-queue-actions, .mis-noprint), .lims-shell-main div:not([class]):has(> .lims-btn + :is(.lims-btn, a)):not(:has(> :not(.lims-btn, a, span, template, [hidden]))) { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-3); min-width: 0; }
+.lims-shell-main span:not([class]):has(> .lims-btn + :is(.lims-btn, a)), .lims-shell-main span.mis-noprint { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+/* chips and badges keep clear of the text next to them */
+.lims-shell .lims-chip, .lims-overlay .lims-chip { flex: none; max-width: 100%; }
+.lims-shell-main :is(td, dd, li, p, span, div) > .lims-chip:not(:last-child) { margin-inline-end: var(--space-2); }
+.lims-shell-main :is(td, dd, li, p, span, div) > .lims-chip:not(:first-child) { margin-inline-start: var(--space-1); }
+.lims-shell .lims-chip-list, .lims-shell .lims-perm { gap: var(--space-2); }
+.lims-shell :is(.lims-chip-list, .lims-perm, .lims-page-status, .lims-inline, .lims-stack) > .lims-chip { margin-inline: 0; }
+
+/* form controls: a control never collapses and never grows taller than a control */
+.lims-shell .lims-field, .lims-overlay .lims-field { min-width: 0; }
+.lims-shell .lims-field > .lims-input:where(:not(textarea, .lims-rte-surface)), .lims-overlay .lims-field > .lims-input:where(:not(textarea, .lims-rte-surface)) { flex: none; }
+.lims-shell .lims-input, .lims-overlay .lims-input { max-width: 100%; min-width: 0; }
+.lims-shell .lims-select-trigger-wrap, .lims-overlay .lims-select-trigger-wrap { display: block; min-width: min(100%, 9rem); }
+.lims-shell .lims-select-trigger-wrap > .lims-btn, .lims-overlay .lims-select-trigger-wrap > .lims-btn { width: 100%; min-width: min(100%, 9rem); justify-content: space-between; }
+.lims-shell .lims-select-trigger-wrap .lims-btn-label { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; text-align: start; }
+.lims-shell .lims-input-group { min-width: 0; }
+.lims-shell .lims-input-group > .lims-input { min-width: 0; }
+.lims-shell .lims-check, .lims-shell .lims-radio, .lims-shell .lims-switch { flex: none; max-width: 100%; }
+
+/* filter bar: flex with wrap on wide screens, a self-fitting grid on narrow ones (label above control, one gap) */
+.lims-shell .lims-filter-bar { min-width: 0; }
+.lims-shell .lims-filter-bar > :is(.lims-field, .lims-filter-search) { min-width: min(100%, 9rem); }
+.lims-shell .lims-filter-bar input[type='datetime-local'] { min-width: min(100%, 13rem); }
+.lims-shell .lims-filter-bar :is(input[type='date'], input[type='time']) { min-width: min(100%, 9rem); }
+.lims-shell .lims-filter-search { flex-wrap: wrap; align-items: flex-end; max-width: 100%; }
+.lims-shell .lims-filter-search > .lims-field { flex: 1 1 9rem; }
+.lims-shell .lims-date-range .lims-inline { flex-wrap: wrap; }
+@media (max-width: 56.24rem) {
+  .lims-shell .lims-filter-bar { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr)); align-items: end; }
+  .lims-shell .lims-filter-bar > * { min-width: 0; }
+  .lims-shell .lims-filter-bar > :is(.lims-field, .lims-filter-search) { min-width: 0; }
+  .lims-shell .lims-filter-bar > :is(.lims-date-range, .lims-filter-search, fieldset, .lims-chip-list, .lims-inline) { grid-column: 1 / -1; }
+  .lims-shell .lims-filter-bar .lims-field > :is(.lims-input, .lims-select-trigger-wrap, .lims-input-group), .lims-shell .lims-filter-bar .lims-input-group > .lims-input { width: 100%; }
+  .lims-shell .lims-filter-bar > :is(.lims-btn, .lims-link, a, button) { justify-self: start; }
+  .lims-shell .lims-filter-search { max-width: none; }
+}
+
+/* tabs and sub-navigation wrap as whole labels */
+.lims-shell .lims-tablist { flex-wrap: wrap; row-gap: var(--space-1); min-width: 0; }
+.lims-shell .lims-tab { flex: none; white-space: nowrap; }
+.lims-shell .lims-inline-links { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-3); min-width: 0; }
+
+/* stat cards: one row from 900px (redesign); below that balanced rows, never a lone card under a wider row */
+.lims-shell .lims-stat { min-width: 0; }
+.lims-shell .lims-stat-label, .lims-shell .lims-stat-value { min-width: 0; overflow-wrap: break-word; }
+.lims-shell .lims-stat-delta { max-width: 100%; white-space: normal; }
+@media (min-width: 56.25rem) { .lims-shell .lims-stat-row > .lims-stat { overflow-wrap: break-word; } }
+@media (max-width: 56.24rem) {
+  .lims-shell .lims-stat-row, .lims-shell .lims-stat-row[data-lead='true'] { grid-auto-flow: row; grid-auto-columns: auto; grid-template-columns: repeat(auto-fit, minmax(min(100%, 9.5rem), 1fr)); gap: var(--space-4); }
+  .lims-shell .lims-stat-row:has(> :nth-child(2):last-child) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .lims-shell .lims-stat-row:has(> :nth-child(3):last-child) { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .lims-shell .lims-stat-row:has(> :nth-child(4):last-child) { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .lims-shell .lims-stat-row:has(> :nth-child(5):last-child) { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .lims-shell .lims-stat-row:has(> :nth-child(5):last-child) > .lims-stat { grid-column: span 2; }
+  .lims-shell .lims-stat-row:has(> :nth-child(5):last-child) > .lims-stat:nth-child(n + 4) { grid-column: span 3; }
+  .lims-shell .lims-stat-row:has(> :nth-child(6):last-child) { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 40rem) {
+  .lims-shell .lims-stat-row:has(> :nth-child(4):last-child) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 30rem) {
+  .lims-shell .lims-stat-row:has(> :nth-child(3):last-child), .lims-shell .lims-stat-row:has(> :nth-child(5):last-child), .lims-shell .lims-stat-row:has(> :nth-child(6):last-child) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .lims-shell .lims-stat-row:has(> :nth-child(5):last-child) > .lims-stat { grid-column: auto; }
+  .lims-shell .lims-stat-row:has(> :nth-child(3):last-child) > .lims-stat:last-child, .lims-shell .lims-stat-row:has(> :nth-child(5):last-child) > .lims-stat:last-child { grid-column: 1 / -1; }
+}
+.lims-shell .lims-dash-money { min-width: 0; }
+.lims-shell :is(.lims-dash, .lims-dash-row, .lims-dash-charts, .lims-grid) > * { min-width: 0; }
+.lims-shell .lims-card { min-width: 0; max-width: 100%; }
+.lims-shell .lims-card-head { flex-wrap: wrap; }
+.lims-shell .lims-step-figures, .lims-shell .lims-step { min-width: 0; flex-wrap: wrap; }
+.lims-shell .lims-step-note { white-space: normal; }
+.lims-shell .lims-dl { min-width: 0; }
+.lims-shell .lims-dl dd { min-width: 0; overflow-wrap: break-word; }
+
+/* tables: one scroll container (.lims-table-scroll). Short fields stay on one line, long text wraps inside a capped
+   column, and a table wider than its card scrolls inside the card with a visible bar and edge shade */
+.lims-shell .lims-table-scroll, .lims-shell .lims-egrid {
+  overflow-x: auto; max-width: 100%; scrollbar-width: thin; overscroll-behavior-x: contain;
+  background:
+    linear-gradient(to right, var(--surface) 40%, transparent) left / 2.5rem 100% no-repeat local,
+    linear-gradient(to left, var(--surface) 40%, transparent) right / 2.5rem 100% no-repeat local,
+    linear-gradient(to right, rgba(11,59,54,.16), transparent) left / .75rem 100% no-repeat scroll,
+    linear-gradient(to left, rgba(11,59,54,.16), transparent) right / .75rem 100% no-repeat scroll,
+    var(--surface);
+}
+.lims-shell .lims-table-scroll > .lims-table, .lims-shell .lims-table-scroll > table, .lims-shell .lims-egrid > table { width: max-content; min-width: 100%; }
+.lims-shell .lims-table th { white-space: nowrap; }
+.lims-shell .lims-table :is(th, td) { overflow-wrap: break-word; }
+.lims-shell .lims-table td:not(:has(.lims-btn, .lims-chip, .lims-inline, .lims-row-actions, input, select, textarea, table)) { max-width: clamp(14rem, 34vw, 24rem); }
+.lims-shell .lims-table td.lims-cell, .lims-shell .lims-cell-titles .lims-cell { white-space: normal; overflow: visible; text-overflow: clip; }
+/* a disabled-reason or helper line in an action cell goes below the buttons, never beside or over them */
+.lims-shell .lims-table td :is(.lims-inline, .lims-row-actions) > :is(.lims-description, .lims-error, p) { order: 1; flex: 1 0 100%; max-width: 22rem; white-space: normal; }
+.lims-shell .lims-table td:has(> .lims-state), .lims-shell .lims-table td[colspan] { max-width: none; }
+.lims-shell .lims-table :is(time, .lims-date-text, .lims-id, .lims-mono, .lims-money, .lims-num, .num, .lims-result) { white-space: nowrap; }
+.lims-shell .lims-table td:is(.lims-align-end, .lims-align-center) { white-space: nowrap; }
+/* a date with its B.S. date may take two lines (date / B.S. date), never three */
+.lims-shell .lims-table time.lims-date-text { display: inline-block; max-width: 9.5rem; white-space: normal; vertical-align: middle; }
+.lims-shell .lims-table td :is(.lims-inline, .lims-row-actions) { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+.lims-shell .lims-table td :is(.lims-btn, a.lims-link, a.lims-btn) + :is(.lims-btn, a.lims-link, a.lims-btn, a) { margin-inline-start: var(--space-2); }
+.lims-shell .lims-table td :is(.lims-inline, .lims-row-actions) > :is(.lims-btn, a) { margin-inline-start: 0; }
+@media (max-width: 40rem) {
+  .lims-shell .lims-table :is(th, td) { padding-inline: var(--space-2); }
+  .lims-shell .lims-table :is(th, td):first-child { padding-inline-start: var(--space-4); }
+  .lims-shell .lims-table :is(th, td):last-child { padding-inline-end: var(--space-4); }
+}
+/* screen-reader-only text inside a scrolled table stays inside the scroll box (it used to widen the page) */
+.lims-shell .lims-table-scroll, .lims-shell .lims-egrid, .lims-shell .lims-data-table, .lims-shell .lims-btn, .lims-shell .lims-table :is(th, td) > a { position: relative; }
+.lims-shell .lims-pager { flex-wrap: wrap; gap: var(--space-2); }
+/* a bare table (no DataTable wrapper) scrolls inside its nearest block instead of widening the page */
+.lims-shell-main :is(div, form, article, li, dd, details):not(.lims-table-scroll, .lims-data-table):has(> table) { overflow-x: auto; max-width: 100%; }
+
+/* settings forms: on narrow screens the Save bar sits after the last field; on wide ones it stays sticky but opaque */
+.lims-shell .lims-settings-form { max-width: min(100%, 44rem); min-width: 0; }
+.lims-shell .lims-settings-bar { background: var(--surface-2); }
+@media (max-width: 63.99rem) { .lims-shell .lims-settings-bar { position: static; background: transparent; } }
+
+/* two-pane console and banners on narrow screens */
+.lims-shell .lims-console { min-width: 0; }
+.lims-banner { flex-wrap: wrap; height: auto; min-height: 2.25rem; padding-block: var(--space-1); }
+.lims-banner-text, .lims-banner-title { overflow: visible; text-overflow: clip; white-space: normal; flex-wrap: wrap; }
+.lims-shell .lims-filter-bar > .lims-field:has(> .lims-chip-list) { grid-column: 1 / -1; }
+.lims-shell .lims-card .lims-state-title, .lims-shell .lims-card .lims-state-body, .lims-shell .lims-data-table .lims-state-title, .lims-shell .lims-data-table .lims-state-body, .lims-shell td .lims-state-title, .lims-shell td .lims-state-body { white-space: normal; overflow: visible; }
+/* dialogs and drawers fit the viewport */
+.lims-overlay .lims-dialog, .lims-overlay .lims-drawer { max-width: calc(100vw - 2 * var(--space-3)); }
+.lims-overlay .lims-dialog-footer { flex-wrap: wrap; }

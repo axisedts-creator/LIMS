@@ -167,6 +167,7 @@
 /services/api/Dockerfile @lims/c0-0d
 /services/api/src/main.ts @lims/c0-0d
 /services/api/package.json @lims/c0-0d
+/apps/web/vitest.config.ts @lims/c0-0d
 /services/api/tsconfig.json @lims/c0-0d
 /services/worker/Dockerfile @lims/c0-0d
 /apps/web/src/middleware.ts @lims/c0-0d
@@ -174,4 +175,5 @@
 /apps/web/src/app/layout.tsx @lims/c0-0d
 /services/worker/package.json @lims/c0-0d
 /services/worker/tsconfig.json @lims/c0-0d
+/apps/web/src/next-assets.d.ts @lims/c0-0d
 /apps/web/src/app/(staff)/layout.tsx @lims/c0-0d

@@ -38,6 +38,13 @@ function main(argv: string[]): number {
     if (prev && prev !== m[2]) throw new Usage(`lock pins ${repo} to two digests`);
     lock.set(repo, m[2]);
   }
+  // UPSTREAM.lock writes each image as three lines (image / tag / digest); read that form too.
+  for (const m of lockText.matchAll(/^[ \t]*image:[ \t]*([^\s#"']+)[^\n]*\n[ \t]*tag:[^\n]*\n[ \t]*digest:[ \t]*sha256:([0-9a-f]{64})\b/gm)) {
+    const repo = repoOf(m[1]);
+    const prev = lock.get(repo);
+    if (prev && prev !== m[2]) throw new Usage(`lock pins ${repo} to two digests`);
+    lock.set(repo, m[2]);
+  }
   if (!lock.size) throw new Usage('lock contains no <repo>@sha256:<digest> entries');
 
   const images = [...compose.matchAll(/^\s*-?\s*image:\s*["']?([^"'\s#]+)/gm)].map((m) => m[1]);

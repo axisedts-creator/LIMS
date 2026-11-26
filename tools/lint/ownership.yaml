@@ -106,6 +106,10 @@ rules:
     owner: C0-0D
   - pattern: "apps/web/src/__tests__/**"
     owner: C0-0D
+  - pattern: "apps/web/src/next-assets.d.ts"
+    owner: C0-0D
+  - pattern: "apps/web/vitest.config.ts"
+    owner: C0-0D
   # Docs (founder)
   - pattern: "docs/program/**"
     owner: DOC-OWNER

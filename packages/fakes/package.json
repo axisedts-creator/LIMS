@@ -10,7 +10,8 @@
     "./*": "./src/*.ts"
   },
   "scripts": {
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:unit": "vitest run"
   },
   "dependencies": {
     "@lims/contracts": "link:../../contracts",

@@ -1,4 +1,4 @@
-Title: CR-C17 (number to be assigned by the owner): contracts for the parts of the phlebotomist app UI that have none
+Title: CR-C17-017 (number taken 2026-11-26 on owner instruction; not yet in the spec register): contracts for the parts of the phlebotomist app UI that have none
 From chunk: C17            To owner: C0-0B | C0-0C | C0-0D | C16 (patient app)
 Type: schema | api | event
 Blocking? yes for the screens listed below; no for the rest of PHLEBO-UI-FULL-1 (built on existing contracts)

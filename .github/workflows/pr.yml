@@ -366,7 +366,7 @@ jobs:
       - name: install gitleaks 8.30.1
         run: go install github.com/zricethezav/gitleaks/v8@v8.30.1
       - name: gitleaks (gate 11)
-        run: PATH="$(go env GOPATH)/bin:$PATH" gitleaks detect --redact --source .
+        run: PATH="$(go env GOPATH)/bin:$PATH" gitleaks detect --redact -v --source .
 
   deps:
     runs-on: ubuntu-24.04
@@ -722,6 +722,9 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version-file: apps/bridge-agent/go.mod
+      - if: steps.plan.outputs.run == 'true'
+        name: install staticcheck 2026.2.2
+        run: go install honnef.co/go/tools/cmd/staticcheck@2026.2.2 && echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
       - if: steps.plan.outputs.run == 'true'
         name: C7 build (CR-C7-013)
         run: bash apps/bridge-agent/build/ci.sh build

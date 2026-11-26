@@ -74,7 +74,26 @@ if (psqlAdmin(['-tAc', "SELECT 1 FROM pg_roles WHERE rolname = 'lims_migrator'"]
 
 // 4. migrations as lims_migrator (Atlas, SP-5 runner contract; compose service `migrate`)
 step('migrations (lims_migrator)');
-run('docker', [...COMPOSE, '--profile', 'tools', 'run', '--rm', 'migrate']);
+const MIGRATE = [...COMPOSE, '--profile', 'tools', 'run', '--rm', 'migrate'];
+// SP-2 / LD-31 (same split as db/tests/run-suites.sh; CR LEAD-DB-02): 20261105001200 needs the graphile_worker schema.
+//   (a) the migrations before it (..001100 grants CREATE to lims_queue), (b) graphile-worker --schema-only as lims_migrator with
+//   session role lims_queue on a direct connection, (c) the rest (wrapper + REVOKE CREATE). Skipped once the schema exists.
+const STEP_C = '20261105001200';
+if (psqlAdmin(['-At', '-c', "SELECT to_regnamespace('graphile_worker') IS NOT NULL"]).trim() !== 't') {
+  const before = readdirSync(join(ROOT, 'db/migrations')).filter((f) => f.endsWith('.sql') && f < STEP_C).length;
+  run('docker', [...MIGRATE, 'migrate', 'apply', String(before), '--dir', 'file:///migrations', '--revisions-schema', 'migrations_meta', '--allow-dirty',
+    '--url', 'postgres://lims_migrator@db:5432/postgres?sslmode=disable&lock_timeout=5s&statement_timeout=15min']);
+  const b = spawnSync('pnpm', ['exec', 'graphile-worker', '--schema-only', '-c', `postgres://lims_migrator@127.0.0.1:5432/${DB}`], {
+    cwd: ROOT, stdio: 'inherit', shell: process.platform === 'win32',
+    env: { ...process.env, PGOPTIONS: '-c role=lims_queue', PGPASSWORD: env()['LIMS_MIGRATOR_PASSWORD'] ?? '' },
+  });
+  if (b.status !== 0) {
+    psqlAdmin(['-q', '-c', `REVOKE CREATE ON SCHEMA app FROM lims_queue; REVOKE CREATE ON DATABASE ${DB} FROM lims_queue`]);
+    console.error('dev:up: graphile-worker --schema-only failed (SP-2 step b); CREATE revoked');
+    process.exit(1);
+  }
+}
+run('docker', MIGRATE);
 
 // 5. db/seeds — each file in one transaction as lims_migrator (files do SET LOCAL ROLE lims_owner)
 step('db/seeds');

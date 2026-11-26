@@ -3,6 +3,7 @@
 // notifications, actor) + sidebar. Below 1024 px the sidebar is a drawer: the menu button opens it, focus moves in and is trapped,
 // Escape (or Close menu) closes it and focus returns to the menu button. CSS decides when the menu button is shown.
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { usePathname } from 'next/navigation';
 import { PageShell } from '@lims/ui/components/PageShell';
 import { t } from '../i18n/messages';
 import { CentreSwitcher, type Centre } from './CentreSwitcher';

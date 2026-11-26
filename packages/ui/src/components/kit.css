@@ -242,6 +242,11 @@ textarea.lims-input, .lims-input.lims-rte-surface, .lims-egrid-table .lims-input
 .lims-calendar-header { display: flex; justify-content: space-between; gap: var(--lims-space-3); }
 .lims-calendar-title { font-weight: var(--lims-font-weight-medium); margin: 0; }
 .lims-calendar-range { margin: 0; color: var(--lims-neutral-700); }
+.lims-calendar-nav { display: flex; align-items: center; justify-content: space-between; gap: var(--lims-space-1); margin-bottom: var(--lims-space-1); }
+.lims-calendar-btn { min-width: 1.75rem !important; height: 1.75rem !important; padding: 0 var(--lims-space-1) !important; font-size: 1rem !important; line-height: 1 !important; cursor: pointer; }
+.lims-calendar-title-wrap { flex: 1 1 auto; text-align: center; }
+.lims-calendar-selectors { display: flex; gap: var(--lims-space-2); margin-bottom: var(--lims-space-1); }
+.lims-calendar-select { height: 1.75rem !important; padding: 0.125rem 0.25rem !important; font-size: 0.75rem !important; flex: 1; }
 .lims-calendar-grid { border-collapse: collapse; }
 .lims-calendar-grid th, .lims-calendar-day { min-width: 2.25rem; min-height: 2.25rem; text-align: center; }
 .lims-calendar-day { cursor: pointer; border-radius: var(--lims-radius-sm); }

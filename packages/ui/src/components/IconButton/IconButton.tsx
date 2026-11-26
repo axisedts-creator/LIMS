@@ -17,6 +17,7 @@ export function IconButton({ label, icon, variant = 'ghost', onPress, ...rest }:
       aria-label={label}
       className={`lims-btn lims-btn-${variant} lims-icon-btn`}
       onPress={onPress}
+      onClick={() => onPress()}
       {...(rest['data-testid'] ? { 'data-testid': rest['data-testid'] } : {})}
     >
       <Icon name={icon} />

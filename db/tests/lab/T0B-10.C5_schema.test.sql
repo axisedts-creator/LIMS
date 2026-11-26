@@ -20,7 +20,7 @@ CREATE TEMP TABLE lv(v, pub) AS VALUES ('v_result_current',false),('v_rejection_
 CREATE TEMP TABLE ap(t) AS VALUES ('specimen_transitions'),('result_observations'),('result_attachments'),('verifications'),('approvals'),('critical_notifications'),('qc_results'),('worksheet_items'),('report_releases'),('module_submissions');
 
 -- C5 check 1: inventory, owner (AC-0B-1.2), schema privileges
-SELECT is((SELECT count(*)::int FROM pg_class c WHERE c.relnamespace = 'lab'::regnamespace AND c.relkind IN ('r','p')), 28 + 4 + 1, 'C5 check 1: lab holds 28 tenant + 4 G tables + event_inbox');
+SELECT is((SELECT count(*)::int FROM pg_class c WHERE c.relnamespace = 'lab'::regnamespace AND c.relkind IN ('r','p')), 30 + 4 + 1, 'C5 check 1: lab holds 30 tenant + 4 G tables + event_inbox (28 + verification_policy, result_signoff: T0C-VERLEVEL-1, LD-316)');
 SELECT is((SELECT count(*)::int FROM pg_class c WHERE c.relnamespace = 'lab'::regnamespace AND c.relkind = 'v'), 11, 'C5 check 1: 5 internal + 6 v_pub_* views');
 SELECT is((SELECT count(*)::int FROM pg_class c WHERE c.relnamespace = 'lab'::regnamespace AND c.relkind = 'm'), 0, 'no materialised view');
 SELECT is(pg_get_userbyid(c.relowner), 'lims_owner', 'C5 check 1: lab.' || c.relname || ' owned by lims_owner (AC-0B-1.2)') FROM pg_class c WHERE c.relnamespace = 'lab'::regnamespace AND c.relkind IN ('r','v');
@@ -62,7 +62,7 @@ SELECT is((SELECT count(*)::int FROM pg_policies p WHERE p.schemaname = 'lab' AN
             AND p.policyname = x.t || '__' || k.cmd || '__' || CASE WHEN x.tpl = 'T' OR (x.t = 'orders' AND k.cmd <> 'select') THEN 'tenant' ELSE 'tenant_centre' END), 1,
   'C5 check 5 / AC-0B-2.2: policy lab.' || x.t || '__' || k.cmd)
   FROM lt x CROSS JOIN (VALUES ('select'),('insert'),('update')) k(cmd) WHERE k.cmd <> 'update' OR x.upd;
-SELECT is((SELECT count(*)::int FROM pg_policies p WHERE p.schemaname = 'lab' AND p.tablename <> 'event_inbox'), 74, 'C5 check 5: exactly 74 lab policies (35 centre DO list + 31 tenant DO list + 8 literal)');
+SELECT is((SELECT count(*)::int FROM pg_policies p WHERE p.schemaname = 'lab' AND p.tablename <> 'event_inbox'), 79, 'C5 check 5: exactly 79 lab policies (35 centre DO list + 31 tenant DO list + 8 literal + 5 of T0C-VERLEVEL-1)');
 SELECT is((SELECT count(*)::int FROM pg_policies p WHERE p.schemaname = 'lab' AND p.tablename IN (SELECT t FROM lg)), 0, 'G tables carry no policy');
 SELECT is((SELECT count(*)::int FROM pg_policies p WHERE p.schemaname = 'lab' AND p.tablename = x.t AND p.cmd = 'UPDATE'), 0, 'C5 check 5: lab.' || x.t || ' has no UPDATE policy (append-only, §7)') FROM ap x;
 SELECT is((SELECT count(*)::int FROM pg_policies p WHERE p.schemaname = 'lab' AND p.tablename <> 'event_inbox' AND p.cmd IN ('DELETE','ALL')), 0, 'C5 check 5: no DELETE / ALL policy anywhere in lab (02-CV §5.6)');
@@ -76,7 +76,7 @@ SELECT ok(coalesce(p.qual, '') || coalesce(p.with_check, '') ~ 'current_centre_i
 SELECT ok(coalesce(p.qual, '') || coalesce(p.with_check, '') ~ 'is_staff_or_system', 'C5 check 6: staff guard in ' || p.policyname || ' (08 A17 P-16, check-registry; every lab policy)')
   FROM pg_policies p WHERE p.schemaname = 'lab' AND p.tablename <> 'event_inbox';
 -- AC-0B-2.3: db/policies/lab.sql is the canonical copy of the DDL policies (the CI diff is in the node test and gate 9); here: the live catalogue has all 74
-SELECT is((SELECT count(*)::int FROM pg_policies p WHERE p.schemaname = 'lab' AND p.tablename <> 'event_inbox'), 74, 'AC-0B-2.3: the 74 policies of db/policies/lab.sql are the live policies');
+SELECT is((SELECT count(*)::int FROM pg_policies p WHERE p.schemaname = 'lab' AND p.tablename <> 'event_inbox'), 79, 'AC-0B-2.3: the 79 policies of db/policies/lab.sql are the live policies');
 SELECT is((SELECT count(*)::int FROM pg_policies p WHERE p.schemaname = 'lab' AND p.tablename = 'qc_results' AND coalesce(p.qual, '') || coalesce(p.with_check, '') ~ 'processing_centre_id'), 0, 'qc_results policies use centre_id only');
 SELECT is((SELECT count(*)::int FROM pg_policies p WHERE p.schemaname = 'lab' AND p.tablename = 'specimens' AND coalesce(p.qual, '') || coalesce(p.with_check, '') ~ 'processing_centre_id'), 3, 'specimens policies: centre_id OR processing_centre_id (D-13)');
 SELECT ok((SELECT p.qual ~ 'lab\.specimens' AND p.qual ~ 'processing_centre_id' FROM pg_policies p WHERE p.schemaname = 'lab' AND p.policyname = 'orders__select__tenant_centre'), 'orders SELECT also admits processing-centre staff through specimens');

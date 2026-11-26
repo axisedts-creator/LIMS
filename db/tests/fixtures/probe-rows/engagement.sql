@@ -19,6 +19,10 @@ INSERT INTO engagement.bookable_items (id, tenant_id, orderable_id, orderable_ki
   (pg_temp.id('f4'), pg_temp.id('01'), pg_temp.id('f4'), 'test', 'probe-4', 'probe-4', '{centre_visit}', pg_temp.id('35'), pg_temp.id('99')),
   (pg_temp.id('f5'), pg_temp.id('01'), pg_temp.id('f5'), 'test', 'probe-5', 'probe-5', '{centre_visit}', pg_temp.id('a3'), pg_temp.id('99')),
   (pg_temp.id('f6'), pg_temp.id('01'), pg_temp.id('f6'), 'test', 'probe-6', 'probe-6', '{centre_visit}', pg_temp.id('34'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
+INSERT INTO engagement.booking_centres (id, tenant_id, centre_id, branch_id, display_name, synced_at, created_by, updated_by) VALUES
+  (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('21'), pg_temp.id('11'), 'probe-1', now(), pg_temp.id('a3'), pg_temp.id('99')),
+  (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('23'), pg_temp.id('12'), 'probe-3', now(), pg_temp.id('99'), pg_temp.id('99')),
+  (pg_temp.id('f4'), pg_temp.id('01'), pg_temp.id('22'), pg_temp.id('11'), 'probe-4', now(), pg_temp.id('35'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
 INSERT INTO engagement.broadcast_template (id, tenant_id, name, channel, body, created_by, updated_by) VALUES
   (pg_temp.id('f1'), pg_temp.id('01'), 'probe-1', 'sms', 'probe-1', pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('f3'), pg_temp.id('02'), 'probe-3', 'sms', 'probe-3', pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;

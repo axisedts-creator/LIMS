@@ -22,7 +22,7 @@ CREATE TEMP TABLE rf(f) AS VALUES ('tg_report_versions_guard'),('tg_deliveries_s
 CREATE TEMP TABLE rd(f, args) AS VALUES ('reporting_verify_qr','bytea'),('reporting_resolve_portal_credential','text, bytea'),('reporting_ingest_provider_callback','text, bytea, jsonb'),('reporting_redeem_link_for_app','bytea, bytea');
 
 -- C6 check 1: inventory, owner (AC-0B-1.2), schema privileges
-SELECT is((SELECT count(*)::int FROM pg_class c WHERE c.relnamespace = 'reporting'::regnamespace AND c.relkind IN ('r','p')), 25 + 2 + 1, 'C6 check 1: reporting holds 25 tenant + 2 G tables + event_inbox');
+SELECT is((SELECT count(*)::int FROM pg_class c WHERE c.relnamespace = 'reporting'::regnamespace AND c.relkind IN ('r','p')), 27 + 2 + 1, 'C6 check 1: reporting holds 27 tenant + 2 G tables + event_inbox (25 + print_profile, signatory_profile: T0C-PRINTCFG-1, LD-316 / LD-319(1))');
 SELECT is((SELECT count(*)::int FROM pg_class c WHERE c.relnamespace = 'reporting'::regnamespace AND c.relkind = 'v'), 3, 'C6 check 1: 3 v_pub_* views');
 SELECT is((SELECT count(*)::int FROM pg_class c WHERE c.relnamespace = 'reporting'::regnamespace AND c.relkind = 'm'), 0, 'no materialised view');
 SELECT is(pg_get_userbyid(c.relowner), 'lims_owner', 'C6 check 1: reporting.' || c.relname || ' owned by lims_owner (AC-0B-1.2)') FROM pg_class c WHERE c.relnamespace = 'reporting'::regnamespace AND c.relkind IN ('r','v');
@@ -59,7 +59,7 @@ SELECT is(c.relrowsecurity, false, 'C6 check 4 / AC-0B-2.1: reporting.' || x.t |
 
 -- C6 check 5: exact policy set (AC-0B-2.2 / 2.3); 107 = 41 spec literals + 66 template-derived
 SELECT is((SELECT count(*)::int FROM pg_policies p WHERE p.schemaname = 'reporting' AND p.tablename = x.t), x.npol, 'C6 check 5 / AC-0B-2.2: reporting.' || x.t || ' has ' || x.npol || ' policies') FROM rt x;
-SELECT is((SELECT count(*)::int FROM pg_policies p WHERE p.schemaname = 'reporting' AND p.tablename <> 'event_inbox'), 107, 'C6 check 5: exactly 107 reporting policies');
+SELECT is((SELECT count(*)::int FROM pg_policies p WHERE p.schemaname = 'reporting' AND p.tablename <> 'event_inbox'), 113, 'C6 check 5: exactly 113 reporting policies (107 + 6 of T0C-PRINTCFG-1)');
 SELECT is((SELECT count(*)::int FROM pg_policies p WHERE p.schemaname = 'reporting' AND p.tablename IN (SELECT t FROM rg)), 0, 'G tables carry no policy');
 SELECT is((SELECT count(*)::int FROM pg_policies p WHERE p.schemaname = 'reporting' AND p.tablename = 'delivery_attempts' AND p.cmd = 'UPDATE'), 0, 'C6 check 5: delivery_attempts has no UPDATE policy (class A)');
 SELECT is((SELECT array_agg(DISTINCT p.tablename::text ORDER BY p.tablename::text) FROM pg_policies p WHERE p.schemaname = 'reporting' AND p.tablename <> 'event_inbox' AND p.cmd = 'DELETE'),
@@ -70,7 +70,7 @@ SELECT is((SELECT array_agg(p.policyname::text ORDER BY p.policyname::text) FROM
   ARRAY['channel_accounts__select__lookup','deliveries__select__owner_only','portal_links__select__lookup','portal_links__select__owner_only','portal_links__update__owner_only','portal_sessions__select__lookup',
         'provider_events__insert__lookup','provider_events__select__lookup','qr_tokens__select__lookup','report_versions__select__lookup','report_versions__select__owner_only','reports__select__owner_only'],
   'C6 check 5: exactly 12 policies TO lims_reporting_lookup (§6.2)');
-SELECT is((SELECT count(*)::int FROM pg_policies p WHERE p.schemaname = 'reporting' AND p.tablename <> 'event_inbox' AND p.roles = ARRAY['lims_app']::name[]), 95, 'C6 check 5: 95 policies TO lims_app');
+SELECT is((SELECT count(*)::int FROM pg_policies p WHERE p.schemaname = 'reporting' AND p.tablename <> 'event_inbox' AND p.roles = ARRAY['lims_app']::name[]), 101, 'C6 check 5: 101 policies TO lims_app');
 
 -- C6 check 6: policy hygiene (AC-0B-2.2, A16.1, CR-C13-011, A17 P-16, A21.1/A21.4)
 SELECT is((SELECT count(*)::int FROM pg_policies p WHERE p.schemaname = 'reporting' AND (p.roles && ARRAY['public','anon','authenticated']::name[])), 0, 'C6 check 6 / AC-0B-2.2: no policy for public / anon / authenticated');
@@ -90,7 +90,7 @@ SELECT ok(coalesce(p.qual, '') || coalesce(p.with_check, '') ~ 'app\.pre_[a-z_0-
 SELECT ok(p.qual ~ 'portal_link_purpose', 'C6 check 6: ' || p.policyname || ' requires claim portal_link_purpose (A21.1: dues links see no content)')
   FROM pg_policies p WHERE p.schemaname = 'reporting' AND p.policyname IN ('report_versions__select__portal','qr_tokens__select__portal');
 -- AC-0B-2.3: db/policies/reporting.sql is the canonical copy (CI diff in node test + gate 9); here: the live catalogue has all 107
-SELECT is((SELECT count(*)::int FROM pg_policies p WHERE p.schemaname = 'reporting' AND p.tablename <> 'event_inbox'), 107, 'AC-0B-2.3: the 107 policies of db/policies/reporting.sql are the live policies');
+SELECT is((SELECT count(*)::int FROM pg_policies p WHERE p.schemaname = 'reporting' AND p.tablename <> 'event_inbox'), 113, 'AC-0B-2.3: the 113 policies of db/policies/reporting.sql are the live policies');
 
 -- C6 check 7: grants (AC-0B-4.2 / 4.3), lookup role
 SELECT is(has_table_privilege('lims_app', 'reporting.' || x.t, 'DELETE'), x.dele, 'C6 check 7 / AC-0B-4.2: lims_app DELETE on reporting.' || x.t || ' = ' || x.dele) FROM rt x;

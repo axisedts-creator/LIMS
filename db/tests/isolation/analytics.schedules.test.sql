@@ -82,13 +82,18 @@ END $f$;
 -- step 6 runner: the rows of p_tbl are removed first (superuser, replica mode, inside a rolled-back subtransaction) so a
 -- natural-key UNIQUE collision with the copied row cannot mask the composite-FK check; returns pg_temp.x's result.
 CREATE FUNCTION pg_temp.fk_try(p_tbl regclass, p_stmt text) RETURNS text LANGUAGE plpgsql AS $f$
-DECLARE r text;
+DECLARE r text; k record;
 BEGIN
   BEGIN
     SET LOCAL session_replication_role = replica;
     EXECUTE format('DELETE FROM %s', p_tbl);   -- both tenants: some natural keys are global (e.g. memberships__user_id__p_uq)
     SET LOCAL session_replication_role = origin;
     EXECUTE format('ALTER TABLE %s DISABLE TRIGGER USER', p_tbl);   -- user triggers only: RI (FK) triggers and RLS stay on
+    -- a CHECK is evaluated before the FK and would refuse the patched row first (23514): the table's own CHECKs are dropped here,
+    -- inside the rolled-back subtransaction, so the answer is the FK's (or RLS's). NOT NULL, keys, FKs and RLS are untouched.
+    FOR k IN SELECT conname FROM pg_constraint WHERE conrelid = p_tbl AND contype = 'c' AND conislocal AND coninhcount = 0 LOOP
+      EXECUTE format('ALTER TABLE %s DROP CONSTRAINT %I', p_tbl, k.conname);
+    END LOOP;
     SET CONSTRAINTS ALL IMMEDIATE;                                    -- a DEFERRABLE FK must refuse inside the statement
     r := pg_temp.x('lims_api', pg_temp.cl('user', '32', '42'), p_stmt, 'w');
     RAISE EXCEPTION USING ERRCODE = 'P0001', MESSAGE = 'probe_rollback';

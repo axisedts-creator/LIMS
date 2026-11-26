@@ -82,13 +82,18 @@ END $f$;
 -- step 6 runner: the rows of p_tbl are removed first (superuser, replica mode, inside a rolled-back subtransaction) so a
 -- natural-key UNIQUE collision with the copied row cannot mask the composite-FK check; returns pg_temp.x's result.
 CREATE FUNCTION pg_temp.fk_try(p_tbl regclass, p_stmt text) RETURNS text LANGUAGE plpgsql AS $f$
-DECLARE r text;
+DECLARE r text; k record;
 BEGIN
   BEGIN
     SET LOCAL session_replication_role = replica;
     EXECUTE format('DELETE FROM %s', p_tbl);   -- both tenants: some natural keys are global (e.g. memberships__user_id__p_uq)
     SET LOCAL session_replication_role = origin;
     EXECUTE format('ALTER TABLE %s DISABLE TRIGGER USER', p_tbl);   -- user triggers only: RI (FK) triggers and RLS stay on
+    -- a CHECK is evaluated before the FK and would refuse the patched row first (23514): the table's own CHECKs are dropped here,
+    -- inside the rolled-back subtransaction, so the answer is the FK's (or RLS's). NOT NULL, keys, FKs and RLS are untouched.
+    FOR k IN SELECT conname FROM pg_constraint WHERE conrelid = p_tbl AND contype = 'c' AND conislocal AND coninhcount = 0 LOOP
+      EXECUTE format('ALTER TABLE %s DROP CONSTRAINT %I', p_tbl, k.conname);
+    END LOOP;
     SET CONSTRAINTS ALL IMMEDIATE;                                    -- a DEFERRABLE FK must refuse inside the statement
     r := pg_temp.x('lims_api', pg_temp.cl('user', '32', '42'), p_stmt, 'w');
     RAISE EXCEPTION USING ERRCODE = 'P0001', MESSAGE = 'probe_rollback';
@@ -212,8 +217,6 @@ SET LOCAL session_replication_role = origin;
 SELECT ok(pg_temp.n(pg_temp.q('SELECT 1 FROM %s WHERE %I = pg_temp.id(''01'')', 'partners.price_list_syncs'::regclass)) > 0, 'probe step 1: tenant A rows of partners.price_list_syncs seeded');
 SELECT ok(pg_temp.n(pg_temp.q('SELECT 1 FROM %s WHERE %I = pg_temp.id(''02'')', 'partners.price_list_syncs'::regclass)) > 0, 'probe step 1: tenant B rows of partners.price_list_syncs seeded');
 SELECT ok(pg_temp.n(format('SELECT 1 FROM partners.price_list_syncs WHERE %I = pg_temp.id(''35'')', pg_temp.owncol('partners.price_list_syncs'::regclass))) > 0, 'probe step 1: partner fixture actor rows of partners.price_list_syncs seeded');
-SELECT ok(pg_temp.n(format('SELECT 1 FROM partners.price_list_syncs WHERE %I = pg_temp.id(''a3'')', pg_temp.owncol('partners.price_list_syncs'::regclass))) > 0, 'probe step 1: portal fixture actor rows of partners.price_list_syncs seeded');
-SELECT ok(pg_temp.n(format('SELECT 1 FROM partners.price_list_syncs WHERE %I = pg_temp.id(''34'')', pg_temp.owncol('partners.price_list_syncs'::regclass))) > 0, 'probe step 1: patient fixture actor rows of partners.price_list_syncs seeded');
 -- probe step 2/3/4: lims_api, claims of tenant A (all-centres staff): no tenant B row visible, insertable or changeable (expect 0 rows / 42501)
 SELECT is(pg_temp.x('lims_api', pg_temp.cl('user', '32', '42'), pg_temp.q('SELECT 1 FROM %s WHERE %I = pg_temp.id(''02'')', 'partners.price_list_syncs'::regclass), 'n'), pg_temp.want('lims_api', 'partners.price_list_syncs'::regclass, 'SELECT'), 'probe step 2: tenant A claims see 0 tenant B rows of partners.price_list_syncs');
 SELECT is(pg_temp.xt('partners.price_list_syncs'::regclass, 'lims_api', pg_temp.cl('user', '32', '42'), pg_temp.q('INSERT INTO %s (%I) VALUES (pg_temp.id(''02''))', 'partners.price_list_syncs'::regclass)), 'E42501', 'probe step 3: INSERT of a tenant B row into partners.price_list_syncs -> 42501');

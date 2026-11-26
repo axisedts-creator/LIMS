@@ -16,7 +16,7 @@ export default async function NewRegistrationPage() {
       centres={centres}
       permissions={session?.actor.permissions ?? []}
       defaultCentreId={centres[0]?.id}
-      consentTextVersion={settings?.consent_text_version}
+      {...(settings?.consent_text_version ? { consentTextVersion: settings.consent_text_version } : {})}
     />
   );
 }

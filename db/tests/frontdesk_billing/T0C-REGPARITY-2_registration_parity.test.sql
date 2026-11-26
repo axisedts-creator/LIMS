@@ -268,7 +268,9 @@ SELECT alike(pg_temp.a(format($$ INSERT INTO frontdesk.favourite_tests (id, tena
 SELECT is(pg_temp.a(format($$ INSERT INTO frontdesk.icd_codes (id, tenant_id, code, description, created_by, updated_by) VALUES (%L, %L, 'Z99', 'Synthetic own', %L, %L) $$, pg_temp.uid(503), pg_temp.ta(), pg_temp.sys(), pg_temp.sys())), 'n=1',
   'tenant A staff inserts its own icd code');
 SELECT is(pg_temp.a('DELETE FROM frontdesk.registration_drafts WHERE id = ' || quote_literal(pg_temp.uid(301))), 'n=1', 'tenant A staff deletes its own draft');
-SELECT is(pg_temp.a('DELETE FROM frontdesk.favourite_tests WHERE id = ' || quote_literal(pg_temp.uid(402))), 'n=1', 'tenant A staff removes a favourite');
+-- 20261117140000 (T0B-REGAPI-2, LD-315(b)) bound DELETE to the owner: a member removes its own favourite (400), never another member's (402)
+SELECT is(pg_temp.a('DELETE FROM frontdesk.favourite_tests WHERE id = ' || quote_literal(pg_temp.uid(402))), 'n=0', 'tenant A staff cannot remove another member''s favourite');
+SELECT is(pg_temp.a('DELETE FROM frontdesk.favourite_tests WHERE id = ' || quote_literal(pg_temp.uid(400))), 'n=1', 'tenant A staff removes its own favourite');
 SELECT is(pg_temp.x('lims_app', pg_temp.cl(pg_temp.ta()), 'SELECT 1 FROM frontdesk.' || p.t, 'n') <> 'n=0', true, 'control: a staff actor sees rows of ' || p.t) FROM probe p;
 SELECT is(pg_temp.x('lims_app', pg_temp.cl(pg_temp.ta(), r.k), 'SELECT 1 FROM frontdesk.' || p.t, 'n'), 'n=0', 'a ' || r.k || '-actor sees 0 rows of ' || p.t) FROM probe p CROSS JOIN (VALUES ('patient'),('partner'),('portal')) r(k);
 SELECT alike(pg_temp.x('lims_app', pg_temp.cl(pg_temp.ta(), r.k), format($$ INSERT INTO frontdesk.coupons (id, tenant_id, code, percent, created_by, updated_by) VALUES (%L, %L, 'PORTALX', 5, %L, %L) $$,

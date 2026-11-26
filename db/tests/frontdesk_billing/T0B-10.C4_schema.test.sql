@@ -24,8 +24,8 @@ CREATE TEMP TABLE vw(s, v) AS VALUES ('frontdesk','v_pub_order_daily'),('frontde
   ('billing','v_pub_invoice_daily'),('billing','v_pub_department_income'),('billing','v_pub_payment_collection'),('billing','v_pub_referrer_billing'),('billing','v_pub_credit_party_statement'),('billing','v_pub_order_balance');
 
 -- ===================================================================================================================================== inventory
-SELECT is((SELECT count(*)::int FROM pg_class c WHERE c.relnamespace = 'frontdesk'::regnamespace AND c.relkind IN ('r','p')), 13 + 1, 'frontdesk holds 12 tenant + 1 G table + event_inbox');
-SELECT is((SELECT count(*)::int FROM pg_class c WHERE c.relnamespace = 'billing'::regnamespace AND c.relkind IN ('r','p')), 24 + 1, 'billing holds 22 tenant + 2 G tables + event_inbox');
+SELECT is((SELECT count(*)::int FROM pg_class c WHERE c.relnamespace = 'frontdesk'::regnamespace AND c.relkind IN ('r','p')), 19 + 1, 'frontdesk holds 18 tenant + 1 G table + event_inbox (12 + coupons, icd_codes, custom_field_definitions, reward_points_ledger, registration_drafts, favourite_tests: T0C-REGPARITY-2, LD-310)');
+SELECT is((SELECT count(*)::int FROM pg_class c WHERE c.relnamespace = 'billing'::regnamespace AND c.relkind IN ('r','p')), 34 + 1, 'billing holds 32 tenant + 2 G tables + event_inbox (22 + 6 lab accounting T0C-ACCT-1 LD-313 + 4 finance controls T0C-FINCTRL-1 LD-321)');
 SELECT is((SELECT count(*)::int FROM pg_class c WHERE c.relnamespace IN ('frontdesk'::regnamespace, 'billing'::regnamespace) AND c.relkind = 'm'), 0, 'no materialised view');
 SELECT is(pg_get_userbyid(c.relowner), 'lims_owner', c.relnamespace::regnamespace || '.' || c.relname || ' owned by lims_owner (AC-0B-1.2)')
   FROM pg_class c WHERE c.relnamespace IN ('frontdesk'::regnamespace, 'billing'::regnamespace) AND c.relkind IN ('r','v');
@@ -61,14 +61,14 @@ SELECT is((SELECT count(*)::int FROM pg_policies p WHERE p.schemaname = x.s AND 
   FROM tt x CROSS JOIN (VALUES ('select'),('insert'),('update')) k(cmd)
  WHERE NOT (k.cmd = 'update' AND (x.s || '.' || x.t) IN (SELECT s || '.' || t FROM ap));
 SELECT is((SELECT count(*)::int FROM pg_policies p WHERE p.schemaname = x.s AND p.tablename = x.t AND p.cmd = 'UPDATE'), 0, x.s || '.' || x.t || ' has no UPDATE policy (append-only)') FROM ap x;
-SELECT is((SELECT count(*)::int FROM pg_policies p WHERE p.schemaname IN ('frontdesk','billing') AND p.cmd = 'DELETE' AND p.roles = ARRAY['lims_app']::name[]), 1, 'exactly one lims_app DELETE policy in C4: billing.export_jobs');
+SELECT is((SELECT count(*)::int FROM pg_policies p WHERE p.schemaname IN ('frontdesk','billing') AND p.cmd = 'DELETE' AND p.roles = ARRAY['lims_app']::name[]), 3, 'exactly three lims_app DELETE policies in C4: billing.export_jobs and the owner-bound registration_drafts / favourite_tests (T0B-REGAPI-2, LD-315(b))');
 SELECT is((SELECT count(*)::int FROM pg_policies p WHERE p.schemaname = 'billing' AND p.tablename = 'export_jobs' AND p.policyname = 'export_jobs__delete__tenant' AND p.cmd = 'DELETE'), 1, 'export_jobs__delete__tenant');
 SELECT is((SELECT count(*)::int FROM pg_policies p WHERE p.schemaname IN ('frontdesk','billing') AND p.tablename IN (SELECT t FROM gt)), 0, 'G tables carry no policy');
-SELECT is((SELECT count(*)::int FROM pg_policies p WHERE p.schemaname IN ('frontdesk','billing') AND p.tablename <> 'event_inbox'), 96, 'C4 has exactly the §4a policy count: 34 x 3 - 9 append-only UPDATEs + export_jobs DELETE + 2 trf_attachments owner policies = 96');
+SELECT is((SELECT count(*)::int FROM pg_policies p WHERE p.schemaname IN ('frontdesk','billing') AND p.tablename <> 'event_inbox'), 144, 'C4 policy count: the 96 of §4a + 18 frontdesk (T0C-REGPARITY-2) + 17 billing (T0C-ACCT-1) + 13 billing (T0C-FINCTRL-1) = 144');
 -- AC-0B-2.2: no PUBLIC / anon / authenticated, no USING (true), names <table>__<cmd>__<scope>
 SELECT is((SELECT count(*)::int FROM pg_policies p WHERE p.schemaname IN ('frontdesk','billing') AND (p.roles && ARRAY['public','anon','authenticated']::name[])), 0, 'AC-0B-2.2: no policy for public / anon / authenticated');
 SELECT is((SELECT count(*)::int FROM pg_policies p WHERE p.schemaname IN ('frontdesk','billing') AND (p.qual = 'true' OR p.with_check = 'true')), 0, 'AC-0B-2.2: no USING (true) / WITH CHECK (true)');
-SELECT ok(p.policyname ~ ('^' || p.tablename || '__(select|insert|update|delete)__(tenant|tenant_centre|owner_only)$'), 'AC-0B-2.2: policy name shape ' || p.policyname) FROM pg_policies p WHERE p.schemaname IN ('frontdesk','billing');
+SELECT ok(p.policyname ~ ('^' || p.tablename || '__(select|insert|update|delete)__(tenant|tenant_centre|owner_only)$') OR p.policyname IN ('registration_drafts__delete__owner', 'favourite_tests__delete__owner'), 'AC-0B-2.2: policy name shape ' || p.policyname) FROM pg_policies p WHERE p.schemaname IN ('frontdesk','billing');
 -- P-16 staff guard + A16.1 cast
 SELECT ok(coalesce(p.qual, '') ~ 'is_staff_or_system' OR p.cmd = 'INSERT', 'USING of ' || p.tablename || '.' || p.policyname || ' has the staff guard (P-16)') FROM pg_policies p WHERE p.schemaname IN ('frontdesk','billing') AND p.policyname !~ 'owner_only|event_inbox';
 SELECT ok(coalesce(p.with_check, '') ~ 'is_staff_or_system' OR p.cmd IN ('SELECT','DELETE'), 'WITH CHECK of ' || p.tablename || '.' || p.policyname || ' has the staff guard (P-16)') FROM pg_policies p WHERE p.schemaname IN ('frontdesk','billing') AND p.policyname !~ 'owner_only';
@@ -101,7 +101,12 @@ SELECT is(has_table_privilege(r, c.oid, p), false, r || ' has no ' || p || ' on 
   FROM pg_class c CROSS JOIN unnest(ARRAY['anon','authenticated']) r CROSS JOIN unnest(ARRAY['SELECT','INSERT','UPDATE','DELETE']) p
  WHERE c.relnamespace IN ('frontdesk'::regnamespace, 'billing'::regnamespace) AND c.relkind IN ('r','v') AND EXISTS (SELECT 1 FROM pg_roles WHERE rolname = r);
 SELECT is(has_table_privilege(r, c.oid, 'DELETE'), false, r || ' has no DELETE on ' || c.relnamespace::regnamespace || '.' || c.relname)
-  FROM pg_class c CROSS JOIN unnest(ARRAY['lims_api','lims_worker']) r WHERE c.relnamespace IN ('frontdesk'::regnamespace, 'billing'::regnamespace) AND c.relkind = 'r' AND c.relname NOT IN ('event_inbox', 'export_jobs');   -- lims_api / lims_worker inherit lims_app, whose only DELETE is export_jobs
+  FROM pg_class c CROSS JOIN unnest(ARRAY['lims_api','lims_worker']) r WHERE c.relnamespace IN ('frontdesk'::regnamespace, 'billing'::regnamespace) AND c.relkind = 'r' AND c.relname NOT IN ('event_inbox', 'export_jobs', 'registration_drafts', 'favourite_tests');   -- lims_api / lims_worker inherit lims_app, whose only DELETEs are export_jobs and the two owner-bound parity tables (next assertion)
+SELECT is((SELECT count(*)::int FROM pg_policies p WHERE p.schemaname = 'frontdesk' AND p.tablename IN ('registration_drafts', 'favourite_tests') AND p.cmd IN ('DELETE', 'ALL')
+            AND p.policyname = p.tablename || '__delete__owner' AND p.qual ~ 'current_tenant_id' AND p.qual ~ 'current_membership_id'), 2,
+          'the only DELETE policies on frontdesk.registration_drafts / favourite_tests are owner-bound (tenant + acting membership)');
+SELECT is((SELECT count(*)::int FROM pg_policies p WHERE p.schemaname = 'frontdesk' AND p.tablename IN ('registration_drafts', 'favourite_tests') AND p.cmd IN ('DELETE', 'ALL')), 2,
+          'no other DELETE policy exists on frontdesk.registration_drafts / favourite_tests');
 SELECT is((SELECT count(*)::int FROM information_schema.column_privileges WHERE table_schema IN ('frontdesk','billing') AND grantee = 'lims_app' AND privilege_type IN ('UPDATE','INSERT')
             AND table_name IN (SELECT t FROM ap)  AND privilege_type = 'UPDATE'), 0, 'no column-level UPDATE grant on append-only tables');
 
@@ -111,7 +116,9 @@ SELECT is(pg_get_userbyid(p.proowner), 'lims_owner', 'purge_trf_drafts owned by 
 SELECT ok(p.prosecdef AND p.proconfig @> ARRAY['search_path=""'], 'purge_trf_drafts is SECURITY DEFINER with search_path pinned to ""') FROM pg_proc p WHERE p.oid = 'frontdesk.purge_trf_drafts(interval, uuid[])'::regprocedure;
 SELECT is(has_function_privilege('lims_worker', 'frontdesk.purge_trf_drafts(interval, uuid[])', 'EXECUTE'), true, 'lims_worker may EXECUTE purge_trf_drafts');
 SELECT is(has_function_privilege(r, 'frontdesk.purge_trf_drafts(interval, uuid[])', 'EXECUTE'), false, r || ' may not EXECUTE purge_trf_drafts') FROM unnest(ARRAY['lims_app','lims_api','anon','authenticated']) r WHERE EXISTS (SELECT 1 FROM pg_roles WHERE rolname = r);
-SELECT is((SELECT count(*)::int FROM pg_proc p WHERE p.pronamespace IN ('frontdesk'::regnamespace, 'billing'::regnamespace) AND p.prosecdef = false AND p.proconfig @> ARRAY['search_path=""']), 14, 'the 14 guard functions are INVOKER with search_path pinned');
+SELECT is((SELECT count(*)::int FROM pg_proc p WHERE p.pronamespace IN ('frontdesk'::regnamespace, 'billing'::regnamespace) AND p.prosecdef = false AND p.proconfig @> ARRAY['search_path=""']), 21, 'the 21 guard functions are INVOKER with search_path pinned (14 + 7 added by T0C-REGPARITY-2 / T0C-ACCT-1 / T0C-FINCTRL-1)');
+SELECT is_empty($$SELECT p.oid::regprocedure::text FROM pg_proc p WHERE p.pronamespace IN ('frontdesk'::regnamespace, 'billing'::regnamespace) AND NOT coalesce(p.proconfig @> ARRAY['search_path=""'], false)$$,
+  'no function in C4 runs without search_path pinned to "" (whatever the count)');
 SELECT is(pg_get_userbyid(p.proowner), 'lims_owner', p.proname || ' owned by lims_owner') FROM pg_proc p WHERE p.pronamespace IN ('frontdesk'::regnamespace, 'billing'::regnamespace);
 
 -- ===================================================================================================================================== triggers present (AC-0B-4.1 catalogue half; behaviour in T0B-10.C4_behaviour)

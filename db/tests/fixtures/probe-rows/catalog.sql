@@ -11,7 +11,10 @@ INSERT INTO catalog.credit_parties (id, tenant_id, party_code, name, kind, creat
   (pg_temp.id('f1'), pg_temp.id('01'), 'B', 'probe-1', 'hospital', pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('f3'), pg_temp.id('02'), 'D', 'probe-3', 'hospital', pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('e0'), pg_temp.id('01'), 'H', 'probe-7', 'hospital', pg_temp.id('99'), pg_temp.id('99')),
-  (pg_temp.id('e1'), pg_temp.id('01'), 'I', 'probe-8', 'hospital', pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
+  (pg_temp.id('e1'), pg_temp.id('01'), 'I', 'probe-8', 'hospital', pg_temp.id('99'), pg_temp.id('99')),
+  (pg_temp.id('e2'), pg_temp.id('01'), 'J', 'probe-9', 'hospital', pg_temp.id('99'), pg_temp.id('99')),
+  (pg_temp.id('e3'), pg_temp.id('01'), 'K', 'probe-10', 'hospital', pg_temp.id('99'), pg_temp.id('99')),
+  (pg_temp.id('e4'), pg_temp.id('01'), 'L', 'probe-11', 'hospital', pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
 INSERT INTO catalog.cs_tax_types (id, tenant_id, code, display, effective_from, created_by, updated_by) VALUES
   (pg_temp.id('f1'), pg_temp.id('01'), 'B', 'probe-1', now(), pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('f3'), pg_temp.id('02'), 'D', 'probe-3', now(), pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;

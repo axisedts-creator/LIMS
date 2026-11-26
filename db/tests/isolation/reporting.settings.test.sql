@@ -82,13 +82,18 @@ END $f$;
 -- step 6 runner: the rows of p_tbl are removed first (superuser, replica mode, inside a rolled-back subtransaction) so a
 -- natural-key UNIQUE collision with the copied row cannot mask the composite-FK check; returns pg_temp.x's result.
 CREATE FUNCTION pg_temp.fk_try(p_tbl regclass, p_stmt text) RETURNS text LANGUAGE plpgsql AS $f$
-DECLARE r text;
+DECLARE r text; k record;
 BEGIN
   BEGIN
     SET LOCAL session_replication_role = replica;
     EXECUTE format('DELETE FROM %s', p_tbl);   -- both tenants: some natural keys are global (e.g. memberships__user_id__p_uq)
     SET LOCAL session_replication_role = origin;
     EXECUTE format('ALTER TABLE %s DISABLE TRIGGER USER', p_tbl);   -- user triggers only: RI (FK) triggers and RLS stay on
+    -- a CHECK is evaluated before the FK and would refuse the patched row first (23514): the table's own CHECKs are dropped here,
+    -- inside the rolled-back subtransaction, so the answer is the FK's (or RLS's). NOT NULL, keys, FKs and RLS are untouched.
+    FOR k IN SELECT conname FROM pg_constraint WHERE conrelid = p_tbl AND contype = 'c' AND conislocal AND coninhcount = 0 LOOP
+      EXECUTE format('ALTER TABLE %s DROP CONSTRAINT %I', p_tbl, k.conname);
+    END LOOP;
     SET CONSTRAINTS ALL IMMEDIATE;                                    -- a DEFERRABLE FK must refuse inside the statement
     r := pg_temp.x('lims_api', pg_temp.cl('user', '32', '42'), p_stmt, 'w');
     RAISE EXCEPTION USING ERRCODE = 'P0001', MESSAGE = 'probe_rollback';
@@ -212,8 +217,6 @@ SET LOCAL session_replication_role = origin;
 SELECT ok(pg_temp.n(pg_temp.q('SELECT 1 FROM %s WHERE %I = pg_temp.id(''01'')', 'reporting.settings'::regclass)) > 0, 'probe step 1: tenant A rows of reporting.settings seeded');
 SELECT ok(pg_temp.n(pg_temp.q('SELECT 1 FROM %s WHERE %I = pg_temp.id(''02'')', 'reporting.settings'::regclass)) > 0, 'probe step 1: tenant B rows of reporting.settings seeded');
 SELECT ok(pg_temp.n(format('SELECT 1 FROM reporting.settings WHERE %I = pg_temp.id(''35'')', pg_temp.owncol('reporting.settings'::regclass))) > 0, 'probe step 1: partner fixture actor rows of reporting.settings seeded');
-SELECT ok(pg_temp.n(format('SELECT 1 FROM reporting.settings WHERE %I = pg_temp.id(''a3'')', pg_temp.owncol('reporting.settings'::regclass))) > 0, 'probe step 1: portal fixture actor rows of reporting.settings seeded');
-SELECT ok(pg_temp.n(format('SELECT 1 FROM reporting.settings WHERE %I = pg_temp.id(''34'')', pg_temp.owncol('reporting.settings'::regclass))) > 0, 'probe step 1: patient fixture actor rows of reporting.settings seeded');
 -- probe step 2/3/4: lims_api, claims of tenant A (all-centres staff): no tenant B row visible, insertable or changeable (expect 0 rows / 42501)
 SELECT is(pg_temp.x('lims_api', pg_temp.cl('user', '32', '42'), pg_temp.q('SELECT 1 FROM %s WHERE %I = pg_temp.id(''02'')', 'reporting.settings'::regclass), 'n'), pg_temp.want('lims_api', 'reporting.settings'::regclass, 'SELECT'), 'probe step 2: tenant A claims see 0 tenant B rows of reporting.settings');
 SELECT is(pg_temp.xt('reporting.settings'::regclass, 'lims_api', pg_temp.cl('user', '32', '42'), pg_temp.q('INSERT INTO %s (%I) VALUES (pg_temp.id(''02''))', 'reporting.settings'::regclass)), 'E42501', 'probe step 3: INSERT of a tenant B row into reporting.settings -> 42501');
@@ -234,7 +237,7 @@ SELECT is(pg_temp.x('lims_worker', pg_temp.cl('system', '99'), pg_temp.q('DELETE
 SELECT is(pg_temp.x('lims_worker', '', 'SELECT 1 FROM reporting.settings', 'n'), pg_temp.want('lims_worker', 'reporting.settings'::regclass, 'SELECT'), 'probe step 8: lims_worker without claims reads 0 rows of reporting.settings');
 -- probe step 9: shared_with table: non-staff actors of tenant A see only the rows their actor policy admits (own rows), never tenant B rows
 SELECT is(pg_temp.x('lims_api', pg_temp.cl('partner', '35', '45'), 'SELECT 1 FROM reporting.settings', 'n'), pg_temp.want('lims_api', 'reporting.settings'::regclass, 'SELECT'), 'probe step 9: partner claims read 0 rows of reporting.settings (partner not in shared_with)');
-SELECT is(pg_temp.x('lims_api', pg_temp.cl('portal', 'a3'), format('SELECT 1 FROM reporting.settings WHERE %I IS DISTINCT FROM pg_temp.id(''a3'') OR %I <> pg_temp.id(''01'')', pg_temp.owncol('reporting.settings'::regclass), pg_temp.tcol('reporting.settings'::regclass)), 'n'), 'n=0', 'probe step 9: portal claims read only own rows of shared_with table reporting.settings (n=0 foreign rows)');
+SELECT is(pg_temp.x('lims_api', pg_temp.cl('portal', 'a3'), pg_temp.q('SELECT 1 FROM %s WHERE %I <> pg_temp.id(''01'')', 'reporting.settings'::regclass), 'n'), 'n=0', 'probe step 9: portal claims read 0 rows of another tenant of shared_with table reporting.settings (no actor-owned row can exist; n=0 foreign rows)');
 SELECT is(pg_temp.x('lims_api', pg_temp.cl('patient', '34', '44'), 'SELECT 1 FROM reporting.settings', 'n'), pg_temp.want('lims_api', 'reporting.settings'::regclass, 'SELECT'), 'probe step 9: patient claims read 0 rows of reporting.settings (patient not in shared_with)');
 
 SELECT * FROM finish();

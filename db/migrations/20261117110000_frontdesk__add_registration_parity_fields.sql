@@ -254,7 +254,7 @@ DO $do$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_policy WHERE polrelid = 'frontdesk
     USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()))
     WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
 END IF; END $do$;
-DO $do$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_policy WHERE polrelid = 'frontdesk.registration_drafts'::regclass AND polname = 'registration_drafts__delete__tenant') THEN
+DO $do$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_policy WHERE polrelid = 'frontdesk.registration_drafts'::regclass AND polname IN ('registration_drafts__delete__tenant', 'registration_drafts__delete__owner')) THEN   -- 20261117140000 renames it to __owner: a re-apply must not recreate the tenant-wide one
   CREATE POLICY registration_drafts__delete__tenant ON frontdesk.registration_drafts FOR DELETE TO lims_app
     USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
 END IF; END $do$;
@@ -269,7 +269,7 @@ DO $do$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_policy WHERE polrelid = 'frontdesk
   CREATE POLICY favourite_tests__insert__tenant ON frontdesk.favourite_tests FOR INSERT TO lims_app
     WITH CHECK (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
 END IF; END $do$;
-DO $do$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_policy WHERE polrelid = 'frontdesk.favourite_tests'::regclass AND polname = 'favourite_tests__delete__tenant') THEN
+DO $do$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_policy WHERE polrelid = 'frontdesk.favourite_tests'::regclass AND polname IN ('favourite_tests__delete__tenant', 'favourite_tests__delete__owner')) THEN   -- see registration_drafts above
   CREATE POLICY favourite_tests__delete__tenant ON frontdesk.favourite_tests FOR DELETE TO lims_app
     USING (tenant_id = (SELECT app.current_tenant_id()) AND (SELECT app.is_staff_or_system()));
 END IF; END $do$;

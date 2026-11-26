@@ -162,13 +162,18 @@ END $f$;
 -- step 6 runner: the rows of p_tbl are removed first (superuser, replica mode, inside a rolled-back subtransaction) so a
 -- natural-key UNIQUE collision with the copied row cannot mask the composite-FK check; returns pg_temp.x's result.
 CREATE FUNCTION pg_temp.fk_try(p_tbl regclass, p_stmt text) RETURNS text LANGUAGE plpgsql AS $f$
-DECLARE r text;
+DECLARE r text; k record;
 BEGIN
   BEGIN
     SET LOCAL session_replication_role = replica;
     EXECUTE format('DELETE FROM %s', p_tbl);   -- both tenants: some natural keys are global (e.g. memberships__user_id__p_uq)
     SET LOCAL session_replication_role = origin;
     EXECUTE format('ALTER TABLE %s DISABLE TRIGGER USER', p_tbl);   -- user triggers only: RI (FK) triggers and RLS stay on
+    -- a CHECK is evaluated before the FK and would refuse the patched row first (23514): the table's own CHECKs are dropped here,
+    -- inside the rolled-back subtransaction, so the answer is the FK's (or RLS's). NOT NULL, keys, FKs and RLS are untouched.
+    FOR k IN SELECT conname FROM pg_constraint WHERE conrelid = p_tbl AND contype = 'c' AND conislocal AND coninhcount = 0 LOOP
+      EXECUTE format('ALTER TABLE %s DROP CONSTRAINT %I', p_tbl, k.conname);
+    END LOOP;
     SET CONSTRAINTS ALL IMMEDIATE;                                    -- a DEFERRABLE FK must refuse inside the statement
     r := pg_temp.x('lims_api', pg_temp.cl('user', '32', '42'), p_stmt, 'w');
     RAISE EXCEPTION USING ERRCODE = 'P0001', MESSAGE = 'probe_rollback';
@@ -812,6 +817,9 @@ function typeVals(ty: string, s: number, a: number, h: Harvest | undefined, colN
 const ROWS = new Map<string, Built[]>();
 const warnings: string[] = [];
 const exceptionsOut = new Map<string, string>();
+// table -> actor ids (SUBS values) for which no actor-owned fixture row can exist; the tenant A/B rows are still seeded and step 9 then
+// asserts only "no row of another tenant" for that actor (its policy cannot be owner-scoped on a one-row-per-tenant table)
+const ownerless = new Map<string, Set<string>>();
 // extra parent rows a child needs (a CHECK of the child fixes a column it copies through a composite FK, e.g. owner_kind / kind)
 type Demand = { ten: string; centre: string; forced: Row; tag?: string };
 const DEMANDS = new Map<string, Demand[]>();
@@ -1019,6 +1027,12 @@ function buildTable(t: string): Built[] | null {
     }
     if (!fits()) {
       // extra demanded parent rows are optional: dropped, never emitted invalid or droppable (review 1b/2)
+      if (slot.owner && slot.n > 3) {
+        if (!ownerless.has(t)) ownerless.set(t, new Set());
+        ownerless.get(t)!.add(String(slot.owner));
+        warnings.push(`${t}: no actor-owned row for actor ${slot.owner} fits the keys of the migrations; step 9 checks the tenant boundary only`);
+        continue;
+      }
       if (slot.forced || slot.n > 6) { warnings.push(`${t}: extra parent row ${slot.n} could not be built${best ? " (a partial UNIQUE index would drop it)" : ""}`); continue; }
       const who = `slot ${slot.n} (tenant ${slot.ten === "01" ? "A" : "B"}${slot.owner ? ", owner actor " + slot.owner : ", centre " + slot.centre})`;
       exceptionsOut.set(t, best
@@ -1239,7 +1253,8 @@ function probeSql(t: string): string {
       L.push(`SELECT ok(pg_temp.n('SELECT 1 FROM ${t} WHERE tenant_id = pg_temp.id(''01'') AND ${cc} = pg_temp.id(''${k}'')') > 0, 'probe step 1: centre ${c} rows of ${t} seeded');`);
   if (d.shared_with?.length)
     for (const a of ACTORS)
-      L.push(`SELECT ok(pg_temp.n(format('SELECT 1 FROM ${t} WHERE %I = pg_temp.id(''${SUBS[a]}'')', pg_temp.owncol(${rc}))) > 0, 'probe step 1: ${a} fixture actor rows of ${t} seeded');`);
+      if (!ownerless.get(t)?.has(SUBS[a]))
+        L.push(`SELECT ok(pg_temp.n(format('SELECT 1 FROM ${t} WHERE %I = pg_temp.id(''${SUBS[a]}'')', pg_temp.owncol(${rc}))) > 0, 'probe step 1: ${a} fixture actor rows of ${t} seeded');`);
   L.push("-- probe step 2/3/4: lims_api, claims of tenant A (all-centres staff): no tenant B row visible, insertable or changeable (expect 0 rows / 42501)");
   writes("lims_api", staff, 2);
   if (d.centre_scoped) {
@@ -1268,7 +1283,9 @@ function probeSql(t: string): string {
       if (a === "partner" && byPartner) {
         L.push(`SELECT ok(pg_temp.n(format('SELECT 1 FROM ${t} WHERE tenant_id = pg_temp.id(''01'') AND partner_id IS DISTINCT FROM %L', ${myPartner})) > 0, 'probe step 9: a tenant A row of ${t} of another partner is seeded');`);
         L.push(`SELECT is(pg_temp.x('lims_api', ${fixtures[a]}, format('SELECT 1 FROM ${t} WHERE partner_id IS DISTINCT FROM %L OR %I <> pg_temp.id(''01'')', ${myPartner}, pg_temp.tcol(${rc})), 'n'), 'n=0', 'probe step 9: partner claims read only own partner rows of shared_with table ${t} (n=0 foreign rows)');`);
-      } else if (d.shared_with.includes(a))
+      } else if (d.shared_with.includes(a) && ownerless.get(t)?.has(subs[a]))
+        L.push(`SELECT is(pg_temp.x('lims_api', ${fixtures[a]}, pg_temp.q('SELECT 1 FROM %s WHERE %I <> pg_temp.id(''01'')', ${rc}), 'n'), 'n=0', 'probe step 9: ${a} claims read 0 rows of another tenant of shared_with table ${t} (no actor-owned row can exist; n=0 foreign rows)');`);
+      else if (d.shared_with.includes(a))
         L.push(`SELECT is(pg_temp.x('lims_api', ${fixtures[a]}, format('SELECT 1 FROM ${t} WHERE %I IS DISTINCT FROM pg_temp.id(''${subs[a]}'') OR %I <> pg_temp.id(''01'')', pg_temp.owncol(${rc}), pg_temp.tcol(${rc})), 'n'), 'n=0', 'probe step 9: ${a} claims read only own rows of shared_with table ${t} (n=0 foreign rows)');`);
       else
         L.push(`SELECT is(pg_temp.x('lims_api', ${fixtures[a]}, 'SELECT 1 FROM ${t}', 'n'), pg_temp.want('lims_api', ${rc}, 'SELECT'), 'probe step 9: ${a} claims read 0 rows of ${t} (${a} not in shared_with)');`);

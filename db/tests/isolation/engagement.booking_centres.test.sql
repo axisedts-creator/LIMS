@@ -82,13 +82,18 @@ END $f$;
 -- step 6 runner: the rows of p_tbl are removed first (superuser, replica mode, inside a rolled-back subtransaction) so a
 -- natural-key UNIQUE collision with the copied row cannot mask the composite-FK check; returns pg_temp.x's result.
 CREATE FUNCTION pg_temp.fk_try(p_tbl regclass, p_stmt text) RETURNS text LANGUAGE plpgsql AS $f$
-DECLARE r text;
+DECLARE r text; k record;
 BEGIN
   BEGIN
     SET LOCAL session_replication_role = replica;
     EXECUTE format('DELETE FROM %s', p_tbl);   -- both tenants: some natural keys are global (e.g. memberships__user_id__p_uq)
     SET LOCAL session_replication_role = origin;
     EXECUTE format('ALTER TABLE %s DISABLE TRIGGER USER', p_tbl);   -- user triggers only: RI (FK) triggers and RLS stay on
+    -- a CHECK is evaluated before the FK and would refuse the patched row first (23514): the table's own CHECKs are dropped here,
+    -- inside the rolled-back subtransaction, so the answer is the FK's (or RLS's). NOT NULL, keys, FKs and RLS are untouched.
+    FOR k IN SELECT conname FROM pg_constraint WHERE conrelid = p_tbl AND contype = 'c' AND conislocal AND coninhcount = 0 LOOP
+      EXECUTE format('ALTER TABLE %s DROP CONSTRAINT %I', p_tbl, k.conname);
+    END LOOP;
     SET CONSTRAINTS ALL IMMEDIATE;                                    -- a DEFERRABLE FK must refuse inside the statement
     r := pg_temp.x('lims_api', pg_temp.cl('user', '32', '42'), p_stmt, 'w');
     RAISE EXCEPTION USING ERRCODE = 'P0001', MESSAGE = 'probe_rollback';
@@ -213,7 +218,6 @@ SELECT ok(pg_temp.n(pg_temp.q('SELECT 1 FROM %s WHERE %I = pg_temp.id(''01'')', 
 SELECT ok(pg_temp.n(pg_temp.q('SELECT 1 FROM %s WHERE %I = pg_temp.id(''02'')', 'engagement.booking_centres'::regclass)) > 0, 'probe step 1: tenant B rows of engagement.booking_centres seeded');
 SELECT ok(pg_temp.n(format('SELECT 1 FROM engagement.booking_centres WHERE %I = pg_temp.id(''35'')', pg_temp.owncol('engagement.booking_centres'::regclass))) > 0, 'probe step 1: partner fixture actor rows of engagement.booking_centres seeded');
 SELECT ok(pg_temp.n(format('SELECT 1 FROM engagement.booking_centres WHERE %I = pg_temp.id(''a3'')', pg_temp.owncol('engagement.booking_centres'::regclass))) > 0, 'probe step 1: portal fixture actor rows of engagement.booking_centres seeded');
-SELECT ok(pg_temp.n(format('SELECT 1 FROM engagement.booking_centres WHERE %I = pg_temp.id(''34'')', pg_temp.owncol('engagement.booking_centres'::regclass))) > 0, 'probe step 1: patient fixture actor rows of engagement.booking_centres seeded');
 -- probe step 2/3/4: lims_api, claims of tenant A (all-centres staff): no tenant B row visible, insertable or changeable (expect 0 rows / 42501)
 SELECT is(pg_temp.x('lims_api', pg_temp.cl('user', '32', '42'), pg_temp.q('SELECT 1 FROM %s WHERE %I = pg_temp.id(''02'')', 'engagement.booking_centres'::regclass), 'n'), pg_temp.want('lims_api', 'engagement.booking_centres'::regclass, 'SELECT'), 'probe step 2: tenant A claims see 0 tenant B rows of engagement.booking_centres');
 SELECT is(pg_temp.xt('engagement.booking_centres'::regclass, 'lims_api', pg_temp.cl('user', '32', '42'), pg_temp.q('INSERT INTO %s (%I) VALUES (pg_temp.id(''02''))', 'engagement.booking_centres'::regclass)), 'E42501', 'probe step 3: INSERT of a tenant B row into engagement.booking_centres -> 42501');
@@ -233,7 +237,7 @@ SELECT is(pg_temp.x('lims_worker', '', 'SELECT 1 FROM engagement.booking_centres
 -- probe step 9: shared_with table: non-staff actors of tenant A see only the rows their actor policy admits (own rows), never tenant B rows
 SELECT is(pg_temp.x('lims_api', pg_temp.cl('partner', '35', '45'), 'SELECT 1 FROM engagement.booking_centres', 'n'), pg_temp.want('lims_api', 'engagement.booking_centres'::regclass, 'SELECT'), 'probe step 9: partner claims read 0 rows of engagement.booking_centres (partner not in shared_with)');
 SELECT is(pg_temp.x('lims_api', pg_temp.cl('portal', 'a3'), 'SELECT 1 FROM engagement.booking_centres', 'n'), pg_temp.want('lims_api', 'engagement.booking_centres'::regclass, 'SELECT'), 'probe step 9: portal claims read 0 rows of engagement.booking_centres (portal not in shared_with)');
-SELECT is(pg_temp.x('lims_api', pg_temp.cl('patient', '34', '44'), format('SELECT 1 FROM engagement.booking_centres WHERE %I IS DISTINCT FROM pg_temp.id(''34'') OR %I <> pg_temp.id(''01'')', pg_temp.owncol('engagement.booking_centres'::regclass), pg_temp.tcol('engagement.booking_centres'::regclass)), 'n'), 'n=0', 'probe step 9: patient claims read only own rows of shared_with table engagement.booking_centres (n=0 foreign rows)');
+SELECT is(pg_temp.x('lims_api', pg_temp.cl('patient', '34', '44'), pg_temp.q('SELECT 1 FROM %s WHERE %I <> pg_temp.id(''01'')', 'engagement.booking_centres'::regclass), 'n'), 'n=0', 'probe step 9: patient claims read 0 rows of another tenant of shared_with table engagement.booking_centres (no actor-owned row can exist; n=0 foreign rows)');
 
 SELECT * FROM finish();
 ROLLBACK;

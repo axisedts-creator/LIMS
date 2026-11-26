@@ -15,7 +15,14 @@ CREATE TEMP TABLE app_roles(r) AS VALUES ('lims_app'),('lims_api'),('lims_worker
 
 -- AC-0B-4.2: no DELETE on class C, B, A for any application role
 SELECT is(has_table_privilege(a.r, g.tbl, 'DELETE'), false, 'AC-0B-4.2 ' || a.r || ' has no DELETE on ' || g.tbl || ' (class ' || g.class || ')')
-  FROM registry g, app_roles a WHERE g.class IN ('C','B','A') AND to_regclass(g.tbl) IS NOT NULL;
+  FROM registry g, app_roles a WHERE g.class IN ('C','B','A') AND to_regclass(g.tbl) IS NOT NULL
+   -- C13 02-TRD M7 deleteManifestLine / 05-SCHEMA §5: a partner removes a line of its own DRAFT manifest (owner approval 2026-11-26,
+   -- CR T0B-13.C13-manifest-lines-delete option a). Exact-name exception; the next assertion pins how narrow that DELETE is.
+   AND g.tbl <> 'partners.manifest_lines';
+SELECT is((SELECT string_agg(policyname || ':' || (qual ~ 'current_tenant_id' AND qual ~ '''partner''' AND qual ~ 'current_partner_id' AND qual ~ '''draft''')::text, ',' ORDER BY policyname)
+             FROM pg_policies WHERE schemaname = 'partners' AND tablename = 'manifest_lines' AND cmd IN ('DELETE', 'ALL')),
+          'manifest_lines__delete__partner:true',
+          'AC-0B-4.2 exception: the only DELETE policy on partners.manifest_lines is the partner''s own draft lines (tenant, actor type, partner, state = draft)');
 
 -- AC-0B-4.3: class A, core.event_log and every <m>.event_inbox: no UPDATE for any application role
 CREATE TEMP TABLE append_only(tbl) AS

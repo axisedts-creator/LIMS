@@ -106,6 +106,9 @@ INSERT INTO reporting.qr_tokens (id, tenant_id, centre_id, report_id, report_ver
   (pg_temp.id('f4'), pg_temp.id('01'), pg_temp.id('21'), pg_temp.id('f4'), pg_temp.id('f4'), decode(repeat('05', 32), 'hex'), 'probe-4', 'probe-4', '{}', now(), pg_temp.id('35'), pg_temp.id('99')),
   (pg_temp.id('f5'), pg_temp.id('01'), pg_temp.id('21'), pg_temp.id('f5'), pg_temp.id('f5'), decode(repeat('06', 32), 'hex'), 'probe-5', 'probe-5', '{}', now(), pg_temp.id('a3'), pg_temp.id('99')),
   (pg_temp.id('f6'), pg_temp.id('01'), pg_temp.id('21'), pg_temp.id('f6'), pg_temp.id('f6'), decode(repeat('07', 32), 'hex'), 'probe-6', 'probe-6', '{}', now(), pg_temp.id('34'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
+INSERT INTO reporting.settings (id, tenant_id, created_by, updated_by) VALUES
+  (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('35'), pg_temp.id('99')),
+  (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;
 INSERT INTO reporting.signatory_profile (id, tenant_id, user_id, display_name, created_by, updated_by) VALUES
   (pg_temp.id('f1'), pg_temp.id('01'), pg_temp.id('31'), 'probe-1', pg_temp.id('99'), pg_temp.id('99')),
   (pg_temp.id('f3'), pg_temp.id('02'), pg_temp.id('33'), 'probe-3', pg_temp.id('99'), pg_temp.id('99')) ON CONFLICT DO NOTHING;

@@ -212,14 +212,15 @@ jobs:
         run: |
           # M = modified, D = deleted (every endpoint removed: breaking), R = renamed (base old path vs new path)
           git diff --name-status --diff-filter=MDR origin/main...HEAD -- 'contracts/openapi/**' > "$RUNNER_TEMP/specs.txt"
+          # the base spec is read from a full copy of main's contracts/openapi so its $ref to sibling files resolves
+          mkdir -p "$RUNNER_TEMP/base" && git archive origin/main contracts/openapi | tar -x -C "$RUNNER_TEMP/base"
           rc=0
           while IFS=$'\t' read -r st old new; do
             case "$st" in
               D) echo "::error file=$old::spec file deleted (breaking; needs cr-approved-breaking)"; rc=1; continue ;;
               M) new="$old" ;;
             esac
-            git show "origin/main:$old" > "$RUNNER_TEMP/base.yaml"
-            PATH="$(go env GOPATH)/bin:$PATH" oasdiff breaking "$RUNNER_TEMP/base.yaml" "$new" --fail-on ERR || rc=1
+            PATH="$(go env GOPATH)/bin:$PATH" oasdiff breaking "$RUNNER_TEMP/base/$old" "$new" --fail-on ERR || rc=1
           done < "$RUNNER_TEMP/specs.txt"
           exit "$rc"
 
@@ -455,8 +456,15 @@ jobs:
         id: plan
         run: node tools/lint/ci-plan.ts --files "$RUNNER_TEMP/changed.txt" --job "$GITHUB_JOB" >> "$GITHUB_OUTPUT"
       - if: steps.plan.outputs.run == 'true'
+        name: pnpm install
+        run: corepack enable && pnpm install --frozen-lockfile
+      - if: steps.plan.outputs.run == 'true'
         name: TS golden tests (gate 15)
         run: node --test "packages/shared-ts/test/*.test.mjs"
+      - if: steps.plan.outputs.run == 'true'
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: packages/ui-flutter/pubspec.yaml # C0 02-TRD §2.2 Flutter pin; brings the dart CLI
       - if: steps.plan.outputs.run == 'true'
         name: Dart golden tests
         run: cd packages/shared-dart && dart test
@@ -597,7 +605,7 @@ jobs:
         run: node tools/lint/ci-plan.ts --files "$RUNNER_TEMP/changed.txt" --job "$GITHUB_JOB" >> "$GITHUB_OUTPUT"
       - if: steps.plan.outputs.run == 'true'
         name: C2 no core.dead_letters SQL (D-T12)
-        run: node tools/lint/no-foreign-schema-sql.ts --fixture services/api/src/modules/identity/__tests__/ci/no-dead-letter-sql.fixture.json
+        run: node tools/lint/rules/no-foreign-schema-sql.ts --fixture services/api/src/modules/identity/__tests__/ci/no-dead-letter-sql.fixture.json
 
   c3-wording-commission:
     runs-on: ubuntu-24.04

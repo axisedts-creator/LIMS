@@ -129,6 +129,8 @@ export function checkDriverRegistry(input: { drivers: readonly DriverLike[]; mig
 
 async function main(): Promise<void> {
   const here = dirname(fileURLToPath(import.meta.url));
+  // Plain `node` maps no './x.js' import to x.ts; the repo's resolver hook does (tools/node-ts/register.mjs).
+  await import(pathToFileURL(resolve(here, '../../../../../../../tools/node-ts/register.mjs')).href);
   const { listDrivers } = await import('../../drivers/registry.js');
   const r = checkDriverRegistry({ drivers: listDrivers(), migrationsDir: process.argv[2] ?? resolve(here, '../../../../../../../db/migrations') });
   for (const p of r.problems) console.error(p);

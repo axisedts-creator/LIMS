@@ -13,12 +13,14 @@ import { parseInstrumentQuery, type AgentSummary, type Driver, type InstrumentSu
 import { DriverStatusBadge, INSTRUMENT_STATE_OPTIONS, InstrumentStatePill, PROTOCOL_LABEL, PROTOCOL_OPTIONS, hasPerm } from './labels';
 import type { Centre } from './AgentsList';
 import { InstrumentForm } from './InstrumentForm';
+import { useLiveRefresh } from './useLiveRefresh';
 
 export function InstrumentsList({ instruments, permissions, centres, agents, drivers, loadError }: { instruments: readonly InstrumentSummary[]; permissions: readonly string[]; centres: readonly Centre[]; agents: readonly Pick<AgentSummary, 'id' | 'agent_code' | 'display_name' | 'status'>[]; drivers: readonly Driver[]; loadError?: { requestId?: string } }) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [creating, setCreating] = useState(false);
+  useLiveRefresh(10_000, !creating);
   const canManage = hasPerm(permissions, 'instruments.instrument.manage');
   const driverName = new Map(drivers.map((d) => [d.code, d.display_name]));
   // LD-79 (CR-C7-WEB-T03-a): SCR-05 "New instrument" is Alt+I; global Alt+N is never registered by a page.

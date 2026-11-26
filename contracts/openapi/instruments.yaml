@@ -4479,6 +4479,8 @@ components:
         - allowed_types
         - attachment_instrument_code
       properties:
+        enabled:
+          type: boolean
         directory:
           type: string
           maxLength: 240
@@ -4683,7 +4685,51 @@ components:
           type: string
           maxLength: 16
           minLength: 1
-      description: Generic-driver options (02-TRD §6.2); the driver's optionsSchema validates further.
+        detection_mode_field:
+          type: string
+          maxLength: 32
+          pattern: ^[A-Z][A-Z0-9]{0,2}\.[1-9][0-9]{0,2}(?:\.[1-9][0-9]?)?$
+        host_query_detection_mode:
+          type: integer
+          minimum: 0
+          maximum: 2
+          enum:
+            - 0
+            - 1
+            - 2
+        type_flag_field:
+          type: string
+          maxLength: 32
+          pattern: ^[A-Z][A-Z0-9]{0,2}\.[1-9][0-9]{0,2}(?:\.[1-9][0-9]?)?$
+        qc_level_map:
+          type: object
+          maxProperties: 30
+          additionalProperties:
+            type: string
+            minLength: 1
+            maxLength: 16
+        name_script:
+          type: string
+          maxLength: 32
+          enum:
+            - as_registered
+            - latin_if_available
+        specimen_type_map:
+          type: object
+          maxProperties: 30
+          additionalProperties:
+            type: string
+            minLength: 1
+            maxLength: 40
+        dsr_item_details:
+          type: string
+          maxLength: 16
+          enum:
+            - id_only
+            - full
+        attach_pdf:
+          type: boolean
+      description: Driver parser options (02-TRD §6.2 + CR-C7-015/020); the driver's optionsSchema validates further.
     InstrumentCapabilities:
       type: object
       additionalProperties: false
@@ -5104,6 +5150,11 @@ components:
             - error
             - disabled
         last_message_at:
+          $ref: _common.yaml#/components/schemas/IsoUtc
+        last_link_error_code:
+          type: string
+          maxLength: 64
+        silent_since:
           $ref: _common.yaml#/components/schemas/IsoUtc
         unmapped_code_count:
           type: integer
@@ -5656,6 +5707,10 @@ components:
             software_version:
               type: string
               maxLength: 40
+        options_schema:
+          type: object
+          additionalProperties: true
+          description: JSON Schema for driver-specific parser_options (CR-C7-0xx).
         is_active:
           type: boolean
     ObservedCode:
@@ -6635,14 +6690,21 @@ components:
         driver_code:
           type: string
           maxLength: 64
+        enabled:
+          type: boolean
         transport:
           $ref: "#/components/schemas/Transport"
         protocol_options:
           $ref: "#/components/schemas/ProtocolOptions"
+        parser_options:
+          $ref: "#/components/schemas/ParserOptions"
         file_drop:
           $ref: "#/components/schemas/FileDropOptions"
         capabilities:
           $ref: "#/components/schemas/InstrumentCapabilities"
+        timezone:
+          type: string
+          maxLength: 64
     ConfigDocument:
       type: object
       additionalProperties: false

@@ -8,3 +8,5 @@
 /* T0D-PRINTCFG-1 (LD-316): plain black and white bill: black on white, no colour, no shading. */
 .lims-invoice-doc[data-plain="true"] { color: black; background: white; filter: grayscale(1); }
 .lims-invoice-doc[data-plain="true"] * { background: transparent; box-shadow: none; }
+.lims-invoice-reg-cell { display: inline-flex; flex-direction: column; align-items: flex-start; gap: var(--lims-space-1); }
+.lims-invoice-barcode { display: block; background: var(--lims-neutral-0); }

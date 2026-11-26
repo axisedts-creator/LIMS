@@ -34,23 +34,44 @@ export async function listOrderResults(orderId: string, sp: Record<string, strin
   return serverFetch<OrderResults>(`/v1/lab/orders/${orderId}/results${q}`);
 }
 
+const analyteCache = new Map<string, AnalyteInfo>();
+
 /** C3 #getAnalyte (`catalog.test.read`) per distinct analyte_id → grid AnalyteMap (review C5.T-20 #1). result_type numeric/ordinal map 1:1; the other
- * types are entered as text. A 403/404 drops that analyte (grid falls back to the code + numeric check); 5xx throws (error.tsx). */
+ * types are entered as text. Caches lookups and fetches in small chunks to prevent 429 rate limits. */
 export async function getAnalytes(ids: readonly string[]): Promise<AnalyteMap> {
   type Detail = { name: string; current_version?: { result_type: string; decimals?: number } };
-  const pairs = await Promise.all([...new Set(ids)].filter((id) => UUID_RE.test(id)).map(async (id) => {
-    try {
-      const d = await serverFetch<Detail>(`/v1/catalog/analytes/${id}`);
-      const rt = d.current_version?.result_type;
-      const info: AnalyteInfo = { name: d.name, value_type: rt === 'numeric' || rt === 'ordinal' ? rt : 'text' };
-      if (typeof d.current_version?.decimals === 'number') info.decimals = d.current_version.decimals;
-      return [id, info] as const;
-    } catch (e) {
-      if (e instanceof ApiError && (e.status === 403 || e.status === 404)) return null;
-      throw e;
+  const uniqueIds = [...new Set(ids)].filter((id) => UUID_RE.test(id));
+  const result: Record<string, AnalyteInfo> = {};
+  const missing: string[] = [];
+
+  for (const id of uniqueIds) {
+    const cached = analyteCache.get(id);
+    if (cached) {
+      result[id] = cached;
+    } else {
+      missing.push(id);
     }
-  }));
-  return Object.fromEntries(pairs.filter((p) => p !== null));
+  }
+
+  // Fetch missing analytes in chunks of 4 to prevent 429 rate limits
+  const CHUNK_SIZE = 4;
+  for (let i = 0; i < missing.length; i += CHUNK_SIZE) {
+    const chunk = missing.slice(i, i + CHUNK_SIZE);
+    await Promise.all(chunk.map(async (id) => {
+      try {
+        const d = await serverFetch<Detail>(`/v1/catalog/analytes/${id}`);
+        const rt = d.current_version?.result_type;
+        const info: AnalyteInfo = { name: d.name, value_type: rt === 'numeric' || rt === 'ordinal' ? rt : 'text' };
+        if (typeof d.current_version?.decimals === 'number') info.decimals = d.current_version.decimals;
+        analyteCache.set(id, info);
+        result[id] = info;
+      } catch {
+        // Any error (403, 404, 429) drops that analyte; ResultGrid falls back gracefully to code
+      }
+    }));
+  }
+
+  return result;
 }
 
 const bad400 = () => new ApiError(400, problem('common.validation_failed', 'Validation failed', 400));

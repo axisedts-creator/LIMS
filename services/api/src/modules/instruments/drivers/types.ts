@@ -48,7 +48,14 @@ export type ParseResult =
 export interface HostQueryAnswer {
   readonly barcode: string; readonly status: 'found' | 'not_found' | 'not_receivable' | 'no_mapped_tests';
   readonly priority?: 'routine' | 'urgent'; readonly sex?: 'male' | 'female' | 'other' | 'unknown'; readonly ageDays?: number;
-  readonly tests: readonly { readonly testId: Uuidv7; readonly analyteId: Uuidv7; readonly instrumentCode: string }[];
+  readonly patientId?: string; readonly department?: string;
+  readonly patientName?: string; readonly patientNameLatin?: string; readonly dateOfBirth?: string;
+  readonly accessionNumber?: string; readonly specimenType?: string;
+  readonly collectedAt?: string; readonly receivedAt?: string;
+  readonly tests: readonly {
+    readonly testId: Uuidv7; readonly analyteId: Uuidv7; readonly instrumentCode: string;
+    readonly testName?: string; readonly unit?: string; readonly referenceRange?: string;
+  }[];
 }
 export interface InstrumentDriver {
   readonly code: string; readonly version: string;

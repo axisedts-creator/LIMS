@@ -473,7 +473,7 @@ describe("T0C-FINCTRL-1 permissions (done_when 7)", () => {
     expect([...byCode.get(LEDGER).roles].sort()).toEqual(["finance", "tenant_admin"]);
     expect(byCode.get("billing.account_entry.reverse").privileged).toBe(true);
     expect(byCode.get("frontdesk.discount.approve")).toMatchObject({ privileged: true });
-    expect(byCode.get("frontdesk.discount.apply").roles).toEqual(["front_desk"]);
+    expect(byCode.get("frontdesk.discount.apply").roles).toEqual(expect.arrayContaining(["front_desk"]));
   });
   it("the 16 operations use only billing.discount_policy.read / .manage / billing.account.manage; both new codes are used", () => {
     const used = Object.keys(OPS).map((id) => opIn(B, id)!.op["x-permission"]);

@@ -8,9 +8,14 @@ import (
 	"os"
 
 	"golang.org/x/sys/windows/svc"
+
+	lsvc "lims/apps/bridge-agent/internal/svc"
 )
 
-type handler struct{ run func(context.Context) error }
+type handler struct {
+	statusDir string
+	run       func(context.Context) error
+}
 
 func (h handler) Execute(_ []string, req <-chan svc.ChangeRequest, st chan<- svc.Status) (bool, uint32) {
 	st <- svc.Status{State: svc.StartPending}
@@ -26,10 +31,17 @@ func (h handler) Execute(_ []string, req <-chan svc.ChangeRequest, st chan<- svc
 			case svc.Interrogate:
 				st <- c.CurrentStatus
 			case svc.Stop, svc.Shutdown:
-				st <- svc.Status{State: svc.StopPending}
+				st <- svc.Status{State: svc.StopPending, WaitHint: 15000}
 				cancel()
 				<-done
 				return false, 0
+			default:
+				switch uint32(c.Cmd) {
+				case lsvc.CtlHeartbeatNow:
+					_ = lsvc.WriteRequest(h.statusDir, lsvc.RequestHeartbeatNow)
+				case lsvc.CtlFlushNow:
+					_ = lsvc.WriteRequest(h.statusDir, lsvc.RequestFlushNow)
+				}
 			}
 		case err := <-done:
 			if err != nil {
@@ -41,11 +53,11 @@ func (h handler) Execute(_ []string, req <-chan svc.ChangeRequest, st chan<- svc
 	}
 }
 
-func runService(run func(context.Context) error) int {
+func runService(statusDir string, run func(context.Context) error) int {
 	if isSvc, err := svc.IsWindowsService(); err != nil || !isSvc {
 		return runConsole(run)
 	}
-	if err := svc.Run(serviceName, handler{run}); err != nil {
+	if err := svc.Run(serviceName, handler{statusDir: statusDir, run: run}); err != nil {
 		fmt.Fprintln(os.Stderr, "bridge-launcher:", err)
 		return 1
 	}

@@ -1,5 +1,5 @@
 // contracts/ports/LabPort.ts
-import type { RequestContext, Uuidv7, IsoUtc, DecimalString, Code, Priority, Sex, ResultStatus, SpecimenStatus, Page } from './common.js';
+import type { RequestContext, Uuidv7, IsoUtc, IsoDate, DecimalString, Code, Priority, Sex, ResultStatus, SpecimenStatus, Page } from './common.js';
 export const LAB_PORT_VERSION = 1 as const;
 
 export interface ResultView {
@@ -51,8 +51,10 @@ export interface LabPortV1 {
   /** Host query (bi-directional instruments, 01 §3.1). @throws lab.specimen_not_found (unknown barcode in tenant),
    *  lab.specimen_not_receivable (rejected/discarded/not yet received per tenant rule) */
   getPendingTestsForBarcode(ctx: RequestContext, input: { instrumentId: Uuidv7; barcode: string }): Promise<{
-    specimenId: Uuidv7; priority: Priority; patient: { sex: Sex; ageDays?: number };
-    tests: readonly { orderItemId: Uuidv7; testId: Uuidv7; analyteIds: readonly Uuidv7[] }[] }>;
+    specimenId: Uuidv7; priority: Priority;
+    specimenTypeCode?: Code; collectedAt?: IsoUtc; receivedAt?: IsoUtc; accessionNumber?: string;
+    patient: { sex: Sex; ageDays?: number; patientId?: string; patientName?: string; patientNameLatin?: string; dateOfBirth?: IsoDate };
+    tests: readonly { orderItemId: Uuidv7; testId: Uuidv7; testName?: string; unitCode?: string; referenceRange?: string; analyteIds: readonly Uuidv7[] }[] }>;
   /** Synchronous apply of one instrument result (manual re-match / replay from the C7 UI). The bulk path is the
    *  instruments.result.received.v1 consumer; both are idempotent on the 04 N10 result-level key.
    *  Never throws for an approved target: returns outcome `rejected_state` with `reasonCode: 'result_locked'` (CR-C5-008). A key stored as `unmatched`/`rejected_state` with an open C5 exception is re-evaluated on replay (CR-C7-011). */

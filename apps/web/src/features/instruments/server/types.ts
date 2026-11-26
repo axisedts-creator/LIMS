@@ -162,7 +162,6 @@ export interface InstrumentSummary {
   unmapped_code_count?: number;
   link_state?: string;
   last_message_at?: string;
-  // Not in contracts InstrumentSummary yet (only Instrument.status has them) — CR in .orchestra/cr/WEB-T02.md.
   last_link_error_code?: string;
   silent_since?: string;
 }
@@ -226,6 +225,7 @@ export interface Driver {
   manual?: { title: string; document_id?: string; version?: string };
   is_active: boolean;
   capabilities: { host_query: boolean; worklist_download: boolean; qc: boolean; attachments: boolean; calibration: boolean };
+  options_schema?: Record<string, unknown>;
 }
 
 export interface GoLiveChecklist { manual_reference_confirmed: boolean; sample_comparison_done: boolean; qc_comparison_done: boolean; mappings_reviewed: boolean }

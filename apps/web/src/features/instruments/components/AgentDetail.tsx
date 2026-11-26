@@ -1,6 +1,6 @@
 'use client';
 // SCR-02 Agent detail (04-UI-UX §3). Renders only documented DTO fields: credentials show metadata, never a secret or hash (AC-16.3).
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Banner } from '@lims/ui/components/Banner';
 import { Button } from '@lims/ui/components/Button';
 import { CodeBlock } from '@lims/ui/components/CodeBlock';
@@ -16,6 +16,7 @@ import { getAgentLogBundleAction, listAgentCommandsAction } from '../server/acti
 import { AgentActions } from './AgentActions';
 import { AgentStatusChip, DEFAULT_CLOCK_OFFSET_WARN_SECONDS, HealthChip, InstrumentStateChip, hasPerm, healthLabel } from './labels';
 import { IssueEnrolmentCode } from './IssueEnrolmentCode';
+import { useLiveRefresh } from './useLiveRefresh';
 
 const TABS = [
   { id: 'overview', label: 'Overview' },
@@ -63,6 +64,9 @@ export function AgentDetail({ agent, transitions, instruments, permissions, cloc
   const [tab, setTab] = useState<string>('overview');
   const [commands, setCommands] = useState<{ rows: readonly AgentCommand[]; error?: string } | undefined>();
   const [log, setLog] = useState<{ bundleId: string; lines?: readonly string[]; error?: string } | undefined>();
+  const [enrolOpen, setEnrolOpen] = useState(false);
+  const [actionOpen, setActionOpen] = useState(false);
+  useLiveRefresh(5_000, !log && !enrolOpen && !actionOpen);
   const h = agent.health;
   const canManage = hasPerm(permissions, 'instruments.agent.manage');
   const ipChangedRecently = !!h.last_ip_changed_at && Date.now() - Date.parse(h.last_ip_changed_at) < DAY_MS; // [CONV] 24 h
@@ -94,6 +98,15 @@ export function AgentDetail({ agent, transitions, instruments, permissions, cloc
     setTab(id);
     if (id === 'commands') void loadCommands();
   };
+  useEffect(() => {
+    if (tab !== 'commands') return;
+    const t = setInterval(() => {
+      if (typeof document === 'undefined' || document.visibilityState === 'visible') {
+        void loadCommands();
+      }
+    }, 5_000);
+    return () => clearInterval(t);
+  }, [tab, agent.id]);
 
   return (
     <section aria-label={`Agent ${agent.agent_code}`}>
@@ -108,8 +121,8 @@ export function AgentDetail({ agent, transitions, instruments, permissions, cloc
         actions={
           canManage ? (
             <>
-              <IssueEnrolmentCode agentId={agent.id} queueDepth={h.queue_depth} />
-              <AgentActions agent={agent} instruments={instruments} onCommandRequested={() => (tab === 'commands' ? void loadCommands() : undefined)} />
+              <IssueEnrolmentCode agentId={agent.id} queueDepth={h.queue_depth} onDialogOpenChange={setEnrolOpen} />
+              <AgentActions agent={agent} instruments={instruments} onCommandRequested={() => (tab === 'commands' ? void loadCommands() : undefined)} onDialogOpenChange={setActionOpen} />
             </>
           ) : null
         }

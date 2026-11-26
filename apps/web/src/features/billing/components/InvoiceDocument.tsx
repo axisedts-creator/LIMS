@@ -4,6 +4,7 @@
 import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
 import { DataUriImage } from '@lims/ui/components/DataUriImage';
 import { DescriptionList } from '@lims/ui/components/DescriptionList';
+import { BarcodeSymbol } from '@lims/ui/components/BarcodeSymbol';
 import type { InvoicePrintDocument } from '../server/types';
 import { Ad, BsAd, amountInWords, npr } from './format';
 import './billing.css';
@@ -57,7 +58,19 @@ export function InvoiceDocument({ document: d, plain = false }: { document: Invo
           { term: 'Fiscal year', value: d.fiscal_year_bs },
           { term: 'Buyer', value: d.buyer.name ?? '—' },
           ...(d.buyer.pan ? [{ term: 'Buyer PAN', value: d.buyer.pan }] : []),
-          ...(d.registration_no ? [{ term: 'Registration no', value: d.registration_no }] : []),
+          ...(d.registration_no ? [{
+            term: 'Registration no',
+            value: (
+              <span className="lims-invoice-reg-cell">
+                <span>{d.registration_no}</span>
+                {/^[A-Z0-9-]{1,32}$/.test(d.registration_no.trim()) ? (
+                  <span className="lims-invoice-barcode" role="img" aria-label={`Barcode ${d.registration_no.trim()}`}>
+                    <BarcodeSymbol value={d.registration_no.trim()} heightMm={8} moduleWidthMm={0.25} showText={false} />
+                  </span>
+                ) : null}
+              </span>
+            ),
+          }] : []),
         ]}
       />
       <p>Referred by: {d.referrer_id ? (d.referrer_name ?? 'Referrer on file') : 'Self'}</p>

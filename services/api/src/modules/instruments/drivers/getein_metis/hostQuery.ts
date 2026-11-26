@@ -59,6 +59,19 @@ function stamp(iso: string, tz: string): string {
 
 const SEX = { male: 'M', female: 'F' } as const;
 
+function dobYmd(v: string | undefined): string {
+  if (!v) return '';
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(v.trim());
+  return m ? `${m[1]}${m[2]}${m[3]}` : (/^\d{8}$/.test(v.trim()) ? v.trim() : '');
+}
+
+function specimenTypeOf(raw: string | undefined, opt: unknown): string {
+  if (!raw || typeof opt !== 'object' || opt === null || Array.isArray(opt)) return 'others';
+  const m = opt as Record<string, unknown>;
+  const hit = m[raw] ?? Object.entries(m).find(([k]) => k.toLowerCase() === raw.toLowerCase())?.[1];
+  return typeof hit === 'string' && hit.length > 0 ? hit : 'others';
+}
+
 export function buildHostQueryReply(input: { query: ParseOk; answers: readonly HostQueryAnswer[]; ctx: DriverContext }): readonly Uint8Array[] {
   const { query, ctx } = input;
   const q = QUERIES.get(query);
@@ -75,16 +88,27 @@ export function buildHostQueryReply(input: { query: ParseOk; answers: readonly H
   const qck = enc(head('QCK^Q02') + body(ok ? 'OK' : 'NF'));
   if (!ok || a === undefined) return [qck];
 
-  // dsr_item_details: id_only = `100^^^`; `full` has the same four components, but HostQueryAnswer has no name/unit/range yet (CR-C7-018), so both give `id^^^` today.
-  const detail = '^^^';
+  const fullDetails = ctx.options['dsr_item_details'] === 'full';
+  const name = ctx.options['name_script'] === 'latin_if_available' ? (a.patientNameLatin ?? a.patientName ?? '') : (a.patientName ?? '');
+  const collectTime = a.collectedAt ?? a.receivedAt;
   const dsp = new Map<number, string>([
+    [1, esc(a.patientId ?? '')],
+    [3, esc(name)],
+    [4, dobYmd(a.dateOfBirth)],
     [5, SEX[a.sex as keyof typeof SEX] ?? 'O'],
+    [12, esc(a.department ?? '')],
     [21, esc(a.barcode)],
+    [23, collectTime ? stamp(collectTime, ctx.instrumentTimezone) : ''],
     [24, a.priority === 'urgent' ? 'Y' : 'N'],
-    [26, 'others'],
+    [26, specimenTypeOf(a.specimenType, ctx.options['specimen_type_map'])],
   ]);
   let dsr = head('DSR^Q03') + body('OK') + q.qrd + '\r' + q.qrf + '\r';
   for (let n = 1; n <= 28; n++) dsr += seg('DSP', String(n), '', dsp.get(n) ?? '', '', '');
-  a.tests.forEach((x, i) => { dsr += seg('DSP', String(29 + i), '', esc(x.instrumentCode) + detail, '', ''); });
+  a.tests.forEach((x, i) => {
+    const suffix = fullDetails
+      ? `^${esc(x.testName ?? '')}^${esc(x.unit ?? '')}^${esc(x.referenceRange ?? '')}`
+      : '^^^';
+    dsr += seg('DSP', String(29 + i), '', esc(x.instrumentCode) + suffix, '', '');
+  });
   return [qck, enc(dsr + seg('DSC', ''))];
 }

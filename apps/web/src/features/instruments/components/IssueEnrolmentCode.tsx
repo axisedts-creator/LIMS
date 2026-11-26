@@ -12,9 +12,12 @@ import { useToast } from '@lims/ui/components/Toast';
 import { issueEnrolmentCodeAction } from '../server/actions';
 import type { EnrolmentCodeIssued } from '../server/types';
 
-export function IssueEnrolmentCode({ agentId, queueDepth = 0 }: { agentId: string; queueDepth?: number }) {
+export function IssueEnrolmentCode({ agentId, queueDepth = 0, onDialogOpenChange }: { agentId: string; queueDepth?: number; onDialogOpenChange?: (open: boolean) => void }) {
   const toast = useToast();
   const [step, setStep] = useState<'closed' | 'confirm' | 'reveal'>('closed');
+  useEffect(() => {
+    onDialogOpenChange?.(step !== 'closed');
+  }, [step, onDialogOpenChange]);
   const [mfa, setMfa] = useState(false);
   const [issued, setIssued] = useState<EnrolmentCodeIssued | null>(null);
   const inFlight = useRef(false); // one POST per confirm: a second code would invalidate the first (E14)
@@ -72,7 +75,11 @@ export function IssueEnrolmentCode({ agentId, queueDepth = 0 }: { agentId: strin
         <Dialog title="Enrolment code issued" isOpen={step === 'reveal'} isDismissable={false} onClose={() => {}}>
           <SecretRevealOnce label="Enrolment code" secret={issued.enrolment_code} expiresAt={issued.expires_at} requireAcknowledgement onAcknowledged={close} />
           <p className="lims-description">
-            Paste this into the installer on the lab PC: <code className="lims-mono">bridge-agent install --server {origin} --enrolment-code {issued.enrolment_code}</code>
+            First-time install on the lab PC (add <code className="lims-mono">--allow-lan-listener</code> for LAN analysers such as Truth-H80E or Getein Metis 6000):{' '}
+            <code className="lims-mono">bridge-agent install --server {origin} --enrolment-code {issued.enrolment_code} --allow-lan-listener</code>
+          </p>
+          <p className="lims-description">
+            Re-enrol an already installed agent: <code className="lims-mono">bridge-agent enrol --enrolment-code {issued.enrolment_code}</code>
           </p>
         </Dialog>
       ) : null}

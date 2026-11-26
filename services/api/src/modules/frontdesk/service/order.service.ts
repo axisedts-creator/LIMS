@@ -42,7 +42,8 @@ function orderCtx(c: unknown): OrderCtx {
   return x;
 }
 /** Port calls take an ISO-string clock (registration.service portCtx); Object.create keeps tenantId/actor/tx visible to the port. */
-const portCtx = <T extends { now(): Date }>(c: T): RequestContext => Object.assign(Object.create(c), { now: () => toDate(c.now()).toISOString() }); // VERIFY-GREEN-3 (LD-268): return type only; the object is unchanged
+const portCtx = <T extends { now(): Date }>(c: T): RequestContext =>
+  Object.defineProperty(Object.create(c), 'now', { value: () => toDate(c.now()).toISOString(), writable: true, configurable: true, enumerable: true }); // VERIFY-GREEN-3 (LD-268): return type only; the object is unchanged
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const ISO_MS = /^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{3}Z$/;
@@ -59,7 +60,9 @@ export async function derivedStatus(c: OrderCtx, row: Obj, activeIds: ReadonlySe
   const pc = portCtx(c);
   let states: readonly { orderItemId: string; processingStatus: ItemProcessingStatus }[] = [];
   try {
-    states = await c.ports.LabPort.getOrderItemProcessingState(pc, { orderId: row['id'] });
+    if (typeof c.ports?.LabPort?.getOrderItemProcessingState === 'function') {
+      states = await c.ports.LabPort.getOrderItemProcessingState(pc, { orderId: row['id'] });
+    }
   } catch (e: unknown) {
     if ((e as { code?: string } | null)?.code === 'common.not_found') states = [];
     else throw e;

@@ -362,7 +362,7 @@ export function previewNumbers(hctx: unknown, query: unknown): Promise<Result> {
     // bill number (LD-323 b): registration payments use issueReceiptNo=false, so the invoice IS the receipt (PRD D-RECEIPT): the number shown is the next INV,
     // read through BillingCommandPort.previewInvoiceNo (08 R25: frontdesk reads no billing table). Assigned when saved; two users may see the same number.
     // LD-323 (c): no fallback number ever; if the port call fails the field is empty (the UI shows only the "assigned when saved" label).
-    const portCtx = Object.assign(Object.create(c as object), { now: () => toDate(c.now()).toISOString() });
+    const portCtx = Object.defineProperty(Object.create(c as object), 'now', { value: () => toDate(c.now()).toISOString(), writable: true, configurable: true, enumerable: true });
     let receiptNo = '';
     try { receiptNo = String((await (c.ports as Obj)['BillingCommandPort'].previewInvoiceNo(portCtx, {})).invoiceNo); } catch { /* LD-323 (c): empty, never a guessed number */ }
     return { status: 200, body: { centre_id: centreId, next_registration_no: regNo, next_receipt_no: receiptNo, next_receipt_no_label: 'assigned when saved', is_preview: true } };   // LD-331 label, always present

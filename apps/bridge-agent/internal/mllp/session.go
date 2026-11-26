@@ -38,7 +38,9 @@ type Config struct {
 	ExpectAckOnReply       bool          // profile.ExpectAckOnReply; false = never wait for an ACK
 	ReplyAckPolicy         string        // "" | "each": wait after every reply message; "last": after the final one only; "none": never
 	ReplyAckMatchControlId bool          // true: the awaited ACK's MSA-2 must equal the MSH-10 of the reply it acknowledges
-	ReplyTimeout           time.Duration // wait for the ACK; <= 0 → DefaultReplyTimeout (U per model, never hard-coded in a profile)
+	ReplyTimeout           time.Duration             // wait for the ACK; <= 0 → DefaultReplyTimeout (U per model, never hard-coded in a profile)
+	SendRetries            int                       // additional attempts on reply ACK timeout (0 = try once, existing test default)
+	OnHostQueryOutcome     func(idx int, sent bool)  // optional wire-outcome callback per reply
 }
 
 // DefaultReplyTimeout is the ACK wait when Config.ReplyTimeout is unset. U: unverified until a real capture (addendum §9 item 5).
@@ -154,19 +156,32 @@ func Serve(conn io.ReadWriteCloser, cfg Config) error {
 	}
 }
 
-// answerHostQuery writes the replies in order, waiting for ACKs per cfg.ReplyAckPolicy. A missing ACK (timeout) ends the
-// exchange and is counted, not an error. A message that is not the awaited ACK is returned held for the main loop.
+// answerHostQuery writes the replies in order, waiting for ACKs per cfg.ReplyAckPolicy and retrying on timeout up to
+// cfg.SendRetries times. A missing ACK after retries (or another message arriving) ends the exchange cleanly.
 func answerHostQuery(conn io.Writer, pm *pump, cfg Config, replies [][]byte) (held readResult, have bool, err error) {
+	attempts := 1 + max(0, cfg.SendRetries)
 	for i, reply := range replies {
-		if _, err := conn.Write(Encode(reply)); err != nil {
-			return readResult{}, false, fmt.Errorf("mllp: write host-query reply: %w", err)
-		}
-		if !waitsAfter(cfg, i, len(replies)) {
-			continue
-		}
-		var ok bool
-		if held, have, ok = awaitACK(pm, cfg, reply); !ok {
-			return held, have, nil
+		for attempt := 0; attempt < attempts; attempt++ {
+			if _, err := conn.Write(Encode(reply)); err != nil {
+				if cfg.OnHostQueryOutcome != nil {
+					cfg.OnHostQueryOutcome(i, false)
+				}
+				return readResult{}, false, fmt.Errorf("mllp: write host-query reply: %w", err)
+			}
+			if cfg.OnHostQueryOutcome != nil {
+				cfg.OnHostQueryOutcome(i, true)
+			}
+			if !waitsAfter(cfg, i, len(replies)) {
+				break
+			}
+			var ok bool
+			held, have, ok = awaitACK(pm, cfg, reply)
+			if ok {
+				break
+			}
+			if have || attempt+1 >= attempts {
+				return held, have, nil
+			}
 		}
 	}
 	return readResult{}, false, nil

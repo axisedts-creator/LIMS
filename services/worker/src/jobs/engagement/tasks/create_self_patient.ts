@@ -5,6 +5,7 @@
 // (a throw would roll the failed mark back); any other error THROWS (tx rolls back, retry replays the same key). Name, birth date and phone are never logged, audited or stored in failure_code.
 import type { TaskHandler } from '../../../core/manifest.js';
 import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';
+import { frontdeskPort } from '../../../../../api/src/modules/frontdesk/ports/FrontdeskPort.impl.js';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const PURGE_DAYS = 30; // TRD §4.3.4: personal fields NULLed 30 days after the terminal state (purge_ephemeral keys on expires_at)
@@ -37,7 +38,8 @@ export function createCreateSelfPatient(): TaskHandler {
     const lastAttempt = !(typeof ctx.attempt === 'number' && typeof ctx.maxAttempts === 'number' && ctx.attempt < ctx.maxAttempts);
     await tx.query('SAVEPOINT create_self_patient'); // so the failed mark can be written after a failed statement
     try {
-      const created = await ctx.ports.FrontdeskPort.createSelfRegisteredPatient(ctx, {
+      const port = ctx.ports?.FrontdeskPort ?? frontdeskPort;
+      const created = await port.createSelfRegisteredPatient(ctx, {
         fullName: reg['full_name'], sex: reg['sex'],
         ...(reg['birth_on'] == null ? {} : { birthOn: dateOnly(reg['birth_on']) }), ...(reg['age_years'] == null ? {} : { ageYears: reg['age_years'] }),
         phoneE164: account['phone_e164'],

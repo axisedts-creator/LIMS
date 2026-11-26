@@ -237,7 +237,7 @@ export function createBillingCommandPort(deps: { repo?: BillingRepo; counter: Co
       session(ctx as Ctx);
       // read only call reachable from app ctx whose now() returns a Date (frontdesk preview): accept both, hand the service an ISO instant
       const at = (ctx.now as () => unknown)();
-      const c = at instanceof Date ? Object.assign(Object.create(ctx as object), { now: () => at.toISOString() }) : ctx;
+      const c = at instanceof Date ? Object.defineProperty(Object.create(ctx as object), 'now', { value: () => at.toISOString(), writable: true, configurable: true, enumerable: true }) : ctx;
       return invoices.previewNo(c as never);
     },
   };

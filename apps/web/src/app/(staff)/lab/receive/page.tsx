@@ -4,16 +4,29 @@ import { getShellSession } from '@/core/session/server';
 import { ReceiveScreen } from '@/features/lab/components/ReceiveScreen';
 import { listCentres } from '@/features/frontdesk/server/read.server';
 import { getRecollectionDefault, listRejectionReasons } from '@/features/lab/server/read.server';
+import { listSpecimenTypes } from '@/features/catalog/server/listSpecimenTypes.server';
+import { listContainers } from '@/features/catalog/server/listContainers.server';
 
 export const metadata = { title: 'Receive specimens' };
 
 export default async function ReceivePage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const [session] = await Promise.all([getShellSession(), searchParams]);
   const permissions = session?.actor.permissions ?? [];
-  const [centres, rejectionReasons, recollectionDefault] = await Promise.all([
+  const [centres, rejectionReasons, recollectionDefault, specimenTypes, containers] = await Promise.all([
     listCentres().catch(() => []),
     permissions.includes('lab.specimen.reject') ? listRejectionReasons().catch(() => []) : [],
     getRecollectionDefault().catch(() => false),
+    listSpecimenTypes().then((r) => r.data).catch(() => []),
+    listContainers().then((r) => r.data).catch(() => []),
   ]);
-  return <ReceiveScreen centres={centres} rejectionReasons={rejectionReasons} recollectionDefault={recollectionDefault} permissions={permissions} />;
+  return (
+    <ReceiveScreen
+      centres={centres}
+      rejectionReasons={rejectionReasons}
+      recollectionDefault={recollectionDefault}
+      permissions={permissions}
+      specimenTypes={specimenTypes}
+      containers={containers}
+    />
+  );
 }

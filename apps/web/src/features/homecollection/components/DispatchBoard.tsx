@@ -23,6 +23,7 @@ import { Stack } from '@lims/ui/components/Stack';
 import { StatusChip } from '@lims/ui/components/StatusChip';
 import { Switch } from '@lims/ui/components/Switch';
 import { useToast } from '@lims/ui/components/Toast';
+import { useBoardRefresh } from '../hooks/useBoardRefresh';
 import { VisuallyHidden } from '@lims/ui/components/VisuallyHidden';
 import { shortcuts } from '@/core/shortcuts/registry';
 import { failText, flagOf, hasPerm, kindLabel, time12, toneIcon, visitStatus } from '../labels';
@@ -119,6 +120,7 @@ export function DispatchBoard({ date, centreId, centres, visits, routes, permiss
   const canLabels = hasPerm(permissions, LABELS);
   const f: BoardFilter = filter ?? { status: [] };
   const [dlg, setDlg] = useState<Dlg | null>(null);
+  useBoardRefresh(dlg !== null);
   const root = useRef<HTMLDivElement>(null);
   const unassignedBox = useRef<HTMLDivElement>(null);
 

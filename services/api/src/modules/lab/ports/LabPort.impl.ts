@@ -99,13 +99,27 @@ async function mapped(c: PortCtx, instrumentId: string, ids: readonly string[], 
     catch (e) { if (!isLimsError(e, 'catalog.instrument_code_unmapped')) throw e; cache.set(analyteId, false); }
   }));
 }
-const testsOf = (rows: readonly Obj[], cache: Map<string, boolean>) => {
-  const by = new Map<string, { orderItemId: string; testId: string; analyteIds: string[] }>();
+const testsOf = async (c: PortCtx, rows: readonly Obj[], cache: Map<string, boolean>) => {
+  const by = new Map<string, { orderItemId: string; testId: string; analyteIds: string[]; testName?: string; unitCode?: string }>();
   for (const r of rows) {
     if (!cache.get(r['analyte_id'])) continue;
     const t = by.get(r['order_item_id']) ?? { orderItemId: r['order_item_id'] as string, testId: r['test_id'] as string, analyteIds: [] as string[] };
     t.analyteIds.push(r['analyte_id']);
     by.set(r['order_item_id'], t);
+  }
+  const cat = c.ports['CatalogPort'] as { getTest?: (ctx: unknown, i: { testId: string }) => Promise<{ name?: string; analytes?: readonly { id: string; name?: string; unitCode?: string }[] }> } | undefined;
+  if (cat?.getTest && by.size > 0) {
+    const testCache = new Map<string, { name?: string; analytes?: readonly { id: string; name?: string; unitCode?: string }[] } | undefined>();
+    await Promise.all([...new Set([...by.values()].map((v) => v.testId))].map(async (tid) => {
+      try { testCache.set(tid, await cat.getTest!(c, { testId: tid })); } catch { testCache.set(tid, undefined); }
+    }));
+    for (const item of by.values()) {
+      const def = testCache.get(item.testId);
+      if (!def) continue;
+      if (typeof def.name === 'string') item.testName = def.name;
+      const a = def.analytes?.find((x) => item.analyteIds.includes(x.id));
+      if (a && typeof a.unitCode === 'string') item.unitCode = a.unitCode;
+    }
   }
   return [...by.values()];
 };
@@ -134,8 +148,13 @@ async function getPendingTestsForBarcode(ctx: unknown, input: unknown): Promise<
   const pending = await query(rc, `SELECT order_item_id, test_id, analyte_id FROM lab.results WHERE tenant_id = $1 AND specimen_id = $2 AND status IN ('pending','resulted') ORDER BY order_item_id, analyte_id`, [sp['id']]);
   const cache = new Map<string, boolean>();
   await mapped(c, instrumentId, pending.map((r) => r['analyte_id']), cache);
-  const order = await first(rc, 'SELECT priority, patient_sex, patient_age_days FROM lab.orders WHERE tenant_id = $1 AND id = $2', [sp['order_id']]);
-  return { specimenId: sp['id'], priority: sp['priority'], patient: patientOf(order ?? sp), tests: testsOf(pending, cache) };
+  const order = await first(rc, 'SELECT priority, registration_no, patient_sex, patient_age_days FROM lab.orders WHERE tenant_id = $1 AND id = $2', [sp['order_id']]);
+  const out: Obj = { specimenId: sp['id'], priority: sp['priority'], patient: patientOf(order ?? sp), tests: await testsOf(c, pending, cache) };
+  put(out, 'specimenTypeCode', sp['specimen_type_code']);
+  put(out, 'collectedAt', iso(sp['collected_at']));
+  put(out, 'receivedAt', iso(sp['received_at']));
+  put(out, 'accessionNumber', order?.['registration_no']);
+  return out;
 }
 
 const cursorOf = (id: string): string => Buffer.from(JSON.stringify({ s: id })).toString('base64url');
@@ -163,7 +182,7 @@ async function listPendingForInstrument(ctx: unknown, input: unknown): Promise<O
     await mapped(c, instrumentId, pend.map((r) => r['analyte_id']), cache);
     for (const s of specs) {
       after = s['id'];
-      const tests = testsOf(pend.filter((r) => r['specimen_id'] === s['id']), cache);
+      const tests = await testsOf(c, pend.filter((r) => r['specimen_id'] === s['id']), cache);
       if (tests.length > 0) out.push({ specimenId: s['id'], barcode: s['barcode'], priority: s['priority'], patient: patientOf(s), tests });
       if (out.length > limit) break;
     }

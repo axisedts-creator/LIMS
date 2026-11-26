@@ -33,6 +33,12 @@ function stamp(iso: string, tz: string): string {
 
 const GENDER = { male: '1', female: '2' } as const;
 
+function dobYmd(v: string | undefined): string {
+  if (!v) return '';
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(v.trim());
+  return m ? `${m[1]}${m[2]}${m[3]}` : (/^\d{8}$/.test(v.trim()) ? v.trim() : '');
+}
+
 export function buildHostQueryReply(input: { query: ParseOk; answers: readonly HostQueryAnswer[]; ctx: DriverContext }): readonly Uint8Array[] {
   const { query, ctx } = input;
   const a = input.answers[0];
@@ -49,7 +55,17 @@ export function buildHostQueryReply(input: { query: ParseOk; answers: readonly H
 
   const raw = ctx.options['host_query_detection_mode'];
   const mode = raw === 1 || raw === 2 ? String(raw) : '0'; // U: 1 whole blood, 2 haemolysis, 0 per instrument program
-  const dsp = new Map<number, string>([[5, GENDER[a.sex as keyof typeof GENDER] ?? '0'], [21, esc(a.barcode)], [22, mode]]);
+  const name = ctx.options['name_script'] === 'latin_if_available' ? (a.patientNameLatin ?? a.patientName ?? '') : (a.patientName ?? '');
+  const dsp = new Map<number, string>([
+    [1, esc(a.patientId ?? '')],
+    [2, esc(a.department ?? '')],
+    [3, esc(name)],
+    [4, dobYmd(a.dateOfBirth)],
+    [5, GENDER[a.sex as keyof typeof GENDER] ?? '0'],
+    [13, esc(a.accessionNumber ?? '')],
+    [21, esc(a.barcode)],
+    [22, mode],
+  ]);
   let dsr = head('DSR^Q03', '02', '||||||UTF-8||||') + body('1', 'OK') + seg('QRD', t, 'R', 'D', '65', '', '', 'RD', '', 'OTH', '', '', 'T', '');
   for (let n = 1; n <= 22; n++) dsr += `DSP|${n}||${dsp.get(n) ?? ''}|||\r`;
   return [qck, enc(dsr + 'DSC|0|\r')];

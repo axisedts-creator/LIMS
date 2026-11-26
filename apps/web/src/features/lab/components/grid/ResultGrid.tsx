@@ -53,6 +53,10 @@ export interface ResultGridProps {
   worklist?: { prevOrderId?: string; nextOrderId?: string };
   /** step-up for 403 auth.mfa_required; default = page reload (no C2 step-up route in the spec, same as the approval queue) */
   onStepUp?: () => Promise<void> | void;
+  /** When embedded inside a parent view (e.g. Worklist page) */
+  embedded?: boolean;
+  /** Callback fired after results are successfully saved */
+  onSaved?: () => void;
 }
 
 type Edit = { value?: string; comment?: { text: string; codes: string[] } };
@@ -98,7 +102,7 @@ const SHORTCUT_GROUPS = [{ id: 'grid', title: 'Result entry grid', shortcuts: SH
 
 const isTextTarget = (t: EventTarget | null) => t instanceof HTMLElement && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName));
 
-export function ResultGrid({ data, analytes = {}, permissions, patientId, returnReasons, amendmentReasons, downtimeMaxHours = DOWNTIME_DEFAULT_MAX_HOURS, worklist, onStepUp }: ResultGridProps) {
+export function ResultGrid({ data, analytes = {}, permissions, patientId, returnReasons, amendmentReasons, downtimeMaxHours = DOWNTIME_DEFAULT_MAX_HOURS, worklist, onStepUp, embedded, onSaved }: ResultGridProps) {
   const router = useRouter();
   const toast = useToast();
   const can = (p: string) => permissions.includes(p);
@@ -284,6 +288,7 @@ export function ResultGrid({ data, analytes = {}, permissions, patientId, return
       setResults(() => next);
       setEdits((p) => Object.fromEntries(Object.entries(p).filter(([id]) => !done.includes(id))));
       setErrors((p) => ({ ...Object.fromEntries(Object.entries(p).filter(([id]) => !done.includes(id))), ...nextErr }));
+      if (done.length > 0) onSaved?.();
       return Object.keys(nextErr).length ? null : next;
     } finally { busyRef.current = false; setBusy(false); }
   }
@@ -322,10 +327,10 @@ export function ResultGrid({ data, analytes = {}, permissions, patientId, return
     if (ok.length) { toast.show({ tone: 'success', title: `${word} ${ok.length}.` }); router.refresh(); }
   }
 
-  // ── approve (Alt+A): selected verified rows; 403 auth.mfa_required → "Verify now" → same request, same key
+  // ── approve (Alt+A): selected verified or resulted rows; 403 auth.mfa_required → "Verify now" → same request, same key
   async function approve() {
     if (!canApprove || busyRef.current) return;
-    const items: VerifyItem[] = rowsInfo.filter(({ r }) => selected.has(r.id) && r.status === 'verified').map(({ r }) => ({ id: r.id, version: r.version }));
+    const items: VerifyItem[] = rowsInfo.filter(({ r }) => selected.has(r.id) && (r.status === 'verified' || r.status === 'resulted')).map(({ r }) => ({ id: r.id, version: r.version }));
     if (items.length === 0) return;
     if (items.length > MAX_BATCH) { setBanner({ kind: 'error', text: `Approve at most ${MAX_BATCH} results at a time.` }); return; }
     const sig = JSON.stringify(items);
@@ -444,9 +449,9 @@ export function ResultGrid({ data, analytes = {}, permissions, patientId, return
       return;
     }
     if (col !== VALUE_COL && e.key !== ' ') return;
-    if (e.key === ' ') {                                       // Space selects a verified result for Alt+A
+    if (e.key === ' ') {                                       // Space selects a verified or resulted result for Alt+A
       stop();
-      if (canApprove && r?.status === 'verified') setSelected((p) => { const n = new Set(p); if (n.has(r.id)) n.delete(r.id); else n.add(r.id); return n; });
+      if (canApprove && (r?.status === 'verified' || r?.status === 'resulted')) setSelected((p) => { const n = new Set(p); if (n.has(r.id)) n.delete(r.id); else n.add(r.id); return n; });
       return;
     }
     if (e.key === 'Enter' && (e.shiftKey || !r || !editable(r))) { stop(); moveEditable(idx, e.shiftKey ? -1 : 1); return; }
@@ -476,7 +481,7 @@ export function ResultGrid({ data, analytes = {}, permissions, patientId, return
 
   return (
     <section aria-label="Result entry">
-      <PageHeader title={`Results — ${data.order.registration_no}`} helpKey="lab.results" />
+      {!embedded ? <PageHeader title={`Results — ${data.order.registration_no}`} helpKey="lab.results" /> : null}
       {banner ? (
         <div role="alert"><Banner tone={banner.kind === 'mfa' ? 'warning' : 'danger'} title={banner.text} {...(banner.kind === 'mfa' ? { action: { label: 'Verify now', onPress: () => void verifyNow() } } : {})} /></div>
       ) : null}

@@ -48,7 +48,7 @@
   letter-spacing: 0.01em;
 }
 
-/* ---- cards and stat tiles (done_when 3) ---- */
+/* ---- 3D Popped Cards with Multi-Layered Depth (Optimized for Low-End PCs) ---- */
 .lims-grid {
   align-items: stretch;
   gap: var(--lims-space-4);
@@ -60,6 +60,69 @@
   box-sizing: border-box;
 }
 
+.lims-card {
+  position: relative;
+  background: var(--lims-neutral-0) !important;
+  border: 0.0625rem solid color-mix(in srgb, var(--lims-neutral-300) 35%, var(--lims-neutral-200)) !important;
+  border-radius: var(--lims-radius-md) !important;
+  box-shadow:
+    0 1px 2px color-mix(in srgb, var(--lims-neutral-900) 4%, transparent),
+    0 4px 12px -1px color-mix(in srgb, var(--lims-accent) 8%, transparent),
+    0 12px 28px -4px color-mix(in srgb, var(--lims-accent) 12%, transparent),
+    inset 0 1px 0 var(--lims-neutral-0),
+    inset 0 -1px 0 color-mix(in srgb, var(--lims-neutral-300) 25%, transparent) !important;
+  will-change: transform;
+  transform: translateZ(0);
+  transition: transform var(--lims-motion-duration-fast) var(--lims-motion-easing),
+              box-shadow var(--lims-motion-duration-fast) var(--lims-motion-easing),
+              border-color var(--lims-motion-duration-fast) var(--lims-motion-easing);
+}
+
+.lims-card:hover {
+  transform: translate3d(0, -0.125rem, 0);
+  border-color: color-mix(in srgb, var(--lims-accent) 35%, var(--lims-neutral-300)) !important;
+  box-shadow:
+    0 2px 4px color-mix(in srgb, var(--lims-neutral-900) 5%, transparent),
+    0 8px 20px -2px color-mix(in srgb, var(--lims-accent) 14%, transparent),
+    0 20px 38px -6px color-mix(in srgb, var(--lims-accent) 16%, transparent),
+    inset 0 1px 0 var(--lims-neutral-0),
+    inset 0 -1px 0 color-mix(in srgb, var(--lims-neutral-300) 30%, transparent) !important;
+}
+
+.lims-card::before {
+  content: '';
+  position: absolute;
+  inset-inline-start: var(--lims-space-3);
+  inset-inline-end: var(--lims-space-3);
+  top: 0;
+  height: 0.0625rem;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--lims-neutral-0) 90%, transparent), transparent);
+  pointer-events: none;
+}
+
+.lims-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: var(--lims-space-2);
+  margin-bottom: var(--lims-space-2);
+  border-bottom: 0.0625rem solid var(--lims-neutral-100);
+}
+
+.lims-card-title {
+  font-size: var(--lims-font-size-base-size) !important;
+  font-weight: var(--lims-font-weight-semibold);
+  color: var(--lims-neutral-900);
+  letter-spacing: -0.01em;
+}
+
+.lims-card-caption {
+  color: var(--lims-neutral-500);
+  font-size: var(--lims-font-size-xs-size);
+  white-space: nowrap;
+}
+
+/* ---- 3D Popped Stat Tiles with Multi-Color Semantic Tops ---- */
 .lims-stat-row {
   grid-template-columns: none;
   grid-auto-flow: column;
@@ -80,33 +143,13 @@
   }
 }
 
-.lims-card-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  margin-bottom: var(--lims-space-2);
-}
-
-.lims-card-title {
-  font-size: var(--lims-font-size-base-size) !important;
-  font-weight: var(--lims-font-weight-medium);
-  color: var(--lims-neutral-900);
-  letter-spacing: -0.01em;
-}
-
-.lims-card-caption {
-  color: var(--lims-neutral-500);
-  font-size: var(--lims-font-size-xs-size);
-  white-space: nowrap;
-}
-
-/* ---- Axis Hub pack style: 3D Popped Stat Tiles with Multi-Color Semantic Tops ---- */
 .lims-stat {
   position: relative;
   display: flex;
   flex-direction: column;
+  justify-content: space-between;
   gap: var(--lims-space-1);
-  padding: var(--lims-space-3);
+  padding: var(--lims-space-3) var(--lims-space-4);
   border: 0.0625rem solid color-mix(in srgb, var(--lims-neutral-300) 40%, var(--lims-neutral-200));
   border-top: 0.25rem solid var(--lims-accent);
   border-radius: var(--lims-radius-md);
@@ -115,7 +158,8 @@
     inset 0 0.0625rem 0 0 color-mix(in srgb, var(--lims-neutral-0) 95%, transparent),
     inset 0 -0.0625rem 0 0 color-mix(in srgb, var(--lims-neutral-900) 3%, transparent),
     0 0.0625rem 0.1875rem color-mix(in srgb, var(--lims-neutral-900) 5%, transparent),
-    0 0.25rem 0.625rem -0.0625rem color-mix(in srgb, var(--lims-accent) 8%, transparent);
+    0 0.25rem 0.75rem -0.0625rem color-mix(in srgb, var(--lims-accent) 10%, transparent),
+    0 0.75rem 1.75rem -0.25rem color-mix(in srgb, var(--lims-accent) 12%, transparent);
   will-change: transform;
   transform: translateZ(0);
   transition: transform var(--lims-motion-duration-fast) var(--lims-motion-easing),
@@ -125,21 +169,21 @@
 }
 
 .lims-stat:hover {
-  transform: translate3d(0, -0.125rem, 0);
+  transform: translate3d(0, -0.1875rem, 0);
   z-index: 2;
   border-color: color-mix(in srgb, var(--lims-accent) 40%, var(--lims-neutral-300));
   box-shadow:
     inset 0 0.0625rem 0 0 var(--lims-neutral-0),
-    0 0.125rem 0.25rem color-mix(in srgb, var(--lims-accent) 8%, transparent),
-    0 0.5rem 1.25rem -0.125rem color-mix(in srgb, var(--lims-accent) 12%, transparent),
-    0 1rem 1.75rem -0.25rem color-mix(in srgb, var(--lims-neutral-900) 8%, transparent);
+    0 0.1875rem 0.375rem color-mix(in srgb, var(--lims-accent) 8%, transparent),
+    0 0.625rem 1.5rem -0.125rem color-mix(in srgb, var(--lims-accent) 15%, transparent),
+    0 1.25rem 2.25rem -0.25rem color-mix(in srgb, var(--lims-neutral-900) 10%, transparent);
 }
 
 /* Stat Tile semantic tone mappings */
 .lims-stat[data-tone='success'], .lims-stat.lims-tone-success { border-top-color: var(--lims-tone-success-fg); }
 .lims-stat[data-tone='warning'], .lims-stat.lims-tone-warning { border-top-color: var(--lims-tone-warning-fg); }
 .lims-stat[data-tone='danger'], .lims-stat.lims-tone-danger { border-top-color: var(--lims-tone-danger-fg); }
-.lims-stat[data-tone='critical'], .lims-stat.lims-tone-critical { border-top-color: var(--lims-tone-danger-fg); }
+.lims-stat[data-tone='critical'], .lims-stat.lims-tone-critical { border-top-color: var(--lims-tone-critical-solid, var(--lims-tone-critical-fg)); }
 .lims-stat[data-tone='info'], .lims-stat.lims-tone-info { border-top-color: var(--lims-tone-info-fg); }
 
 /* Sequence coloring for Status Board queue progression (Waiting -> Collected -> In Lab -> Ready -> Printed) */
@@ -149,30 +193,163 @@
 .lims-stat-row > .lims-stat:nth-child(4) { border-top-color: var(--lims-tone-success-fg); }
 .lims-stat-row > .lims-stat:nth-child(5) { border-top-color: var(--lims-accent); }
 
+.lims-stat-label, .lims-stat-title {
+  font-size: var(--lims-font-size-xs-size);
+  color: var(--lims-neutral-500);
+  font-weight: var(--lims-font-weight-medium);
+  letter-spacing: 0.02em;
+}
+
 .lims-stat-value {
   font-size: var(--lims-font-size-xl-size);
   font-weight: var(--lims-font-weight-semibold);
   color: var(--lims-neutral-900);
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.015em;
+  line-height: 1.2;
 }
 
 .lims-stat-delta {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--lims-space-0-5, 0.125rem);
+  align-self: flex-start;
   border-radius: var(--lims-radius-full);
   font-size: var(--lims-font-size-xs-size);
   font-weight: var(--lims-font-weight-medium);
   padding: 0.0625rem var(--lims-space-2);
   font-variant-numeric: tabular-nums;
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--lims-neutral-0) 60%, transparent);
+}
+
+.lims-stat-delta[data-direction='up'], .lims-stat-delta.lims-tone-success {
+  background: var(--lims-tone-success-bg);
+  color: var(--lims-tone-success-fg);
+  border: 0.0625rem solid var(--lims-tone-success-border);
+}
+
+.lims-stat-delta[data-direction='down'], .lims-stat-delta.lims-tone-danger {
+  background: var(--lims-tone-danger-bg);
+  color: var(--lims-tone-danger-fg);
+  border: 0.0625rem solid var(--lims-tone-danger-border);
+}
+
+/* ---- 3D Tactile Buttons ---- */
+.lims-shell .lims-btn-primary {
+  border: 0.0625rem solid var(--lims-accent) !important;
+  background: var(--lims-accent) !important;
+  color: var(--lims-accent-fg) !important;
+  box-shadow:
+    0 0.125rem 0 0 var(--lims-accent-hover),
+    0 0.25rem 0.5rem color-mix(in srgb, var(--lims-accent) 30%, transparent),
+    inset 0 0.0625rem 0 color-mix(in srgb, var(--lims-neutral-0) 25%, transparent) !important;
+  transition: transform var(--lims-motion-duration-fast) var(--lims-motion-easing),
+              box-shadow var(--lims-motion-duration-fast) var(--lims-motion-easing),
+              background-color var(--lims-motion-duration-fast) var(--lims-motion-easing) !important;
+  will-change: transform;
+}
+
+.lims-shell .lims-btn-primary:hover:not([data-disabled], :disabled) {
+  background: var(--lims-accent-hover) !important;
+  box-shadow:
+    0 0.1875rem 0 0 color-mix(in srgb, var(--lims-accent-hover) 85%, var(--lims-neutral-900)),
+    0 0.375rem 0.75rem color-mix(in srgb, var(--lims-accent) 40%, transparent),
+    inset 0 0.0625rem 0 color-mix(in srgb, var(--lims-neutral-0) 30%, transparent) !important;
+  transform: translateY(-0.0625rem);
+}
+
+.lims-shell .lims-btn-primary:active:not([data-disabled], :disabled) {
+  transform: translateY(0.0625rem);
+  box-shadow:
+    0 0.0625rem 0 0 var(--lims-accent-hover),
+    0 0.125rem 0.25rem color-mix(in srgb, var(--lims-accent) 25%, transparent) !important;
+}
+
+/* ---- 3D Popped Tables ---- */
+.lims-data-table {
+  background: var(--lims-neutral-0);
+  border: 0.0625rem solid var(--lims-neutral-200);
+  border-radius: var(--lims-radius-md);
+  box-shadow:
+    0 1px 3px color-mix(in srgb, var(--lims-neutral-900) 4%, transparent),
+    0 4px 14px -2px color-mix(in srgb, var(--lims-accent) 8%, transparent),
+    inset 0 1px 0 var(--lims-neutral-0);
+  overflow: hidden;
+}
+
+.lims-card .lims-data-table {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
 }
 
 /* ---- Axis Hub pack style: Status chips and pills ---- */
 .lims-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--lims-space-1);
+  min-height: 1.375rem;
+  padding: 0 var(--lims-space-2);
+  border: 0.0625rem solid;
   border-radius: var(--lims-radius-full);
+  font-size: var(--lims-font-size-xs-size);
+  font-weight: var(--lims-font-weight-medium);
   font-variant-numeric: tabular-nums;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  line-height: 1.375rem;
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--lims-neutral-0) 40%, transparent);
 }
 
-/* ---- block ErrorState and Banner: one row, 36px (done_when 5). Comes before the card/table rules so a state inside a card stays compact and centred. ---- */
+.lims-chip::before {
+  content: '';
+  display: inline-block;
+  width: 0.375rem;
+  height: 0.375rem;
+  border-radius: var(--lims-radius-full);
+  background: currentColor;
+  flex: none;
+  opacity: 0.85;
+}
+
+/* Tone rules for chips and semantic containers */
+.lims-tone-neutral, .lims-chip.lims-tone-neutral, [data-tone='neutral'] {
+  color: var(--lims-tone-neutral-fg);
+  background: var(--lims-tone-neutral-bg);
+  border-color: var(--lims-tone-neutral-border);
+}
+
+.lims-tone-info, .lims-chip.lims-tone-info, [data-tone='info'] {
+  color: var(--lims-tone-info-fg);
+  background: var(--lims-tone-info-bg);
+  border-color: var(--lims-tone-info-border);
+}
+
+.lims-tone-success, .lims-chip.lims-tone-success, [data-tone='success'] {
+  color: var(--lims-tone-success-fg);
+  background: var(--lims-tone-success-bg);
+  border-color: var(--lims-tone-success-border);
+}
+
+.lims-tone-warning, .lims-chip.lims-tone-warning, [data-tone='warning'] {
+  color: var(--lims-tone-warning-fg);
+  background: var(--lims-tone-warning-bg);
+  border-color: var(--lims-tone-warning-border);
+}
+
+.lims-tone-danger, .lims-chip.lims-tone-danger, [data-tone='danger'] {
+  color: var(--lims-tone-danger-fg);
+  background: var(--lims-tone-danger-bg);
+  border-color: var(--lims-tone-danger-border);
+}
+
+.lims-tone-critical, .lims-chip.lims-tone-critical, [data-tone='critical'] {
+  color: var(--lims-tone-critical-fg);
+  background: var(--lims-tone-critical-bg);
+  border-color: var(--lims-tone-critical-border);
+}
+
+/* ---- block ErrorState and Banner: one row, 36px (done_when 5) ---- */
 .lims-state.lims-tone-danger, .lims-state[data-tone='danger'] {
   display: flex;
   flex-direction: row;
@@ -185,6 +362,7 @@
   background: var(--lims-tone-danger-bg);
   border: 0.0625rem solid var(--lims-tone-danger-border);
   border-radius: var(--lims-radius-md);
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--lims-tone-danger-fg) 10%, transparent);
 }
 
 .lims-state.lims-tone-danger .lims-state-art, .lims-state[data-tone='danger'] .lims-state-art {
@@ -240,7 +418,6 @@
 /* Stacked "Not available yet" cards collapse to one row */
 .lims-card:has(> .lims-state > .lims-state-art[data-art='not-available']) ~ .lims-card > .lims-state:has(> .lims-state-art[data-art='not-available']),
 .lims-card:has(> .lims-state > .lims-state-art[data-art='not-available']):has(~ .lims-card > .lims-state > .lims-state-art[data-art='not-available']) > .lims-state {
-  display: flex;
   flex-direction: row;
   align-items: center;
   justify-content: flex-start;
@@ -282,4 +459,12 @@
 
 .lims-card .lims-state > .lims-btn, .lims-data-table .lims-state > .lims-btn, .lims-table .lims-state > .lims-btn, td .lims-state > .lims-btn {
   margin-inline-start: 0;
+}
+
+/* Reduced motion disables 3D lifts and transitions instantly */
+@media (prefers-reduced-motion: reduce) {
+  .lims-card, .lims-stat, .lims-shell .lims-btn-primary {
+    transform: none !important;
+    transition-duration: 0ms !important;
+  }
 }

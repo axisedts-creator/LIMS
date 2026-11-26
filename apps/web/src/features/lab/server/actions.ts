@@ -5,9 +5,9 @@ import 'server-only';
 import { ApiError } from '@/core/api/server-fetch';
 import { problem } from '@/core/session/types';
 import { amendResult, assignException, bulkApproveResults, bulkCollect, bulkDispatch, bulkEnterResults, bulkVerifyResults, createAliquots, discardException, discardSpecimen, lookupSpecimens, reapplyException, receiveSpecimen, rejectSpecimen, requestRecollection, returnResult, storeSpecimen } from './write.server';
-import { getAnalyteTrend, getResultHistory, getStatusBoard, listCommentCodes, listOrderResults } from './read.server';
+import { getAnalyteTrend, getAnalytes, getResultHistory, getStatusBoard, listCodedSet, listCommentCodes, listOrderResults } from './read.server';
 import { UUID_RE } from './types';
-import type { ActionResult, AliquotBody, AliquotResult, AmendBody, AssignBody, BoardQuery, BulkItem, BulkRow, CommentCodeRow, DiscardBody, DiscardSpecimenBody, DowntimeFields, EnterEntry, EnterResponse, ExceptionAction, GridResult, HistoryRow, IngestException, LookupKey, OrderResult, RejectBody, RejectResult, ResultBulkRow, ReturnBody, Specimen, StatusBoardPage, StoreBody, TrendResponse, VerifyItem } from './types';
+import type { ActionResult, AliquotBody, AliquotResult, AmendBody, AssignBody, BoardQuery, BulkItem, BulkRow, CodedOption, CommentCodeRow, DiscardBody, DiscardSpecimenBody, DowntimeFields, EnterEntry, EnterResponse, ExceptionAction, GridResult, HistoryRow, IngestException, LookupKey, OrderResult, OrderResults, RejectBody, RejectResult, ResultBulkRow, ReturnBody, Specimen, StatusBoardPage, StoreBody, TrendResponse, VerifyItem } from './types';
 
 async function run<T>(f: () => Promise<T>): Promise<ActionResult<T>> {
   try {
@@ -29,6 +29,27 @@ export async function listOrderResultsAction(orderId: string): Promise<ActionRes
   return run(async () => {
     if (!UUID_RE.test(orderId)) throw new ApiError(400, problem('common.validation_failed', 'Validation failed', 400));
     return (await listOrderResults(orderId)).items.flatMap((i) => i.results).filter((x) => x.status !== 'cancelled');
+  });
+}
+
+export interface WorklistResultsData {
+  orderResults: OrderResults;
+  analytes: Record<string, { name: string; value_type: 'numeric' | 'ordinal' | 'text'; decimals?: number }>;
+  returnReasons: CodedOption[];
+  amendmentReasons: CodedOption[];
+}
+
+/** Load full results, analytes, and coded sets for inline viewing/editing in the worklist */
+export async function getWorklistOrderResultsAction(orderId: string, departmentId?: string): Promise<ActionResult<WorklistResultsData>> {
+  return run(async () => {
+    if (!UUID_RE.test(orderId)) throw new ApiError(400, problem('common.validation_failed', 'Validation failed', 400));
+    const [orderResults, returnReasons, amendmentReasons] = await Promise.all([
+      listOrderResults(orderId, departmentId ? { department_id: departmentId } : {}),
+      listCodedSet('return_reasons').catch(() => []),
+      listCodedSet('amendment_reasons').catch(() => []),
+    ]);
+    const analytes = await getAnalytes(orderResults.items.flatMap((i) => i.results.map((r) => r.analyte_id)));
+    return { orderResults, analytes, returnReasons, amendmentReasons };
   });
 }
 /** T-27: the board poll / filter change (the JWT stays on the server, REQ-SEC-068). */

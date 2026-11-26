@@ -25326,6 +25326,13 @@ export interface Operations {
           values?: string[];
         };
         record_kind_default?: string;
+        detection_mode_field?: string;
+        type_flag_field?: string;
+        qc_level_map?: Record<string, string>;
+        name_script?: "as_registered" | "latin_if_available";
+        specimen_type_map?: Record<string, string>;
+        dsr_item_details?: "id_only" | "full";
+        attach_pdf?: boolean;
       };
       file_drop?: {
         directory: string;
@@ -25430,6 +25437,13 @@ export interface Operations {
             values?: string[];
           };
           record_kind_default?: string;
+          detection_mode_field?: string;
+          type_flag_field?: string;
+          qc_level_map?: Record<string, string>;
+          name_script?: "as_registered" | "latin_if_available";
+          specimen_type_map?: Record<string, string>;
+          dsr_item_details?: "id_only" | "full";
+          attach_pdf?: boolean;
         };
         file_drop?: {
           directory: string;
@@ -58961,6 +58975,13 @@ export interface Operations {
             values?: string[];
           };
           record_kind_default?: string;
+          detection_mode_field?: string;
+          type_flag_field?: string;
+          qc_level_map?: Record<string, string>;
+          name_script?: "as_registered" | "latin_if_available";
+          specimen_type_map?: Record<string, string>;
+          dsr_item_details?: "id_only" | "full";
+          attach_pdf?: boolean;
         };
         file_drop?: {
           directory: string;
@@ -73738,6 +73759,13 @@ export interface Operations {
             values?: string[];
           };
           record_kind_default?: string;
+          detection_mode_field?: string;
+          type_flag_field?: string;
+          qc_level_map?: Record<string, string>;
+          name_script?: "as_registered" | "latin_if_available";
+          specimen_type_map?: Record<string, string>;
+          dsr_item_details?: "id_only" | "full";
+          attach_pdf?: boolean;
         };
         file_drop?: {
           directory: string;
@@ -85128,6 +85156,7 @@ export interface Operations {
             revision: string;
             software_version?: string;
           };
+          options_schema?: Record<string, unknown>;
           is_active: boolean;
         })[];
       });
@@ -130849,6 +130878,13 @@ export interface Operations {
             values?: string[];
           };
           record_kind_default?: string;
+          detection_mode_field?: string;
+          type_flag_field?: string;
+          qc_level_map?: Record<string, string>;
+          name_script?: "as_registered" | "latin_if_available";
+          specimen_type_map?: Record<string, string>;
+          dsr_item_details?: "id_only" | "full";
+          attach_pdf?: boolean;
         };
         file_drop?: {
           directory: string;
@@ -132058,6 +132094,13 @@ export interface Operations {
             values?: string[];
           };
           record_kind_default?: string;
+          detection_mode_field?: string;
+          type_flag_field?: string;
+          qc_level_map?: Record<string, string>;
+          name_script?: "as_registered" | "latin_if_available";
+          specimen_type_map?: Record<string, string>;
+          dsr_item_details?: "id_only" | "full";
+          attach_pdf?: boolean;
         };
         file_drop?: {
           directory: string;
@@ -142448,6 +142491,13 @@ export interface Operations {
             values?: string[];
           };
           record_kind_default?: string;
+          detection_mode_field?: string;
+          type_flag_field?: string;
+          qc_level_map?: Record<string, string>;
+          name_script?: "as_registered" | "latin_if_available";
+          specimen_type_map?: Record<string, string>;
+          dsr_item_details?: "id_only" | "full";
+          attach_pdf?: boolean;
         };
         file_drop?: {
           directory: string;
@@ -144941,6 +144991,13 @@ export interface Operations {
             values?: string[];
           };
           record_kind_default?: string;
+          detection_mode_field?: string;
+          type_flag_field?: string;
+          qc_level_map?: Record<string, string>;
+          name_script?: "as_registered" | "latin_if_available";
+          specimen_type_map?: Record<string, string>;
+          dsr_item_details?: "id_only" | "full";
+          attach_pdf?: boolean;
         };
         file_drop?: {
           directory: string;
@@ -152868,6 +152925,13 @@ export interface Operations {
           values?: string[];
         };
         record_kind_default?: string;
+        detection_mode_field?: string;
+        type_flag_field?: string;
+        qc_level_map?: Record<string, string>;
+        name_script?: "as_registered" | "latin_if_available";
+        specimen_type_map?: Record<string, string>;
+        dsr_item_details?: "id_only" | "full";
+        attach_pdf?: boolean;
       };
       file_drop?: {
         directory: string;
@@ -152972,6 +153036,13 @@ export interface Operations {
             values?: string[];
           };
           record_kind_default?: string;
+          detection_mode_field?: string;
+          type_flag_field?: string;
+          qc_level_map?: Record<string, string>;
+          name_script?: "as_registered" | "latin_if_available";
+          specimen_type_map?: Record<string, string>;
+          dsr_item_details?: "id_only" | "full";
+          attach_pdf?: boolean;
         };
         file_drop?: {
           directory: string;

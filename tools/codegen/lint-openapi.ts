@@ -67,9 +67,15 @@ const OPEN_OBJECT_ALLOWLIST = [
   { module: "analytics", operationId: "getMisReportPage", status: "200", path: "rows[]" },
   { module: "analytics", operationId: "getMisReportPage", status: "200", path: "totals" },
 ] as const;
+const COMPONENT_OPEN_OBJECT_ALLOWLIST = [
+  { module: "instruments", ptr: "#/components/schemas/Driver/properties/options_schema" },
+  { module: "instruments", ptr: "#/components/schemas/ParserOptions/properties/qc_level_map" },
+  { module: "instruments", ptr: "#/components/schemas/ParserOptions/properties/specimen_type_map" },
+] as const;
 type OpCtx = { operationId: unknown; status: string };
-const openObjectAllowed = (module: string, op: OpCtx | undefined, path: string) =>
-  !!op && OPEN_OBJECT_ALLOWLIST.some((e) => e.module === module && e.operationId === op.operationId && e.status === op.status && e.path === path);
+const openObjectAllowed = (module: string, op: OpCtx | undefined, path: string, ptr = "") =>
+  (!!op && OPEN_OBJECT_ALLOWLIST.some((e) => e.module === module && e.operationId === op.operationId && e.status === op.status && e.path === path))
+  || COMPONENT_OPEN_OBJECT_ALLOWLIST.some((e) => e.module === module && e.ptr === ptr);
 
 // `path` = data path of the instance (dotted property names, "[]" per array item, "*" for maps); survives $ref.
 function walkSchema(s: unknown, ptr: string, visit: (s: Record<string, any>, ptr: string, path: string) => void,
@@ -199,7 +205,7 @@ export function lintOpenapi(files: { name: string; text: string }[], ctx: LintCo
         if (Array.isArray(s.type)) v("2", `${ptr}: type arrays are forbidden`);
         // ---- rule 3: closed, bounded schemas
         if (s.type === "object" || isObj(s.properties)) {
-          if (s.additionalProperties !== false && !openObjectAllowed(name, opCtx, path)) v("3", `${ptr}: object needs additionalProperties: false`);
+          if (s.additionalProperties !== false && !openObjectAllowed(name, opCtx, path, ptr)) v("3", `${ptr}: object needs additionalProperties: false`);
         }
         if (s.type === "string" && typeof s.maxLength !== "number") v("3", `${ptr}: string needs maxLength`);
         if (s.type === "array" && typeof s.maxItems !== "number") v("3", `${ptr}: array needs maxItems`);

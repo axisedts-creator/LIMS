@@ -11,13 +11,27 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"mime/multipart"
 	"net/http"
+	"net/textproto"
 	"net/url"
+	"path/filepath"
 	"strings"
 	"time"
 )
 
-const batchPath = "/v1/instruments/agent/message-batches"
+const (
+	batchPath  = "/v1/instruments/agent/message-batches"
+	attachPath = "/v1/instruments/agent/attachments"
+)
+
+// AttachmentResult is the parsed 202 response from E06 POST /v1/instruments/agent/attachments.
+type AttachmentResult struct {
+	Outcome             string
+	InstrumentMessageID string
+	AttachmentID        string
+	ScanState           string
+}
 
 // MessageResult is one per-message entry of the E04 response, in request order.
 type MessageResult struct{ AgentMessageID, Outcome, InstrumentMessageID, ErrorCode string }
@@ -48,12 +62,55 @@ func (e *HTTPError) Is(target error) bool {
 
 // Config for the HTTPS client. RootCAs nil means the system roots. SPKIPins (lowercase hex SHA-256) are optional.
 type Config struct {
-	BaseURL  string
-	Token    func() string
-	ProxyURL string
-	RootCAs  *x509.CertPool
-	SPKIPins []string
-	Timeout  time.Duration
+	BaseURL       string
+	Token         func() string
+	ProxyURL      string
+	RootCAs       *x509.CertPool
+	SPKIPins      []string
+	SPKIPinSource func() []string
+	Timeout       time.Duration
+}
+
+// BuildTLSConfig builds a TLS >= 1.2 client config that verifies server chains/hostnames and enforces static or dynamic SPKI pins.
+func BuildTLSConfig(rootCAs *x509.CertPool, staticPins []string, dynamicPins func() []string, errPrefix string) (*tls.Config, error) {
+	pins := make(map[string]bool, len(staticPins))
+	for _, p := range staticPins {
+		if b, err := hex.DecodeString(p); err != nil || len(b) != sha256.Size {
+			return nil, fmt.Errorf("%s: SPKI pin must be 64 hex characters (SHA-256)", errPrefix)
+		}
+		pins[strings.ToLower(p)] = true
+	}
+	tlsCfg := &tls.Config{MinVersion: tls.VersionTLS12, RootCAs: rootCAs}
+	if len(pins) > 0 || dynamicPins != nil {
+		// Runs after the normal chain and hostname verification; a pin only narrows trust.
+		tlsCfg.VerifyConnection = func(cs tls.ConnectionState) error {
+			active := pins
+			if dynamicPins != nil {
+				if dyn := dynamicPins(); len(dyn) > 0 {
+					active = make(map[string]bool, len(dyn))
+					for _, p := range dyn {
+						if b, err := hex.DecodeString(p); err != nil || len(b) != sha256.Size {
+							return fmt.Errorf("%s: invalid runtime SPKI pin", errPrefix)
+						}
+						active[strings.ToLower(p)] = true
+					}
+				}
+			}
+			if len(active) == 0 {
+				return nil
+			}
+			for _, chain := range cs.VerifiedChains {
+				for _, c := range chain {
+					h := sha256.Sum256(c.RawSubjectPublicKeyInfo)
+					if active[hex.EncodeToString(h[:])] {
+						return nil
+					}
+				}
+			}
+			return fmt.Errorf("%s: no certificate in the chain matches a pinned SPKI hash", errPrefix)
+		}
+	}
+	return tlsCfg, nil
 }
 
 // Client submits batches over verified TLS >= 1.2. It never skips verification, never follows redirects,
@@ -64,6 +121,12 @@ type Client struct {
 	http  *http.Client
 }
 
+func (c *Client) CloseIdleConnections() {
+	if c != nil && c.http != nil {
+		c.http.CloseIdleConnections()
+	}
+}
+
 func NewClient(cfg Config) (*Client, error) {
 	u, err := url.Parse(cfg.BaseURL)
 	if err != nil || u.Scheme != "https" || u.Host == "" {
@@ -72,27 +135,9 @@ func NewClient(cfg Config) (*Client, error) {
 	if cfg.Token == nil {
 		return nil, errors.New("uploader: token source required")
 	}
-	pins := make(map[string]bool, len(cfg.SPKIPins))
-	for _, p := range cfg.SPKIPins {
-		if b, err := hex.DecodeString(p); err != nil || len(b) != sha256.Size {
-			return nil, errors.New("uploader: SPKI pin must be 64 hex characters (SHA-256)")
-		}
-		pins[strings.ToLower(p)] = true
-	}
-	tlsCfg := &tls.Config{MinVersion: tls.VersionTLS12, RootCAs: cfg.RootCAs}
-	if len(pins) > 0 {
-		// Runs after the normal chain and hostname verification; a pin only narrows trust.
-		tlsCfg.VerifyConnection = func(cs tls.ConnectionState) error {
-			for _, chain := range cs.VerifiedChains {
-				for _, c := range chain {
-					h := sha256.Sum256(c.RawSubjectPublicKeyInfo)
-					if pins[hex.EncodeToString(h[:])] {
-						return nil
-					}
-				}
-			}
-			return errors.New("uploader: no certificate in the chain matches a pinned SPKI hash")
-		}
+	tlsCfg, err := BuildTLSConfig(cfg.RootCAs, cfg.SPKIPins, cfg.SPKIPinSource, "uploader")
+	if err != nil {
+		return nil, err
 	}
 	tr := &http.Transport{TLSClientConfig: tlsCfg, DisableCompression: true} // Proxy nil: direct, never the environment
 	if cfg.ProxyURL != "" {
@@ -171,4 +216,89 @@ func (c *Client) SubmitBatch(ctx context.Context, idemKey string, body []byte) (
 		res.Results = append(res.Results, MessageResult(r))
 	}
 	return res, nil
+}
+
+// SubmitAttachment POSTs a file_drop item to E06 multipart /v1/instruments/agent/attachments.
+func (c *Client) SubmitAttachment(ctx context.Context, idemKey string, metadataJSON []byte, fileName string, fileBytes []byte) (AttachmentResult, error) {
+	tok := c.token()
+	if idemKey == "" || tok == "" {
+		return AttachmentResult{}, errors.New("uploader: Idempotency-Key and device token are required")
+	}
+	var body bytes.Buffer
+	mw := multipart.NewWriter(&body)
+	if err := mw.WriteField("metadata", string(metadataJSON)); err != nil {
+		return AttachmentResult{}, err
+	}
+	if fileName == "" {
+		fileName = "attachment.bin"
+	}
+	mimeType := "application/octet-stream"
+	switch strings.ToLower(filepath.Ext(fileName)) {
+	case ".pdf":
+		mimeType = "application/pdf"
+	case ".png":
+		mimeType = "image/png"
+	case ".jpg", ".jpeg":
+		mimeType = "image/jpeg"
+	}
+	hdr := make(textproto.MIMEHeader)
+	hdr.Set("Content-Disposition", fmt.Sprintf(`form-data; name="file"; filename="%s"`, strings.NewReplacer(`"`, "_", "\r", "", "\n", "").Replace(filepath.Base(fileName))))
+	hdr.Set("Content-Type", mimeType)
+	fw, err := mw.CreatePart(hdr)
+	if err != nil {
+		return AttachmentResult{}, err
+	}
+	if _, err := fw.Write(fileBytes); err != nil {
+		return AttachmentResult{}, err
+	}
+	if err := mw.Close(); err != nil {
+		return AttachmentResult{}, err
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.base+attachPath, &body)
+	if err != nil {
+		return AttachmentResult{}, err
+	}
+	req.Header.Set("Authorization", "Bearer "+tok)
+	req.Header.Set("Idempotency-Key", idemKey)
+	req.Header.Set("Content-Type", mw.FormDataContentType())
+	req.Header.Set("Accept", "application/json")
+
+	resp, err := c.http.Do(req)
+	tRecv := time.Now()
+	if err != nil {
+		return AttachmentResult{}, err
+	}
+	defer resp.Body.Close()
+	raw, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
+	if err != nil {
+		return AttachmentResult{}, err
+	}
+	if resp.StatusCode != http.StatusAccepted && resp.StatusCode != http.StatusOK {
+		he := &HTTPError{Status: resp.StatusCode}
+		he.RetryAfter, _ = ParseRetryAfter(resp.Header.Get("Retry-After"), tRecv)
+		var eb struct {
+			Error struct {
+				Code string `json:"code"`
+			} `json:"error"`
+		}
+		if json.Unmarshal(raw, &eb) == nil {
+			he.Code = eb.Error.Code
+		}
+		return AttachmentResult{}, he
+	}
+	var out struct {
+		Outcome             string `json:"outcome"`
+		InstrumentMessageID string `json:"instrument_message_id"`
+		AttachmentID        string `json:"attachment_id"`
+		ScanState           string `json:"scan_state"`
+	}
+	if err := json.Unmarshal(raw, &out); err != nil {
+		return AttachmentResult{}, fmt.Errorf("uploader: attachment response invalid: %w", err)
+	}
+	return AttachmentResult{
+		Outcome:             out.Outcome,
+		InstrumentMessageID: out.InstrumentMessageID,
+		AttachmentID:        out.AttachmentID,
+		ScanState:           out.ScanState,
+	}, nil
 }

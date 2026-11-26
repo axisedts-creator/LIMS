@@ -39,6 +39,7 @@ class SyncCycleResult {
     this.batchesPushed = 0,
     this.pulled = false,
     this.acked = false,
+    this.wipePending = false,
   });
 
   final SyncStatus status;
@@ -51,6 +52,9 @@ class SyncCycleResult {
   final int batchesPushed;
   final bool pulled;
   final bool acked;
+
+  /// The centre asked for a wipe but unsent changes still have to upload first (US-13-5).
+  final bool wipePending;
 }
 
 const _backoffLadder = <Duration>[
@@ -127,9 +131,10 @@ class SyncEngine {
     var pushed = 0;
     var pulled = false;
     var acked = false;
+    var wipePending = false;
 
     SyncCycleResult result(SyncStatus s, {Duration? after, String? code}) => SyncCycleResult(
-        status: s, retryAfter: after, code: code, batchesPushed: pushed, pulled: pulled, acked: acked);
+        status: s, retryAfter: after, code: code, batchesPushed: pushed, pulled: pulled, acked: acked, wipePending: wipePending);
     SyncCycleResult retry([String? code]) => result(SyncStatus.retryLater, after: _nextBackoff(), code: code);
 
     try {
@@ -189,6 +194,8 @@ class SyncEngine {
         pulled = true;
         return await _wipe(wipeCursor, () => acked = true, result);
       }
+
+      wipePending = snap['device_command'] == 'wipe';
 
       final String ackCursor;
       try {

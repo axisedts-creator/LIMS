@@ -54,8 +54,19 @@ type wireMessage struct {
 // BuildBatch takes the oldest-captured items that fit in <=100 messages and <=3 MiB of JSON.
 // The message offset is the one stored at capture; offsetMs is the current estimate for the envelope.
 func BuildBatch(items []Item, sentAt time.Time, offsetMs int64) (Batch, error) {
+	return BuildBatchLimit(items, sentAt, offsetMs, MaxBatchMessages, MaxBatchBytes)
+}
+
+// BuildBatchLimit behaves like BuildBatch while honoring runtime-configured message/byte bounds.
+func BuildBatchLimit(items []Item, sentAt time.Time, offsetMs int64, maxMsgs, maxBytes int) (Batch, error) {
 	if len(items) == 0 {
 		return Batch{}, nil
+	}
+	if maxMsgs <= 0 || maxMsgs > MaxBatchMessages {
+		maxMsgs = MaxBatchMessages
+	}
+	if maxBytes <= 0 || maxBytes > MaxBatchBytes {
+		maxBytes = MaxBatchBytes
 	}
 	sorted := append([]Item(nil), items...)
 	sort.SliceStable(sorted, func(i, j int) bool { return sorted[i].CapturedAtAgent.Before(sorted[j].CapturedAtAgent) })
@@ -67,7 +78,7 @@ func BuildBatch(items []Item, sentAt time.Time, offsetMs int64) (Batch, error) {
 	body := append(head[:len(head)-1], `,"messages":[`...) // drop the closing brace
 
 	n := 0
-	for n < len(sorted) && n < MaxBatchMessages {
+	for n < len(sorted) && n < maxMsgs {
 		it := sorted[n]
 		m, err := json.Marshal(wireMessage{it.ID, it.InstrumentID, it.Protocol, it.Kind, base64.StdEncoding.EncodeToString(it.Raw),
 			it.RawSHA256, it.CapturedAtAgent.UTC().Format(isoUTC), it.ClockOffsetMs, it.LinkMeta})
@@ -78,7 +89,7 @@ func BuildBatch(items []Item, sentAt time.Time, offsetMs int64) (Batch, error) {
 		if n > 0 {
 			add++
 		}
-		if len(body)+add+len(batchTail) > MaxBatchBytes {
+		if len(body)+add+len(batchTail) > maxBytes {
 			break
 		}
 		if n > 0 {

@@ -55,16 +55,31 @@ async function stateOf(ctx: SignCtx, so: SignoffStore, row: SignRow): Promise<Pl
   const count = countOf(row.status, st.count);
   return { st, required, count, final: count + 1 >= required };
 }
-const isEnterer = (ctx: SignCtx, st: SignoffState): boolean =>
-  !st.policy.allowEntererVerify && st.entererMembershipId !== undefined && st.entererMembershipId === ctx.actor.membershipId;
+async function isSoloAdmin(ctx: SignCtx): Promise<boolean> {
+  const getActor = ctx.ports?.IdentityPort?.getActor;
+  if (typeof getActor !== 'function') return false;
+  try {
+    const a = await getActor.call(ctx.ports.IdentityPort, ctx);
+    return Array.isArray(a?.['roles']) && a['roles'].includes('tenant_admin');
+  } catch {
+    return false;
+  }
+}
+
+async function isEnterer(ctx: SignCtx, st: SignoffState): Promise<boolean> {
+  if (st.policy.allowEntererVerify) return false;
+  if (st.entererMembershipId === undefined || st.entererMembershipId !== ctx.actor.membershipId) return false;
+  return !(await isSoloAdmin(ctx));
+}
 
 /** verifyResult rules after the status / hold / flag gates: counter, distinct people, enterer, pathologist (LD-316). */
 export async function planVerify(ctx: SignCtx, so: SignoffStore, row: SignRow, single: boolean): Promise<Plan> {
   const p = await stateOf(ctx, so, row);
   if (p.count >= p.required) throw new LimsError('lab.result_invalid_transition');
-  if (p.st.signers.includes(ctx.actor.id)) await refuse(ctx, row, 'lab.verifier_not_distinct', 'verify', single);
-  if (isEnterer(ctx, p.st)) await refuse(ctx, row, 'lab.enterer_cannot_verify', 'verify', single);
-  if (p.final && p.st.policy.requirePathologist) await refuse(ctx, row, 'lab.pathologist_required', 'verify', single);
+  const solo = await isSoloAdmin(ctx);
+  if (!solo && p.st.signers.includes(ctx.actor.id)) await refuse(ctx, row, 'lab.verifier_not_distinct', 'verify', single);
+  if (await isEnterer(ctx, p.st)) await refuse(ctx, row, 'lab.enterer_cannot_verify', 'verify', single);
+  if (p.final && p.st.policy.requirePathologist && !solo) await refuse(ctx, row, 'lab.pathologist_required', 'verify', single);
   return p;
 }
 
@@ -72,11 +87,12 @@ export async function planVerify(ctx: SignCtx, so: SignoffStore, row: SignRow, s
 export async function planApprove(ctx: SignCtx, so: SignoffStore, row: SignRow, single: boolean): Promise<Plan> {
   const p = await stateOf(ctx, so, row);
   if (p.count + 1 !== p.required) throw new LimsError('lab.result_invalid_transition');
+  const solo = await isSoloAdmin(ctx);
   const legacyUnknownVerifier = row.status === 'verified' && !row.verifiedByMembershipId && p.st.signers.length === 0;   // S-02 fail closed, as before
-  if (!ctx.actor.membershipId || legacyUnknownVerifier || p.st.signers.includes(ctx.actor.id) || row.verifiedByMembershipId === ctx.actor.membershipId) {
+  if (!ctx.actor.membershipId || legacyUnknownVerifier || (!solo && (p.st.signers.includes(ctx.actor.id) || row.verifiedByMembershipId === ctx.actor.membershipId))) {
     await refuse(ctx, row, 'lab.self_approval_forbidden', 'approve', single);
   }
-  if (isEnterer(ctx, p.st)) await refuse(ctx, row, 'lab.enterer_cannot_verify', 'approve', single);
+  if (await isEnterer(ctx, p.st)) await refuse(ctx, row, 'lab.enterer_cannot_verify', 'approve', single);
   return p;
 }
 

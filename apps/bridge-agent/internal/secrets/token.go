@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 )
 
 // Protector wraps and unwraps secrets. *DPAPI (Windows) satisfies it; tests use fakes.
@@ -42,7 +43,12 @@ func SaveToken(dir, token string, p Protector) error {
 		err = cerr
 	}
 	if err == nil {
-		err = os.Rename(name, filepath.Join(dir, TokenFile))
+		for i := 0; i < 50; i++ {
+			if err = os.Rename(name, filepath.Join(dir, TokenFile)); err == nil {
+				break
+			}
+			time.Sleep(2 * time.Millisecond)
+		}
 	}
 	if err != nil {
 		_ = os.Remove(name)

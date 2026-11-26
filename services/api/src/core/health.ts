@@ -1,6 +1,7 @@
 // getLiveness / getReadiness (02-TRD §8, contracts/openapi/core.yaml). x-public: dependency names and states only.
 import type { Handler } from './module.js';
 import { STORAGE_KEY_ENV } from './storage/env.js';
+import { SERVICE_KEY_ENV } from '../modules/identity/gotrue/gateway.http.js';
 
 export type CheckState = 'ok' | 'degraded' | 'down';
 export interface HealthChecks {
@@ -34,7 +35,7 @@ export const REQUIRED_ENV: readonly string[] = Object.freeze([
   'LIMS_CORE_ENV', 'LIMS_CORE_JWT_ALG', 'LIMS_CORE_JWT_AUDIENCE', 'LIMS_CORE_JWT_ISSUER',
   'LIMS_CORE_JWT_KEY_FILE', 'LIMS_CORE_RATELIMIT_KEY_FILE', STORAGE_KEY_ENV,
   'LIMS_ENGAGEMENT_LINK_HMAC_KEY_FILE', 'LIMS_ENGAGEMENT_OTP_ENC_KEYS_FILE', 'LIMS_ENGAGEMENT_OTP_HMAC_KEY_FILE',
-  'LIMS_ENGAGEMENT_PHONE_HMAC_KEY_FILE', 'LIMS_IDENTITY_EMAIL_HMAC_KEY', 'LIMS_IDENTITY_GOTRUE_SERVICE_KEY',
+  'LIMS_ENGAGEMENT_PHONE_HMAC_KEY_FILE', 'LIMS_IDENTITY_EMAIL_HMAC_KEY', SERVICE_KEY_ENV,
   'LIMS_IDENTITY_GOTRUE_URL', 'LIMS_IDENTITY_TOKEN_ENC_KEYS', 'LIMS_ORIGIN_API', 'LIMS_ORIGIN_PORTAL',
   'LIMS_ORIGIN_STAFF_WEB', 'LIMS_PAYMENTS_KEK_FILE', 'LIMS_PAYMENTS_PUBLIC_BASE_URL', 'LIMS_REPORTING_OTP_HMAC_KEY_FILE',
   'LIMS_WEB_BFF_KEY_FILE',

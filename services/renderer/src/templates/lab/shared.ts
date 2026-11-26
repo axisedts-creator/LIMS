@@ -63,7 +63,7 @@ function css(input: RenderInput): string {
 html,body{margin:0;padding:0}
 ${gray}.pph,.ppf{white-space:pre-wrap;overflow-wrap:anywhere}
 .pph{margin-bottom:1mm}.ppf{margin-top:1mm}
-body{font-family:"Noto Sans","Noto Sans Devanagari",sans-serif;font-size:${basePt}pt;line-height:1.2;color:#000;font-variant-numeric:tabular-nums}
+body{font-family:"Noto Sans","Noto Sans Devanagari",sans-serif;font-variant-ligatures:none;font-size:${basePt}pt;line-height:1.2;color:#000;font-variant-numeric:tabular-nums}
 table{border-collapse:collapse;width:100%}
 td,th{padding:0.2mm 1mm;vertical-align:top;text-align:left;font-weight:normal;overflow-wrap:anywhere}
 .frame>thead>tr>td,.frame>tfoot>tr>td{padding:0}

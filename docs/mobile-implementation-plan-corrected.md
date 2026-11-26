@@ -192,9 +192,19 @@ Branch `fix/renderer-image`, pull request 10 into `ui/redesign`.
   cross-partner isolation untested, stale count / seed suites. No `db/` file was edited.
 - Mobile BFF: still not started, still no measured problem.
 
+- Registration latency under render load (later the same day): the real `createRegistration` handler on a
+  migrated + seeded PG17 with real billing (frontdesk integration harness; handler level, so no HTTP
+  server, gateway or JWT check in the measured path), 100 registrations per sample, while waves of 50
+  simultaneous renders hit the renderer container at the compose limits (200 renders, all ok):
+  idle p50 85.8 / p95 139.8 ms; under load p50 104.9 / p95 167.1 ms; idle again p50 73.3 / p95 119.8 ms.
+  About +20-40 % at p95 on one shared developer host; not a production figure.
+- Renderer template tests: of the 7 failures, 4 were real (fi / fl ligatures in the PDF text; fixed with
+  `font-variant-ligatures:none` on the lab report body), 2 fail only on a host without the bundled font
+  build, 1 is a wrapped footer line in the test. Details in CR (h).
+
 ## Not verified
 
-- API registration p95 under render load on the real route (needs the full stack).
+- API registration latency through the HTTP server and gateway (measured at handler level only).
 - The compose stack end to end; GitHub ran no repository workflow on pull request 10.
 - Server behaviour for an invalid barcode in `/sync/mutations` (per-mutation vs batch error).
 - Whether `returnUrlAllowlist` accepts non-HTTPS schemes.

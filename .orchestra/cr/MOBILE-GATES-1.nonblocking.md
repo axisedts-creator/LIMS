@@ -95,3 +95,18 @@ Proposed change (exact): generator: expect `E42501` where the role has no table 
 Backward compatible? yes (tests) — except the grants finding, which removes a privilege.
 Tenant/security impact: (3) and the DELETE grant on partners.manifest_lines are real questions; (4) is an untested boundary.
 Tests that will prove it: `bash db/tests/run-suites.sh` ends with 0 `not ok`.
+
+---
+
+Title: CR-C17-MOBILE-GATES-1-h: renderer template tests that fail on text extracted from the PDF
+From chunk: C6 (mobile plan, verification)            To owner: C6 tester (services/renderer/src/templates/__tests__)
+Type: bug (tests)
+Blocking? no
+Problem: 7 tests failed on a Windows developer host (lab-report 3, modules-smart 3, printcfg-report 1). Run inside the renderer image (bundled fonts) on 2026-11-26: 5 fail.
+ (1) 4 of them: the bundled Noto Sans has fi / fl ligatures, so the PDF text held U+FB01 / U+FB02 ("ﬁndings", "Signiﬁcant", "Ciproﬂoxacin"): a search or copy of those words in a report fails. FIXED: `font-variant-ligatures:none` on the lab report body (src/templates/lab/shared.ts); in the image those 4 pass. The billing and analytics templates name the same font and were NOT changed (no failing test there).
+ (2) lab-report "contact_strip_extra is printed in the footer when configured": still fails in the image. The footer strip wraps between "contact" and "line" and the test's PDF text helper joins wrapped lines without a space ("contactline"). Test not changed.
+ (3) lab-report "prints each analyte ...", printcfg-report "a header of 8 lines of 120 characters ...", and on the host modules-smart "AST rows": fail only on a host whose installed "Noto Sans" is not the bundled build (word spaces are lost in extraction); they pass in the image.
+Proposed change (exact): tester: (2) assert the two halves or make the helper join wrapped lines with a space; (3) run these files only where the bundled fonts are installed, as devanagari.test.ts already does for its image-only check. Owner of billing / analytics templates: decide on the same ligature setting.
+Backward compatible? yes
+Tenant/security impact: none
+Tests that will prove it: the three files pass inside the renderer image.

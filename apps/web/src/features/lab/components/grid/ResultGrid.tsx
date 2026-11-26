@@ -63,6 +63,44 @@ type Edit = { value?: string; comment?: { text: string; codes: string[] } };
 type Modal = { kind: 'verify'; rows: { result: GridResult; flags: AckFlag[] }[]; resolve: (a: Record<string, AckFlag[]> | null) => void }
   | { kind: 'return' | 'amend'; id: string } | { kind: 'leave'; to: string } | { kind: 'shortcuts' };
 
+export function friendlyUnit(code?: string | null): string {
+  if (!code) return '';
+  const map: Record<string, string> = {
+    CELLS_CUMM: 'cells/cumm',
+    PCT: '%',
+    g_dL: 'g/dL',
+    G_DL: 'g/dL',
+    g_dl: 'g/dL',
+    mg_dL: 'mg/dL',
+    MG_DL: 'mg/dL',
+    mg_dl: 'mg/dL',
+    MM_HR: 'mm/hr',
+    mm_hr: 'mm/hr',
+    FL: 'fL',
+    fl: 'fL',
+    PG: 'pg',
+    pg: 'pg',
+    U_L: 'U/L',
+    u_l: 'U/L',
+    IU_L: 'IU/L',
+    iu_l: 'IU/L',
+    SEC: 'sec',
+    sec: 'sec',
+    MIN: 'min',
+    min: 'min',
+    RATIO: 'ratio',
+    G_L: 'g/L',
+    g_l: 'g/L',
+    MMOL_L: 'mmol/L',
+    mmol_l: 'mmol/L',
+    UMOL_L: 'µmol/L',
+    umol_l: 'µmol/L',
+    CU_MM: 'cumm',
+    MILLION_CUMM: '10^6/µL',
+  };
+  return map[code] ?? (code.includes('_') ? code.replace(/_/g, '/') : code);
+}
+
 const COLS: EditableGridColumn[] = [
   { id: 'analyte', header: 'Analyte', isReadOnly: true },
   { id: 'value', header: 'Value', maxLength: 2000 },
@@ -156,8 +194,23 @@ export function ResultGrid({ data, analytes = {}, permissions, patientId, return
     return {
       id: r.id,
       values: {
-        analyte: `${nameOf(r, analytes)} ${r.analyte_code}`, value: shown, unit: r.unit_code ?? '', flag: flagText(r.flag), range: rangeText(r), delta: deltaText(r), calc: calcText(r),
-        origin: r.origin ? (r.origin === 'instrument' ? '' : r.origin[0]!.toUpperCase() + r.origin.slice(1)) : '', downtime: down, test: item.test.test_code, // instrument: the chip is portalled into the cell (RS-C5, LD-140)
+        analyte: nameOf(r, analytes) !== r.analyte_code ? (
+          <span>
+            <span style={{ fontWeight: 500 }}>{nameOf(r, analytes)}</span>
+            <span style={{ display: 'none' }} aria-hidden="true"> {r.analyte_code}</span>
+          </span>
+        ) : (
+          r.analyte_code
+        ),
+        value: shown,
+        unit: friendlyUnit(r.unit_code),
+        flag: flagText(r.flag),
+        range: rangeText(r),
+        delta: deltaText(r),
+        calc: calcText(r),
+        origin: r.origin ? (r.origin === 'instrument' ? '' : r.origin[0]!.toUpperCase() + r.origin.slice(1)) : '',
+        downtime: down,
+        test: item.test.test_code,
       },
       status: errors[r.id] ? 'error' : e ? 'unsaved' : 'saved',
       statusText: text,
@@ -467,11 +520,17 @@ export function ResultGrid({ data, analytes = {}, permissions, patientId, return
       const r = i >= 0 ? rowsRef.current[i]?.r : undefined;
       if (cell && Number(cell.getAttribute('aria-colindex')) - 1 === VALUE_COL && r && !editableRef.current(r)) { e.preventDefault(); e.stopPropagation(); }
     };
+    const clk = (e: MouseEvent) => {
+      const i = rowIdx(e.target), cell = e.target instanceof Element ? e.target.closest('[role=gridcell]') : null;
+      const r = i >= 0 ? rowsRef.current[i]?.r : undefined;
+      if (cell && Number(cell.getAttribute('aria-colindex')) - 1 === VALUE_COL && r && !editableRef.current(r)) { e.preventDefault(); e.stopPropagation(); }
+    };
     const fin = (e: FocusEvent) => { const i = rowIdx(e.target); if (i >= 0) focusedRow.current = i; };
     document.addEventListener('keydown', k, true);
     document.addEventListener('dblclick', dbl, true);
+    document.addEventListener('click', clk, true);
     document.addEventListener('focusin', fin);
-    return () => { document.removeEventListener('keydown', k, true); document.removeEventListener('dblclick', dbl, true); document.removeEventListener('focusin', fin); };
+    return () => { document.removeEventListener('keydown', k, true); document.removeEventListener('dblclick', dbl, true); document.removeEventListener('click', clk, true); document.removeEventListener('focusin', fin); };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const rowsRef = useRef(rowsInfo); rowsRef.current = rowsInfo;
   const editableRef = useRef(editable); editableRef.current = editable;

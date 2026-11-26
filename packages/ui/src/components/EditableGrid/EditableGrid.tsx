@@ -12,7 +12,7 @@ export type EditableGridRowStatus = 'saved' | 'unsaved' | 'error';
 
 export interface EditableGridRow {
   id: string;
-  values: Record<string, string>;
+  values: Record<string, any>;
   status?: EditableGridRowStatus;
   /** Overrides the default status text. */
   statusText?: string;
@@ -72,14 +72,18 @@ export function EditableGrid({ label, columns, rows, onCellChange, isReadOnly = 
   const editable = (ci: number) => !isReadOnly && ci < columns.length && !columns[ci]!.isReadOnly;
   const startEdit = (ri: number, ci: number) => {
     closing.current = false;
-    setEditing({ r: ri, c: ci, draft: rows[ri]!.values[columns[ci]!.id] ?? '' });
+    const v = rows[ri]!.values[columns[ci]!.id];
+    const draft = typeof v === 'string' ? v : typeof v === 'number' ? String(v) : '';
+    setEditing({ r: ri, c: ci, draft });
   };
   const finish = (commit: boolean) => {
     if (!editing) return;
     closing.current = true;
     const row = rows[editing.r];
     const col = columns[editing.c];
-    if (commit && row && col && editing.draft !== (row.values[col.id] ?? '')) onCellChange(row.id, col.id, editing.draft);
+    const oldV = row && col ? row.values[col.id] : undefined;
+    const oldDraft = typeof oldV === 'string' ? oldV : typeof oldV === 'number' ? String(oldV) : '';
+    if (commit && row && col && editing.draft !== oldDraft) onCellChange(row.id, col.id, editing.draft);
     setEditing(null);
     wantFocus.current = true;
   };
@@ -143,6 +147,13 @@ export function EditableGrid({ label, columns, rows, onCellChange, isReadOnly = 
                     onFocus={() => (ri !== active.r || ci !== active.c) && setActive({ r: ri, c: ci })}
                     onKeyDown={(e) => onCellKey(e, ri, ci)}
                     onDoubleClick={() => editable(ci) && startEdit(ri, ci)}
+                    onClick={(e) => {
+                      if (e.currentTarget.getAttribute('aria-readonly') === 'true') return;
+                      if (editable(ci)) startEdit(ri, ci);
+                    }}
+                    style={{
+                      cursor: editable(ci) ? 'pointer' : undefined,
+                    }}
                     className={col ? undefined : 'lims-egrid-status'}
                   >
                     {isEditing ? (
@@ -163,7 +174,29 @@ export function EditableGrid({ label, columns, rows, onCellChange, isReadOnly = 
                         onBlur={() => !closing.current && finish(true)}
                       />
                     ) : col ? (
-                      row.values[col.id] ?? ''
+                      row.values[col.id] !== undefined && row.values[col.id] !== null && row.values[col.id] !== '' ? (
+                        row.values[col.id]
+                      ) : editable(ci) ? (
+                        <span
+                          className="lims-cell-placeholder"
+                          style={{
+                            display: 'inline-block',
+                            minWidth: '60px',
+                            color: '#9ca3af',
+                            fontStyle: 'italic',
+                            fontSize: '0.8125rem',
+                            padding: '2px 8px',
+                            border: '1px dashed #d1d5db',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            userSelect: 'none',
+                          }}
+                        >
+                          Click to enter
+                        </span>
+                      ) : (
+                        ''
+                      )
                     ) : (
                       statusOf(row)
                     )}

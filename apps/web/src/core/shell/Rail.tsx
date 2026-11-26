@@ -51,14 +51,38 @@ export function Rail({ groups, tenant, user, logoSrc, navId, drawerOpen, onClose
 
   const [open, setOpen] = useState<string | null>(() => (groups.find((g) => g.items.some((e) => e.current)) ?? groups[0])?.id ?? null);
 
+  const activePath = (clickedPath || routerPath || '').replace(/\/$/, '');
+
+  const isItemCurrent = (item: RailItem) => {
+    if (!activePath) return item.current;
+    const itemPath = (item.path || '').replace(/\/$/, '');
+    if (itemPath && itemPath === activePath) return true;
+    if (item.id === 'lab.worklists' && (activePath.startsWith('/lab/orders/') || activePath.startsWith('/lab/worklists'))) return true;
+    if (item.id === 'lab.receive' && activePath.startsWith('/lab/receive')) return true;
+    if (item.id === 'lab.status_board' && activePath.startsWith('/lab/status-board')) return true;
+    if (item.id === 'lab.collect' && activePath.startsWith('/lab/collect')) return true;
+    if (item.id === 'lab.pending' && activePath.startsWith('/lab/pending')) return true;
+    if (item.id === 'lab.verification' && activePath.startsWith('/lab/verification')) return true;
+    if (item.id === 'lab.approval' && activePath.startsWith('/lab/approval')) return true;
+    if (item.id === 'lab.critical_values' && activePath.startsWith('/lab/critical-values')) return true;
+    if (item.id === 'lab.worksheets' && activePath.startsWith('/lab/worksheets')) return true;
+    if (item.id === 'frontdesk.registration_new' && activePath.startsWith('/frontdesk/registration')) return true;
+    if (item.id === 'frontdesk.worklist' && activePath.startsWith('/frontdesk/worklist')) return true;
+    if (item.id === 'frontdesk.discount_approvals' && activePath.startsWith('/frontdesk/discount-approvals')) return true;
+    if (itemPath && itemPath !== '/' && activePath.startsWith(itemPath + '/')) return true;
+    return false;
+  };
+
+  const hasAnyMatch = groups.some((g) => g.items.some((item) => isItemCurrent(item)));
+  const itemIsCurrent = (item: RailItem) => (hasAnyMatch ? isItemCurrent(item) : item.current);
+
   useEffect(() => {
-    const active = clickedPath;
-    if (!active) return;
-    const matchedGroup = groups.find((g) => g.items.some((e) => e.path === active));
+    if (!activePath) return;
+    const matchedGroup = groups.find((g) => g.items.some((e) => isItemCurrent(e)));
     if (matchedGroup && !matchedGroup.direct) {
       setOpen(matchedGroup.id);
     }
-  }, [clickedPath, groups]);
+  }, [activePath, groups]);
 
   const onSelectPath = (path: string) => {
     setClickedPath(path);
@@ -120,7 +144,7 @@ export function Rail({ groups, tenant, user, logoSrc, navId, drawerOpen, onClose
         {shown.map((g) => {
           if (g.direct && g.items[0]) {
             const only = g.items[0];
-            const isCurrent = clickedPath !== null ? only.path === clickedPath : only.current;
+            const isCurrent = itemIsCurrent(only);
             return (
               <div key={g.id} role="group" aria-label={g.label} data-group={g.id} className="lims-rail-group lims-rail-direct">
                 <Link href={only.path} prefetch={false} className="lims-rail-header lims-rail-direct-link" aria-current={isCurrent ? 'page' : undefined} data-chord={only.chord} data-entry-id={only.id} onClick={() => onSelectPath(only.path)}>
@@ -145,7 +169,7 @@ export function Rail({ groups, tenant, user, logoSrc, navId, drawerOpen, onClose
                 {g.items.map((e) => {
                   const sub = !filtering && e.section && e.section !== lastSection ? e.section : null;
                   lastSection = e.section;
-                  const isCurrent = clickedPath !== null ? e.path === clickedPath : e.current;
+                  const isCurrent = itemIsCurrent(e);
                   return [
                     sub ? <li key={`${e.id}#s`} className="lims-rail-subheading" data-subheading="">{sub}</li> : null,
                     <li key={e.id} className="lims-rail-item" data-entry-id={e.id}>

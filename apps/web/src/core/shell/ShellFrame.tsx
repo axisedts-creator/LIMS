@@ -35,8 +35,57 @@ export function ShellFrame({ groups, crumb, tenant, user, memberId, logoSrc, sea
   const navId = `lims-nav-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`;
   const [drawer, setDrawer] = useState(false);
   const menu = useRef<HTMLButtonElement>(null);
+  const pathname = usePathname();
   const [density, setDensity] = useDensity(memberId);
   const signOut = useSignOutGuard(SIGN_OUT_PATH);
+
+  // Dynamically resolve breadcrumb based on client pathname so soft navigations never leave stale crumbs
+  const displayCrumb: Crumb = (() => {
+    if (!pathname) return crumb;
+    const normPath = pathname.replace(/\/$/, '') || '/';
+
+    // 1. Direct match with any rail item path
+    for (const g of groups) {
+      for (const item of g.items) {
+        if (item.path && item.path.replace(/\/$/, '') === normPath) {
+          return { group: g.label, entry: item.label };
+        }
+      }
+    }
+
+    // 2. Sub-route mappings for lab workflow
+    if (normPath.startsWith('/lab/orders/') || normPath.startsWith('/lab/worklists')) {
+      const g = groups.find((x) => x.id === 'daily_work') ?? groups[0];
+      const item = g?.items.find((x) => x.id === 'lab.worklists');
+      return { group: g?.label ?? 'Daily Work', entry: item?.label ?? 'Pathology Result' };
+    }
+    if (normPath.startsWith('/lab/specimens/')) {
+      const g = groups.find((x) => x.id === 'daily_work') ?? groups[0];
+      const item = g?.items.find((x) => x.id === 'lab.receive');
+      return { group: g?.label ?? 'Daily Work', entry: item?.label ?? 'Receive' };
+    }
+    if (normPath.startsWith('/frontdesk/registration')) {
+      const g = groups.find((x) => x.id === 'daily_work') ?? groups[0];
+      const item = g?.items.find((x) => x.id === 'frontdesk.registration_new');
+      return { group: g?.label ?? 'Daily Work', entry: item?.label ?? 'Patient Registration' };
+    }
+
+    // 3. Prefix match: find the item whose path is the longest prefix of normPath
+    let bestMatch: { group: string; entry: string; len: number } | null = null;
+    for (const g of groups) {
+      for (const item of g.items) {
+        const itemPath = item.path?.replace(/\/$/, '');
+        if (itemPath && itemPath !== '/' && normPath.startsWith(itemPath + '/') && itemPath.length > (bestMatch?.len ?? 0)) {
+          bestMatch = { group: g.label, entry: item.label, len: itemPath.length };
+        }
+      }
+    }
+    if (bestMatch) {
+      return { group: bestMatch.group, entry: bestMatch.entry };
+    }
+
+    return crumb;
+  })();
 
   const close = () => {
     setDrawer(false);
@@ -82,10 +131,10 @@ export function ShellFrame({ groups, crumb, tenant, user, memberId, logoSrc, sea
             <NavIcon name="menu" />
           </button>
           <nav className="lims-breadcrumb" aria-label={t('core.nav.breadcrumb')}>
-            {crumb ? (
+            {displayCrumb ? (
               <ol>
-                {crumb.group.trim().toLowerCase() !== crumb.entry.trim().toLowerCase() ? <li>{crumb.group}</li> : null}
-                <li aria-current="page">{crumb.entry}</li>
+                {displayCrumb.group.trim().toLowerCase() !== displayCrumb.entry.trim().toLowerCase() ? <li>{displayCrumb.group}</li> : null}
+                <li aria-current="page">{displayCrumb.entry}</li>
               </ol>
             ) : null}
           </nav>

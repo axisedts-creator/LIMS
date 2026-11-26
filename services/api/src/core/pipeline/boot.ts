@@ -26,6 +26,7 @@ import { createPipeline, type Pipeline } from './index.js';
 
 const FAKES_DIR = join(REPO_ROOT, 'packages', 'fakes', 'src');
 const LENIENT = new Set(['dev', 'ci']);
+const POOL_END_TIMEOUT_MS = 5_000; // bound on the pool's end() during app close
 type LogFns = { info(o: object, m?: string): void; warn(o: object, m?: string): void; error(o: object, m?: string): void };
 const unavailable = () => new LimsError('common.dependency_unavailable');
 
@@ -211,6 +212,15 @@ export async function bootPipeline(o: {
       }
       return p;
     },
-    async close() { await pg?.end(); },
+    // pg-pool's end() never resolves while a client is stuck in connect (seen when the socket connect throws synchronously:
+    // the client stays in the pool and is never removed). Closing the app must not wait on that forever.
+    async close() {
+      if (!pg) return;
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const late = new Promise<void>((done) => {
+        timer = setTimeout(() => { log.warn({ event: 'db_pool_end_timeout' }, 'db_pool_end_timeout'); done(); }, POOL_END_TIMEOUT_MS);
+      });
+      await Promise.race([pg.end(), late]).finally(() => clearTimeout(timer));
+    },
   };
 }

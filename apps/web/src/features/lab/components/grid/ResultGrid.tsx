@@ -35,7 +35,7 @@ import { AmendDialog, ReturnDialog, VerifyPrompt } from './ResultDialogs';
 import { HistoryPanel, TrendDialog } from './ResultPanels';
 import {
   DOWNTIME_DEFAULT_MAX_HOURS, DOWNTIME_REF_MAX, actionError, formatDateTime, calcText, deltaText, enterError, flagText, isEditable, neededFlags, nameOf, provenanceText, rangeText, statusLabel,
-  validateDowntime, validateValue, valueField, valueOf, type AnalyteMap,
+  validateDowntime, validateValue, valueField, valueOf, type AnalyteInfo, type AnalyteMap,
 } from './resultModel';
 
 export interface ResultGridProps {

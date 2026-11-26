@@ -166,7 +166,7 @@ export function NewPatientForm({ consentTextVersion, onUse, onCancel, findExisti
       <div className="lims-reg-pair">
         <Select label="Government ID type" name="government_id_type" options={GOV_TYPES} {...(govType ? { value: govType } : {})} onChange={setGovType} placeholder={BLANK} {...ef('govType')} />
         {/* LD-310 (b): masked on screen, no autofill, never logged or kept in the browser */}
-        <TextField label="Government ID number" name="government_id_number" maxLength={64} autoComplete="off" value={govNo} onChange={setGovNo} {...ef('govNo')} {...{ inputProps: { type: 'password' } }} />
+        <TextField label="Government ID number" name="government_id_number" maxLength={64} autoComplete="new-password" value={govNo} onChange={setGovNo} {...ef('govNo')} {...{ inputProps: { type: 'password' } }} />
       </div>
       <fieldset className="lims-reg-fieldset">
         <legend>Address</legend>

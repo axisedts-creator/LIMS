@@ -1130,6 +1130,8 @@ export const handlers = [
   http.get("*/v1/identity/me/sessions", () => HttpResponse.json({"data":[{"session_id":"0193a5c0-0000-7000-8000-000000000002","membership_id":"0193a5c0-0000-7000-8000-000000000010","display_name":"Demo Lab Tech","state":"active","aal":"aal2","created_at":"2026-11-05T04:15:00.000Z","last_seen_at":"2026-11-05T04:15:00.000Z","idle_expires_at":"2026-11-05T04:45:00.000Z","absolute_expires_at":"2026-11-05T16:15:00.000Z","client_ip_masked":"10.0.x.x","user_agent_family":"Firefox","is_support":false}],"page":{"limit":50}}, { status: 200 })),
   // revokeOwnSession
   http.post("*/v1/identity/me/sessions/:session_id/revoke", () => new HttpResponse(null, { status: 204 })),
+  // getOwnTenantLogoContent
+  http.get("*/v1/identity/me/tenant-logo/content", () => new HttpResponse(null, { status: 200 })),
   // openMobileSession
   http.post("*/v1/identity/mobile/sessions", () => HttpResponse.json({"session_token":"SyntheticOpaqueSessionToken_xxxxxxxxxxxxxxx","access_token":"eyJhbGciOiJFUzI1NiJ9.synthetic.signature","access_expires_at":"2026-11-05T04:45:00.000Z","session_expires_at":"2026-11-05T16:15:00.000Z","session":{"session_id":"0193a5c0-0000-7000-8000-000000000001","kind":"staff_mobile","state":"active","aal":"aal2","idle_expires_at":"2026-11-05T04:45:00.000Z","absolute_expires_at":"2026-11-05T16:15:00.000Z","actor":{"display_name":"Demo Lab Admin","tenant_code":"demo_lab","roles":["tenant_admin"]}}}, { status: 200 })),
   // logoutMobileSession
@@ -1198,6 +1200,8 @@ export const handlers = [
   http.post("*/v1/identity/platform/tenants/:tenant_id/activate", () => HttpResponse.json({"tenant_id":"0193a5c0-0000-7000-8000-000000000090","code":"demo_lab","legal_name":"Demo Lab Pvt. Ltd.","display_name":"Demo Lab","status":"active","timezone":"Asia/Kathmandu","activated_at":"2026-11-05T04:15:00.000Z","created_at":"2026-11-05T04:15:00.000Z","version":5}, { status: 200 })),
   // inviteTenantAdmin
   http.post("*/v1/identity/platform/tenants/:tenant_id/admin-invitations", () => HttpResponse.json({"membership_id":"0193a5c0-0000-7000-8000-000000000012","invitation":{"status":"pending","expires_at":"2026-11-05T16:15:00.000Z"}}, { status: 201 })),
+  // uploadBrandingAssetAsPlatform
+  http.post("*/v1/identity/platform/tenants/:tenant_id/branding-assets", () => HttpResponse.json({"asset_id":"0193a5c0-0000-7000-8000-000000000050","kind":"logo","width":400,"height":120,"sha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","scan_state":"clean"}, { status: 201 })),
   // setFeatureFlagAsPlatform
   http.put("*/v1/identity/platform/tenants/:tenant_id/feature-flags/:flag_code", () => HttpResponse.json({"code":"referral_incentive_report","description":"Referral incentive report","scope":"tenant","settable_by":"tenant","is_enabled":true,"approval_ref_present":true,"version":2}, { status: 200 })),
   // reactivateTenant

@@ -44,9 +44,10 @@ async function outcome(o: PlatformOp, claims: Record<string, unknown>): Promise<
 const REFUSED = ['auth.forbidden', 'auth.mfa_required'];
 const pastAuthz = (code: string) => !REFUSED.includes(code);
 
-describe('fixture: the 34 platform.* operations of contracts/openapi/identity.yaml', () => {
-  it('34 operations declare a platform.* permission, covering the 5 platform.* codes, and each has a handler', () => {
-    expect(PLATFORM_OPS).toHaveLength(34);
+// CR TENANT-LOGO-1: 34 -> 35, uploadBrandingAssetAsPlatform (platform.tenant.manage) was added to identity.yaml.
+describe('fixture: the 35 platform.* operations of contracts/openapi/identity.yaml', () => {
+  it('35 operations declare a platform.* permission, covering the 5 platform.* codes, and each has a handler', () => {
+    expect(PLATFORM_OPS).toHaveLength(35);
     expect(CODES).toEqual(['platform.dead_letter.manage', 'platform.staff.manage', 'platform.support_session.open', 'platform.tenant.manage', 'platform.tenant.read']);
     for (const o of PLATFORM_OPS) expect(typeof (manifest.handlers as any)[o.operationId], o.operationId).toBe('function');
   });
@@ -76,7 +77,7 @@ describe('the reproduced 403: a platform session through the real pipeline and t
   });
 });
 
-describe('all 34 platform.* operations x platform roles (existing PlatformAuthz semantics unchanged)', () => {
+describe('all 35 platform.* operations x platform roles (existing PlatformAuthz semantics unchanged)', () => {
   const table = PLATFORM_OPS.map((o) => [o.operationId, o.permission, o] as const);
 
   it.each(table)('%s (%s): platform_superadmin + aal2 passes PlatformAuthz', async (_id, _perm, o) => {

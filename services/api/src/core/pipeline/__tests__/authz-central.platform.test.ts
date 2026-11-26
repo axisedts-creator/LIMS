@@ -44,11 +44,12 @@ const plat = (role = 'platform_superadmin', aal = 'aal2', extra: Record<string, 
 const SUPPORT_CODES = ['platform.support_session.open', 'platform.tenant.read'];
 const ALL_CODES = ['platform.dead_letter.manage', 'platform.staff.manage', 'platform.support_session.open', 'platform.tenant.manage', 'platform.tenant.read'];
 
-describe('contract scan sanity (the 34 platform.* operations)', () => {
-  it('34 operations, only the five registry codes, all bearerJwt', () => {
-    expect(PLATFORM).toHaveLength(34);
+// CR TENANT-LOGO-1: 34 -> 35, uploadBrandingAssetAsPlatform (platform.tenant.manage) was added to identity.yaml.
+describe('contract scan sanity (the 35 platform.* operations)', () => {
+  it('35 operations, only the five registry codes, all bearerJwt', () => {
+    expect(PLATFORM).toHaveLength(35);
     for (const c of PLATFORM) { expect(ALL_CODES, c.operationId).toContain(c.permission); expect(c.scheme, c.operationId).toBe('bearerJwt'); }
-    expect(new Set(PLATFORM.map((c) => c.operationId)).size).toBe(34);
+    expect(new Set(PLATFORM.map((c) => c.operationId)).size).toBe(35);
   });
 });
 
@@ -107,7 +108,7 @@ describe.each(PLATFORM.map((c) => [c.operationId, c] as const))('platform.* %s',
   });
 });
 
-describe('platform.* actors and claims that must never pass (one operation; the check is the same for all 34)', () => {
+describe('platform.* actors and claims that must never pass (one operation; the check is the same for all 35)', () => {
   const c = PLATFORM.find((x) => x.operationId === 'listTenants')!; // platform.tenant.read, held by both platform roles
   const denyCase = async (claims: any, o: Parameters<typeof rig>[0] = {}) => {
     const r = rig({ mode: 'enforce', ...o });

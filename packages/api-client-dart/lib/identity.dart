@@ -123,6 +123,10 @@ class IdentityApi {
   Future<Object?> getMe() =>
       _send('GET', '/v1/identity/me');
 
+  /// GET /v1/identity/me/tenant-logo/content
+  Future<Object?> getOwnTenantLogoContent() =>
+      _send('GET', '/v1/identity/me/tenant-logo/content');
+
   /// GET /v1/identity/roles/{role_id}
   Future<Object?> getRole({required String roleId}) =>
       _send('GET', '/v1/identity/roles/${Uri.encodeComponent(roleId)}');
@@ -450,6 +454,10 @@ class IdentityApi {
   /// POST /v1/identity/settings/branding-assets
   Future<Object?> uploadBrandingAsset({Map<String, String>? headers, Object? body}) =>
       _send('POST', '/v1/identity/settings/branding-assets', headers: headers, body: body);
+
+  /// POST /v1/identity/platform/tenants/{tenant_id}/branding-assets
+  Future<Object?> uploadBrandingAssetAsPlatform({required String tenantId, Map<String, String>? headers, Object? body}) =>
+      _send('POST', '/v1/identity/platform/tenants/${Uri.encodeComponent(tenantId)}/branding-assets', headers: headers, body: body);
 
   /// POST /v1/identity/platform/ird-annexes/{record_id}/documents
   Future<Object?> uploadIrdAnnexDocument({required String recordId, Map<String, String>? headers, Object? body}) =>

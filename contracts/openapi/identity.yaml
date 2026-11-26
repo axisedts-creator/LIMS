@@ -638,6 +638,46 @@ paths:
         "403": { $ref: _common.yaml#/components/responses/Forbidden }
         "429": { $ref: _common.yaml#/components/responses/TooManyRequests }
         "500": { $ref: _common.yaml#/components/responses/Internal }
+  /v1/identity/me/tenant-logo/content:
+    get:
+      operationId: getOwnTenantLogoContent
+      tags: [ identity ]
+      summary: Download the logo of the caller's own tenant
+      description: "CR TENANT-LOGO-1. No asset id is accepted: the tenant comes from the session only. 404 when the tenant has no logo."
+      security:
+        - { bearerJwt: [] }
+      x-permission: identity.self.manage
+      x-context: tenant
+      x-idempotency: none
+      x-rate-limit-tier: general
+      x-error-codes: [ common.upload_quarantined ]
+      responses:
+        "200":
+          description: File content (core streaming download helper).
+          headers:
+            Content-Disposition:
+              description: Always attachment.
+              schema: { type: string, maxLength: 300, pattern: ^attachment }
+            X-Content-Type-Options:
+              schema: { type: string, maxLength: 7, enum: [ nosniff ] }
+            Cache-Control:
+              schema: { type: string, maxLength: 8, enum: [ no-store ] }
+          content:
+            image/png:
+              schema: { type: string, maxLength: 2097152, format: binary }
+              examples:
+                synthetic: { summary: binary content, value: (binary) }
+            image/jpeg:
+              schema: { type: string, maxLength: 2097152, format: binary }
+              examples:
+                synthetic: { summary: binary content, value: (binary) }
+        "400": { $ref: _common.yaml#/components/responses/BadRequest }
+        "401": { $ref: _common.yaml#/components/responses/Unauthorized }
+        "403": { $ref: _common.yaml#/components/responses/Forbidden }
+        "404": { $ref: _common.yaml#/components/responses/NotFound }
+        "422": { $ref: _common.yaml#/components/responses/Unprocessable }
+        "429": { $ref: _common.yaml#/components/responses/TooManyRequests }
+        "500": { $ref: _common.yaml#/components/responses/Internal }
   /v1/identity/me/password:
     post:
       operationId: changeOwnPassword
@@ -4121,6 +4161,52 @@ paths:
         "409": { $ref: _common.yaml#/components/responses/Conflict }
         "422": { $ref: _common.yaml#/components/responses/Unprocessable }
         "428": { $ref: _common.yaml#/components/responses/PreconditionRequired }
+        "429": { $ref: _common.yaml#/components/responses/TooManyRequests }
+        "500": { $ref: _common.yaml#/components/responses/Internal }
+  /v1/identity/platform/tenants/{tenant_id}/branding-assets:
+    post:
+      operationId: uploadBrandingAssetAsPlatform
+      tags: [ identity ]
+      summary: Upload a branding image for a tenant (PNG/JPEG ≤ 2 MB, ≤ 4000×4000 px)
+      description: "CR TENANT-LOGO-1. Same rules as uploadBrandingAsset; the tenant comes from the path only and the image is stored under that tenant."
+      security:
+        - { bearerJwt: [] }
+      x-permission: platform.tenant.manage
+      x-context: platform
+      x-idempotency: required
+      x-rate-limit-tier: general
+      x-error-codes: [ common.payload_too_large, common.unsupported_media_type, common.upload_quarantined, common.idempotency_key_reused ]
+      x-upload: [ image/png, image/jpeg ]
+      parameters:
+        - name: tenant_id
+          in: path
+          required: true
+          schema: { $ref: _common.yaml#/components/schemas/Uuid }
+        - { $ref: _common.yaml#/components/parameters/IdempotencyKey }
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema: { $ref: "#/components/schemas/BrandingAssetUpload" }
+            examples:
+              synthetic:
+                value: { file: (binary PNG), kind: logo }
+      responses:
+        "201":
+          description: Success.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BrandingAsset" }
+              examples:
+                synthetic:
+                  value: { asset_id: 0193a5c0-0000-7000-8000-000000000050, kind: logo, width: 400, height: 120, sha256: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa, scan_state: clean }
+        "400": { $ref: _common.yaml#/components/responses/BadRequest }
+        "401": { $ref: _common.yaml#/components/responses/Unauthorized }
+        "403": { $ref: _common.yaml#/components/responses/Forbidden }
+        "404": { $ref: _common.yaml#/components/responses/NotFound }
+        "413": { $ref: _common.yaml#/components/responses/PayloadTooLarge }
+        "415": { $ref: _common.yaml#/components/responses/UnsupportedMediaType }
+        "422": { $ref: _common.yaml#/components/responses/Unprocessable }
         "429": { $ref: _common.yaml#/components/responses/TooManyRequests }
         "500": { $ref: _common.yaml#/components/responses/Internal }
   /v1/identity/platform/tenants/{tenant_id}/feature-flags/{flag_code}:

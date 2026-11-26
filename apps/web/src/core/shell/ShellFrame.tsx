@@ -24,6 +24,7 @@ type Props = {
   /** membership id: the per-user key of the density choice (T0D-DENSITY-1) */
   memberId?: string | undefined;
   logoSrc: string;
+  tenantLogoSrc?: string | undefined;
   search: { canPatients: boolean; canSpecimens: boolean };
   centres?: { options: readonly Centre[]; activeId: string | null } | undefined;
   children: ReactNode;
@@ -31,7 +32,7 @@ type Props = {
 
 const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex="0"]';
 
-export function ShellFrame({ groups, crumb, tenant, user, memberId, logoSrc, search, centres, children }: Props) {
+export function ShellFrame({ groups, crumb, tenant, user, memberId, logoSrc, tenantLogoSrc, search, centres, children }: Props) {
   const navId = `lims-nav-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`;
   const [drawer, setDrawer] = useState(false);
   const menu = useRef<HTMLButtonElement>(null);
@@ -103,7 +104,7 @@ export function ShellFrame({ groups, crumb, tenant, user, memberId, logoSrc, sea
           </div>
         </div>
       }
-      nav={<Rail groups={groups} tenant={tenant} user={user} logoSrc={logoSrc} navId={navId} drawerOpen={drawer} onClose={() => { if (drawer) close(); }} />}
+      nav={<Rail groups={groups} tenant={tenant} user={user} logoSrc={logoSrc} tenantLogoSrc={tenantLogoSrc} navId={navId} drawerOpen={drawer} onClose={() => { if (drawer) close(); }} />}
     >
       <OfflineNotices />
       {children}

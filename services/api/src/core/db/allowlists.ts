@@ -13,6 +13,7 @@ export const WITH_TENANT_SCOPE_OPS: readonly string[] = Object.freeze([
   'provisionTenant', 'inviteTenantAdmin', 'activateTenant', 'suspendTenant', 'reactivateTenant', 'terminateTenant',
   'updateTenantSettingsAsPlatform', 'setFeatureFlagAsPlatform', 'openSupportSession', 'activateSupportSession', 'endSupportSession',
   'revokeSupportSession', 'getDeadLetter',
+  'uploadBrandingAssetAsPlatform',   // CR TENANT-LOGO-1: writes the tenant's branding_assets row + settings pointer
 ]);
 
 /** 02-TRD §6.2 stage 9: operations tagged x-context: identity_auth skip the authz guard (D-212). */

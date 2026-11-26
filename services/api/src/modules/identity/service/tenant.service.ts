@@ -22,8 +22,9 @@ import { PlatformAuthz } from '../platform/authz.js';
 import { createInvitationsRepo } from '../repository/invitations.repo.js';
 import { createSettingsRepo } from '../repository/settings.repo.js';
 import { ROLE_GRANTS } from '../../../../../../contracts/ports/generated/permissions.js';
-import { ASSET_COLUMNS, BOOLS, DEFERRED, EDITABLE, PATTERNS, PATTERN_MAX, PLATFORM_ONLY, UNSETTABLE, nextFiscalYear, toDto } from '../domain/settings.fields.js';
+import { ASSET_COLUMNS, BOOLS, BRANDING_KINDS, DEFERRED, EDITABLE, PATTERNS, PATTERN_MAX, PLATFORM_ONLY, UNSETTABLE, nextFiscalYear, toDto } from '../domain/settings.fields.js';
 import type { PlatformCtx } from './support.service.js';
+import { RESCAN_UPLOAD_TASK, acceptBrandingImage, type SettingsCtx, type SettingsRepo } from './settings.service.js';
 import { createRolePackRepo, createRolePackService, type RolePackRepo } from './role-pack.service.js';
 
 const READ = 'platform.tenant.read';
@@ -333,7 +334,9 @@ const optText = (v: unknown, key: string) => (v === undefined ? {} : { [key]: v 
 export function createTenantService(deps: {
   repo?: TenantRepo; gotrue?: Pick<GoTrueGateway, 'adminCreateUser'>; emailHmac?: (emailNormalized: string) => Buffer;
   userExists?: (tx: unknown, userId: string) => Promise<boolean>; newId?: () => string; rolePackRepo?: RolePackRepo;
+  assets?: Pick<SettingsRepo, 'insertAsset' | 'setAssetPointer'>;
 } = {}) {
+  const assets = deps.assets ?? createSettingsRepo();   // T16 statements (branding_assets insert + tenant_settings pointer), run inside the target scope
   const repo = deps.repo ?? createTenantRepo();
   const newId = deps.newId ?? uuidv7;
   const userExists = deps.userExists ?? (async (tx: unknown, id: string) => (await (tx as Tx).query('SELECT app.identity_user_exists($1) AS e', [id])).rows[0]?.e === true);
@@ -623,6 +626,26 @@ export function createTenantService(deps: {
       const body: Record<string, unknown> = {};
       for (const k of ['code', 'description', 'scope', 'settable_by', 'is_enabled', 'blocker_ref', 'approval_ref_present', 'version']) if (out[k] !== undefined && out[k] !== null) body[k] = out[k];
       return { status: 200, body, ...(typeof out['version'] === 'number' ? { version: out['version'] } : {}) };
+    },
+
+    /** CR TENANT-LOGO-1: a platform operator uploads a branding image (the logo at provisioning) FOR one tenant. The tenant is the path's and must
+     *  exist (404 before any byte is stored); the checks are uploadBrandingAsset's (acceptBrandingImage); the object key starts with that tenant's id;
+     *  the row, the settings pointer, the re-scan job and the tenant's access-log line are written inside ONE withTenantScope(target) window. */
+    async uploadBrandingAssetAsPlatform(ctx: Ctx & Pick<SettingsCtx, 'uploads' | 'storage'>, input: Record<string, unknown> = {}): Promise<Result> {
+      const s = guard(ctx, MANAGE);
+      const i = isObj(input) ? input : {};
+      const kind = i['kind'];
+      if (typeof kind !== 'string' || !Object.hasOwn(BRANDING_KINDS, kind)) return failAt('/kind');
+      const t = await load(s, i['tenantId']);
+      if (t.status === 'offboarded') throw conflict();   // [CONV] same as inviteTenantAdmin: nothing new for a terminated tenant
+      const id = newId();
+      const body = await acceptBrandingImage(ctx, { tenantId: t.id, id, kind, file: i['file'] }, (a) => scoped(ctx, t.id, async () => {
+        await assets.insertAsset(s.tx, t.id, { ...a, actorId: s.actorId });
+        await assets.setAssetPointer(s.tx, t.id, BRANDING_KINDS[kind]!, id, s.actorId);
+        if (a.scan_state === 'pending') await repo.enqueue(s.tx, RESCAN_UPLOAD_TASK, { tenant_id: t.id, asset_id: id, kind }, `rescan:branding_assets:${id}`);
+        await log(ctx, t.id, { action: 'settings.change', entityType: 'tenant_settings', entityId: t.id, detail: { fields: BRANDING_KINDS[kind]! } });
+      }));
+      return { status: 201, body };
     },
 
     async inviteTenantAdmin(ctx: Ctx, input: Record<string, unknown> = {}): Promise<Result> {

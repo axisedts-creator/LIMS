@@ -22,6 +22,7 @@ import { reactivateCentre } from './reactivateCentre.js';
 import { updateBranch } from './updateBranch.js';
 import { updateCentre } from './updateCentre.js';
 import { getBrandingAssetContent } from './getBrandingAssetContent.js';
+import { getOwnTenantLogoContent } from './getOwnTenantLogoContent.js';
 import { getSettings } from './getSettings.js';
 import { listFeatureFlags } from './listFeatureFlags.js';
 import { listOwnIrdAnnexes } from './listOwnIrdAnnexes.js';
@@ -108,6 +109,7 @@ import { getTenantSettingsAsPlatform } from './getTenantSettingsAsPlatform.js';
 import { updateTenantSettingsAsPlatform } from './updateTenantSettingsAsPlatform.js';
 import { setFeatureFlagAsPlatform } from './setFeatureFlagAsPlatform.js';
 import { inviteTenantAdmin } from './inviteTenantAdmin.js';
+import { uploadBrandingAssetAsPlatform } from './uploadBrandingAssetAsPlatform.js';
 import { loginPartner } from './loginPartner.js';
 import { openMobileSession } from './openMobileSession.js';
 import { refreshMobileSession } from './refreshMobileSession.js';
@@ -121,7 +123,7 @@ const OPERATION_IDS = [
   'requestPasswordRecovery', 'confirmEmailToken', 'setPasswordFromSetup', 'loginPartner', 'resolvePatientSession',
   'logoutPatientSession', 'openMobileSession', 'refreshMobileSession', 'logoutMobileSession',
   // self service
-  'getMe', 'changeOwnPassword', 'listOwnSessions', 'revokeOwnSession', 'listOwnMfaFactors', 'removeOwnMfaFactor',
+  'getMe', 'getOwnTenantLogoContent', 'changeOwnPassword', 'listOwnSessions', 'revokeOwnSession', 'listOwnMfaFactors', 'removeOwnMfaFactor',
   // tenant admin
   'listUsers', 'inviteUser', 'searchUsers', 'getUser', 'updateUser', 'setUserRoles', 'setUserCentreScope', 'lockUser',
   'unlockUser', 'deactivateUser', 'reactivateUser', 'resendInvitation', 'resetUserMfa', 'revokeUserSessions',
@@ -137,7 +139,7 @@ const OPERATION_IDS = [
   // platform
   'listTenants', 'provisionTenant', 'getTenant', 'updateTenant', 'activateTenant', 'suspendTenant', 'reactivateTenant',
   'terminateTenant', 'getTenantSettingsAsPlatform', 'updateTenantSettingsAsPlatform', 'setFeatureFlagAsPlatform',
-  'inviteTenantAdmin', 'listPlatformIrdAnnexes', 'createPlatformIrdAnnex', 'updateIrdAnnex', 'transitionIrdAnnex',
+  'inviteTenantAdmin', 'uploadBrandingAssetAsPlatform', 'listPlatformIrdAnnexes', 'createPlatformIrdAnnex', 'updateIrdAnnex', 'transitionIrdAnnex',
   'uploadIrdAnnexDocument', 'downloadIrdAnnexDocument', 'openSupportSession', 'listPlatformSupportSessions',
   'activateSupportSession', 'endSupportSession', 'listDeadLetters', 'getDeadLetter', 'replayDeadLetter', 'discardDeadLetter',
   'listPlatformStaff', 'invitePlatformStaff', 'updatePlatformStaff', 'deactivatePlatformStaff', 'resetPlatformStaffMfa',
@@ -174,6 +176,7 @@ const implemented: Partial<Record<IdentityOperationId, Handler>> = {
   deactivateUser, reactivateUser, resendInvitation, resetUserMfa, revokeUserSessions, uploadUserSignature,         // T13
   listTenants, provisionTenant, getTenant, updateTenant, activateTenant, suspendTenant, reactivateTenant, terminateTenant,   // T22
   getTenantSettingsAsPlatform, updateTenantSettingsAsPlatform, setFeatureFlagAsPlatform, inviteTenantAdmin,                 // T22
+  uploadBrandingAssetAsPlatform, getOwnTenantLogoContent,                                                                   // CR TENANT-LOGO-1
   loginPartner, openMobileSession, refreshMobileSession, logoutMobileSession, resolvePatientSession, logoutPatientSession,   // T31
 };
 

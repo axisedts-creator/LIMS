@@ -19,12 +19,28 @@ type Props = {
   tenant: string;
   user: { name: string; role: string };
   logoSrc: string;
+  /** CR TENANT-LOGO-1: same-origin path of the signed-in lab's own logo; absent on the platform shell */
+  tenantLogoSrc?: string | undefined;
   navId: string;
   drawerOpen: boolean;
   onClose: () => void;
 };
 
-export function Rail({ groups, tenant, user, logoSrc, navId, drawerOpen, onClose }: Props) {
+/** CR TENANT-LOGO-1: the lab's own logo when it has one. Any load failure (no logo set, image not yet scanned, API down) shows the default
+ *  brand logo instead, so the sidebar never has a broken image. */
+function BrandLogo({ own, fallback, tenant }: { own?: string | undefined; fallback: string; tenant: string }) {
+  const [failed, setFailed] = useState(false);
+  const img = useRef<HTMLImageElement>(null);
+  // an image error that fired before hydration never reaches onError
+  useEffect(() => { const i = img.current; if (i && i.complete && i.naturalWidth === 0) setFailed(true); }, []);
+  const useOwn = !!own && !failed;
+  return (
+    <img ref={img} className={useOwn ? 'lims-rail-logo lims-rail-logo-own' : 'lims-rail-logo'} src={useOwn ? own : fallback}
+      alt={useOwn ? tenant : t('core.shell.logo_alt')} onError={() => setFailed(true)} />
+  );
+}
+
+export function Rail({ groups, tenant, user, logoSrc, tenantLogoSrc, navId, drawerOpen, onClose }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const uid = useId();
   let routerPath = '';
@@ -99,7 +115,7 @@ export function Rail({ groups, tenant, user, logoSrc, navId, drawerOpen, onClose
   return (
     <div ref={ref} className="lims-rail">
       <div className="lims-rail-brand">
-        <img className="lims-rail-logo" src={logoSrc} alt={t('core.shell.logo_alt')} />
+        <BrandLogo own={tenantLogoSrc} fallback={logoSrc} tenant={tenant} />
         <span className="lims-rail-tenant">{tenant}</span>
         <button type="button" className="lims-btn lims-shell-menu lims-rail-close" aria-label={t('core.nav.close_menu')} onClick={onClose}>
           <NavIcon name="close" />

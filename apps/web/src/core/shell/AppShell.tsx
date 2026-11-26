@@ -10,6 +10,9 @@ import type { ResolvedNavEntry } from '../nav/types';
 import { hasPermission } from '../permissions/routes';
 import type { ShellSession } from '../session/types';
 import { LOGO_ON_DARK } from './brand';
+
+/** CR TENANT-LOGO-1: app/(staff)/tenant-logo/route.ts */
+export const TENANT_LOGO_PATH = '/tenant-logo';
 import type { Centre } from './CentreSwitcher';
 import type { RailGroup } from './Rail';
 import { SessionTimeoutDialog } from './SessionTimeoutDialog';
@@ -92,6 +95,9 @@ export function AppShell({ session, pathname, centres, counts, viewOnly, menu = 
       user={{ name: session.actor.displayName, role: session.actor.roles.join(', ').replace(/_/g, ' ') }}
       memberId={session.actor.membershipId}
       logoSrc={LOGO_ON_DARK}
+      // CR TENANT-LOGO-1: a lab's staff see their own lab's logo (served for the session's tenant only); the platform console keeps the default.
+      // `t` only keys the browser cache per tenant; the route ignores it and reads the tenant from the session.
+      tenantLogoSrc={platform || !session.actor.tenantCode ? undefined : `${TENANT_LOGO_PATH}?t=${encodeURIComponent(session.actor.tenantCode)}`}
       search={{ canPatients: hasPermission(perms, 'frontdesk.patient.read'), canSpecimens: hasPermission(perms, 'lab.specimen.read') }}
       centres={centres}
     >

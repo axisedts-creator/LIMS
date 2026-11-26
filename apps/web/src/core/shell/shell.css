@@ -241,6 +241,8 @@ body { margin: 0; }
 .lims-shell-nav { width: 14.5rem !important; padding: 0 var(--lims-space-2) var(--lims-space-2) !important; }
 .lims-rail { gap: var(--lims-space-2) !important; }
 .lims-rail-logo { width: 100% !important; max-width: 9rem; }
+/* CR TENANT-LOGO-1: a lab's own logo is drawn for a light page, so it sits on a white plate inside the accent sidebar; height capped so a square or tall logo cannot push the menu down */
+.lims-rail-logo-own { box-sizing: border-box; max-height: 3.5rem; padding: var(--lims-space-1) var(--lims-space-2); border-radius: var(--lims-radius-md); background: var(--lims-neutral-0); object-fit: contain; }
 .lims-rail-tenant { display: none !important; }
 .lims-rail-search { min-height: 2rem !important; padding-inline: var(--lims-space-3) !important; font-size: var(--lims-font-size-sm-size) !important; }
 .lims-rail-scroll { overflow-x: hidden; }

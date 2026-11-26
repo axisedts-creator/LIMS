@@ -22,6 +22,7 @@ export type FlagRow = {
   blocker_ref: string | null; is_enabled: boolean; approval_ref_present: boolean; version: number;
 };
 type Job = { taskIdentifier: string; payload: unknown; jobKey: string };
+export const RESCAN_UPLOAD_TASK = 'identity.rescan_upload';
 export interface SettingsRepo {
   findSettings(tx: unknown, tenantId: string): Promise<Row | undefined>;
   updateSettings(tx: unknown, tenantId: string, expectedVersion: number, set: Row, unset: string[], actorId: string): Promise<Row | undefined>;
@@ -58,7 +59,7 @@ const FLAG_CODE = /^[a-z][a-z0-9_]{2,63}$/;
 const BUCKET = 'identity-assets';
 const MAX_BRANDING_BYTES = 2 * 1024 * 1024;   // 02-TRD §5.6 PNG/JPEG <= 2 MB = DB branding_assets__size__ck
 const MAX_DIM = 4000;                          // 02-TRD §5.6 [CONV] <= 4000x4000 px = branding_assets__dims__ck
-const RESCAN_TASK = 'identity.rescan_upload';
+const RESCAN_TASK = RESCAN_UPLOAD_TASK;
 
 const fieldErr = (path: string, code = 'common.field_invalid'): FieldError => ({ path, code, message: 'Field invalid' });
 const fail = (errors: FieldError[]): never => { throw new LimsError('common.validation_failed', undefined, errors); };
@@ -86,6 +87,35 @@ const toIrd = (r: Row) => {
   for (const k of IRD_FIELDS) if (r[k] !== null && r[k] !== undefined) out[k] = r[k];
   return out;
 };
+
+export type AcceptedBrandingImage = Omit<AssetRow, 'version' | 'is_active'>;
+/** One branding image upload for `tenantId` (tenant path: uploadBrandingAsset; platform path: tenant.service uploadBrandingAssetAsPlatform, CR TENANT-LOGO-1).
+ *  Accept (PNG/JPEG, <= 2 MB, re-encoded, metadata stripped, scanned) -> dimension gate -> `persist` (row + pointer, the caller's tx and scope).
+ *  The object key is `<tenantId>/branding/<id>`; the client filename never reaches it. A refused persist leaves no object behind. */
+export async function acceptBrandingImage(
+  ctx: Pick<SettingsCtx, 'uploads' | 'storage'>, i: { tenantId: string; id: string; kind: string; file: unknown },
+  persist: (a: AcceptedBrandingImage) => Promise<void>,
+) {
+  const name = isObj(i.file) && typeof i.file['filename'] === 'string' ? i.file['filename'] : '';
+  const objectPath = `${i.tenantId}/branding/${i.id}.${/\.jpe?g$/i.test(name) ? 'jpg' : 'png'}`;   // client filename never reaches the key
+  const acc = await ctx.uploads.accept(i.file, {
+    allow: ['image/png', 'image/jpeg'], maxBytes: MAX_BRANDING_BYTES, bucket: BUCKET, objectPath,
+    images: { reencode: true, stripMetadata: true, maxMegapixels: 16 }, scan: 'required',
+  });
+  const scanState: AssetRow['scan_state'] = acc.scanState === 'clean' ? 'clean' : 'pending';   // P-19: pending/unavailable stored as pending
+  try {
+    const w = acc.image?.width, h = acc.image?.height;
+    if (!w || !h || w > MAX_DIM || h > MAX_DIM) failAt('/file');
+    await persist({
+      id: i.id, tenant_id: i.tenantId, kind: i.kind, membership_id: null, bucket: BUCKET, object_path: objectPath, content_type: acc.mime, size_bytes: acc.byteSize,
+      width_px: w!, height_px: h!, sha256: acc.sha256, scan_state: scanState,
+    });
+  } catch (e) {
+    await ctx.storage.delete(BUCKET, objectPath).catch(() => undefined);   // no orphan object when the row is refused
+    throw e;
+  }
+  return { asset_id: i.id, kind: i.kind, width: acc.image.width, height: acc.image.height, sha256: acc.sha256, scan_state: scanState };
+}
 
 export function createSettingsService(deps: { repo?: SettingsRepo; flagsRepo?: FlagsRepo; port?: { invalidateTenantSettings(tenantId: string): void }; newId?: () => string } = {}) {
   const repo = deps.repo ?? createSettingsRepo();
@@ -177,31 +207,26 @@ export function createSettingsService(deps: { repo?: SettingsRepo; flagsRepo?: F
       const kind = input?.kind;
       if (typeof kind !== 'string' || !Object.hasOwn(BRANDING_KINDS, kind)) return failAt('/kind');
       const id = newId();
-      const name = isObj(input.file) && typeof input.file['filename'] === 'string' ? input.file['filename'] : '';
-      const objectPath = `${s.tenantId}/branding/${id}.${/\.jpe?g$/i.test(name) ? 'jpg' : 'png'}`;   // client filename never reaches the key
-      const acc = await ctx.uploads.accept(input.file, {
-        allow: ['image/png', 'image/jpeg'], maxBytes: MAX_BRANDING_BYTES, bucket: BUCKET, objectPath,
-        images: { reencode: true, stripMetadata: true, maxMegapixels: 16 }, scan: 'required',
-      });
-      const scanState: AssetRow['scan_state'] = acc.scanState === 'clean' ? 'clean' : 'pending';   // P-19: pending/unavailable stored as pending
-      try {
-        const w = acc.image?.width, h = acc.image?.height;
-        if (!w || !h || w > MAX_DIM || h > MAX_DIM) failAt('/file');
-        await repo.insertAsset(s.tx, s.tenantId, {
-          id, tenant_id: s.tenantId, kind, membership_id: null, bucket: BUCKET, object_path: objectPath, content_type: acc.mime, size_bytes: acc.byteSize,
-          width_px: w!, height_px: h!, sha256: acc.sha256, scan_state: scanState, actorId: s.actorId,
-        });
+      const body = await acceptBrandingImage(ctx, { tenantId: s.tenantId, id, kind, file: input.file }, async (a) => {
+        await repo.insertAsset(s.tx, s.tenantId, { ...a, actorId: s.actorId });
         // 03-APP-FLOW §6.2: pointer updated on upload (old asset kept); content stays 422 until clean (US-C4).
         await repo.setAssetPointer(s.tx, s.tenantId, BRANDING_KINDS[kind]!, id, s.actorId);
         invalidate(s.tenantId);
-        if (scanState === 'pending') {
+        if (a.scan_state === 'pending') {
           await repo.enqueueJob(s.tx, { taskIdentifier: RESCAN_TASK, payload: { tenant_id: s.tenantId, asset_id: id, kind }, jobKey: `rescan:branding_assets:${id}` });
         }
-      } catch (e) {
-        await ctx.storage.delete(BUCKET, objectPath).catch(() => undefined);   // no orphan object when the row is refused
-        throw e;
-      }
-      return { status: 201, body: { asset_id: id, kind, width: acc.image.width, height: acc.image.height, sha256: acc.sha256, scan_state: scanState } };
+      });
+      return { status: 201, body };
+    },
+
+    /** CR TENANT-LOGO-1: the logo of the caller's OWN tenant, for the staff shell. No asset id is accepted: the tenant is ctx.tenantId and the
+     *  asset is that tenant's logo pointer, so one tenant can never name another tenant's image. Lookup, kind and scan gate, bytes and access
+     *  log are getBrandingAssetContent's. No logo set -> 404. */
+    async getOwnTenantLogoContent(ctx: SettingsCtx): Promise<Result> {
+      const s = scope(ctx, true);
+      const id = (await repo.findSettings(s.tx, s.tenantId))?.['logo_asset_id'];
+      if (typeof id !== 'string') throw new LimsError('common.not_found');
+      return this.getBrandingAssetContent(ctx, { assetId: id });
     },
 
     /** P-2: bytes only through ctx.download.stream (attachment, nosniff, no-store; access-log every call). */

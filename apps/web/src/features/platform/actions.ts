@@ -3,7 +3,7 @@
 // before calling /v1/identity/platform/* — the browser can call actions directly, so the client checks are only UX.
 import { call, P, platformPermissions, qs } from './server';
 import {
-  ACCEPT_MAX, ISO_UTC_RE, ANNEX_STATUSES, CURSOR_RE, DATE_RE, EMAIL_RE, IDEMPOTENCY_RE, MAX_CIDRS, MAX_UPLOAD_BYTES, PAN_RE, PERM, TENANT_CODE_RE, UNIT_CODE_RE, UPLOAD_TYPES,
+  ACCEPT_MAX, ISO_UTC_RE, ANNEX_STATUSES, CURSOR_RE, DATE_RE, EMAIL_RE, IDEMPOTENCY_RE, LOGO_MAX_BYTES, LOGO_TYPES, MAX_CIDRS, MAX_UPLOAD_BYTES, PAN_RE, PERM, TENANT_CODE_RE, UNIT_CODE_RE, UPLOAD_TYPES,
   isCidr, isUuid,
   type AnnexRecord, type AnnexStatus, type DeadLetter, type Fail, type LifecycleAction, type PageOf, type PlatformSession, type Result,
   type Settings, type StaffMember, type SupportSession, type Tenant,
@@ -129,17 +129,32 @@ export async function uploadAnnexDocumentAction(recordId: string, form: FormData
   if (!isUuid(recordId) || !IDEMPOTENCY_RE.test(key) || !file || typeof file !== 'object' || typeof file.size !== 'number' || typeof file.arrayBuffer !== 'function') return invalid();
   if (file.size > MAX_UPLOAD_BYTES) return { ok: false, status: 413, code: 'common.payload_too_large' };
   if (!(UPLOAD_TYPES as readonly string[]).includes(file.type)) return { ok: false, status: 415, code: 'common.unsupported_media_type' };
-  // [CONV] the multipart body is encoded here (one `file` part) so it does not depend on which FormData/Blob implementation the runtime provides.
+  return call(`${P}/ird-annexes/${recordId}/documents`, { method: 'POST', ...(await multipart(file, 'document', key)) });
+}
+
+/** CR TENANT-LOGO-1: the logo of ONE tenant, uploaded by the platform operator (Provision tenant). PNG or JPEG, at most 2 MB; the API re-checks,
+ *  re-encodes and scans the image and stores it under that tenant only. */
+export async function uploadTenantLogoAction(tenantId: string, form: FormData, key: string): Promise<Result<unknown>> {
+  if (!(await need(PERM.manage))) return forbidden();
+  const file = form?.get('file') as (Blob & { name?: string }) | null;
+  if (!isUuid(tenantId) || !IDEMPOTENCY_RE.test(key) || !file || typeof file !== 'object' || typeof file.size !== 'number' || typeof file.arrayBuffer !== 'function') return invalid();
+  if (file.size > LOGO_MAX_BYTES) return { ok: false, status: 413, code: 'common.payload_too_large' };
+  if (!(LOGO_TYPES as readonly string[]).includes(file.type)) return { ok: false, status: 415, code: 'common.unsupported_media_type' };
+  return call(`${P}/tenants/${tenantId}/branding-assets`, { method: 'POST', ...(await multipart(file, 'logo', key, { kind: 'logo' })) });
+}
+
+// [CONV] the multipart body is encoded here (text fields, then one `file` part) so it does not depend on which FormData/Blob implementation the
+// runtime provides. Field names and values are constants of this file, never user input.
+async function multipart(file: Blob & { name?: string }, fallbackName: string, key: string, fields: Record<string, string> = {}) {
   const boundary = `----lims${newBoundary()}`;
-  const name = (file.name ?? 'document').replace(/[^\w.\- ]/g, '_').slice(0, 200) || 'document';
-  const head = new TextEncoder().encode(`--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="${name}"\r\nContent-Type: ${file.type}\r\n\r\n`);
+  const name = (file.name ?? fallbackName).replace(/[^\w.\- ]/g, '_').slice(0, 200) || fallbackName;
+  const text = Object.entries(fields).map(([k, v]) => `--${boundary}\r\nContent-Disposition: form-data; name="${k}"\r\n\r\n${v}\r\n`).join('');
+  const head = new TextEncoder().encode(`${text}--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="${name}"\r\nContent-Type: ${file.type}\r\n\r\n`);
   const tail = new TextEncoder().encode(`\r\n--${boundary}--\r\n`);
   const data = new Uint8Array(await file.arrayBuffer());
   const body = new Uint8Array(head.length + data.length + tail.length);
   body.set(head, 0); body.set(data, head.length); body.set(tail, head.length + data.length);
-  return call(`${P}/ird-annexes/${recordId}/documents`, {
-    method: 'POST', body, headers: { 'idempotency-key': key, 'content-type': `multipart/form-data; boundary=${boundary}` },
-  });
+  return { body, headers: { 'idempotency-key': key, 'content-type': `multipart/form-data; boundary=${boundary}` } };
 }
 const newBoundary = () => globalThis.crypto.randomUUID().replace(/-/g, '');
 

@@ -14,6 +14,9 @@ export const ACCEPT_MAX = { version: 32, name: 120, title: 80 } as const;
 export const ISO_UTC_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/; // _common.yaml IsoUtc
 export const MAX_UPLOAD_BYTES = 15 * 1024 * 1024;
 export const UPLOAD_TYPES = ['application/pdf', 'image/png', 'image/jpeg'] as const;
+// CR TENANT-LOGO-1: tenant logo limits, equal to BrandingAssetUpload (identity.yaml) and settings.service MAX_BRANDING_BYTES.
+export const LOGO_MAX_BYTES = 2 * 1024 * 1024;
+export const LOGO_TYPES = ['image/png', 'image/jpeg'] as const;
 export const MAX_CIDRS = 20;
 
 export const PERM = {

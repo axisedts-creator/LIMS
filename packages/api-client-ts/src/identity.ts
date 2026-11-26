@@ -116,6 +116,9 @@ export interface paths {
   "/v1/identity/me/sessions/{session_id}/revoke": {
     post: operations["revokeOwnSession"];
   };
+  "/v1/identity/me/tenant-logo/content": {
+    get: operations["getOwnTenantLogoContent"];
+  };
   "/v1/identity/mobile/sessions": {
     post: operations["openMobileSession"];
   };
@@ -207,6 +210,9 @@ export interface paths {
   };
   "/v1/identity/platform/tenants/{tenant_id}/admin-invitations": {
     post: operations["inviteTenantAdmin"];
+  };
+  "/v1/identity/platform/tenants/{tenant_id}/branding-assets": {
+    post: operations["uploadBrandingAssetAsPlatform"];
   };
   "/v1/identity/platform/tenants/{tenant_id}/feature-flags/{flag_code}": {
     put: operations["setFeatureFlagAsPlatform"];
@@ -4819,6 +4825,157 @@ export interface operations {
         };
       };
       403: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      429: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      500: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+    };
+  };
+  getOwnTenantLogoContent: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: { [name: string]: unknown };
+        content: {
+          "image/jpeg": string;
+          "image/png": string;
+        };
+      };
+      400: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      401: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      403: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      404: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      422: {
         headers: { [name: string]: unknown };
         content: {
           "application/problem+json": {
@@ -17801,6 +17958,212 @@ export interface operations {
         };
       };
       403: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      413: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      415: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      422: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      429: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      500: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+    };
+  };
+  uploadBrandingAssetAsPlatform: {
+    parameters: {
+      query?: never;
+      header: {
+        "Idempotency-Key": string;
+      };
+      path: {
+        tenant_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "multipart/form-data": {
+          file: string;
+          kind: "logo" | "letterhead_header" | "letterhead_footer";
+        };
+      };
+    };
+    responses: {
+      201: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/json": {
+            asset_id: string;
+            kind: "logo" | "letterhead_header" | "letterhead_footer";
+            width: number;
+            height: number;
+            sha256: string;
+            scan_state: "pending" | "clean" | "quarantined";
+          };
+        };
+      };
+      400: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      401: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      403: {
+        headers: { [name: string]: unknown };
+        content: {
+          "application/problem+json": {
+            type: string;
+            title: string;
+            status: number;
+            code: string;
+            detail?: string;
+            instance?: string;
+            request_id: string;
+            errors?: {
+              path: string;
+              code: string;
+              message: string;
+            }[];
+          };
+        };
+      };
+      404: {
         headers: { [name: string]: unknown };
         content: {
           "application/problem+json": {

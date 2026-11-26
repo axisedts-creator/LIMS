@@ -2,8 +2,8 @@
 // PL-2 Provision tenant (AC-E1.1, AC-E1.2): single page with sections; one Idempotency-Key per form; result checklist.
 import { useRef, useState, type FormEvent } from 'react';
 import { Button } from '@lims/ui/components/Button';
-import { provisionTenantAction } from './actions';
-import { ACCEPT_MAX, EMAIL_RE, PAN_RE, TENANT_CODE_RE, UNIT_CODE_RE, errorText } from './shared';
+import { provisionTenantAction, uploadTenantLogoAction } from './actions';
+import { ACCEPT_MAX, EMAIL_RE, LOGO_MAX_BYTES, LOGO_TYPES, PAN_RE, TENANT_CODE_RE, UNIT_CODE_RE, errorText } from './shared';
 import { Alert, SelectInput, TextInput, newKey, useSingleFlight } from './ui';
 
 const EMPTY = {
@@ -15,10 +15,14 @@ const EMPTY = {
 // datetime-local wants local wall time without zone: YYYY-MM-DDTHH:mm
 const localNow = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 16); };
 type Values = typeof EMPTY;
-type Errors = Partial<Record<keyof Values | 'form', string>>;
+type Errors = Partial<Record<keyof Values | 'form' | 'logo', string>>;
+// CR TENANT-LOGO-1: the lab's own logo, optional. Same limits as the API (which re-checks, re-encodes and scans the image).
+const LOGO_ERROR = 'Logo must be a PNG or JPEG image of at most 2 MB.';
+const logoOk = (f: File | undefined) => !f || ((LOGO_TYPES as readonly string[]).includes(f.type) && f.size > 0 && f.size <= LOGO_MAX_BYTES);
 
-function validate(v: Values): Errors {
+function validate(v: Values, logo?: File): Errors {
   const e: Errors = {};
+  if (!logoOk(logo)) e.logo = LOGO_ERROR;
   if (!TENANT_CODE_RE.test(v.code)) e.code = 'Tenant code: 3–32 characters, lowercase letters, digits or _, starting with a letter.';
   if (!v.legal_name.trim()) e.legal_name = 'Enter the legal name.';
   if (!v.display_name.trim()) e.display_name = 'Enter the display name.';
@@ -44,14 +48,26 @@ export function ProvisionForm() {
   const [v, setV] = useState(() => ({ ...EMPTY, accepted_at: localNow() }));
   const [errors, setErrors] = useState<Errors>({});
   const [done, setDone] = useState<{ tenantId: string; code: string }>();
+  const [logo, setLogo] = useState<File>();
+  // 'saved' | an error text; undefined = no logo chosen or upload not finished
+  const [logoState, setLogoState] = useState<string>();
   const key = useRef(newKey());
   const { run, pending } = useSingleFlight();
   const set = (k: keyof Values) => (x: string) => setV((p) => ({ ...p, [k]: x }));
 
+  // The tenant exists before its logo can be stored under it, so the logo goes up as a second request for that tenant id only.
+  // A failed upload never undoes the tenant: the result panel says so and offers the upload again.
+  const sendLogo = async (tenantId: string, file: File) => {
+    const form = new FormData();
+    form.set('file', file);
+    const r = await uploadTenantLogoAction(tenantId, form, newKey());
+    setLogoState(r.ok ? 'saved' : `Logo not saved. ${r.code === 'common.payload_too_large' || r.code === 'common.unsupported_media_type' ? LOGO_ERROR : errorText(r)}`);
+  };
+
   const submit = (ev: FormEvent) => {
     ev.preventDefault();
     void run(async () => {
-      const e = validate(v);
+      const e = validate(v, logo);
       setErrors(e);
       if (Object.keys(e).length) return;
       // one acceptor and one instant (UTC) for both documents; the operator types the versions
@@ -64,7 +80,11 @@ export function ProvisionForm() {
         first_admin: { email: v.admin_email.trim(), display_name: v.admin_name.trim() },
         contract_acceptance: { tos: { ...acceptor, version: v.tos_version.trim() }, dpa: { ...acceptor, version: v.dpa_version.trim() } },
       }, key.current);
-      if (r.ok) { setDone({ tenantId: r.data.tenant_id, code: r.data.code }); return; }
+      if (r.ok) {
+        if (logo) await sendLogo(r.data.tenant_id, logo);
+        setDone({ tenantId: r.data.tenant_id, code: r.data.code });
+        return;
+      }
       if (r.code === 'identity.code_duplicate') setErrors({ code: errorText(r) });
       else setErrors({ form: `${errorText(r)}${r.requestId ? ` Reference: ${r.requestId}` : ''}` });
       // a refused request is final; the corrected form is a new operation (a same-key retry with a new body would be refused)
@@ -80,6 +100,13 @@ export function ProvisionForm() {
           {CHECKLIST.map((c) => <li key={c}><span aria-hidden="true">✓ </span>{c} created</li>)}
         </ul>
         <p role="status">Invitation sent</p>
+        {logo && logoState === 'saved' ? <p role="status">Logo saved</p> : null}
+        {logo && logoState && logoState !== 'saved' ? (
+          <>
+            <Alert>{logoState}</Alert>
+            <Button type="button" isLoading={pending} onPress={() => void run(() => sendLogo(done.tenantId, logo))}>Upload logo again</Button>
+          </>
+        ) : null}
         <a href={`/platform/tenants/${done.tenantId}`}>Open tenant</a>
       </section>
     );
@@ -96,6 +123,14 @@ export function ProvisionForm() {
         <p className="lims-field">Timezone: <span>Asia/Kathmandu</span></p>
         <SelectInput label="Calendar display" value={v.calendar_display} onChange={set('calendar_display')}
           options={[{ value: 'AD_BS', label: 'AD (BS)' }, { value: 'BS_AD', label: 'BS (AD)' }, { value: 'AD', label: 'AD only' }, { value: 'BS', label: 'BS only' }]} />
+        <div className="lims-field">
+          <label className="lims-label" htmlFor="pl2-logo">Lab logo (optional)</label>
+          <input id="pl2-logo" type="file" accept="image/png,image/jpeg,.png,.jpg,.jpeg" aria-describedby="pl2-logo-h"
+            aria-invalid={errors.logo ? true : undefined}
+            onChange={(e) => { const f = e.target.files?.[0]; setLogo(f); setErrors(({ logo: _old, ...rest }) => (logoOk(f) ? rest : { ...rest, logo: LOGO_ERROR })); }} />
+          <p id="pl2-logo-h" className="lims-description">PNG or JPEG, up to 2 MB. Shown to this lab&apos;s staff in place of the default logo. The lab can change it later in Settings.</p>
+          <Alert>{errors.logo}</Alert>
+        </div>
       </fieldset>
       <fieldset>
         <legend><h2>First branch</h2></legend>

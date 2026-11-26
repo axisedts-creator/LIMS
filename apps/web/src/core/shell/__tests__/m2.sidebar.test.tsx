@@ -254,10 +254,13 @@ describe('entries: pill, icon, badge, view-only tag, create "+"', () => {
 });
 
 describe('sidebar frame: logo, tenant name, user card, scrolling list', () => {
-  it('shows the Metro Labs logo and the tenant name on top, the user card (name and role) at the bottom, outside the scroller', () => {
+  // CR TENANT-LOGO-1 changed this expectation on purpose (it was: img named "Metro Labs"): a staff session now gets its own lab's logo on top
+  // (alt = the tenant), still same-origin; the Metro Labs logo is the fallback and the platform logo (tenantlogo1.rail.test.tsx covers both).
+  it('shows the lab logo and the tenant name on top, the user card (name and role) at the bottom, outside the scroller', () => {
     mount();
     const nav = sidebar();
-    const logo = within(nav).getByRole('img', { name: 'Metro Labs' }) as HTMLImageElement;
+    const logo = within(nav).getByRole('img', { name: 'syn' }) as HTMLImageElement;
+    expect(logo.classList.contains('lims-rail-logo')).toBe(true);
     expect(logo.getAttribute('src')).toBeTruthy();
     expect(logo.getAttribute('src')).not.toMatch(/^https?:\/\//); // self-hosted (CSP)
     expect(within(nav).getByText('syn')).toBeTruthy();

@@ -78,6 +78,8 @@ rules:
     owner: C0-0D
   - pattern: "services/worker/package.json"
     owner: C0-0D
+  - pattern: "services/worker/vitest.config.ts"
+    owner: C0-0D
   - pattern: "services/worker/tsconfig.json"
     owner: C0-0D
   - pattern: "services/worker/Dockerfile"

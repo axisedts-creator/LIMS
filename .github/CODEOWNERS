@@ -177,4 +177,5 @@
 /apps/web/src/app/manifest.ts @lims/c0-0d
 /services/worker/tsconfig.json @lims/c0-0d
 /apps/web/src/next-assets.d.ts @lims/c0-0d
+/services/worker/vitest.config.ts @lims/c0-0d
 /apps/web/src/app/(staff)/layout.tsx @lims/c0-0d

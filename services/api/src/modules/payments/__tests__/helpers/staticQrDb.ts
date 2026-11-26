@@ -177,7 +177,7 @@ export function makeStaticQrDb(seed: { view?: ViewRow[]; worksheets?: Row[]; cen
       const work = { view: store.view.map((r) => ({ ...r })), ws: store.ws.map((r) => ({ ...r })), centres: store.centres.map((r) => ({ ...r })) };
       const ctx: any = { tenantId, requestId: randomUUID(), actor: o.actor ?? { type: 'user', id: USER, membershipId: USER }, tx: makeTx(tenantId, work, clock), now: () => clock().toISOString() };
       ctx.audit = { access: async (e: unknown) => { access.push(e); } };
-      ctx.ports = new Proxy({}, { get: (_t, port) => new Proxy({}, { get: (_t2, method) => async () => { access.push(`port:${String(port)}.${String(method)}`); throw new Error('worksheet must not call ports'); } }) });
+      ctx.ports = new Proxy({}, { get: (_t, port) => new Proxy({}, { get: (_t2, method) => async () => { if (port === 'IdentityPort' && method === 'assertRole') return undefined; /* SEC-AUTHZ-6 floor: requirePermission, first statement of every staff function */ access.push(`port:${String(port)}.${String(method)}`); throw new Error('worksheet must not call ports'); } }) });
       const res = await fn(ctx);
       if (!o.rollback) { store.ws = work.ws; }
       return res;

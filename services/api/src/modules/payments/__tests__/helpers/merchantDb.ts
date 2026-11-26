@@ -419,7 +419,8 @@ export function makeMerchantDb(seed: { merchant_accounts?: Row[]; settings?: Row
       const clock = o.now ?? (() => NOW);
       const work = Object.fromEntries((Object.keys(store) as Table[]).map((t) => [t, store[t].map((r) => ({ ...r }))])) as Record<Table, Row[]>;
       const tx = makeTx(tenantId, work, clock);
-      const ctx: any = { tenantId, requestId: randomUUID(), actor: { type: 'user', id: USER, membershipId: USER }, tx, now: () => clock().toISOString(), permissions: o.permissions };
+      const ctx: any = { tenantId, requestId: randomUUID(), actor: { type: 'user', id: USER, membershipId: USER }, tx, now: () => clock().toISOString(), permissions: o.permissions,
+        ports: { IdentityPort: { assertRole: async () => undefined } } }; // SEC-AUTHZ-6: requirePermission asks this first
       ctx.audit = { access: (entry: any) => access(ctx, entry) };
       // ctx.db.tx = SAVEPOINT / ROLLBACK TO (C0 TRD §6, 08 A19 P-44): a throw inside restores every table to its state at entry, then rethrows.
       ctx.db = { tx: async (f: (c: any) => Promise<any>) => {

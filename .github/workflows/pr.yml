@@ -124,6 +124,8 @@ jobs:
           node-version-file: package.json
       - name: pnpm install
         run: corepack enable && pnpm install --frozen-lockfile
+      - name: Chromium for the renderer tests (version pinned by the playwright dependency)
+        run: pnpm --filter @lims/renderer exec playwright install --with-deps chromium
       - name: unit tests of changed packages + dependants (gate 4)
         run: pnpm turbo run test:unit --filter="...[origin/main]"
 

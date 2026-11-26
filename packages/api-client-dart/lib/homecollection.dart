@@ -31,6 +31,18 @@ class HomecollectionApi {
   Future<Object?> createHomeRevisit({required String visitId, Map<String, String>? headers, Object? body}) =>
       _send('POST', '/v1/homecollection/visits/${Uri.encodeComponent(visitId)}/revisits', headers: headers, body: body);
 
+  /// POST /v1/homecollection/applications
+  Future<Object?> createPhleboApplication({Object? body}) =>
+      _send('POST', '/v1/homecollection/applications', body: body);
+
+  /// POST /v1/homecollection/applications/{application_id}/decision
+  Future<Object?> decidePhleboApplication({required String applicationId, Map<String, String>? headers, Object? body}) =>
+      _send('POST', '/v1/homecollection/applications/${Uri.encodeComponent(applicationId)}/decision', headers: headers, body: body);
+
+  /// GET /v1/homecollection/applications/{application_id}/documents/{document_id}
+  Future<Object?> downloadPhleboApplicationDocument({required String applicationId, required String documentId}) =>
+      _send('GET', '/v1/homecollection/applications/${Uri.encodeComponent(applicationId)}/documents/${Uri.encodeComponent(documentId)}');
+
   /// GET /v1/homecollection/handovers/{handover_id}
   Future<Object?> getHandover({required String handoverId}) =>
       _send('GET', '/v1/homecollection/handovers/${Uri.encodeComponent(handoverId)}');
@@ -42,6 +54,10 @@ class HomecollectionApi {
   /// GET /v1/homecollection/settings
   Future<Object?> getHomecollectionSettings() =>
       _send('GET', '/v1/homecollection/settings');
+
+  /// GET /v1/homecollection/applications/{application_id}
+  Future<Object?> getPhleboApplication({required String applicationId}) =>
+      _send('GET', '/v1/homecollection/applications/${Uri.encodeComponent(applicationId)}');
 
   /// GET /v1/homecollection/sync/snapshot
   Future<Object?> getSyncSnapshot({Map<String, Object?>? query, Map<String, String>? headers}) =>
@@ -66,6 +82,10 @@ class HomecollectionApi {
   /// GET /v1/homecollection/reasons
   Future<Object?> listHomecollectionReasons({Map<String, Object?>? query}) =>
       _send('GET', '/v1/homecollection/reasons', query: query);
+
+  /// GET /v1/homecollection/applications
+  Future<Object?> listPhleboApplications({Map<String, Object?>? query}) =>
+      _send('GET', '/v1/homecollection/applications', query: query);
 
   /// GET /v1/homecollection/devices
   Future<Object?> listPhleboDevices({Map<String, Object?>? query}) =>
@@ -107,6 +127,10 @@ class HomecollectionApi {
   Future<Object?> signOffPhleboDevice({required String deviceId, Map<String, String>? headers, Object? body}) =>
       _send('POST', '/v1/homecollection/devices/${Uri.encodeComponent(deviceId)}/sign-off', headers: headers, body: body);
 
+  /// POST /v1/homecollection/applications/{application_id}/submit
+  Future<Object?> submitPhleboApplication({required String applicationId, Map<String, String>? headers}) =>
+      _send('POST', '/v1/homecollection/applications/${Uri.encodeComponent(applicationId)}/submit', headers: headers);
+
   /// POST /v1/homecollection/visits/{visit_id}/unassign
   Future<Object?> unassignHomeVisit({required String visitId, Map<String, String>? headers, Object? body}) =>
       _send('POST', '/v1/homecollection/visits/${Uri.encodeComponent(visitId)}/unassign', headers: headers, body: body);
@@ -114,4 +138,12 @@ class HomecollectionApi {
   /// PUT /v1/homecollection/settings
   Future<Object?> updateHomecollectionSettings({Map<String, String>? headers, Object? body}) =>
       _send('PUT', '/v1/homecollection/settings', headers: headers, body: body);
+
+  /// PUT /v1/homecollection/visits/{visit_id}/tracking
+  Future<Object?> updateVisitTracking({required String visitId, Object? body}) =>
+      _send('PUT', '/v1/homecollection/visits/${Uri.encodeComponent(visitId)}/tracking', body: body);
+
+  /// POST /v1/homecollection/applications/{application_id}/documents/{document_id}/chunks
+  Future<Object?> uploadPhleboApplicationDocumentChunk({required String applicationId, required String documentId, Map<String, String>? headers, Object? body}) =>
+      _send('POST', '/v1/homecollection/applications/${Uri.encodeComponent(applicationId)}/documents/${Uri.encodeComponent(documentId)}/chunks', headers: headers, body: body);
 }

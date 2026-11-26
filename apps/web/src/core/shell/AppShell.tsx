@@ -11,7 +11,7 @@ import { LOGO_ON_DARK } from './brand';
 import type { Centre } from './CentreSwitcher';
 import type { RailGroup } from './Rail';
 import { SessionTimeoutDialog } from './SessionTimeoutDialog';
-import { ShellFrame, type Crumb } from './ShellFrame';
+import { ShellFrame, type Crumb, type ShellNotice } from './ShellFrame';
 
 /** Keeps each section in one run (its first entry's place), so a sub-heading prints once even when manifest orders tie
  *  across modules (micro and anatomic both use 60..63, spec-fixed). Stable: order within a section is unchanged. */
@@ -30,12 +30,14 @@ type Props = {
   centres?: ShellCentres;
   /** optional count badge per entry id */
   counts?: Readonly<Record<string, number>>;
+  /** bell items; omit when the session has no notification source */
+  notifications?: readonly ShellNotice[];
   /** entry ids shown with the "view only" tag */
   viewOnly?: readonly string[];
   children: ReactNode;
 };
 
-export function AppShell({ session, pathname, centres, counts, viewOnly, children }: Props) {
+export function AppShell({ session, pathname, centres, counts, notifications, viewOnly, children }: Props) {
   const perms = session.actor.permissions;
   const platform = session.kind === 'platform';
   const groups: RailGroup[] = RAIL_GROUPS.filter((g) => (g.id === 'platform') === platform)
@@ -73,6 +75,7 @@ export function AppShell({ session, pathname, centres, counts, viewOnly, childre
       logoSrc={LOGO_ON_DARK}
       search={{ canPatients: hasPermission(perms, 'frontdesk.patient.read'), canSpecimens: hasPermission(perms, 'lab.specimen.read') }}
       centres={centres}
+      notifications={notifications}
     >
       {children}
       <SessionTimeoutDialog

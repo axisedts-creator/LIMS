@@ -446,6 +446,43 @@ function buildTracking(b: Row): Record<string, unknown> {
     o['tracking'] = buildTracking(b);
     return o;
   }
+  /**
+   * PHLEBO-UI-FULL-1 bridge: the phlebotomist app's live tracking (homecollection.visit_tracking) feeds the booking's tracking
+   * block. The row is read under its own RLS (a patient sees it only through a booking of their account), and only for the
+   * caller's own home-collection booking that is still open. Coordinates are passed on only while the phlebotomist is on the
+   * way. A failed read never fails the booking: the block then stays as it was.
+   */
+  async function withLiveTracking(tx: any, tenantId: string, b: Row): Promise<Row> {
+    if (b['booking_kind'] !== 'home_collection' || b['status'] !== 'confirmed') return b;
+    let t: Row | undefined;
+    try {
+      t = (await tx.query('SAVEPOINT live_tracking').then(() => tx.query(
+        'SELECT state, stop_reason, collector_display_name, latitude, longitude, accuracy_m, position_at FROM homecollection.visit_tracking WHERE tenant_id = $1 AND booking_id = $2 ORDER BY started_at DESC LIMIT 1',
+        [tenantId, b['id']]))).rows[0];
+      await tx.query('RELEASE SAVEPOINT live_tracking');
+    } catch {
+      try { await tx.query('ROLLBACK TO SAVEPOINT live_tracking'); } catch { /* no savepoint: nothing to undo */ }
+      return b;
+    }
+    if (!t) return b;
+    const out: Row = { ...b, collector_display_name: t['collector_display_name'] };
+    if (t['state'] === 'en_route') {
+      out['tracking_status'] = 'en_route';
+      if (t['latitude'] !== null && t['position_at']) {
+        out['coordinates'] = {
+          latitude: Number(t['latitude']), longitude: Number(t['longitude']),
+          ...(t['accuracy_m'] !== null ? { accuracy_m: t['accuracy_m'] } : {}), captured_at: new Date(t['position_at']).toISOString(),
+        };
+      } else out['location_status'] = 'unavailable';
+    } else if (t['stop_reason'] === 'arrived') {
+      out['tracking_status'] = 'collector_arrived';
+      out['location_status'] = 'not_applicable';
+    } else if (t['stop_reason'] === 'completed') {
+      out['tracking_status'] = 'sample_collected';
+      out['location_status'] = 'not_applicable';
+    }
+    return out;
+  }
   const cutoffOf = (s: Row | undefined): number => s?.['booking_cancel_cutoff_minutes'] ?? DEFAULT_CUTOFF_MIN;
   const mine = async (tx: any, tenantId: string, membershipId: string, lock = false): Promise<Row> => {
     const acc = await myRepo.account(tx, { tenantId, membershipId, lock });
@@ -562,7 +599,7 @@ function buildTracking(b: Row): Record<string, unknown> {
         const acc = await mine(tx, tenantId, membershipId);
         const b = await myRepo.getMine(tx, { tenantId, accountId: acc['id'], id: input.id });
         if (!b) throw new LimsError('common.not_found');
-        return { status: 200, body: await respond(tx, tenantId, b, cutoffOf(await myRepo.settings(tx, tenantId))) };
+        return { status: 200, body: await respond(tx, tenantId, await withLiveTracking(tx, tenantId, b), cutoffOf(await myRepo.settings(tx, tenantId))) };
       } catch (e) { return mapDbError(e); }
     },
 

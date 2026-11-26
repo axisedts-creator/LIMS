@@ -9031,6 +9031,23 @@ export interface Operations {
         cancel_reason_code?: string;
         created_via: "app" | "staff";
         version: number;
+        order_id?: string;
+        tracking?: {
+          tracking_status: "not_assigned" | "assignment_delayed" | "collector_assigned" | "en_route" | "collector_arrived" | "collector_late" | "reassigned" | "waiting_for_location" | "tracking_restored" | "sample_collected" | "partially_collected" | "in_lab" | "recollection_needed" | "report_ready" | "completed" | "cancelled" | "centre_visit";
+          location_status: "live" | "delayed" | "unavailable" | "lost" | "offline" | "not_applicable";
+          status_message: string;
+          collector_display_name?: string;
+          coordinates?: {
+            latitude: number;
+            longitude: number;
+            accuracy_m?: number;
+            captured_at: string;
+          };
+          reassigned?: boolean;
+          eta_available?: boolean;
+          eta_minutes?: number;
+          updated_at?: string;
+        };
       });
       400: {
         type: string;
@@ -23024,6 +23041,23 @@ export interface Operations {
         cancel_reason_code?: string;
         created_via: "app" | "staff";
         version: number;
+        order_id?: string;
+        tracking?: {
+          tracking_status: "not_assigned" | "assignment_delayed" | "collector_assigned" | "en_route" | "collector_arrived" | "collector_late" | "reassigned" | "waiting_for_location" | "tracking_restored" | "sample_collected" | "partially_collected" | "in_lab" | "recollection_needed" | "report_ready" | "completed" | "cancelled" | "centre_visit";
+          location_status: "live" | "delayed" | "unavailable" | "lost" | "offline" | "not_applicable";
+          status_message: string;
+          collector_display_name?: string;
+          coordinates?: {
+            latitude: number;
+            longitude: number;
+            accuracy_m?: number;
+            captured_at: string;
+          };
+          reassigned?: boolean;
+          eta_available?: boolean;
+          eta_minutes?: number;
+          updated_at?: string;
+        };
       });
       400: {
         type: string;
@@ -24472,6 +24506,110 @@ export interface Operations {
         }[];
       };
       426: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  createPhleboApplication: {
+    params: Record<string, never>;
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: {
+      full_name: string;
+      phone_e164: string;
+      email: string;
+      area: string;
+      employment_type: "full_time" | "part_time";
+      shift_count?: "single" | "double";
+      day_slots?: ("morning" | "afternoon" | "evening")[];
+    };
+    responses: {
+      201: {
+        application_id: string;
+        upload_token: string;
+      };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
         type: string;
         title: string;
         status: number;
@@ -34641,6 +34779,156 @@ export interface Operations {
       };
     };
   };
+  decidePhleboApplication: {
+    params: {
+      application_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "If-Match": string;
+    };
+    body: {
+      decision: "approve" | "reject";
+      note?: string;
+    };
+    responses: {
+      200: ({
+        id: string;
+        version: number;
+        status: "submitted" | "approved" | "rejected";
+        full_name: string;
+        phone_e164: string;
+        email: string;
+        area: string;
+        employment_type: "full_time" | "part_time";
+        shift_count?: "single" | "double";
+        day_slots: ("morning" | "afternoon" | "evening")[];
+        submitted_at?: string;
+        decided_at?: string;
+        decided_by_display?: string;
+        decision_note?: string;
+        documents: ({
+          id: string;
+          kind: "licence" | "training_certificate" | "identity" | "photo";
+          file_name: string;
+          content_type: "image/jpeg" | "image/png" | "application/pdf";
+          byte_size: number;
+        })[];
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      428: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   deleteManifestLine: {
     params: {
       manifest_id: string;
@@ -39595,6 +39883,102 @@ export interface Operations {
     body: never;
     responses: {
       200: string;
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  downloadPhleboApplicationDocument: {
+    params: {
+      application_id: string;
+      document_id: string;
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: string | string | string;
       400: {
         type: string;
         title: string;
@@ -53642,6 +54026,23 @@ export interface Operations {
         cancel_reason_code?: string;
         created_via: "app" | "staff";
         version: number;
+        order_id?: string;
+        tracking?: {
+          tracking_status: "not_assigned" | "assignment_delayed" | "collector_assigned" | "en_route" | "collector_arrived" | "collector_late" | "reassigned" | "waiting_for_location" | "tracking_restored" | "sample_collected" | "partially_collected" | "in_lab" | "recollection_needed" | "report_ready" | "completed" | "cancelled" | "centre_visit";
+          location_status: "live" | "delayed" | "unavailable" | "lost" | "offline" | "not_applicable";
+          status_message: string;
+          collector_display_name?: string;
+          coordinates?: {
+            latitude: number;
+            longitude: number;
+            accuracy_m?: number;
+            captured_at: string;
+          };
+          reassigned?: boolean;
+          eta_available?: boolean;
+          eta_minutes?: number;
+          updated_at?: string;
+        };
       });
       400: {
         type: string;
@@ -56899,6 +57300,123 @@ export interface Operations {
         }[];
       };
       503: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  getPhleboApplication: {
+    params: {
+      application_id: string;
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        id: string;
+        version: number;
+        status: "submitted" | "approved" | "rejected";
+        full_name: string;
+        phone_e164: string;
+        email: string;
+        area: string;
+        employment_type: "full_time" | "part_time";
+        shift_count?: "single" | "double";
+        day_slots: ("morning" | "afternoon" | "evening")[];
+        submitted_at?: string;
+        decided_at?: string;
+        decided_by_display?: string;
+        decision_note?: string;
+        documents: ({
+          id: string;
+          kind: "licence" | "training_certificate" | "identity" | "photo";
+          file_name: string;
+          content_type: "image/jpeg" | "image/png" | "application/pdf";
+          byte_size: number;
+        })[];
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      404: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
         type: string;
         title: string;
         status: number;
@@ -79472,6 +79990,23 @@ export interface Operations {
           cancel_reason_code?: string;
           created_via: "app" | "staff";
           version: number;
+          order_id?: string;
+          tracking?: {
+            tracking_status: "not_assigned" | "assignment_delayed" | "collector_assigned" | "en_route" | "collector_arrived" | "collector_late" | "reassigned" | "waiting_for_location" | "tracking_restored" | "sample_collected" | "partially_collected" | "in_lab" | "recollection_needed" | "report_ready" | "completed" | "cancelled" | "centre_visit";
+            location_status: "live" | "delayed" | "unavailable" | "lost" | "offline" | "not_applicable";
+            status_message: string;
+            collector_display_name?: string;
+            coordinates?: {
+              latitude: number;
+              longitude: number;
+              accuracy_m?: number;
+              captured_at: string;
+            };
+            reassigned?: boolean;
+            eta_available?: boolean;
+            eta_minutes?: number;
+            updated_at?: string;
+          };
         })[];
         page: {
           next_cursor?: string;
@@ -83874,6 +84409,112 @@ export interface Operations {
           phase: "1" | "1.5" | "2" | "3";
           assignable: boolean;
         })[];
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  listPhleboApplications: {
+    params: Record<string, never>;
+    query: {
+      status?: "submitted" | "approved" | "rejected";
+    };
+    headers: Record<string, never>;
+    body: never;
+    responses: {
+      200: ({
+        items: ({
+          id: string;
+          version: number;
+          status: "submitted" | "approved" | "rejected";
+          full_name: string;
+          phone_e164: string;
+          email: string;
+          area: string;
+          employment_type: "full_time" | "part_time";
+          shift_count?: "single" | "double";
+          day_slots: ("morning" | "afternoon" | "evening")[];
+          submitted_at?: string;
+          decided_at?: string;
+          decided_by_display?: string;
+          decision_note?: string;
+          documents: ({
+            id: string;
+            kind: "licence" | "training_certificate" | "identity" | "photo";
+            file_name: string;
+            content_type: "image/jpeg" | "image/png" | "application/pdf";
+            byte_size: number;
+          })[];
+        })[];
+        submitted_count: number;
       });
       400: {
         type: string;
@@ -126791,6 +127432,103 @@ export interface Operations {
       };
     };
   };
+  submitPhleboApplication: {
+    params: {
+      application_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "X-Lims-Application-Token": string;
+    };
+    body: never;
+    responses: {
+      204: undefined;
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   submitSmartLibraryVersion: {
     params: {
       library_version_id: string;
@@ -140625,6 +141363,113 @@ export interface Operations {
       };
     };
   };
+  updateVisitTracking: {
+    params: {
+      visit_id: string;
+    };
+    query: Record<string, never>;
+    headers: Record<string, never>;
+    body: {
+      state: "en_route" | "stopped";
+      position?: {
+        latitude: string;
+        longitude: string;
+        accuracy_m?: number;
+      };
+    };
+    responses: {
+      200: ({
+        state: "not_started" | "en_route" | "stopped";
+        started_at?: string;
+        stop_reason?: "arrived" | "completed" | "failed" | "cancelled" | "stopped";
+        position_at?: string;
+      });
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
   uploadAnatomicImage: {
     params: {
       case_id: string;
@@ -141335,6 +142180,141 @@ export interface Operations {
         }[];
       };
       422: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      429: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      500: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+    };
+  };
+  uploadPhleboApplicationDocumentChunk: {
+    params: {
+      application_id: string;
+      document_id: string;
+    };
+    query: Record<string, never>;
+    headers: {
+      "X-Lims-Application-Token": string;
+    };
+    body: {
+      kind: "licence" | "training_certificate" | "identity" | "photo";
+      file_name: string;
+      content_type: "image/jpeg" | "image/png" | "application/pdf";
+      index: number;
+      last: boolean;
+      data: string;
+    };
+    responses: {
+      200: {
+        complete: boolean;
+      };
+      400: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      401: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      403: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      409: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      413: {
+        type: string;
+        title: string;
+        status: number;
+        code: string;
+        detail?: string;
+        instance?: string;
+        request_id: string;
+        errors?: {
+          path: string;
+          code: string;
+          message: string;
+        }[];
+      };
+      415: {
         type: string;
         title: string;
         status: number;

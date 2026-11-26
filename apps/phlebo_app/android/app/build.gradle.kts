@@ -23,12 +23,18 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
+    // The flavours below name the app with resValue, which AGP leaves off by default.
+    buildFeatures {
+        resValues = true
+    }
+
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "np.lims.phlebo_app"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = 26 // sentry_flutter (LD-24 error tracking) requires API 26, same as patient_app
+        // C17 02-TRD s7.6: Android 10+ staff phones (sentry_flutter also needs 26 or newer).
+        minSdk = maxOf(flutter.minSdkVersion, 29)
         targetSdk = flutter.targetSdkVersion
         // Uses the version code from pubspec.yaml. When using split APKs, 1000 * ABI_VERSION
         // is added automatically by Flutter. (https://developer.android.com/studio/build/configure-apk-splits#configure-APK-versions)

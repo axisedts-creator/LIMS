@@ -3,6 +3,7 @@
 // LD-140: lims_ui components and token names only; one primary button ([Reschedule]). REQ-SEC-109: LimsSecureScreen. PHI stays in widget state; server detail is never shown.
 import 'dart:async';
 
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lims_shared/lims_shared.dart';
@@ -17,6 +18,7 @@ import 'booking_wizard_screen.dart';
 import 'bookings_api.dart';
 import 'bookings_format.dart';
 import 'bookings_providers.dart';
+import '../mhn/live_collector_map.dart';
 
 class BookingDetailScreen extends ConsumerStatefulWidget {
   const BookingDetailScreen({super.key, required this.bookingId});
@@ -58,10 +60,23 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
     super.dispose();
   }
 
+  // PHLEBO-UI-FULL-1: while the phlebotomist is on the way the position moves, so the screen asks more often.
+  static const _travelInterval = Duration(seconds: 10);
+  bool _fastPolling = false;
+
   void _startPolling() {
     _timer?.cancel();
+    _fastPolling = false;
     _timer = Timer.periodic(_interval, (_) => _fetch());
     _fetch();
+  }
+
+  void _matchPollingTo(Map<String, Object?>? booking) {
+    final enRoute = asMap(booking?['tracking'])?['tracking_status'] == 'en_route';
+    if (enRoute == _fastPolling || _timer == null) return;
+    _fastPolling = enRoute;
+    _timer?.cancel();
+    _timer = Timer.periodic(enRoute ? _travelInterval : _interval, (_) => _fetch());
   }
 
   void _stopPolling() {
@@ -113,6 +128,7 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
         }
       }
       if (!mounted || _ended) return;
+      _matchPollingTo(b);
       setState(() {
         _booking = b;
         _homeAddress = text;
@@ -233,6 +249,8 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
     final (tone, label) = trackingLook(trackingStatus);
     final etaAvailable = tr?['eta_available'] == true;
     final etaMin = tr?['eta_minutes'] as int?;
+    // Live position (only sent while the phlebotomist is on the way).
+    final live = LivePosition.of(tr);
 
     return LimsCard(
       title: 'Home Collection',
@@ -265,14 +283,20 @@ class _BookingDetailScreenState extends ConsumerState<BookingDetailScreen> {
             const SizedBox(height: LimsTokens.space1),
             Text('Estimated arrival in $etaMin min'),
           ],
-          if (locationStatus == 'unavailable' ||
-              locationStatus == 'lost' ||
-              locationStatus == 'offline' ||
-              locationStatus == 'not_applicable') ...[
-            const SizedBox(height: LimsTokens.space2),
-            const Text(
-              'Live tracking status: Provider integration pending (BLOCKED). Sample collection appointment is confirmed.',
+          if (live != null) ...[
+            const SizedBox(height: LimsTokens.space3),
+            LiveCollectorMap(position: live),
+            const SizedBox(height: LimsTokens.space1),
+            Text(
+              locationStatus == 'delayed' ? 'Last known position, updated ${live.age(DateTime.now())}.' : 'Live position, updated ${live.age(DateTime.now())}.',
+              style: Theme.of(context).textTheme.bodySmall,
             ),
+          ] else if (trackingStatus == 'en_route') ...[
+            const SizedBox(height: LimsTokens.space2),
+            const Text("The phlebotomist is on the way. Their position isn't available right now."),
+          ] else if (trackingStatus == 'not_assigned' || trackingStatus == 'collector_assigned') ...[
+            const SizedBox(height: LimsTokens.space2),
+            const Text('Live tracking starts when the phlebotomist is on the way.'),
           ],
           if (_failed) ...[
             const SizedBox(height: LimsTokens.space2),

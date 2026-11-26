@@ -5330,9 +5330,11 @@ components:
     MobileSessionOpenRequest:
       type: object
       additionalProperties: false
-      required: [ email, password, app_instance_id, app_platform ]
+      description: Exactly one of email and phone_e164 (PHLEBO-UI-FULL-1 phone sign-in); the handler rejects both or neither.
+      required: [ password, app_instance_id, app_platform ]
       properties:
         email: { type: string, maxLength: 254, format: email, minLength: 3 }
+        phone_e164: { type: string, minLength: 9, maxLength: 16, pattern: "^\\+[1-9][0-9]{7,14}$" }
         password: { type: string, maxLength: 128, minLength: 1 }
         app_instance_id: { $ref: _common.yaml#/components/schemas/Uuid }
         app_platform: { type: string, maxLength: 7, enum: [ android, ios ] }

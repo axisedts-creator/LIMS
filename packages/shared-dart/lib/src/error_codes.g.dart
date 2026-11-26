@@ -120,6 +120,8 @@ abstract final class LimsErrorCodes {
   static const String frontdeskReferrerRequired = 'frontdesk.referrer_required';
   static const String frontdeskRetentionNotElapsed = 'frontdesk.retention_not_elapsed';
   static const String homecollectionAppVersionUnsupported = 'homecollection.app_version_unsupported';
+  static const String homecollectionApplicationExists = 'homecollection.application_exists';
+  static const String homecollectionApplicationIncomplete = 'homecollection.application_incomplete';
   static const String homecollectionBarcodeMismatch = 'homecollection.barcode_mismatch';
   static const String homecollectionCollectionNotHeld = 'homecollection.collection_not_held';
   static const String homecollectionDeviceNotRegistered = 'homecollection.device_not_registered';
@@ -411,6 +413,8 @@ const Map<String, int> limsErrorHttpStatus = <String, int>{
   'frontdesk.referrer_required': 422,
   'frontdesk.retention_not_elapsed': 409,
   'homecollection.app_version_unsupported': 426,
+  'homecollection.application_exists': 409,
+  'homecollection.application_incomplete': 409,
   'homecollection.barcode_mismatch': 422,
   'homecollection.collection_not_held': 409,
   'homecollection.device_not_registered': 409,

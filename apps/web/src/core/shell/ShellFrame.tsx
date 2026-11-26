@@ -20,12 +20,17 @@ type Props = {
   logoSrc: string;
   search: { canPatients: boolean; canSpecimens: boolean };
   centres?: { options: readonly Centre[]; activeId: string | null } | undefined;
+  /** Items for the bell. Undefined = this session has no notification source: the bell stays inert and says so. */
+  notifications?: readonly ShellNotice[] | undefined;
   children: ReactNode;
 };
 
+export type ShellNotice = { id: string; title: string; detail?: string; href: string };
+
 const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex="0"]';
 
-export function ShellFrame({ groups, crumb, tenant, user, logoSrc, search, centres, children }: Props) {
+export function ShellFrame({ groups, crumb, tenant, user, logoSrc, search, centres, notifications, children }: Props) {
+  const [bell, setBell] = useState(false);
   const navId = `lims-nav-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`;
   const [drawer, setDrawer] = useState(false);
   const menu = useRef<HTMLButtonElement>(null);
@@ -84,10 +89,34 @@ export function ShellFrame({ groups, crumb, tenant, user, logoSrc, search, centr
             {centres ? <CentreSwitcher centres={centres.options} activeId={centres.activeId} /> : null}
             {/* no notifications contract yet: the control is shown but inert (see .orchestra/notes/T0D-MSERIES-2-impl.md).
                 T0D-WEBFIX-2 (LD-301): the reason is its name, tooltip and a visible note; `disabled` keeps it out of the tab order. */}
+            {notifications === undefined ? (
             <button type="button" className="lims-btn lims-topbar-bell" aria-label={t('core.shell.notifications_unavailable')} title={t('core.shell.notifications_unavailable')} disabled>
               <NavIcon name="bell" />
               <span className="lims-topbar-bell-note" aria-hidden="true">{t('core.shell.notifications_unavailable')}</span>
             </button>
+            ) : (
+            <div className="lims-topbar-bell-wrap" onKeyDown={(e) => { if (e.key === 'Escape') setBell(false); }}>
+              <button
+                type="button" className="lims-btn lims-topbar-bell" aria-expanded={bell} aria-haspopup="true"
+                aria-label={`${t('core.shell.notifications')}${notifications.length ? ` (${notifications.length})` : ''}`}
+                title={t('core.shell.notifications')} onClick={() => setBell((v) => !v)}
+              >
+                <NavIcon name="bell" />
+                {notifications.length ? <span className="lims-topbar-bell-count" aria-hidden="true">{notifications.length > 99 ? '99+' : notifications.length}</span> : null}
+              </button>
+              {bell ? (
+                <div className="lims-topbar-bell-menu" role="region" aria-label={t('core.shell.notifications')}>
+                  {notifications.length === 0 ? <p>{t('core.shell.notifications_none')}</p> : (
+                    <ul>
+                      {notifications.map((n) => (
+                        <li key={n.id}><a href={n.href} onClick={() => setBell(false)}><strong>{n.title}</strong>{n.detail ? <span>{n.detail}</span> : null}</a></li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              ) : null}
+            </div>
+            )}
             <span className="lims-topbar-actor">{user.name}</span>
           </div>
         </div>

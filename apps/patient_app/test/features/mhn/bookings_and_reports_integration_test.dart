@@ -142,7 +142,8 @@ void main() {
       expect(find.text('Home Collection'), findsOneWidget);
       expect(find.text('Sample guide'), findsOneWidget);
       expect(find.text('Report timeline'), findsOneWidget);
-      expect(find.textContaining('Provider integration pending (BLOCKED)'), findsOneWidget);
+      // PHLEBO-UI-FULL-1: the "integration pending (BLOCKED)" placeholder is gone now that live tracking is wired.
+      expect(find.textContaining('Live tracking starts when the phlebotomist is on the way'), findsOneWidget);
 
       await tester.ensureVisible(find.text('Sample guide'));
       await tester.tap(find.text('Sample guide'));

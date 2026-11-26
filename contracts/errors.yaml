@@ -321,3 +321,5 @@
 - { code: homecollection.visit_incomplete, http: 422, owner: C17, title: "Visit is not ready to assign", meaning: "Address and time window required" }   # CR-C17-007
 - { code: homecollection.phlebotomist_not_eligible, http: 422, owner: C17, title: "Phlebotomist cannot take this visit", meaning: "Inactive, other centre, or no phlebotomist role" }   # CR-C17-007
 - { code: homecollection.collection_not_held, http: 409, owner: C17, title: "Collection is not awaiting review", meaning: "" }   # CR-C17-007
+- { code: homecollection.application_exists,     http: 409, owner: C17, title: "Application already open", meaning: "An application for this phone number is already waiting for review (PHLEBO-UI-FULL-1)" }
+- { code: homecollection.application_incomplete, http: 409, owner: C17, title: "Application incomplete", meaning: "A document is missing, out of order or over the allowed number (PHLEBO-UI-FULL-1)" }

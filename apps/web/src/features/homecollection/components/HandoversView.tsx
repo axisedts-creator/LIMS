@@ -4,6 +4,7 @@
 // Names and tube counts only: no visit, phone or address is read on this screen (08 A19 D-125).
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useBoardRefresh } from '../hooks/useBoardRefresh';
 import { Button } from '@lims/ui/components/Button';
 import { DataTable, type ColumnDef } from '@lims/ui/components/DataTable';
 import { DateText, type DateTextProps } from '@lims/ui/components/DateText';
@@ -44,6 +45,7 @@ function StatusCell({ status }: { status: string }) {
 export function HandoversView({ handovers, centres, centreId, status, nextCursor }: HandoversViewProps) {
   const router = useRouter();
   const [open, setOpen] = useState<HandoverSummary | null>(null);
+  useBoardRefresh(open !== null);
 
   const go = (o: { status?: string; centreId?: string; cursor?: string }) => {
     const p = new URLSearchParams();

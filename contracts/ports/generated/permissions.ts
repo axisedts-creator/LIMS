@@ -71,6 +71,8 @@ export type PermissionCode =
   | "frontdesk.registration.create"
   | "frontdesk.settings.manage"
   | "frontdesk.trf.upload"
+  | "homecollection.application.manage"
+  | "homecollection.application.submit"
   | "homecollection.device.manage"
   | "homecollection.handover.receive"
   | "homecollection.settings.manage"
@@ -259,6 +261,8 @@ export const PERMISSION_CODES: readonly PermissionCode[] = [
   "frontdesk.registration.create",
   "frontdesk.settings.manage",
   "frontdesk.trf.upload",
+  "homecollection.application.manage",
+  "homecollection.application.submit",
   "homecollection.device.manage",
   "homecollection.handover.receive",
   "homecollection.settings.manage",
@@ -401,6 +405,7 @@ export const PRIVILEGED: ReadonlySet<PermissionCode> = new Set([
   "frontdesk.patient.anonymise",
   "frontdesk.patient.merge",
   "frontdesk.settings.manage",
+  "homecollection.application.manage",
   "homecollection.device.manage",
   "homecollection.settings.manage",
   "identity.centre.manage",
@@ -575,6 +580,7 @@ export const ROLE_GRANTS: Readonly<Record<string, readonly PermissionCode[]>> = 
     "engagement.booking.read",
     "engagement.queue.manage",
     "engagement.slot.manage",
+    "homecollection.application.manage",
     "homecollection.device.manage",
     "homecollection.settings.manage",
     "homecollection.visit.assign",
@@ -783,6 +789,7 @@ export const ROLE_GRANTS: Readonly<Record<string, readonly PermissionCode[]>> = 
     "frontdesk.patient.merge",
     "frontdesk.patient.read",
     "frontdesk.settings.manage",
+    "homecollection.application.manage",
     "homecollection.device.manage",
     "homecollection.settings.manage",
     "identity.centre.manage",
@@ -861,6 +868,7 @@ export const FIXED_ACTOR_PERMISSIONS = {
   ],
   patient_pre_auth: [
     "engagement.auth.challenge",
+    "homecollection.application.submit",
   ],
   portal: [
     "reporting.portal.challenge",

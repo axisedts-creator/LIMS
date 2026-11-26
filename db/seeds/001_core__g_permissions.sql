@@ -73,6 +73,8 @@ INSERT INTO core.g_permissions (code, module, privileged, phase) VALUES
   ('frontdesk.registration.create', 'frontdesk', false, '1'),
   ('frontdesk.settings.manage', 'frontdesk', true, '1'),
   ('frontdesk.trf.upload', 'frontdesk', false, '1'),
+  ('homecollection.application.manage', 'homecollection', true, '3'),
+  ('homecollection.application.submit', 'homecollection', false, '3'),
   ('homecollection.device.manage', 'homecollection', true, '3'),
   ('homecollection.handover.receive', 'homecollection', false, '3'),
   ('homecollection.settings.manage', 'homecollection', true, '3'),

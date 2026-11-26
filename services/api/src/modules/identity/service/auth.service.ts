@@ -59,7 +59,7 @@ export interface AuthDeps {
 }
 /** T31 (08 R10): which login family. staff = loginStaff (staff_web BFF), partner = loginPartner (partner BFF), mobile = openMobileSession (no BFF). */
 export type LoginMode = 'staff' | 'partner' | 'mobile';
-export interface MobileLoginInput { email: unknown; password: unknown; appInstanceId: string; appPlatform: 'android' | 'ios' }
+export interface MobileLoginInput { email: unknown; password: unknown; appInstanceId: string; appPlatform: 'android' | 'ios'; phoneE164?: string }
 export interface MobileSessionResult { status: 200; body: { session_token: string; access_token: string; access_expires_at: string; session_expires_at: string; session: Record<string, unknown> } }
 export interface LoginResult { status: 200; body: { session_token: string; session: Record<string, unknown> } }
 
@@ -308,7 +308,18 @@ export function createAuthService(deps: AuthDeps) {
     /** T31 loginPartner: session kind partner (AU-T14, 03-APP-FLOW s3.5a) */
     loginPartner: (ctx: AuthCtx, input: { email: unknown; password: unknown }) => counted(ctx, 'partner', login(ctx, input, 'partner') as Promise<LoginResult>),
     /** T31 openMobileSession: session kind staff_mobile (AU-T17) */
+    // PHLEBO-UI-FULL-1 phone sign-in: the phone is turned into the account's email by a DEFINER lookup that answers only for
+    // exactly one active staff user. No answer -> the phone itself goes on as the identifier, so limits, timing and the
+    // auth.login_failed answer are the same as for a wrong password (no enumeration).
     openMobileSession: (ctx: AuthCtx, input: MobileLoginInput) =>
-      counted(ctx, 'mobile', login(ctx, input, 'mobile', { appInstanceId: input.appInstanceId, appPlatform: input.appPlatform }) as Promise<MobileSessionResult>),
+      counted(ctx, 'mobile', (async () => {
+        let email = input.email;
+        if (input.phoneE164 !== undefined) {
+          const found = (await (ctx.tx as { query(t: string, v: unknown[]): Promise<{ rows: Array<Record<string, unknown>> }> })
+            .query('SELECT app.identity_staff_email_for_phone($1) AS email', [input.phoneE164])).rows[0]?.['email'];
+          email = typeof found === 'string' && found !== '' ? found : input.phoneE164;
+        }
+        return login(ctx, { email, password: input.password }, 'mobile', { appInstanceId: input.appInstanceId, appPlatform: input.appPlatform }) as Promise<MobileSessionResult>;
+      })()),
   };
 }

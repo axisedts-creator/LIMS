@@ -17,6 +17,7 @@ import { useToast } from '@lims/ui/components/Toast';
 import { DEVICE_CHANGED, PLATFORM, deviceStatus, failText, hasPerm, humanize, semverLess, toneIcon } from '../labels';
 import { wipeDeviceAction } from '../server/actions';
 import { useSubmissionKey } from '../submission';
+import { useBoardRefresh } from '../hooks/useBoardRefresh';
 import type { DeviceRow, WipeCodes } from '../types';
 
 type Iso = DateTextProps['value'];
@@ -96,6 +97,7 @@ function WipeDialog({ device, reasons, onClose }: { device: DeviceRow; reasons: 
 export function DevicesView({ devices, codes, minAppVersion, permissions, nextCursor }: DevicesViewProps) {
   const router = useRouter();
   const [wipe, setWipe] = useState<DeviceRow | null>(null);
+  useBoardRefresh(wipe !== null);
   const canWipe = hasPerm(permissions, MANAGE) && codes.wipe_reasons.length > 0;
 
   const columns: ColumnDef<DeviceRow>[] = [

@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:lims_ui/lims_ui.dart';
 
+import '../../../app/theme.dart';
 import '../../visit/data/mutation_sink.dart';
 import '../../visit/domain/visit_models.dart';
 import '../../visit/ui/save_once.dart';
@@ -193,9 +194,13 @@ class _CollectScreenState extends State<CollectScreen> with SaveOnce<CollectScre
       label = 'Waiting';
     }
     final t = Theme.of(context).textTheme;
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: LimsTokens.space2),
+    return Card(
+      child: Padding(
+      padding: const EdgeInsets.all(LimsTokens.space3),
       child: Row(children: [
+        Icon(_collected.containsKey(id) ? Icons.check_circle : Icons.science_outlined,
+            color: _collected.containsKey(id) ? LimsTokens.colorToneSuccessFg : LimsTokens.colorNeutral600),
+        const SizedBox(width: LimsTokens.space3),
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text('${tube.typeDisplay} · ${tube.container}', style: t.titleSmall),
@@ -215,7 +220,7 @@ class _CollectScreenState extends State<CollectScreen> with SaveOnce<CollectScre
           ],
         ),
       ]),
-    );
+    ));
   }
 
   @override
@@ -233,6 +238,19 @@ class _CollectScreenState extends State<CollectScreen> with SaveOnce<CollectScre
       child: LimsScaffold(
         title: 'Collect tubes',
         body: ListView(padding: const EdgeInsets.all(LimsTokens.space4), children: [
+          const StepBar(4),
+          LimsCard(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              Text('${_collected.length + _notCollected.length} of ${v.tubes.length} tubes done', style: Theme.of(context).textTheme.titleSmall),
+              const SizedBox(height: LimsTokens.space2),
+              LinearProgressIndicator(
+                value: v.tubes.isEmpty ? 0 : (_collected.length + _notCollected.length) / v.tubes.length,
+                color: LimsTokens.colorAccentHighlight,
+                backgroundColor: LimsTokens.colorNeutral200,
+              ),
+            ]),
+          ),
+          const SizedBox(height: LimsTokens.space3),
           LimsButton(
             key: const ValueKey('collect.camera_toggle'),
             label: _camera ? 'Stop camera' : 'Use camera',

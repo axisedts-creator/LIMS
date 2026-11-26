@@ -887,6 +887,23 @@ export interface operations {
             cancel_reason_code?: string;
             created_via: "app" | "staff";
             version: number;
+            order_id?: string;
+            tracking?: {
+              tracking_status: "not_assigned" | "assignment_delayed" | "collector_assigned" | "en_route" | "collector_arrived" | "collector_late" | "reassigned" | "waiting_for_location" | "tracking_restored" | "sample_collected" | "partially_collected" | "in_lab" | "recollection_needed" | "report_ready" | "completed" | "cancelled" | "centre_visit";
+              location_status: "live" | "delayed" | "unavailable" | "lost" | "offline" | "not_applicable";
+              status_message: string;
+              collector_display_name?: string;
+              coordinates?: {
+                latitude: number;
+                longitude: number;
+                accuracy_m?: number;
+                captured_at: string;
+              };
+              reassigned?: boolean;
+              eta_available?: boolean;
+              eta_minutes?: number;
+              updated_at?: string;
+            };
           };
         };
       };
@@ -2863,6 +2880,23 @@ export interface operations {
             cancel_reason_code?: string;
             created_via: "app" | "staff";
             version: number;
+            order_id?: string;
+            tracking?: {
+              tracking_status: "not_assigned" | "assignment_delayed" | "collector_assigned" | "en_route" | "collector_arrived" | "collector_late" | "reassigned" | "waiting_for_location" | "tracking_restored" | "sample_collected" | "partially_collected" | "in_lab" | "recollection_needed" | "report_ready" | "completed" | "cancelled" | "centre_visit";
+              location_status: "live" | "delayed" | "unavailable" | "lost" | "offline" | "not_applicable";
+              status_message: string;
+              collector_display_name?: string;
+              coordinates?: {
+                latitude: number;
+                longitude: number;
+                accuracy_m?: number;
+                captured_at: string;
+              };
+              reassigned?: boolean;
+              eta_available?: boolean;
+              eta_minutes?: number;
+              updated_at?: string;
+            };
           };
         };
       };
@@ -6104,6 +6138,23 @@ export interface operations {
             cancel_reason_code?: string;
             created_via: "app" | "staff";
             version: number;
+            order_id?: string;
+            tracking?: {
+              tracking_status: "not_assigned" | "assignment_delayed" | "collector_assigned" | "en_route" | "collector_arrived" | "collector_late" | "reassigned" | "waiting_for_location" | "tracking_restored" | "sample_collected" | "partially_collected" | "in_lab" | "recollection_needed" | "report_ready" | "completed" | "cancelled" | "centre_visit";
+              location_status: "live" | "delayed" | "unavailable" | "lost" | "offline" | "not_applicable";
+              status_message: string;
+              collector_display_name?: string;
+              coordinates?: {
+                latitude: number;
+                longitude: number;
+                accuracy_m?: number;
+                captured_at: string;
+              };
+              reassigned?: boolean;
+              eta_available?: boolean;
+              eta_minutes?: number;
+              updated_at?: string;
+            };
           };
         };
       };
@@ -9596,6 +9647,23 @@ export interface operations {
               cancel_reason_code?: string;
               created_via: "app" | "staff";
               version: number;
+              order_id?: string;
+              tracking?: {
+                tracking_status: "not_assigned" | "assignment_delayed" | "collector_assigned" | "en_route" | "collector_arrived" | "collector_late" | "reassigned" | "waiting_for_location" | "tracking_restored" | "sample_collected" | "partially_collected" | "in_lab" | "recollection_needed" | "report_ready" | "completed" | "cancelled" | "centre_visit";
+                location_status: "live" | "delayed" | "unavailable" | "lost" | "offline" | "not_applicable";
+                status_message: string;
+                collector_display_name?: string;
+                coordinates?: {
+                  latitude: number;
+                  longitude: number;
+                  accuracy_m?: number;
+                  captured_at: string;
+                };
+                reassigned?: boolean;
+                eta_available?: boolean;
+                eta_minutes?: number;
+                updated_at?: string;
+              };
             })[];
             page: {
               next_cursor?: string;

@@ -22,7 +22,13 @@ dependencies:
   sqlite3: 3.8.0
   flutter_secure_storage: 11.2.0
   # CR-C17-010 location capture (same pin as packages/ui-flutter)
+  # CR-C17-010 pins (same versions as packages/ui-flutter): re-auth gate, tel:/maps hand-off, GPS point capture
+  local_auth: 3.0.2
+  url_launcher: 6.3.3
   geolocator: 14.1.2
+  # PHLEBO-UI-FULL-1 application documents: pick a photo or PDF, shrink photos before upload (needs a T0-03 dependency row)
+  file_picker: 12.3.0
+  flutter_image_compress: 2.5.1
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -33,6 +39,8 @@ flutter:
   uses-material-design: true
   assets:
     - assets/ca/lims-internal-ca.pem
+    - assets/brand/ml-logo-landscape-white.png
+    - assets/brand/ml-logo-white.png
 # HC-T22: package:sqlite3 build hook -> SQLCipher (TRD §2 / 04 A15). [CONV] C0 picks sqlcipher over sqlite3mc.
 hooks:
   user_defines:

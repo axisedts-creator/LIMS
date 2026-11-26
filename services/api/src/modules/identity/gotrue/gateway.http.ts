@@ -5,6 +5,10 @@ import { LimsError } from '../../../core/errors.js';
 import { GoTrueError, type GoTrueGateway, type GoTrueTokens } from './gateway.js';
 import { idMetrics } from '../metrics.js';
 
+/** Env var NAME of the GoTrue service key. Defined here because identity-service-key-grep (CR-C2-014) allows the literal only in this file;
+ *  core/health.ts lists the name (never the value) for its readiness check. */
+export const SERVICE_KEY_ENV = 'LIMS_IDENTITY_GOTRUE_SERVICE_KEY';
+
 export interface HttpGoTrueGatewayOptions {
   url: string;          // LIMS_IDENTITY_GOTRUE_URL (internal API-network URL)
   serviceKey: string;   // LIMS_IDENTITY_GOTRUE_SERVICE_KEY
@@ -46,7 +50,7 @@ function toTokens(method: string, b: Record<string, unknown>): GoTrueTokens {
 /** The only reader of the service-key env var (CR-C2-014; CI job identity-service-key-grep). Every runtime caller builds its gateway here. */
 export function gotrueGatewayFromEnv(): GoTrueGateway {
   return createHttpGoTrueGateway({
-    url: process.env['LIMS_IDENTITY_GOTRUE_URL'] ?? '', serviceKey: process.env['LIMS_IDENTITY_GOTRUE_SERVICE_KEY'] ?? '',
+    url: process.env['LIMS_IDENTITY_GOTRUE_URL'] ?? '', serviceKey: process.env[SERVICE_KEY_ENV] ?? '',
     publishableKey: process.env['LIMS_IDENTITY_GOTRUE_PUBLISHABLE_KEY'] ?? '',
   });
 }

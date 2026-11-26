@@ -474,6 +474,9 @@ importers:
       '@cantoo/pdf-lib':
         specifier: 2.11.1
         version: 2.11.1(html-entities@2.6.0)
+      '@remotemerge/nepali-date-converter':
+        specifier: 1.2.7
+        version: 1.2.7
       playwright:
         specifier: 1.65.0
         version: 1.65.0

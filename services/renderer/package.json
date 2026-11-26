@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@cantoo/pdf-lib": "2.11.1",
+    "@remotemerge/nepali-date-converter": "1.2.7",
     "playwright": "1.65.0",
     "prom-client": "15.1.3"
   },

@@ -9,10 +9,15 @@ WORKDIR /repo
 RUN npm install -g pnpm@12.18.0
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json ./
 COPY services/renderer/package.json services/renderer/
-RUN pnpm install --frozen-lockfile --ignore-scripts --filter @lims/renderer
+# @lims/shared-ts (+ its workspace dependency's manifest) is installed in the build stage only, so tsc can type its bsdate sources.
+COPY packages/shared-ts/package.json packages/shared-ts/
+COPY contracts/package.json contracts/
+RUN pnpm install --frozen-lockfile --ignore-scripts --filter @lims/renderer --filter @lims/shared-ts
 COPY services/renderer/ services/renderer/
-RUN pnpm --filter @lims/renderer exec tsc -p tsconfig.json --noEmit false --outDir dist --rootDir src \
- && pnpm --filter @lims/renderer deploy --prod --ignore-scripts /out
+# lab templates import the BS calendar from packages/shared-ts/src/bsdate (source only; its one dependency is a renderer dependency).
+COPY packages/shared-ts/src/bsdate/ packages/shared-ts/src/bsdate/
+# rootDir = repo root: /repo/build keeps services/renderer/{src,templates} and packages/shared-ts/src/bsdate at their relative places.
+RUN pnpm --filter @lims/renderer exec tsc -p tsconfig.build.json  && pnpm --filter @lims/renderer deploy --prod --ignore-scripts /out
 
 FROM node:26.13.0-bookworm-slim@sha256:add5c17c14752c54d2f3d519ec46a3815684d41c33f198bcb09fb998f7dcbf68
 ENV NODE_ENV=production \
@@ -20,7 +25,7 @@ ENV NODE_ENV=production \
 WORKDIR /app
 COPY --from=build /out/package.json ./package.json
 COPY --from=build /out/node_modules ./node_modules
-COPY --from=build /repo/services/renderer/dist ./dist
+COPY --from=build /repo/build/ ./
 # Bundled fonts: installed system-wide into fontconfig (02-TRD §5.1: system fonts in the image only, no @font-face).
 COPY services/renderer/fonts/ /usr/share/fonts/truetype/lims/
 # Playwright-managed Chromium at the pinned playwright version (+ its OS deps), then the font cache.
@@ -31,4 +36,4 @@ RUN node node_modules/playwright/cli.js install --with-deps chromium \
  && useradd --system --uid 10001 --no-create-home --shell /usr/sbin/nologin renderer
 USER 10001:10001
 EXPOSE 8080
-CMD ["node", "dist/server.js"]
+CMD ["node", "services/renderer/src/server.js"]

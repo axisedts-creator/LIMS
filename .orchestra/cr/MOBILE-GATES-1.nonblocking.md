@@ -75,3 +75,38 @@ Proposed change (exact): owner decision on the image layout: compile with rootDi
 Backward compatible? yes
 Tenant/security impact: none (no new surface); the hardening of compose.app.yml is unchanged.
 Tests that will prove it: `bash infra/ci/build.sh` builds the image; with the container and the pdf-sandbox container running, `LIMS_E2E_RENDERER_URL=... LIMS_E2E_SANDBOX_URL=... LIMS_E2E_RENDERER_TOKEN_FILE=... LIMS_E2E_SANDBOX_TOKEN_FILE=... npx vitest run src/__tests__/worker-clients.e2e.test.ts` (container mode of that test) passes.
+Status 2026-11-26: (2), (3), (4) fixed on branch `fix/renderer-image` (commit 046cb2d2d): tsconfig.build.json compiles from the repo root (bsdate + templates), `@remotemerge/nepali-date-converter` is a direct dependency of @lims/renderer, registry.ts loads `index.js` when `index.ts` is absent. Image builds; under the compose.app.yml hardening and limits the container mode of worker-clients.e2e.test.ts passes 7/7 against the renderer and pdf-sandbox containers. Open for the owner: review, `infra/ci/build.sh` not run, first render after a cold start took up to ~90 s on a loaded host (compose healthcheck start_period is 30 s).
+
+---
+
+Title: CR-C17-MOBILE-GATES-1-g: full db suite run — 293 failing assertions in 76 suites
+From chunk: C6 (mobile plan, verification)            To owner: C0B (db/tests generator, db/policies) + schema owners named below
+Type: bug (tests) / question
+Blocking? no for mobile; yes for a green `db/tests/run-suites.sh`.
+Problem: `bash db/tests/run-suites.sh` on ui/redesign 7bf082270 + 046cb2d2d (no db/ change), supabase/postgres:17.6.1.136, 2026-11-26: 572 suites, 0 psql failures, 293 `not ok` in 76 suites, elapsed 9198 s (budget 600 s; host was loaded).
+ Isolation suites (259 `not ok`; 244 by what the probe got instead of what it wanted, 15 are step 1 "rows seeded" preconditions of engagement.booking_centres, partners.settings, reporting.settings — the fixture seeds no rows there, so those probes prove nothing):
+ (1) 160 x `E42501` where `n=0` is wanted — 112 of them the 16 `migration_staging.*` tables (steps 2, 7, 8, 9: lims_api / lims_worker have no SELECT at all), 48 the same tables again in T0B-08_step9_fixed. Refused harder than the probe expects; same kind as entry a.
+ (2) 39 x `EP0001`, 27 x `E23514`, 3 x `E23503` where `E42501`/refused is wanted (billing, catalog, smartreport, partners.manifest_lines, engagement.booking_centres, reporting.settings ...): the probe row is refused by a trigger or CHECK before RLS/FK is reached; same kind as entry b.
+ (3) 6 x `n=1`: patient claims read a row of engagement.settings, cs_booking_cancel_reasons, cs_enquiry_categories, cs_reminder_reasons, number_counters, portal_content. Entry a covers settings; the other five need the same owner decision (number_counters looks unintended).
+ (4) 8 x `n=1`/`n=2`: "partner claims read only own rows" on partners.access_slips, manifest_lines, manifests, order_reports, order_tracking, pickup_request_manifests, pickup_requests, tracked_specimens. Probe mistake, not a leak found: the policy scopes by `partner_id = app.current_partner_id()`, the probe compares `created_by` (pg_temp.owncol) with the acting user, so same-partner rows of another creator count as foreign. The probe has no second partner, so cross-partner isolation of these tables is NOT tested.
+ (5) 1 x `n=1`: homecollection.mutations `mutations__batch__fk` accepts a tenant B parent inside the probe; same kind as entry d (deferred constraint) — to be confirmed by the owner.
+ Other suites (34 `not ok`): frontdesk_billing/T0B-10.C4_schema 11, lab/T0B-10.C5_schema 5, reporting/T0B-10.C6_schema 4 (table / policy counts no longer match), grants/T0B-08_grants 3 (lims_app, lims_api hold DELETE on partners.manifest_lines, class C), smartreport/T0B-13.C14_behaviour 3, seeds/T0B-09_seeds 2 (g_permissions / role_permissions differ from permissions.yaml), frontdesk_billing/T0C-REGPARITY-2 2, policy/T0B-08_policy_shape 1, payments/T0B-13.C15_behaviour 1, immutability/T0B-08_immutability 1, anatomic/T0B-13.C11_behaviour 1 (lims_analytics SELECT on the view).
+Proposed change (exact): generator: expect `E42501` where the role has no table privilege; build valid probe rows per table so the refusal comes from RLS/FK; for partner-scoped tables compare `partner_id` and seed a second partner. Owners: decide (3); fix or re-baseline the count, grants, seeds and behaviour suites.
+Backward compatible? yes (tests) — except the grants finding, which removes a privilege.
+Tenant/security impact: (3) and the DELETE grant on partners.manifest_lines are real questions; (4) is an untested boundary.
+Tests that will prove it: `bash db/tests/run-suites.sh` ends with 0 `not ok`.
+
+---
+
+Title: CR-C17-MOBILE-GATES-1-h: renderer template tests that fail on text extracted from the PDF
+From chunk: C6 (mobile plan, verification)            To owner: C6 tester (services/renderer/src/templates/__tests__)
+Type: bug (tests)
+Blocking? no
+Problem: 7 tests failed on a Windows developer host (lab-report 3, modules-smart 3, printcfg-report 1). Run inside the renderer image (bundled fonts) on 2026-11-26: 5 fail.
+ (1) 4 of them: the bundled Noto Sans has fi / fl ligatures, so the PDF text held U+FB01 / U+FB02 ("ﬁndings", "Signiﬁcant", "Ciproﬂoxacin"): a search or copy of those words in a report fails. FIXED: `font-variant-ligatures:none` on the lab report body (src/templates/lab/shared.ts); in the image those 4 pass. The billing and analytics templates name the same font and were NOT changed (no failing test there).
+ (2) lab-report "contact_strip_extra is printed in the footer when configured": still fails in the image. The footer strip wraps between "contact" and "line" and the test's PDF text helper joins wrapped lines without a space ("contactline"). Test not changed.
+ (3) lab-report "prints each analyte ...", printcfg-report "a header of 8 lines of 120 characters ...", and on the host modules-smart "AST rows": fail only on a host whose installed "Noto Sans" is not the bundled build (word spaces are lost in extraction); they pass in the image.
+Proposed change (exact): tester: (2) assert the two halves or make the helper join wrapped lines with a space; (3) run these files only where the bundled fonts are installed, as devanagari.test.ts already does for its image-only check. Owner of billing / analytics templates: decide on the same ligature setting.
+Backward compatible? yes
+Tenant/security impact: none
+Tests that will prove it: the three files pass inside the renderer image.

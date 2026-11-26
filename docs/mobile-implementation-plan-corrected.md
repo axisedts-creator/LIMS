@@ -131,15 +131,38 @@ elsewhere requires the `cr-approved-breaking` label.
 - `db_ci_guards_test.dart` fixed for CRLF checkouts (comment stripping split on `\r?\n`).
 - Gapless numbering and tenant isolation already have suites: `counter.concurrency.test.ts`,
   `counter.live.test.ts` and the generated probes under `db/tests/isolation`.
-  A local run of both on a throwaway Postgres was INCONCLUSIVE: 16 of 104 isolation suites
-  (billing, engagement, homecollection, payments) and all 7 live counter tests failed, but the
-  run used image 17.11.0.018 instead of the pinned 17.6.1.136, skipped the seeds and skipped
-  probe generation, and several failures are of the "rows seeded" kind. They must be rerun
-  the standard way (`bash db/tests/run-suites.sh`) before either gate is called green.
-  No SQL, migration or policy was changed in this work.
+  Rerun with the standard setup (pinned image 17.6.1.136, seeds, generated probes):
+  - Live counter test: 7 of 7 pass. Gapless numbering gate is green.
+  - Isolation, 104 suites for billing, engagement, homecollection, payments: 88 pass, 16 fail
+    (33 assertions). No failure is a cross-tenant read. Kinds:
+    - 21 writes refused with `P0001` (trigger) or `23514` (check) where the probe expects
+      `42501` / `23503`. The write is blocked either way.
+    - 6 "patient claims read 0 rows" on engagement `settings`, `number_counters`,
+      `portal_content` and three `cs_*` tables: the policies grant patients SELECT on
+      own-tenant rows, the probe registry says these tables are not shared. One of the two
+      is wrong; needs an owner decision.
+    - 5 fixture rows of `engagement.booking_centres` not seeded by the probe.
+    - 1 `homecollection.mutations__batch__fk`: the FK is `DEFERRABLE INITIALLY DEFERRED`, so
+      the probe's statement-time check cannot see the refusal. Not verified at commit time.
+  No SQL, migration, policy or probe was changed in this work.
 - Step 4 (mobile BFF) stays deferred: needs a measured problem and an approved CR.
 - Not done: the 50-concurrent-render latency gate (needs a running API and a recorded
   baseline), a run inside the compose containers, a device run of `integration_test/`.
+
+## Progress, third pass (2026-11-25)
+
+- Change requests filed in `.orchestra/cr/MOBILE-GATES-1.nonblocking.md`: (a) ANY_T tables in
+  the isolation probes, (b) probes that never reach RLS behind insert guards / CHECKs,
+  (c) `booking_centres` probe fixture, (d) deferred FK probe, (e) stuck device outbox rows,
+  (f) renderer image not buildable. `db/` is centrally owned, so none of (a)-(d) was edited.
+- Load gate: 50 simultaneous renders through the worker client on a 2-context pool: 50 ok,
+  0 refused, 14.6 s, renderer healthy afterwards (`worker-clients.e2e.test.ts`). The effect
+  on API latency was NOT measured (no running API with a baseline).
+- Container run: `Dockerfile.renderer` does not build. `corepack enable` fixed; the next
+  failure (TS2307 on `packages/shared-ts/src/bsdate`) and three more image gaps are in CR (f).
+  The renderer process entry now loads the template registry (`startFromEnv`); before, every
+  report template would have been an unknown template in the container.
+- Mobile BFF: no CR filed. A CR needs a problem statement and none has been measured.
 
 ## Not verified
 

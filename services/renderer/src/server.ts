@@ -7,7 +7,7 @@ import type { AddressInfo } from 'node:net';
 import { pathToFileURL } from 'node:url';
 import { createPool, RenderError, type Pool } from './pool.js';
 import { render, type Assets } from './render.js';
-import type { Registry } from './templates/registry.js';
+import { loadRegistry, type Registry } from './templates/registry.js';
 
 const MAX_BODY = 20 * 1024 * 1024; // 02-TRD §5.1 "≤ 20 MB [CONV]"
 const TEMPLATE_ID = /^[a-z][a-z0-9_.-]{0,63}$/;
@@ -106,13 +106,20 @@ export async function startServer(o: { pool: Pool; token: string; port?: number;
 }
 
 // Process entry: `node src/server.ts`. Token from LIMS_RENDERER_TOKEN_FILE (02-TRD §8); listens on render_net only.
-if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
-  const tokenFile = process.env.LIMS_RENDERER_TOKEN_FILE;
+/** What the process entry runs. Loads the REAL template registry: without it `lab-report`, `narrative-report` and every data template are an
+ *  unknown template_id (400) and the worker sees reporting.render_unavailable for every report. */
+export async function startFromEnv(env: Readonly<Record<string, string | undefined>> = process.env, o: { port?: number; host?: string } = {}) {
+  const tokenFile = env['LIMS_RENDERER_TOKEN_FILE'];
   if (!tokenFile) throw new Error('LIMS_RENDERER_TOKEN_FILE is required');
   const token = readFileSync(tokenFile, 'utf8').trim();
   const pool = await createPool();
   // ponytail: port 8080 fixed [CONV]; spec names no port key — C1 wires render_net to it.
-  await startServer({ pool, token, port: 8080, host: '0.0.0.0' });
+  const srv = await startServer({ pool, token, port: o.port ?? 8080, host: o.host ?? '0.0.0.0', registry: await loadRegistry() });
+  return { ...srv, pool };
+}
+
+if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
+  const { pool } = await startFromEnv();
   const stop = async () => {
     await pool.close();
     process.exit(0);

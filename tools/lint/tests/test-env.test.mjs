@@ -31,8 +31,15 @@ test('LIMS_TEST_DATABASE_URL: superuser in the modules written that way, lims_ap
   assert.equal(liveDbEnv('/repo/services/api/src/core/pipeline/__tests__/pipeline.integration.test.ts', B).LIMS_TEST_DATABASE_URL, B.apiUrl);
 });
 
-test('LIMS_TEST_APP_DATABASE_URL: superuser only where the suite runs SET LOCAL ROLE lims_app', () => {
-  for (const m of ['anatomic', 'billing', 'payments']) assert.equal(liveDbEnv(api(m), B).LIMS_TEST_APP_DATABASE_URL, B.superUrl, m);
+test('LIMS_TEST_APP_DATABASE_URL: the test login for anatomic, billing, payments; never the superuser; unset without that login', () => {
+  const withRole = { ...B, appRoleUrl: 'postgres://approle' };
+  for (const m of ['anatomic', 'billing', 'payments']) {
+    assert.equal(liveDbEnv(api(m), withRole).LIMS_TEST_APP_DATABASE_URL, 'postgres://approle', m);
+    assert.equal('LIMS_TEST_APP_DATABASE_URL' in liveDbEnv(api(m), B), false, `${m}: no login that keeps row security on -> leave unset (suite skips)`);
+  }
+  for (const m of ['anatomic', 'billing', 'payments', 'analytics', 'lab']) {
+    assert.notEqual(liveDbEnv(api(m), withRole).LIMS_TEST_APP_DATABASE_URL, B.superUrl, `${m}: app connection must not bypass row security`);
+  }
   for (const m of ['analytics', 'lab']) assert.equal(liveDbEnv(api(m), B).LIMS_TEST_APP_DATABASE_URL, B.apiUrl, m);
   assert.equal(liveDbEnv(job('analytics'), B).LIMS_TEST_APP_DATABASE_URL, B.apiUrl);
 });
@@ -55,6 +62,14 @@ test('nothing is set without all three base URLs; a hand-set value is kept; a va
   applyLiveDbEnv(api('lab'), env); // same worker process, next file
   assert.equal(env.LIMS_TEST_DATABASE_URL, B.apiUrl);
   assert.equal(env.LIMS_TEST_SUPER_URL, 'postgres://mine');
+  assert.equal(env.LIMS_TEST_APP_DATABASE_URL, B.apiUrl);
+  applyLiveDbEnv(api('anatomic'), env); // no test login: the value set for the lab file must not stay
+  assert.equal(env.LIMS_TEST_APP_DATABASE_URL, undefined);
+  env.LIMS_CI_DB_APPROLE_URL = 'postgres://approle';
+  applyLiveDbEnv(api('anatomic'), env);
+  assert.equal(env.LIMS_TEST_APP_DATABASE_URL, 'postgres://approle');
+  applyLiveDbEnv(api('lab'), env);
+  assert.equal(env.LIMS_TEST_APP_DATABASE_URL, B.apiUrl);
 });
 
 test('test-env.ts: passwords reach only the target file, are masked first, and bad input fails closed', () => {

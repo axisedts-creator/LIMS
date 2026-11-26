@@ -12,7 +12,7 @@
     "identity:bootstrap-platform-admin": "node --import ../../tools/node-ts/register.mjs src/modules/identity/cli/bootstrap-platform-admin.ts",
     "identity:apply-role-pack": "node --import ../../tools/node-ts/register.mjs src/modules/identity/cli/apply-role-pack.ts",
     "sweep": "node --import ../../tools/node-ts/register.mjs test-sweep/run.ts",
-    "test:isolation": "vitest run /probes/ /isolation/ --passWithNoTests"
+    "test:isolation": "vitest run /probes/ /isolation/ --passWithNoTests --no-file-parallelism"
   },
   "dependencies": {
     "@fastify/ajv-compiler": "4.0.7",

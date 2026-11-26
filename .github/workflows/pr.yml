@@ -162,7 +162,7 @@ jobs:
         run: pnpm dev:up --ci
       - if: steps.plan.outputs.run == 'true'
         name: test database logins for the suites (masked; tools/test-env/live-db.ts maps them per module)
-        run: node tools/devstack/test-env.ts --github-env "$GITHUB_ENV"
+        run: node tools/devstack/test-env.ts --github-env "$GITHUB_ENV" --create-app-login
       - if: steps.plan.outputs.run == 'true'
         name: integration tests (gate 4)
         run: |
@@ -351,7 +351,7 @@ jobs:
         run: pnpm dev:up --ci
       - if: steps.plan.outputs.run == 'true'
         name: test database logins for the suites (masked; tools/test-env/live-db.ts maps them per module)
-        run: node tools/devstack/test-env.ts --github-env "$GITHUB_ENV"
+        run: node tools/devstack/test-env.ts --github-env "$GITHUB_ENV" --create-app-login
       - if: steps.plan.outputs.run == 'true'
         name: db/tests suites + API probes (gate 10)
         run: pnpm turbo run test:isolation

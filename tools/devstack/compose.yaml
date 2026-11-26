@@ -184,7 +184,8 @@ services:
       PGPASSWORD: ${LIMS_MIGRATOR_PASSWORD:?}
     volumes:
       - ../../db/migrations:/migrations:ro
-    command: ["migrate", "apply", "--dir", "file:///migrations", "--revisions-schema", "migrations_meta", "--allow-dirty",
+    # entrypoint (not command) so up.ts can append the optional [amount] argument: `compose run --rm migrate 12`
+    entrypoint: ["/atlas", "migrate", "apply", "--dir", "file:///migrations", "--revisions-schema", "migrations_meta", "--allow-dirty",
               "--url", "postgres://lims_migrator@db:5432/postgres?sslmode=disable&lock_timeout=5s&statement_timeout=15min"]
 
 volumes:

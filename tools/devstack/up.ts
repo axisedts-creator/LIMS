@@ -12,6 +12,7 @@ const ROOT = join(HERE, '..', '..');
 const ENV_FILE = join(HERE, '.env.devstack');
 const COMPOSE = ['compose', '-f', join(HERE, 'compose.yaml'), '--env-file', ENV_FILE];
 const DB = 'postgres'; // SP-3: LIMS uses the image's init database
+const REVISION_WRITERS = 'lims_owner, lims_queue, lims_reporting_lookup, lims_app'; // roles named by SET LOCAL ROLE in db/migrations
 
 function run(cmd: string, args: string[], opts: SpawnSyncOptions = {}): string {
   const r = spawnSync(cmd, args, { cwd: ROOT, stdio: ['pipe', opts.stdio === 'pipe' ? 'pipe' : 'inherit', 'inherit'], encoding: 'utf8', ...opts });
@@ -64,15 +65,29 @@ if (psqlAdmin(['-tAc', "SELECT 1 FROM pg_roles WHERE rolname = 'lims_migrator'"]
     // SP-5 runner contract (Atlas revisions schema).
     `GRANT CONNECT ON DATABASE ${DB} TO supabase_auth_admin, supabase_storage_admin, authenticator;`,
     'CREATE SCHEMA migrations_meta AUTHORIZATION lims_migrator;',
-    'GRANT USAGE ON SCHEMA migrations_meta TO lims_owner;',
-    'ALTER DEFAULT PRIVILEGES FOR ROLE lims_migrator IN SCHEMA migrations_meta GRANT SELECT, INSERT, UPDATE ON TABLES TO lims_owner;',
+    // Atlas writes its revision row under whatever role the migration has SET LOCAL at that moment, so every role a
+    // migration switches to needs these (dev stack only; lims_owner alone fails with 42501 in the first file).
+    `GRANT USAGE ON SCHEMA migrations_meta TO ${REVISION_WRITERS};`,
+    `ALTER DEFAULT PRIVILEGES FOR ROLE lims_migrator IN SCHEMA migrations_meta GRANT SELECT, INSERT, UPDATE ON TABLES TO ${REVISION_WRITERS};`,
   ].join('\n');
   psqlAdmin(['-1', '-q', '-f', '-'], sql);
 }
 
 // 4. migrations as lims_migrator (Atlas, SP-5 runner contract; compose service `migrate`)
 step('migrations (lims_migrator)');
-run('docker', [...COMPOSE, '--profile', 'tools', 'run', '--rm', 'migrate']);
+// SP-2 / LD-31, same split as db/tests/run-suites.sh: (a) files before STEP_C (..001100 grants CREATE to lims_queue),
+// (b) graphile-worker schema as lims_queue, (c) the rest (..001200 reads graphile_worker.jobs).
+// ponytail: (a) is "the next N pending files"; a run that died between (a) and (b) needs a fresh db volume. Atlas community has no --to-version.
+const STEP_C = '20261105001200';
+const migrate = (amount: string[] = []) => run('docker', [...COMPOSE, '--profile', 'tools', 'run', '--rm', 'migrate', ...amount]);
+const firstBatch = readdirSync(join(ROOT, 'db/migrations')).filter((f) => f.endsWith('.sql') && f < STEP_C).length;
+const graphileSchema = psqlAdmin(['-At', '-c', "SELECT count(*) FROM pg_namespace WHERE nspname = 'graphile_worker'"]).trim() === '1';
+if (!graphileSchema) {
+  migrate([String(firstBatch)]);
+  run(process.execPath, [join(ROOT, 'node_modules/graphile-worker/dist/cli.js'), '--schema-only', '-c', `postgres://lims_migrator@127.0.0.1:5432/${DB}`],
+    { env: { ...process.env, PGPASSWORD: E.LIMS_MIGRATOR_PASSWORD, PGOPTIONS: '-c role=lims_queue' } });
+}
+migrate();
 
 // 5. db/seeds — each file in one transaction as lims_migrator (files do SET LOCAL ROLE lims_owner)
 step('db/seeds');

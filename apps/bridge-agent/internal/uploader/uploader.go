@@ -3,8 +3,10 @@ package uploader
 import (
 	"context"
 	"crypto/rand"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 	"slices"
 	"sync"
 	"time"
@@ -31,6 +33,11 @@ type Resolution struct {
 
 type Submitter interface {
 	SubmitBatch(ctx context.Context, idemKey string, body []byte) (BatchResult, error)
+}
+
+// AttachmentSubmitter is an optional extension on Submitter for E06 multipart file_drop attachments.
+type AttachmentSubmitter interface {
+	SubmitAttachment(ctx context.Context, idemKey string, metadataJSON []byte, fileName string, fileBytes []byte) (AttachmentResult, error)
 }
 
 // Options: Store and Client are required; Budget, Clock may be nil; the rest default.
@@ -62,6 +69,8 @@ type Uploader struct {
 	notBefore   time.Time
 	cfgVer      int
 	requeuedVer int
+	maxMsgs     int
+	maxBytes    int
 	// last failed batch, resent byte-identical under the same key
 	pendKey string
 	pendIDs []string
@@ -116,6 +125,27 @@ func ids(items []Item) []string {
 	return out
 }
 
+// SetBatchLimits configures runtime upload batch caps (0 uses package defaults).
+func (u *Uploader) SetBatchLimits(msgs, bytes int) {
+	u.mu.Lock()
+	u.maxMsgs = msgs
+	u.maxBytes = bytes
+	u.mu.Unlock()
+}
+
+func (u *Uploader) batchLimits() (int, int) {
+	u.mu.Lock()
+	m, b := u.maxMsgs, u.maxBytes
+	u.mu.Unlock()
+	if m <= 0 || m > MaxBatchMessages {
+		m = MaxBatchMessages
+	}
+	if b <= 0 || b > MaxBatchBytes {
+		b = MaxBatchBytes
+	}
+	return m, b
+}
+
 // Tick sends at most one batch.
 func (u *Uploader) Tick(ctx context.Context) (TickResult, error) {
 	u.tickMu.Lock()
@@ -132,10 +162,35 @@ func (u *Uploader) Tick(ctx context.Context) (TickResult, error) {
 		return TickResult{Skipped: "backoff"}, nil
 	}
 
-	claimed, err := u.o.Store.Claim(now, MaxBatchMessages)
+	maxMsgs, maxBytes := u.batchLimits()
+	claimed, err := u.o.Store.Claim(now, maxMsgs)
 	if err != nil {
 		return TickResult{}, err
 	}
+	if len(claimed) == 0 {
+		return TickResult{Skipped: "empty"}, nil
+	}
+	// Route attachment items exclusively to E06 (/attachments), never into E04 /message-batches.
+	if claimed[0].Kind == "attachment" {
+		if len(claimed) > 1 {
+			_ = u.o.Store.Release(ids(claimed[1:]), now, "")
+		}
+		return u.tickAttachment(ctx, claimed[0], now, cfgVer)
+	}
+	var batchItems, releaseAtt []Item
+	for _, it := range claimed {
+		if it.Kind == "attachment" {
+			releaseAtt = append(releaseAtt, it)
+		} else {
+			batchItems = append(batchItems, it)
+		}
+	}
+	if len(releaseAtt) > 0 {
+		if err := u.o.Store.Release(ids(releaseAtt), now, ""); err != nil {
+			return TickResult{}, errors.Join(err, u.o.Store.Release(ids(batchItems), now, ""))
+		}
+	}
+	claimed = batchItems
 	if len(claimed) == 0 {
 		return TickResult{Skipped: "empty"}, nil
 	}
@@ -147,7 +202,7 @@ func (u *Uploader) Tick(ctx context.Context) (TickResult, error) {
 	if u.o.Clock != nil {
 		off, _, _ = u.o.Clock.Current(now)
 	}
-	b, err := BuildBatch(claimed, now, off)
+	b, err := BuildBatchLimit(claimed, now, off, maxMsgs, maxBytes)
 	if errors.Is(err, ErrItemTooLarge) {
 		// The oldest item can never be sent; reject it locally so it does not block the queue head.
 		oldest := slices.MinFunc(claimed, func(a, b Item) int { return a.CapturedAtAgent.Compare(b.CapturedAtAgent) })
@@ -210,6 +265,74 @@ func (u *Uploader) onFailure(err error, items []Item, now time.Time) error {
 	next := u.notBefore
 	u.mu.Unlock()
 	return u.o.Store.Release(ids(items), next, code)
+}
+
+func (u *Uploader) tickAttachment(ctx context.Context, it Item, now time.Time, cfgVer int) (TickResult, error) {
+	attCli, ok := u.o.Client.(AttachmentSubmitter)
+	if !ok {
+		return TickResult{}, u.o.Store.Release([]string{it.ID}, now, "attachments_unsupported")
+	}
+	if u.o.Budget != nil && !u.o.Budget.Allow(ClassUpload) {
+		return TickResult{Skipped: "rate_budget"}, u.o.Store.Release([]string{it.ID}, now, "")
+	}
+	var src struct {
+		FileName string `json:"file_name"`
+		MTime    string `json:"mtime"`
+		Size     int64  `json:"size"`
+		Barcode  string `json:"barcode,omitempty"`
+	}
+	_ = json.Unmarshal(it.LinkMeta, &src)
+	if src.FileName == "" {
+		src.FileName = "attachment.bin"
+	}
+	if src.Size == 0 {
+		src.Size = int64(len(it.Raw))
+	}
+	metaObj := map[string]any{
+		"agent_message_id":  it.ID,
+		"instrument_id":     it.InstrumentID,
+		"file_name":         src.FileName,
+		"file_sha256":       it.RawSHA256,
+		"file_size":         src.Size,
+		"file_mtime_agent":  src.MTime,
+		"captured_at_agent": it.CapturedAtAgent.UTC().Format(isoUTC),
+		"clock_offset_ms":   it.ClockOffsetMs,
+	}
+	if src.MTime == "" {
+		metaObj["file_mtime_agent"] = it.CapturedAtAgent.UTC().Format(isoUTC)
+	}
+	if src.Barcode != "" {
+		metaObj["barcode"] = src.Barcode
+	}
+	metaJSON, err := json.Marshal(metaObj)
+	if err != nil {
+		return TickResult{}, u.o.Store.Release([]string{it.ID}, now, "attachment_meta_error")
+	}
+	key, _ := u.batchKey([]string{it.ID}, metaJSON)
+	res, err := attCli.SubmitAttachment(ctx, key, metaJSON, src.FileName, it.Raw)
+	if err != nil {
+		var he *HTTPError
+		if errors.As(err, &he) && (he.Status == http.StatusBadRequest || he.Status == http.StatusRequestEntityTooLarge ||
+			he.Status == http.StatusUnsupportedMediaType || he.Status == http.StatusUnprocessableEntity) {
+			u.mu.Lock()
+			u.failures, u.notBefore, u.pendKey, u.pendIDs, u.pendBod = 0, time.Time{}, "", nil, nil
+			u.mu.Unlock()
+			code := he.Code
+			if code == "" {
+				code = fmt.Sprintf("http_%d", he.Status)
+			}
+			return TickResult{Submitted: 1}, u.o.Store.Resolve(Resolution{
+				ID: it.ID, State: "rejected", ErrorCode: code, RejectedConfigVersion: cfgVer,
+			})
+		}
+		return TickResult{}, u.onFailure(err, []Item{it}, now)
+	}
+	u.mu.Lock()
+	u.failures, u.notBefore, u.pendKey, u.pendIDs, u.pendBod = 0, time.Time{}, "", nil, nil
+	u.mu.Unlock()
+	return TickResult{Submitted: 1}, u.o.Store.Resolve(Resolution{
+		ID: it.ID, State: "uploaded", ServerMessageID: res.InstrumentMessageID, UploadedAt: now,
+	})
 }
 
 // resolve maps per-message outcomes (AC-08.3). Anything unknown or missing goes back to pending with backoff.

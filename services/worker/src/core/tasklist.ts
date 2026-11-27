@@ -9,7 +9,7 @@ import { RETENTION_TIMEOUT_MS, retentionRun } from './retention.js';
 import { SYNC_METRICS, syncMetricsRun } from './sync.js';
 
 export interface Claims { readonly sub: string; readonly tenant_id?: string; readonly actor_type: 'system' }
-export interface WorkerTx { query(text: string, values?: unknown[]): Promise<{ rows: any[] }> }
+export interface WorkerTx { query(text: string, values?: unknown[]): Promise<{ rows: any[] }>; startedAt?: Date }
 export interface WorkerDeps {
   readonly db: { tx<T>(input: { claims: Claims; statementTimeoutMs?: number; operation?: string }, fn: (tx: WorkerTx) => Promise<T>): Promise<T> };
   /** Core-internal 4-arg withTenantScope (08 A23.1/A23.2). */
@@ -24,6 +24,7 @@ export interface WorkerDeps {
   readonly log: { child(ctx: object): any; info(m: string, f?: object): void; warn(m: string, f?: object): void; error(m: string, f?: object): void };
   readonly now: () => Date;
   readonly events: unknown; readonly core: unknown; readonly storage: unknown; readonly files: unknown; readonly audit: unknown;
+  readonly ports?: Readonly<Record<string, unknown>>;
 }
 
 export type TaskKind = 'core' | 'task' | 'consumer';

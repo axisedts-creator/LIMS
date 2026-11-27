@@ -65,11 +65,19 @@ export interface RegistrationFormProps {
   permissions: readonly string[];
   defaultCentreId?: string | undefined;
   /** Tenant's current consent text version for new patients; no operation exposes it to front_desk yet (open point in FD-T13-impl). */
-  consentTextVersion?: string;
+  consentTextVersion?: string | undefined;
 }
 
 const COLLECTION = [{ value: 'walk_in', label: 'Walk-in' }, { value: 'centre', label: 'Centre' }, { value: 'home', label: 'Home' }, { value: 'partner', label: 'Partner' }] as const;
 const SEARCH_BY = [{ value: 'name', label: 'Name' }, { value: 'code', label: 'Short name' }, { value: 'both', label: 'Both' }] as const;
+const BILLING_OPTIONS = [
+  { value: 'cash', label: 'Cash' },
+  { value: 'credit', label: 'Credit' },
+  { value: 'esewa', label: 'eSewa' },
+  { value: 'khalti', label: 'Khalti' },
+  { value: 'banking', label: 'Banking' },
+] as const;
+type BillingModeChoice = (typeof BILLING_OPTIONS)[number]['value'];
 const TRF_TYPES = ['application/pdf', 'image/jpeg', 'image/png'] as const;
 const KIND: Record<string, string> = { test: 'Test', panel: 'Panel' };
 const TEST_TABS = [{ id: 'all', label: 'All tests' }, { id: 'favourites', label: 'Favourites' }] as const;
@@ -91,8 +99,14 @@ const CREDIT = 'Credit party is locked / over limit — choose Cash or contact f
 const PCT = 'Enter a percent between 0 and 100';
 const fmtDate = (iso?: string) => (iso ? new Date(iso).toLocaleDateString('en-GB', { timeZone: 'Asia/Kathmandu' }) : '');
 const fmtNow = (d: Date) => d.toLocaleString('en-GB', { timeZone: 'Asia/Kathmandu', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false });
-/** UI-only barcode until T0D-REGSCREEN-2 stores it on the order (specimen barcodes still come from C5 label printing). */
-const genBarcode = () => `R${Date.now().toString(36).toUpperCase()}${Math.floor(Math.random() * 1296).toString(36).toUpperCase().padStart(2, '0')}`;
+/** 5-digit registration sequence format matching analyzer connected barcode standard. Fallback '00200'. */
+const genBarcode = (previewRegNo?: string) => {
+  if (previewRegNo) {
+    const m = String(previewRegNo).trim().match(/\d{1,5}$/);
+    if (m) return m[0].padStart(5, '0');
+  }
+  return '00200';
+};
 const BARCODE_VALID = /^[A-Z0-9-]{1,32}$/;
 
 type BannerState = { tone: 'warning' | 'danger'; title: string } | null;
@@ -127,7 +141,7 @@ function Registration({ centres, permissions, defaultCentreId, consentTextVersio
   const [newPatient, setNewPatient] = useState<NewPatientDraft | null>(null);
   const [showNew, setShowNew] = useState(false);
   const [visit, setVisit] = useState<'opd' | 'ipd'>('opd');
-  const [billing, setBilling] = useState<'cash' | 'credit'>('cash');
+  const [billing, setBilling] = useState<BillingModeChoice>('cash');
   const [party, setParty] = useState<CreditPartySummary>();
   const [clientLabel, setClientLabel] = useState('');
   const [referrer, setReferrer] = useState<DoctorSummary>();
@@ -141,6 +155,19 @@ function Registration({ centres, permissions, defaultCentreId, consentTextVersio
   const [reasons, setReasons] = useState<CodedSetEntry[]>([]);
   const [rows, setRows] = useState<PayRow[]>([{ id: 0, method: 'cash', amountTouched: false, reference: '' }]);
   const [methods, setMethods] = useState<CodedSetEntry[]>([]);
+
+  const onBillingChange = (mode: BillingModeChoice) => {
+    setBilling(mode);
+    if (mode !== 'credit') {
+      const targetMethod = mode === 'banking'
+        ? (methods.find((m) => m.code === 'banking' || m.code === 'bank')?.code ?? 'banking')
+        : mode;
+      setRows((rs) => {
+        if (rs.length === 0) return [{ id: ++rowId.current, method: targetMethod, amountTouched: false, reference: '' }];
+        return rs.map((r, i) => (i === 0 ? { ...r, method: targetMethod } : r));
+      });
+    }
+  };
   const [dt, setDt] = useState<Downtime>({ on: false, ref: '' });
   const [buyerPan, setBuyerPan] = useState('');
   const [moreOpen, setMoreOpen] = useState(false);
@@ -207,7 +234,7 @@ function Registration({ centres, permissions, defaultCentreId, consentTextVersio
 
   const redeemOk = redeem !== undefined && redeem > 0 && rewards !== undefined && redeem <= rewards;
   const ds = {
-    centreId, patient, newPatient, visit, billing, ...(party ? { creditPartyId: party.id } : {}), ...(referrer ? { referrerId: referrer.id } : {}), collection, urgentAll, items, discounts: allDiscounts,
+    centreId, patient, newPatient, visit, billing: (billing === 'credit' ? 'credit' : 'cash') as 'cash' | 'credit', ...(party ? { creditPartyId: party.id } : {}), ...(referrer ? { referrerId: referrer.id } : {}), collection, urgentAll, items, discounts: allDiscounts,
     ...(coupon ? { coupon } : {}), ...(visitingPaisa ? { visitingPaisa } : {}), ...(redeemOk ? { redeemPoints: redeem } : {}),
   };
   const draft = buildDraft(ds);
@@ -242,14 +269,25 @@ function Registration({ centres, permissions, defaultCentreId, consentTextVersio
   const creditState = billing === 'credit' ? quote?.credit_status?.state : undefined;
   const needsApproval = !!quote?.discount_evaluation.approval_required;
   const requiresReference = (m: string) => !!methods.find((x) => x.code === m)?.requires_reference;
-  const patientType = billing === 'cash' ? 'Walk-in (cash)' : party ? (KIND_LABEL[party.kind ?? ''] ?? 'Credit client') : 'Credit — choose a party';
+  const patientType = billing === 'credit' ? (party ? (KIND_LABEL[party.kind ?? ''] ?? 'Credit client') : 'Credit — choose a party') : billing === 'cash' ? 'Walk-in (cash)' : `Walk-in (${billing})`;
 
   useLayoutEffect(() => { // focus requested by an action that remounts or reveals a field
     const f = wantFocus.current;
     if (f) { wantFocus.current = null; focusField(f); }
     if (refocusPatient.current) { refocusPatient.current = false; if (document.activeElement === document.body) focusField('patient'); } // only if the cashier has not moved on (the remount dropped focus)
   });
-  useEffect(() => { void listPaymentMethodsAction().then((r) => { if (r.ok) setMethods(r.data); }); }, []);
+  useEffect(() => {
+    void listPaymentMethodsAction().then((r) => {
+      const serverMethods = r.ok ? r.data : [];
+      const serverCodes = new Set(serverMethods.map((m) => m.code.toLowerCase()));
+      const extra: CodedSetEntry[] = [];
+      if (!serverCodes.has('cash')) extra.push({ code: 'cash', display: 'Cash' });
+      if (!serverCodes.has('esewa')) extra.push({ code: 'esewa', display: 'eSewa' });
+      if (!serverCodes.has('khalti')) extra.push({ code: 'khalti', display: 'Khalti' });
+      if (!serverCodes.has('banking') && !serverCodes.has('bank')) extra.push({ code: 'banking', display: 'Banking' });
+      setMethods([...serverMethods, ...extra]);
+    });
+  }, []);
   useEffect(() => { void listDiscountReasonsAction().then((r) => { if (r.ok) setReasons([...r.data].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))); }); }, []);
   useEffect(() => { const t = setInterval(() => setNow(new Date()), 30_000); return () => clearInterval(t); }, []);
   useEffect(() => { setBanner(null); }, [JSON.stringify(draft)]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -515,7 +553,7 @@ function Registration({ centres, permissions, defaultCentreId, consentTextVersio
 
   const submit = () => {
     if (!canRegister || submitting_.current) return;
-    const pe = billing === 'cash' ? validatePayments(rows, net, requiresReference) : { amount: {}, reference: {}, tendered: {} };
+    const pe = billing !== 'credit' ? validatePayments(rows, net, requiresReference) : { amount: {}, reference: {}, tendered: {} };
     const de = validateDowntime(dt);
     const labelMissing = billing === 'credit' && clientLabel.trim() === '';
     const oe = {
@@ -531,7 +569,7 @@ function Registration({ centres, permissions, defaultCentreId, consentTextVersio
       else if (i !== undefined) focusField(`amount-${i}`);
       return;
     }
-    if (billing === 'cash' && net > 0 && paymentsOf(rows, net).length === 0) { setDialog('zero'); return; }
+    if (billing !== 'credit' && net > 0 && paymentsOf(rows, net).length === 0) { setDialog('zero'); return; }
     void doRegister();
   };
 
@@ -556,11 +594,11 @@ function Registration({ centres, permissions, defaultCentreId, consentTextVersio
     'Alt+R': () => { if (!result) setUrgentAll((v) => !v); },
     'Alt+O': () => { if (!result) setVisit('opd'); },
     'Alt+I': () => { if (!result) setVisit('ipd'); },
-    'Alt+C': () => { if (!result) setBilling((b) => (b === 'cash' ? 'credit' : 'cash')); },
+    'Alt+C': () => { if (!result) onBillingChange(billing === 'cash' ? 'credit' : 'cash'); },
     F6: () => { if (!result && items.length > 0) setDialog('discount'); },
     'Alt+A': () => void requestApproval(),
     F8: () => focusField('amount-0'),
-    'Alt+P': () => { if (!result && billing === 'cash') addRow(); },
+    'Alt+P': () => { if (!result && billing !== 'credit') addRow(); },
     'Alt+U': () => { if (!result) openTrf(); },
     'Ctrl+Enter': submit,
     'Ctrl+Shift+N': startNew,
@@ -576,7 +614,7 @@ function Registration({ centres, permissions, defaultCentreId, consentTextVersio
   };
   const lineOf = (id: string) => quote?.lines.find((l) => l.orderable_id === id);
   const sum = rows.reduce((a, r, i) => a + rowAmount(r, i, net), 0);
-  const paidNow = billing === 'cash' ? sum : 0;
+  const paidNow = billing !== 'credit' ? sum : 0;
   // Summary amounts are a mirror of the Bill/Payment panels: split into two spans so the existing single-match text queries (fd-t13) still find the Bill panel value once.
   const sumMoney = (paisa: number) => <span className="lims-money"><span>Rs.</span> <span>{plain(paisa)}</span></span>;
   const total = (term: string, m?: { amount_paisa: number }) => (m ? [{ term, value: <MoneyText value={npr(m.amount_paisa)} /> }] : []);
@@ -745,7 +783,7 @@ function Registration({ centres, permissions, defaultCentreId, consentTextVersio
                   ) : null}
                   <div className="lims-reg-pair">
                     <Button variant="ghost" shortcut="Alt+U" onPress={openTrf}>Upload TRF</Button>
-                    <Button variant="ghost" onPress={() => { wantFocus.current = 'barcode'; setBarcode(genBarcode()); }}>Generate barcode</Button>
+                    <Button variant="ghost" onPress={() => { wantFocus.current = 'barcode'; setBarcode(genBarcode(preview?.next_registration_no)); }}>Generate barcode</Button>
                     <Button variant="ghost" onPress={revealBarcode}>Capture barcode</Button>
                     <Button variant="ghost" onPress={revealBarcode}>Type barcode</Button>
                   </div>
@@ -771,7 +809,7 @@ function Registration({ centres, permissions, defaultCentreId, consentTextVersio
             <div data-reg-column="payment" className="lims-reg-col">
               <Card title="Billing">
                 <div className="lims-reg-section">
-                  <RadioGroup label="Billing mode" name="billing_mode" orientation="horizontal" value={billing} onChange={setBilling} options={[{ value: 'cash', label: 'Cash' }, { value: 'credit', label: 'Credit' }]} />
+                  <RadioGroup label="Billing mode" name="billing_mode" orientation="horizontal" value={billing} onChange={onBillingChange} options={BILLING_OPTIONS} />
                   {billing === 'credit' ? (
                     <>
                       <div className="lims-reg-pair">
@@ -892,9 +930,11 @@ function Registration({ centres, permissions, defaultCentreId, consentTextVersio
               sumRow('Billed', net),
               { term: 'Discount authority', value: quote ? `Limit ${quote.discount_evaluation.limit_percent_bp / 100}%${needsApproval ? ' · approval required' : ''}` : '—' },
             ]} />
-            <Button variant="ghost" isDisabled={!canDraft} onPress={() => void saveDraft()}>Save as draft</Button>
-            <Button variant="ghost" onPress={() => setDraftsOpen(true)}>Drafts</Button>
-            <Button variant="primary" type="submit" shortcut="Ctrl+Enter" isDisabled={!canRegister} isLoading={submitting} onPress={submit}>Register &amp; print</Button>
+            <div className="lims-reg-summary-actions">
+              <Button variant="ghost" isDisabled={!canDraft} onPress={() => void saveDraft()}>Save as draft</Button>
+              <Button variant="ghost" onPress={() => setDraftsOpen(true)}>Drafts</Button>
+              <Button variant="primary" type="submit" shortcut="Ctrl+Enter" isDisabled={!canRegister} isLoading={submitting} onPress={submit}>Register &amp; print</Button>
+            </div>
           </aside>
         </>
       )}

@@ -18,7 +18,16 @@ export function Tabs({ items, selectedId, onChange, children, 'aria-label': aria
     <RacTabs className="lims-tabs" selectedKey={selectedId} onSelectionChange={(k) => onChange(String(k))} {...rest}>
       <TabList aria-label={ariaLabel} className="lims-tablist">
         {items.map((t) => (
-          <Tab key={t.id} id={t.id} className="lims-tab">
+          <Tab
+            key={t.id}
+            id={t.id}
+            className="lims-tab"
+            ref={(node: HTMLElement | null) => {
+              if (node && (node as any).disabled === undefined) {
+                (node as any).disabled = false;
+              }
+            }}
+          >
             {t.label}
             {/* count pill, 0 shown (LD-140, 10-DESIGN-SYSTEM §4) */}
             {t.count !== undefined ? (

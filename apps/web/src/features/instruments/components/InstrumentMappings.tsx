@@ -5,6 +5,7 @@
 // T0D-UIX-4 (LD-442): the three tables are the kit DataTable (per-row buttons sit in an Actions column).
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
+import { useLiveRefresh } from './useLiveRefresh';
 import { Banner } from '@lims/ui/components/Banner';
 import { Button } from '@lims/ui/components/Button';
 import { Card } from '@lims/ui/components/Card';
@@ -98,6 +99,7 @@ export function InstrumentMappings({ instrument, observed, maps = [], tests = {}
   const [editor, setEditor] = useState<EditorState | null>(null);
   const [deactivating, setDeactivating] = useState<InstrumentCodeMap | null>(null);
   const [copying, setCopying] = useState(false);
+  useLiveRefresh(10_000, !editor && !deactivating && !copying);
   const rows = unmappedOnly ? observed.filter((o) => o.last_mapping_status !== 'mapped') : observed;
   const testName = (m: InstrumentCodeMap) => tests[m.test_id]?.name ?? m.test_id;
   const analyteName = (m: InstrumentCodeMap) => tests[m.test_id]?.analytes.find((a) => a.id === m.analyte_id)?.name ?? m.analyte_id;

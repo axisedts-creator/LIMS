@@ -1,6 +1,7 @@
 'use client';
 // 04-UI-UX §3.4 success panel: registration no, invoice (auto-print for cash), paid/due, SMS text, labels (08 A13 D-4), Print copy / Open order / New registration.
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { BarcodeSymbol } from '@lims/ui/components/BarcodeSymbol';
 import { Banner } from '@lims/ui/components/Banner';
 import { Button } from '@lims/ui/components/Button';
 import { Card } from '@lims/ui/components/Card';
@@ -114,6 +115,11 @@ export function SuccessPanel({ result, onNew, onOpenOrder, retryLabelsRef, offli
     <Card title="Registered">
       <div role="status">
         <p className="lims-reg-no">{result.order.registration_no}</p>
+        {result.order.registration_no && /^[A-Z0-9-]{1,32}$/.test(result.order.registration_no.trim()) ? (
+          <div className="lims-reg-barcode-box" role="img" aria-label={`Registration barcode ${result.order.registration_no.trim()}`}>
+            <BarcodeSymbol value={result.order.registration_no.trim()} showText heightMm={12} moduleWidthMm={0.25} />
+          </div>
+        ) : null}
         {invoice ? (
           <p>
             <DocNumber value={invoice.invoice_no} />{' '}

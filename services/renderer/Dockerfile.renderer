@@ -5,7 +5,8 @@
 
 FROM node:26.13.0-bookworm-slim@sha256:add5c17c14752c54d2f3d519ec46a3815684d41c33f198bcb09fb998f7dcbf68 AS build
 WORKDIR /repo
-RUN corepack enable
+# node:26 ships no corepack (exit 127); same pinned pnpm as Dockerfile.sandbox
+RUN npm install -g pnpm@12.18.0
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json ./
 COPY services/renderer/package.json services/renderer/
 RUN pnpm install --frozen-lockfile --ignore-scripts --filter @lims/renderer

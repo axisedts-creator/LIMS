@@ -4,7 +4,7 @@
 import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';
 import { LimsError } from '../../../core/errors.js';
 import type { HandlerContext, HandlerResult } from '../../../core/module.js';
-import { Checker, ifMatch, invalid, isObj, isUuid, type Obj } from '../../partners/domain/partyset.rules.js';
+import { Checker, ifMatch, invalid, isObj, isUuid, type Obj } from '../../../core/validation/request-rules.js';
 import * as repo from '../repo/icd.repo.js';
 
 const MANAGE = 'catalog.icd.manage';

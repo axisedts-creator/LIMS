@@ -3,9 +3,10 @@
 import { LimsError } from '../../../core/errors.js';
 import type { Handler, HandlerContext, HandlerRequest } from '../../../core/module.js';
 import { createAgentsService, type AgentsCtx, type Result } from '../service/agents.service.js';
+import { createConfigPublisher } from '../service/configPublisher.js';
 
 type Svc = ReturnType<typeof createAgentsService>;
-const svc = createAgentsService();
+const svc = createAgentsService({ publish: createConfigPublisher() });
 const NO_STORE = { headers: { 'cache-control': 'no-store' } };
 const ETAG = { etag: true };
 

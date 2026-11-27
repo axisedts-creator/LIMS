@@ -3,6 +3,7 @@
 // PINS (see .orchestra/notes/T0B-PARTYSET-1-tests.md): rule failure = LimsError common.validation_failed with errors[].path = JSON pointer of the request field;
 // every handler asserts its own x-permission through IdentityPort.assertRole; privileged partners.party_id_number.read needs aal2 (else auth.mfa_required);
 // ctx.commitOnError() (core feature) keeps the tx alive when the handler throws after calling it; the mask = '*' x (length-4) + last four characters (see contract examples).
+import { billingPort } from '../../../billing/ports/BillingPort.impl.js';
 import { expect } from 'vitest';
 import { createCoreRepo } from '../../../../core/core-repo/index.js';
 import { LimsError } from '../../../../core/errors.js';
@@ -73,7 +74,7 @@ export async function fire(operationId: string, r: ReturnType<typeof req>, who: 
         },
         async getActor() { return { actor: { type: 'user', id: who.userId, membershipId: who.membershipId }, displayName: 'Synthetic Caller', roles: [], permissions: [...who.grants], centreScope: { all: true, centreIds: [] }, branchIds: [], mfa: { enrolled: who.mfa === 'aal2', level: who.mfa }, isLocked: false }; },
         async getTenantSettings() { return { timezone: 'Asia/Kathmandu', numbering: {}, channels: {}, featureFlags: {} }; },
-      }, CatalogPort: catalogManifest.ports.CatalogPort },
+      }, CatalogPort: catalogManifest.ports.CatalogPort, BillingPort: billingPort },   // real billing port: charge posts through it (CR-C13-016)
       // ruling item 1: what the pipeline always supplies (ctx.events = real core createEvents, ctx.core = real createCoreRepo reading core.branches / core.centres)
       events: createEvents({ producer: (o.manifest as { name?: string } | undefined)?.name ?? 'partners' }), core: createCoreRepo({} as never),
       audit: { access: async (e: any) => { probe.access.push(e); } }, commitOnError: () => { keep = true; },

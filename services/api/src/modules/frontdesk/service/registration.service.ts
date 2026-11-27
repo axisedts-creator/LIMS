@@ -380,7 +380,8 @@ function createCtx(c: unknown): CreateCtx {
 }
 
 /** Ports type `now()` as an ISO string (RequestContext); the handler ctx carries a Date. Prototype-delegating copy keeps tx/tenant/actor/ports. */
-const portCtx = (c: CreateCtx): RequestContext => Object.assign(Object.create(c), { now: () => toDate(c.now()).toISOString() }); // VERIFY-GREEN-3 (LD-268): return type only
+const portCtx = (c: CreateCtx): RequestContext =>
+  Object.defineProperty(Object.create(c), 'now', { value: () => toDate(c.now()).toISOString(), writable: true, configurable: true, enumerable: true }); // VERIFY-GREEN-3 (LD-268): return type only
 /** VERIFY-GREEN-3 (LD-268): type-only view of the handler ctx as RequestContext; same object, nothing copied. NB the handler ctx `now()` returns a Date (see notes/VERIFY-GREEN-3.md). */
 const asRc = (c: QuoteCtx): RequestContext => c as unknown as RequestContext;
 

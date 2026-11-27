@@ -3,6 +3,7 @@
 // lives only in component state — never in the URL, history or storage (REQ-SEC-098). Rows come from props (the page reads E33/E42).
 import { useEffect, useRef, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useLiveRefresh } from './useLiveRefresh';
 import { Banner } from '@lims/ui/components/Banner';
 import { BarcodeInput } from '@lims/ui/components/BarcodeInput';
 import { Button } from '@lims/ui/components/Button';
@@ -20,8 +21,9 @@ import type { AgentSummary, InstrumentSummary } from '../server/types';
 import { KIND_LABEL, KIND_OPTIONS, OUTCOME_OPTIONS, OutcomeChip, sizeText } from './MessageLabels';
 
 const TABS = [{ id: 'messages', label: 'Messages' }, { id: 'rejections', label: 'Rejected uploads' }] as const;
-const localDate = (iso: string) => { const d = new Date(iso); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+const localDate = (iso: string) => { const d = new Date(iso); return Number.isNaN(d.getTime()) ? undefined : `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
 const startOfDay = (isoDate: string, plusDays = 0) => { const [y, m, d] = isoDate.split('-').map(Number); return new Date(y!, m! - 1, d! + plusDays).toISOString(); };
+const endDateFromExclusive = (iso: string) => { const d = new Date(iso); if (Number.isNaN(d.getTime())) return undefined; d.setDate(d.getDate() - 1); return localDate(d.toISOString()); };
 
 export function MessagesList({ messages, rejections, instruments, agents }: {
   messages: readonly MessageSummary[];
@@ -32,6 +34,7 @@ export function MessagesList({ messages, rejections, instruments, agents }: {
 }) {
   const router = useRouter();
   const pathname = usePathname();
+  useLiveRefresh(5_000);
   const url = useSearchParams();
   const [tab, setTab] = useState<string>('messages');
   const [found, setFound] = useState<readonly MessageSummary[]>();
@@ -70,8 +73,10 @@ export function MessagesList({ messages, rejections, instruments, agents }: {
     }
   };
 
+  const fromD = from ? localDate(from) : undefined;
+  const toD = to ? endDateFromExclusive(to) : undefined;
   const filterValue: FilterValue = {
-    ...(from && to ? { received: [localDate(from), localDate(to)] } : {}),
+    ...(fromD || toD ? { received: [fromD ?? '', toD ?? ''] } : {}),
     ...(q.instrumentId ? { instrument_id: q.instrumentId } : {}),
     ...(q.agentId ? { agent_id: q.agentId } : {}),
     message_kind: q.messageKind,

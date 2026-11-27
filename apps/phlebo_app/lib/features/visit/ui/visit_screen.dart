@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:lims_ui/lims_ui.dart';
 
+import '../../../app/theme.dart';
 import '../data/mutation_sink.dart';
 import '../domain/visit_models.dart';
 import 'save_once.dart';
@@ -51,12 +52,22 @@ class _VisitScreenState extends State<VisitScreen> with SaveOnce<VisitScreen> {
     return LimsSecureScreen(
       child: LimsScaffold(
         title: v.label,
+        // PHLEBO-UI-FULL-1 C01: the two actions stay pinned under the scrolling details.
+        bottomNavigationBar: BottomActions(children: [
+          saveErrorNotice(),
+          LimsButton(label: "I've arrived", onPressed: saving ? null : _arrive),
+          LimsButton(label: "Can't do this visit", secondary: true, onPressed: saving ? null : widget.onCannotDo),
+        ]),
         body: ListView(padding: const EdgeInsets.all(LimsTokens.space4), children: [
           LimsCard(
             title: 'Patient',
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(v.patientName, style: t.titleMedium),
-              const SizedBox(height: LimsTokens.space2),
+              Row(children: [
+                PersonAvatar(name: v.patientName),
+                const SizedBox(width: LimsTokens.space3),
+                Expanded(child: Text(v.patientName, style: t.titleLarge)),
+              ]),
+              const SizedBox(height: LimsTokens.space3),
               LimsButton(
                 label: 'Call',
                 icon: Icons.call_outlined,
@@ -110,12 +121,6 @@ class _VisitScreenState extends State<VisitScreen> with SaveOnce<VisitScreen> {
             title: 'Amount due',
             child: Text('NPR ${formatPaisa(v.amountDuePaisa)} as of ${v.amountAsOf}'),
           ),
-          const SizedBox(height: LimsTokens.space4),
-          saveErrorNotice(),
-          const SizedBox(height: LimsTokens.space3),
-          LimsButton(label: "I've arrived", onPressed: saving ? null : _arrive),
-          const SizedBox(height: LimsTokens.space2),
-          LimsButton(label: "Can't do this visit", secondary: true, onPressed: saving ? null : widget.onCannotDo),
         ]),
       ),
     );

@@ -16,7 +16,10 @@ type Row = Record<string, any>;
 export interface HostQueryCtx extends DeviceCtx {
   readonly ports?: {
     readonly LabPort?: { getPendingTestsForBarcode(ctx: unknown, input: { instrumentId: string; barcode: string }): Promise<Row> };
-    readonly CatalogPort?: { mapInstrumentCode(ctx: unknown, input: { instrumentId: string; direction: 'outbound'; analyteId: string }): Promise<Row> };
+    readonly CatalogPort?: {
+      mapInstrumentCode(ctx: unknown, input: { instrumentId: string; direction: 'outbound'; analyteId: string }): Promise<Row>;
+      getTest?(ctx: unknown, input: { testId: string }): Promise<Row>;
+    };
   };
   commitOnError?(): void;                     // core hook: keep this tx's rows although the request ends in a 4xx
 }
@@ -59,27 +62,51 @@ export function createHostQueryService(deps: HostQueryDeps = {}) {
         if (code(e) === 'lab.specimen_not_receivable') return { barcode, status: 'not_receivable', tests: [] };
         throw e;                                          // anything else is not an answer
       }
-      const tests: Array<{ testId: any; analyteId: any; instrumentCode: string }> = [];
+      const tests: Array<{ testId: any; analyteId: any; instrumentCode: string; testName?: string; unit?: string; referenceRange?: string }> = [];
       for (const t of Array.isArray(r['tests']) ? r['tests'] : []) {
         for (const analyteId of Array.isArray(t.analyteIds) ? t.analyteIds : []) {
           const c = await instrumentCode(analyteId);      // unmapped analytes are skipped
-          if (c) tests.push({ testId: t.testId, analyteId, instrumentCode: c });
+          if (c) {
+            tests.push({
+              testId: t.testId,
+              analyteId,
+              instrumentCode: c,
+              ...(typeof t.testName === 'string' ? { testName: t.testName } : {}),
+              ...(typeof t.unitCode === 'string' ? { unit: t.unitCode } : {}),
+              ...(typeof t.referenceRange === 'string' ? { referenceRange: t.referenceRange } : {}),
+            });
+          }
         }
       }
       if (!tests.length) return { barcode, status: 'no_mapped_tests', tests: [] };
       const pat = obj(r['patient']);
-      return { barcode, status: 'found', ...(r['priority'] === 'routine' || r['priority'] === 'urgent' ? { priority: r['priority'] } : {}),
-        ...(SEX.has(pat['sex']) ? { sex: pat['sex'] } : {}), ...(Number.isSafeInteger(pat['ageDays']) ? { ageDays: pat['ageDays'] } : {}), tests };
+      return {
+        barcode,
+        status: 'found',
+        ...(r['priority'] === 'routine' || r['priority'] === 'urgent' ? { priority: r['priority'] } : {}),
+        ...(SEX.has(pat['sex']) ? { sex: pat['sex'] } : {}),
+        ...(Number.isSafeInteger(pat['ageDays']) ? { ageDays: pat['ageDays'] } : {}),
+        ...(typeof pat['patientId'] === 'string' ? { patientId: pat['patientId'] } : {}),
+        ...(typeof pat['patientName'] === 'string' ? { patientName: pat['patientName'] } : {}),
+        ...(typeof pat['patientNameLatin'] === 'string' ? { patientNameLatin: pat['patientNameLatin'] } : {}),
+        ...(typeof pat['dateOfBirth'] === 'string' ? { dateOfBirth: pat['dateOfBirth'] } : {}),
+        ...(typeof r['department'] === 'string' ? { department: r['department'] } : {}),
+        ...(typeof r['accessionNumber'] === 'string' ? { accessionNumber: r['accessionNumber'] } : {}),
+        ...(typeof r['specimenTypeCode'] === 'string' ? { specimenType: r['specimenTypeCode'] } : {}),
+        ...(typeof r['collectedAt'] === 'string' ? { collectedAt: r['collectedAt'] } : {}),
+        ...(typeof r['receivedAt'] === 'string' ? { receivedAt: r['receivedAt'] } : {}),
+        tests,
+      };
     }));
   }
 
-  function driverCtx(ins: Row, tx: any, captured: string): DriverContext {
-    return { receivedAt: new Date(tx.startedAt).toISOString() as DriverContext['receivedAt'], capturedAt: captured as DriverContext['capturedAt'], instrumentTimezone: ins['timezone'],
+  function driverCtx(ins: Row, tx: any, captured: string, receivedAt?: string): DriverContext {
+    return { receivedAt: new Date(receivedAt ?? tx.startedAt).toISOString() as DriverContext['receivedAt'], capturedAt: captured as DriverContext['capturedAt'], instrumentTimezone: ins['timezone'],
       qcSampleIdPatterns: [], options: obj(ins['parser_options']) };
   }
 
-  function parseQuery(driver: InstrumentDriver, ins: Row, raw: Buffer, tx: any, captured: string): { parsed: ParseOk; barcodes: string[] } | undefined {
-    const dctx = driverCtx(ins, tx, captured);
+  function parseQuery(driver: InstrumentDriver, ins: Row, raw: Buffer, tx: any, captured: string, receivedAt?: string): { parsed: ParseOk; barcodes: string[] } | undefined {
+    const dctx = driverCtx(ins, tx, captured, receivedAt);
     try {
       const pr = driver.parse(raw, dctx);
       if (!pr.ok || pr.messageKind !== 'host_query') return undefined;
@@ -133,10 +160,10 @@ export function createHostQueryService(deps: HostQueryDeps = {}) {
         if (gated) { keep(); throw new LimsError('instruments.capability_not_supported'); }
         const stored = await repo.findMessageRaw(tx, tenantId, l1.id);
         if (!stored) throw new LimsError('common.internal');
-        const q = parseQuery(driver, ins, stored.raw_bytes, tx, captured);
+        const q = parseQuery(driver, ins, stored.raw_bytes, tx, captured, stored.received_at);
         if (!q) { keep(); throw new LimsError('instruments.message_malformed'); }
         const answers = await answerAll(ctx, ins['id'], q.barcodes);
-        return reply(l1.id, answers, driver.buildHostQueryReply!({ query: q.parsed, answers, ctx: driverCtx(ins, tx, captured) }));
+        return reply(l1.id, answers, driver.buildHostQueryReply!({ query: q.parsed, answers, ctx: driverCtx(ins, tx, captured, stored.received_at) }));
       }
       if (String(b['raw_sha256']).toLowerCase() !== sha) throw new LimsError('common.validation_failed');
 

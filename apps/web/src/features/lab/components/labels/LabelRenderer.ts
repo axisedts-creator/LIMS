@@ -43,11 +43,11 @@ function label(l: LabelData, key: string, w: number, hgt: number): ReactElement 
   const tests = [...l.testCodes.map(String), ...(l.moreTests > 0 ? [`+${l.moreTests}`] : [])].join(' ');
   const line2 = [l.registrationNo, l.specimenTypeCode, ...(l.containerCode ? [l.containerCode] : [])].join(' ');
   return h('div', { key, className: 'lbl', 'data-testid': 'label' },
-    h('div', { className: 'lbl-l' }, `${l.patientName.slice(0, NAME_MAX)} ${l.ageSex}`),
     fits
       ? h(BarcodeSymbol, { value: l.barcode, moduleWidthMm: moduleWidthFor(l.barcode, w), heightMm: Math.max(MIN_BAR_MM, hgt * 0.32), showText: false })
       : h('div', { className: 'lbl-warn' }, TOO_SMALL),
-    h('div', { className: 'lbl-bc' }, l.barcode),
+    h('div', { className: 'lbl-bc' }, `*${l.barcode}*`),
+    h('div', { className: 'lbl-l' }, `${l.patientName.slice(0, NAME_MAX)} ${l.ageSex}`),
     h('div', { className: 'lbl-l' }, line2),
     ...(tests ? [h('div', { className: 'lbl-l', key: 't' }, tests)] : []),
     ...(l.collectedOn ? [h('div', { className: 'lbl-l', key: 'c' }, `Coll: ${dmy(l.collectedOn)}`)] : []),

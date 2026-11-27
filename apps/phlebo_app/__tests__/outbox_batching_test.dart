@@ -122,7 +122,10 @@ void main() {
     test('≤ 512 KB serialized: oversized pending set is split at a prefix, no gaps, no overlap, no row lost', () async {
       // ~7 KB payload each (8 KB per-mutation cap, 07-SECURITY REQ-SEC-080) × 100 ≈ 700 KB > 512 KB.
       final pad = 'x' * 7000;
-      await enqueueMany(100, payload: (i) => {'gps': {'status': 'off'}, 'padding': pad});
+      // enqueue refuses a payload the server would refuse (mutation_payload.dart), and no valid payload is this large,
+      // so the oversized rows are written past it: the size split is a defence for rows that are already in the log.
+      await enqueueMany(100);
+      await fx.db.execute('UPDATE mutation_log SET payload_json = ?', [jsonEncode({'gps': {'status': 'off'}, 'padding': pad})]);
       final first = (await fx.repo.formBatch())!;
       expect(utf8.encode(first.bodyJson).length, lessThanOrEqualTo(512 * 1024));
       expect(first.clientMutationIds.length, lessThan(100));

@@ -5,14 +5,16 @@ import { LimsError } from '../../../core/errors.js';
 import type { Handler, HandlerContext, HandlerRequest } from '../../../core/module.js';
 import type { DeviceCtx, DeviceResult } from '../service/enrolment.service.js';
 import type { AgentsCtx, Result } from '../service/agents.service.js';
+import { createConfigPublisher } from '../service/configPublisher.js';
 import { createHostQueryService, type HostQueryCtx } from '../service/hostQuery.service.js';
 import { createInstrumentsService } from '../service/instruments.service.js';
 import { createObservedCodesService } from '../service/observedCodes.service.js';
 import { createSettingsService } from '../service/settings.service.js';
 
-const instruments = createInstrumentsService();
+const publish = createConfigPublisher();
+const instruments = createInstrumentsService({ publish });
 const observed = createObservedCodesService();
-const settings = createSettingsService();
+const settings = createSettingsService({ publish });
 const hostQuery = createHostQueryService();
 
 const obj = (v: unknown): Record<string, any> => (typeof v === 'object' && v !== null && !Array.isArray(v) ? (v as Record<string, any>) : {});

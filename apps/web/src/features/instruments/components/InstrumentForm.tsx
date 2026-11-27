@@ -80,9 +80,9 @@ const METIS_CHECKLIST = [ // §9, wording kept close to the addendum
   'Pull the internet link, scan a tube and record what happens. Restore the link and confirm queued results upload once, with no duplicates. Sign off. Promotion to verified is a reviewed migration plus a code change, not a switch in this form.',
 ] as const;
 
-interface OptionField { key: string; title: string; maxLength?: number; options?: string[]; numeric?: boolean; def: string }
+interface OptionField { key: string; title: string; maxLength?: number; options?: string[]; numeric?: boolean; bool?: boolean; def: string }
 const UNSAFE_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
-/** One field per string / enum property of the driver's JSON Schema (own keys only; anything else is ignored, never rendered as HTML).
+/** One field per string / enum / boolean property of the driver's JSON Schema (own keys only; anything else is ignored, never rendered as HTML).
  *  A numeric enum (with or without `type`, e.g. truth_h80e host_query_detection_mode) is a Select whose value is sent back as a number. */
 function optionFields(schema: Record<string, unknown> | undefined): OptionField[] {
   const props = schema && Object.hasOwn(schema, 'properties') ? schema['properties'] : undefined;
@@ -94,26 +94,26 @@ function optionFields(schema: Record<string, unknown> | undefined): OptionField[
     const { type, title, maxLength, enum: en, default: def } = p as Obj;
     const numEnum = Array.isArray(en) && en.length > 0 && en.every((x) => typeof x === 'number' && Number.isFinite(x))
       && (type === undefined || type === 'integer' || type === 'number');
-    if (type !== 'string' && !numEnum) continue;
+    if (type !== 'string' && type !== 'boolean' && !numEnum) continue;
     out.push({
       key: k, title: typeof title === 'string' && title ? title : k,
-      def: numEnum ? (typeof def === 'number' ? String(def) : '') : typeof def === 'string' ? def : '',
-      ...(typeof maxLength === 'number' && maxLength > 0 && !numEnum ? { maxLength } : {}),
+      def: numEnum ? (typeof def === 'number' ? String(def) : '') : type === 'boolean' ? (typeof def === 'boolean' ? String(def) : 'false') : typeof def === 'string' ? def : '',
+      ...(typeof maxLength === 'number' && maxLength > 0 && !numEnum && type !== 'boolean' ? { maxLength } : {}),
+      ...(type === 'boolean' ? { bool: true } : {}),
       ...(numEnum ? { options: (en as number[]).map(String), numeric: true }
         : Array.isArray(en) && en.every((x) => typeof x === 'string') && en.length ? { options: en as string[] } : {}),
     });
   }
   return out;
 }
-/** Driver JSON Schema of parser options. Field name pending .orchestra/cr/H80-T06.md (E22 Driver has no optionsSchema yet); read only here. */
-const driverOptionsSchema = (d: Driver | undefined) => (d as (Driver & { options_schema?: Record<string, unknown> }) | undefined)?.options_schema;
+const driverOptionsSchema = (d: Driver | undefined) => d?.options_schema;
 
 interface State {
   instrument_code: string; display_name: string; vendor: string; model: string; serial_no: string; software_version: string;
   agent_id?: string | undefined; protocol?: Protocol | undefined; driver_code?: string | undefined;
   transport: Obj; peers: string; file_drop?: Obj | undefined; host_query: boolean;
   astm: Record<string, number | undefined>; hl7: Obj;
-  preset: 'custom' | 'truth_h80e' | 'getein_metis'; popts: Record<string, string>; // popts: parser options the user touched (schema keys only)
+  preset: 'custom' | 'truth_h80e' | 'getein_metis'; popts: Record<string, string>; poptsExtra: Obj; // popts: scalar fields; poptsExtra: maps kept across edits
   timezone?: string | undefined; qc: string; silence_window?: number | undefined; from: string; to: string;
 }
 
@@ -124,7 +124,15 @@ const init = (i?: Instrument): State => ({
   transport: { ...(i?.transport ?? {}) }, peers: Array.isArray(i?.transport?.['allowed_peers']) ? (i!.transport!['allowed_peers'] as string[]).join(', ') : '',
   ...(i?.file_drop ? { file_drop: { ...i.file_drop } } : {}), host_query: i?.capabilities?.host_query ?? false,
   astm: { ...ASTM_DEFAULTS, ...(i?.protocol_options?.astm as Record<string, number> | undefined) }, hl7: { ...(i?.protocol_options?.hl7v2 ?? {}) },
-  preset: 'custom', popts: {},
+  preset: 'custom',
+  popts: Object.fromEntries(
+    Object.entries(i?.parser_options ?? {})
+      .filter(([k, v]) => !UNSAFE_KEYS.has(k) && (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean'))
+      .map(([k, v]) => [k, String(v)]),
+  ),
+  poptsExtra: Object.fromEntries(
+    Object.entries(i?.parser_options ?? {}).filter(([k, v]) => !UNSAFE_KEYS.has(k) && v !== null && typeof v === 'object'),
+  ),
   ...(i?.timezone ? { timezone: i.timezone } : {}), qc: (i?.qc_sample_id_patterns ?? []).join('\n'),
   ...(i?.silence_window_minutes !== undefined ? { silence_window: i.silence_window_minutes } : {}), from: i?.silence_active_from ?? '', to: i?.silence_active_to ?? '',
 });
@@ -180,16 +188,23 @@ export function InstrumentForm({ mode, agents, drivers, instrument, permissions 
   const [idempotencyKey] = useState(() => crypto.randomUUID()); // one key per form instance: a retry is the same create (02-CONVENTIONS §4.5)
   const inFlight = useRef(false);
   const done = useRef(false);
+  const dirty = useRef(false);
   const version = useRef(instrument?.version ?? 1);
-  if (instrument && instrument.version > version.current) version.current = instrument.version;
+  useEffect(() => {
+    if (!dirty.current && instrument && instrument.version !== version.current) {
+      version.current = instrument.version;
+      setS(init(instrument));
+    }
+  }, [instrument]);
   const seen = useRef(new Set<string>());
   seen.current = new Set();
 
   const driver = drivers.find((d) => d.code === s.driver_code);
   const declaresHostQuery = !!driver?.capabilities.host_query;
   const supportsHostQuery = declaresHostQuery && driver?.status === 'verified'; // 02-TRD §6.6 step 2: host query is inert until verified (LD-139)
-  const optFields = useMemo(() => (edit ? [] : optionFields(driverOptionsSchema(driver))), [edit, driver]);
+  const optFields = useMemo(() => optionFields(driverOptionsSchema(driver)), [driver]);
   const patch = (p: Partial<State>, ...ptrs: string[]) => {
+    dirty.current = true;
     setS((x) => ({ ...x, ...p }));
     if (ptrs.length) setServerErr((e) => Object.fromEntries(Object.entries(e).filter(([k]) => !ptrs.includes(k))));
   };
@@ -217,8 +232,13 @@ export function InstrumentForm({ mode, agents, drivers, instrument, permissions 
     const astm = s.protocol === 'astm' ? opts(s.astm, orig?.astm, ASTM_DEFAULTS) : {};
     const hl7 = s.protocol === 'hl7v2' ? opts(s.hl7, orig?.hl7v2, {}) : {};
     if (Object.keys(astm).length || Object.keys(hl7).length) b['protocol_options'] = { ...(Object.keys(astm).length ? { astm } : {}), ...(Object.keys(hl7).length ? { hl7v2: hl7 } : {}) };
-    const po = Object.fromEntries(optFields.filter((f) => Object.hasOwn(s.popts, f.key) && s.popts[f.key] !== f.def && s.popts[f.key] !== '').map((f) => [f.key, f.numeric ? Number(s.popts[f.key]) : s.popts[f.key]]));
-    if (Object.keys(po).length) b['parser_options'] = po;
+    const poScalar = Object.fromEntries(
+      optFields
+        .filter((f) => Object.hasOwn(s.popts, f.key) && s.popts[f.key] !== f.def && s.popts[f.key] !== '')
+        .map((f) => [f.key, f.numeric ? Number(s.popts[f.key]) : f.bool ? s.popts[f.key] === 'true' : s.popts[f.key]]),
+    );
+    const po = { ...s.poptsExtra, ...poScalar };
+    if (Object.keys(po).length || (edit && instrument?.parser_options && Object.keys(instrument.parser_options).length > 0)) b['parser_options'] = po;
     if (s.file_drop && s.protocol !== 'file_drop') b['file_drop'] = clean(s.file_drop);
     b['capabilities'] = { host_query: s.host_query && supportsHostQuery, worklist_download: false }; // worklist download: never true (AC-03.4)
     const qc = s.qc.split('\n').map((x) => x.trim()).filter(Boolean);
@@ -337,6 +357,7 @@ export function InstrumentForm({ mode, agents, drivers, instrument, permissions 
         done.current = !edit;
         setServerErr({});
         if (edit) {
+          dirty.current = false;
           version.current = (r.data as { version: number }).version;
           toast.show({ tone: 'success', title: 'Saved. The agent picks this up within a minute.' });
           router.refresh();
@@ -452,9 +473,12 @@ export function InstrumentForm({ mode, agents, drivers, instrument, permissions 
         {optFields.map((f) => {
           const val = Object.hasOwn(s.popts, f.key) ? s.popts[f.key]! : f.def;
           const set = (v: string) => patch({ popts: { ...s.popts, [f.key]: v } });
+          if (f.bool) {
+            return <DescribedSwitch key={f.key} label={`Analyser option: ${f.title}`} name={`parser_options.${f.key}`} isSelected={val === 'true'} onChange={(onBool) => set(String(onBool))} isDisabled={ro} />;
+          }
           return f.options
-            ? <Select<string> key={f.key} label={`Analyser option: ${f.title}`} name={`parser_options.${f.key}`} options={f.options.map((o) => ({ value: o, label: o }))} {...on(val, { value: val })} onChange={set} />
-            : <TextField key={f.key} label={`Analyser option: ${f.title}`} name={`parser_options.${f.key}`} maxLength={f.maxLength ?? 64} value={val} onChange={set} />;
+            ? <Select<string> key={f.key} label={`Analyser option: ${f.title}`} name={`parser_options.${f.key}`} options={f.options.map((o) => ({ value: o, label: o }))} {...on(val, { value: val })} onChange={set} isDisabled={ro} />
+            : <TextField key={f.key} label={`Analyser option: ${f.title}`} name={`parser_options.${f.key}`} maxLength={f.maxLength ?? 64} value={val} onChange={set} {...ROF} />;
         })}
         <TimezoneSelect value={s.timezone} error={zoneErr} disabled={ro} onChange={onZone} />
         <TextArea label="QC sample ID patterns" name="qc_sample_id_patterns" maxLength={1010} rows={3} description="One pattern per line, up to 10." value={s.qc} onChange={(v) => patch({ qc: v }, '/qc_sample_id_patterns')} {...ROF} {...E('/qc_sample_id_patterns', s.qc)} />

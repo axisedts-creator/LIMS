@@ -3,6 +3,7 @@
 // Action buttons are a UI hint for the state machine; the API enforces transitions (409 invalid_transition → message + re-read).
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useLiveRefresh } from './useLiveRefresh';
 import { shortcuts } from '@/core/shortcuts/registry';
 import { Banner } from '@lims/ui/components/Banner';
 import { Button } from '@lims/ui/components/Button';
@@ -54,6 +55,7 @@ export function InstrumentDetail({ instrument, agents, drivers, permissions }: {
   const toast = useToast();
   const [tab, setTab] = useState<string>('overview');
   const [open, setOpen] = useState<Open>('none');
+  useLiveRefresh(5_000, tab !== 'configuration' && open === 'none');
   const [error, setError] = useState<string>();
   const [busy, setBusy] = useState(false);
   const inFlight = useRef(false); // one request per click: a double click must not send a second transition

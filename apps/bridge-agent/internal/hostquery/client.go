@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
-	"crypto/tls"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
@@ -52,6 +51,12 @@ type Client struct {
 	http  *http.Client
 }
 
+func (c *Client) CloseIdleConnections() {
+	if c != nil && c.http != nil {
+		c.http.CloseIdleConnections()
+	}
+}
+
 func NewClient(cfg uploader.Config) (*Client, error) {
 	u, err := url.Parse(cfg.BaseURL)
 	if err != nil || u.Scheme != "https" || u.Host == "" {
@@ -60,26 +65,9 @@ func NewClient(cfg uploader.Config) (*Client, error) {
 	if cfg.Token == nil {
 		return nil, errors.New("hostquery: token source required")
 	}
-	pins := make(map[string]bool, len(cfg.SPKIPins))
-	for _, p := range cfg.SPKIPins {
-		if b, err := hex.DecodeString(p); err != nil || len(b) != sha256.Size {
-			return nil, errors.New("hostquery: SPKI pin must be 64 hex characters (SHA-256)")
-		}
-		pins[strings.ToLower(p)] = true
-	}
-	tlsCfg := &tls.Config{MinVersion: tls.VersionTLS12, RootCAs: cfg.RootCAs}
-	if len(pins) > 0 {
-		tlsCfg.VerifyConnection = func(cs tls.ConnectionState) error {
-			for _, chain := range cs.VerifiedChains {
-				for _, c := range chain {
-					h := sha256.Sum256(c.RawSubjectPublicKeyInfo)
-					if pins[hex.EncodeToString(h[:])] {
-						return nil
-					}
-				}
-			}
-			return errors.New("hostquery: no certificate in the chain matches a pinned SPKI hash")
-		}
+	tlsCfg, err := uploader.BuildTLSConfig(cfg.RootCAs, cfg.SPKIPins, cfg.SPKIPinSource, "hostquery")
+	if err != nil {
+		return nil, err
 	}
 	tr := &http.Transport{TLSClientConfig: tlsCfg, DisableCompression: true}
 	if cfg.ProxyURL != "" {

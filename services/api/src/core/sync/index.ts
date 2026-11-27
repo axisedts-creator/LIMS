@@ -12,9 +12,9 @@ import { registrationCreateOrderAdapter } from '../../modules/frontdesk/sync/reg
 import { billingRecordReceiptAdapter } from '../../modules/billing/sync/receipt.adapter.js';
 import { collectionMarkCollectedAdapter } from '../../modules/lab/sync/collection.adapter.js';
 import { accessionReceiveAdapter } from '../../modules/lab/sync/accession.adapter.js';
-import { resultEnterAdapter } from '../../modules/lab/sync/resultEnter.adapter.js';
+import { readResultState, resultEnterAdapter } from '../../modules/lab/sync/resultEnter.adapter.js';
 import { resultVerifyAdapter } from '../../modules/lab/sync/resultVerify.adapter.js';
-import { reportPrintMarkerAdapter } from '../../modules/reporting/sync/printMarker.adapter.js';
+import { createReportPrintMarkerAdapter } from '../../modules/reporting/sync/printMarker.adapter.js';
 import { dailyCashCloseAdapter } from '../../modules/billing/sync/cashClose.adapter.js';
 
 export interface SyncSettings {
@@ -60,6 +60,9 @@ export type Part2Settings = Omit<PushSettings, 'maxBatchOperations' | 'maxBatchB
 export const DEFAULT_PART2_SETTINGS: Readonly<Part2Settings> = Object.freeze({
   skewFlagMs: 300_000, skewRejectMs: 86_400_000, deviceBatchesPerMinute: 30, tenantBatchesPerMinute: 1200,
 });
+
+// Composition root: the print marker reads result states through the lab reader, wired here so reporting does not import lab (02-CONVENTIONS §1.3).
+const reportPrintMarkerAdapter = createReportPrintMarkerAdapter({ readResult: readResultState });
 
 /** T0B-SYNC-3 + T0B-SYNC-4: the default registry = one adapter per catalogue type (eight). */
 export const DEFAULT_SYNC_ADAPTERS: readonly SyncAdapter[] = [registrationCreateOrderAdapter, billingRecordReceiptAdapter, collectionMarkCollectedAdapter, accessionReceiveAdapter,

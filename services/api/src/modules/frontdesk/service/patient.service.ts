@@ -390,7 +390,8 @@ export async function listPatientOrders(hctx: unknown, params: unknown, query: u
 
 // ---- F7 anonymisePatient (FD-T15; 03-APP-FLOW §2.18, 08 A13 D-27 a/b, P-12 c, CR-C4-007, REQ-SEC-139) ----
 const BUCKET = 'frontdesk-trf' as const;
-const portClock = <T extends { now(): Date }>(c: T): T => Object.assign(Object.create(c), { now: () => toDate(c.now()).toISOString() });
+const portClock = <T extends { now(): Date }>(c: T): T =>
+  Object.defineProperty(Object.create(c), 'now', { value: () => toDate(c.now()).toISOString(), writable: true, configurable: true, enumerable: true });
 interface LabLike { getOrderItemProcessingState?: (c: unknown, i: { orderId: string }) => Promise<readonly { orderItemId: string; processingStatus: ItemProcessingStatus }[]> }
 
 /** An order blocks while it is pre_registered, or registered/in_progress and not (derived) completed. LabPort is only needed for the latter and fails CLOSED. */

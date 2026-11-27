@@ -28,7 +28,8 @@ export const isEditable = (r: GridResult) => !isCalculated(r) && (r.status === '
 export const nameOf = (r: GridResult, a: AnalyteMap) => a[r.analyte_id]?.name ?? r.analyte_code;
 
 export function statusLabel(r: GridResult): string {
-  const base = r.status === 'approved' ? `Approved v${r.current_version_no}` : r.status[0]!.toUpperCase() + r.status.slice(1);
+  const s = r.status || 'pending';
+  const base = s === 'approved' ? `Approved v${r.current_version_no}` : s.charAt(0).toUpperCase() + s.slice(1);
   return [base, r.on_hold ? 'On QC hold' : '', r.qc_review_required ? 'QC review' : ''].filter(Boolean).join(' · ');
 }
 export const flagText = (f?: string) => (f && f !== 'N' && Object.hasOwn(FLAGS, f) ? FLAGS[f as ResultFlag][1] : '');
@@ -89,7 +90,7 @@ export function valueField(text: string, info: AnalyteInfo | undefined): { value
 export function enterError(code: string | undefined, info: AnalyteInfo | undefined): string {
   switch (code) {
     case 'common.version_conflict': return 'Changed by someone else — reload this row';
-    case 'lab.result_value_invalid': return validateValue('!', info) ?? 'Enter a valid value.';
+    case 'lab.result_value_invalid': return info?.value_type === 'text' ? 'Enter valid text (up to 2,000 characters).' : (validateValue('!', info) ?? 'Enter a valid value.');
     case 'lab.result_locked': return 'Approved results can only be changed by amendment.';
     case 'lab.result_invalid_transition': return 'This result can no longer be edited.';
     case 'common.not_found': return 'Result not found.';

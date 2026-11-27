@@ -6,6 +6,9 @@ import { ApiError } from '@/core/api/server-fetch';
 import { getShellSession } from '@/core/session/server';
 import { SpecimenDetail } from '@/features/lab/components/specimens/SpecimenDetail';
 import { getRecollectionDefault, getSpecimen, listRejectionReasons } from '@/features/lab/server/read.server';
+import { listCentres } from '@/features/frontdesk/server/read.server';
+import { listSpecimenTypes } from '@/features/catalog/server/listSpecimenTypes.server';
+import { listContainers } from '@/features/catalog/server/listContainers.server';
 import { UUID_RE } from '@/features/lab/server/types';
 
 export const metadata = { title: 'Specimen' };
@@ -15,10 +18,23 @@ export default async function SpecimenPage({ params }: { params: Promise<{ speci
   const permissions = session?.actor.permissions ?? [];
   if (!UUID_RE.test(specimen_id) || !permissions.includes('lab.specimen.read')) notFound();
   const canReject = permissions.includes('lab.specimen.reject');
-  const [specimen, rejectionReasons, recollectionDefault] = await Promise.all([
+  const [specimen, rejectionReasons, recollectionDefault, centres, specimenTypes, containers] = await Promise.all([
     getSpecimen(specimen_id).catch((e: unknown) => { if (e instanceof ApiError && e.status === 404) notFound(); throw e; }),
     canReject ? listRejectionReasons().catch(() => []) : [],
     canReject ? getRecollectionDefault().catch(() => false) : false,
+    listCentres().catch(() => []),
+    listSpecimenTypes().then((r) => r.data).catch(() => []),
+    listContainers().then((r) => r.data).catch(() => []),
   ]);
-  return <SpecimenDetail specimen={specimen} rejectionReasons={rejectionReasons} recollectionDefault={recollectionDefault} permissions={permissions} />;
+  return (
+    <SpecimenDetail
+      specimen={specimen}
+      rejectionReasons={rejectionReasons}
+      recollectionDefault={recollectionDefault}
+      permissions={permissions}
+      centres={centres}
+      specimenTypes={specimenTypes}
+      containers={containers}
+    />
+  );
 }

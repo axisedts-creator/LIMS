@@ -1,5 +1,7 @@
 // Row -> DTO for E22-E32, E40 (02-TRD §7.4; contracts/openapi/instruments.yaml). Pure allowlists: a column not named here never reaches the wire
 // (tenant_id, created_by, updated_*, is_active, cap_* columns, evidence_note inside the stored checklist). No nulls on the wire: absent optionals are omitted.
+import { getDriver } from '../drivers/registry.js';
+
 type Row = Record<string, any>;
 type Out = Record<string, unknown>;
 
@@ -26,6 +28,8 @@ export function toDriver(r: Row): Out {
     put(m, 'software_version', r['manual_software_version']);
     o['manual'] = m;
   }
+  const schema = r['options_schema'] ?? getDriver(String(r['code']))?.optionsSchema;
+  if (schema && typeof schema === 'object') o['options_schema'] = schema;
   return o;
 }
 
@@ -63,6 +67,8 @@ export function toInstrumentSummary(r: Row, driver: Row): Out {
   };
   put(o, 'link_state', r['link_state']);
   put(o, 'last_message_at', r['last_message_at'], iso);
+  put(o, 'last_link_error_code', r['last_link_error_code']);
+  put(o, 'silent_since', r['silent_since'], iso);
   return o;
 }
 

@@ -72,7 +72,8 @@ export function createAttachmentsService(deps: AttachmentsDeps = {}) {
       if (!ins || (ins['tenant_id'] !== undefined && ins['tenant_id'] !== tenantId)) throw new LimsError('instruments.instrument_unknown');
       if (ins['agent_id'] !== agentId) throw new LimsError('instruments.device_mismatch');
       if (!['commissioning', 'live', 'suspended'].includes(ins['state'])) throw new LimsError('instruments.instrument_unknown');
-      const fileDrop = ins['protocol'] === 'file_drop' || (obj(ins['file_drop'])['enabled'] !== undefined && obj(ins['file_drop'])['enabled'] !== false);
+      const fd = obj(ins['file_drop']);
+      const fileDrop = ins['protocol'] === 'file_drop' || ((fd['directory'] !== undefined || fd['enabled'] === true) && fd['enabled'] !== false);
       if (!fileDrop) throw new LimsError('instruments.capability_not_supported');
       const driver = getDriver(ins['driver_code']);
       if (!driver) throw new LimsError('common.internal');

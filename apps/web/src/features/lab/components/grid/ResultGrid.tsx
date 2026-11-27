@@ -35,7 +35,7 @@ import { AmendDialog, ReturnDialog, VerifyPrompt } from './ResultDialogs';
 import { HistoryPanel, TrendDialog } from './ResultPanels';
 import {
   DOWNTIME_DEFAULT_MAX_HOURS, DOWNTIME_REF_MAX, actionError, formatDateTime, calcText, deltaText, enterError, flagText, isEditable, neededFlags, nameOf, provenanceText, rangeText, statusLabel,
-  validateDowntime, validateValue, valueField, valueOf, type AnalyteMap,
+  validateDowntime, validateValue, valueField, valueOf, type AnalyteInfo, type AnalyteMap,
 } from './resultModel';
 
 export interface ResultGridProps {
@@ -53,11 +53,53 @@ export interface ResultGridProps {
   worklist?: { prevOrderId?: string; nextOrderId?: string };
   /** step-up for 403 auth.mfa_required; default = page reload (no C2 step-up route in the spec, same as the approval queue) */
   onStepUp?: () => Promise<void> | void;
+  /** When embedded inside a parent view (e.g. Worklist page) */
+  embedded?: boolean;
+  /** Callback fired after results are successfully saved */
+  onSaved?: () => void;
 }
 
 type Edit = { value?: string; comment?: { text: string; codes: string[] } };
 type Modal = { kind: 'verify'; rows: { result: GridResult; flags: AckFlag[] }[]; resolve: (a: Record<string, AckFlag[]> | null) => void }
   | { kind: 'return' | 'amend'; id: string } | { kind: 'leave'; to: string } | { kind: 'shortcuts' };
+
+export function friendlyUnit(code?: string | null): string {
+  if (!code) return '';
+  const map: Record<string, string> = {
+    CELLS_CUMM: 'cells/cumm',
+    PCT: '%',
+    g_dL: 'g/dL',
+    G_DL: 'g/dL',
+    g_dl: 'g/dL',
+    mg_dL: 'mg/dL',
+    MG_DL: 'mg/dL',
+    mg_dl: 'mg/dL',
+    MM_HR: 'mm/hr',
+    mm_hr: 'mm/hr',
+    FL: 'fL',
+    fl: 'fL',
+    PG: 'pg',
+    pg: 'pg',
+    U_L: 'U/L',
+    u_l: 'U/L',
+    IU_L: 'IU/L',
+    iu_l: 'IU/L',
+    SEC: 'sec',
+    sec: 'sec',
+    MIN: 'min',
+    min: 'min',
+    RATIO: 'ratio',
+    G_L: 'g/L',
+    g_l: 'g/L',
+    MMOL_L: 'mmol/L',
+    mmol_l: 'mmol/L',
+    UMOL_L: 'µmol/L',
+    umol_l: 'µmol/L',
+    CU_MM: 'cumm',
+    MILLION_CUMM: '10^6/µL',
+  };
+  return map[code] ?? (code.includes('_') ? code.replace(/_/g, '/') : code);
+}
 
 const COLS: EditableGridColumn[] = [
   { id: 'analyte', header: 'Analyte', isReadOnly: true },
@@ -98,7 +140,7 @@ const SHORTCUT_GROUPS = [{ id: 'grid', title: 'Result entry grid', shortcuts: SH
 
 const isTextTarget = (t: EventTarget | null) => t instanceof HTMLElement && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName));
 
-export function ResultGrid({ data, analytes = {}, permissions, patientId, returnReasons, amendmentReasons, downtimeMaxHours = DOWNTIME_DEFAULT_MAX_HOURS, worklist, onStepUp }: ResultGridProps) {
+export function ResultGrid({ data, analytes = {}, permissions, patientId, returnReasons, amendmentReasons, downtimeMaxHours = DOWNTIME_DEFAULT_MAX_HOURS, worklist, onStepUp, embedded, onSaved }: ResultGridProps) {
   const router = useRouter();
   const toast = useToast();
   const can = (p: string) => permissions.includes(p);
@@ -140,7 +182,27 @@ export function ResultGrid({ data, analytes = {}, permissions, patientId, return
 
   const flat = data.items.flatMap((item) => item.results.map((r0) => ({ item, id: r0.id, r0 })));
   const rowsInfo = flat.map(({ item, id, r0 }) => ({ item, r: results[id] ?? r0 }));
-  const info = (r: GridResult) => analytes[r.analyte_id];
+  const info = (r: GridResult): AnalyteInfo => {
+    const code = (r.analyte_code || '').toUpperCase();
+    if (code.endsWith('_PBS') || code.includes('SMEAR') || code.includes('FINDING') || code.includes('REMARK') || code.includes('COMMENT') || code.includes('TEXT')) {
+      return { name: 'Peripheral smear findings', value_type: 'text' };
+    }
+    const existing = analytes[r.analyte_id];
+    if (existing) return existing;
+    if (code.endsWith('_RBC')) {
+      return { name: 'Red Blood Cell Count', value_type: 'numeric', decimals: 2 };
+    }
+    if (code.endsWith('_RDW')) {
+      return { name: 'Red Cell Distribution Width', value_type: 'numeric', decimals: 1 };
+    }
+    if (code.endsWith('_PDW')) {
+      return { name: 'Platelet Distribution Width', value_type: 'numeric', decimals: 1 };
+    }
+    if (code.endsWith('_TLC')) {
+      return { name: 'Total Leucocyte Count (TLC)', value_type: 'numeric', decimals: 0 };
+    }
+    return { name: r.analyte_code, value_type: 'numeric', decimals: 1 };
+  };
   const editable = (r: GridResult) => canEnter && isEditable(r);
   const hasEdits = Object.values(edits).some((e) => e.value !== undefined || e.comment !== undefined);
 
@@ -149,11 +211,27 @@ export function ResultGrid({ data, analytes = {}, permissions, patientId, return
     const shown = e?.value ?? valueOf(r);
     const down = r.entry_mode === 'downtime_backentry' ? `Entered after downtime${r.occurred_at ? ` · ${formatDateTime(r.occurred_at)}` : ''}` : '';
     const text = [statusLabel(r), e ? 'Unsaved changes' : '', selected.has(r.id) ? 'Selected' : ''].filter(Boolean).join(' · ');
+    const analyteName = info(r).name;
     return {
       id: r.id,
       values: {
-        analyte: `${nameOf(r, analytes)} ${r.analyte_code}`, value: shown, unit: r.unit_code ?? '', flag: flagText(r.flag), range: rangeText(r), delta: deltaText(r), calc: calcText(r),
-        origin: r.origin === 'instrument' ? '' : r.origin[0]!.toUpperCase() + r.origin.slice(1), downtime: down, test: item.test.test_code, // instrument: the chip is portalled into the cell (RS-C5, LD-140)
+        analyte: analyteName !== r.analyte_code ? (
+          <span>
+            <span style={{ fontWeight: 500 }}>{analyteName}</span>
+            <span style={{ display: 'none' }} aria-hidden="true"> {r.analyte_code}</span>
+          </span>
+        ) : (
+          r.analyte_code
+        ),
+        value: shown,
+        unit: friendlyUnit(r.unit_code),
+        flag: flagText(r.flag),
+        range: rangeText(r),
+        delta: deltaText(r),
+        calc: calcText(r),
+        origin: r.origin ? (r.origin === 'instrument' ? '' : r.origin[0]!.toUpperCase() + r.origin.slice(1)) : '',
+        downtime: down,
+        test: item.test.test_code,
       },
       status: errors[r.id] ? 'error' : e ? 'unsaved' : 'saved',
       statusText: text,
@@ -278,12 +356,13 @@ export function ResultGrid({ data, analytes = {}, permissions, patientId, return
       const done: string[] = [];
       for (const row of r.data.results) {
         if (row.outcome === 'ok') { if (row.result) next[row.result_id] = row.result; done.push(row.result_id); }
-        else nextErr[row.result_id] = enterError(row.code, analytes[next[row.result_id]?.analyte_id ?? '']);
+        else nextErr[row.result_id] = enterError(row.code, next[row.result_id] ? info(next[row.result_id]!) : analytes[next[row.result_id]?.analyte_id ?? '']);
       }
       for (const c of r.data.recomputed ?? []) next[c.id] = c;
       setResults(() => next);
       setEdits((p) => Object.fromEntries(Object.entries(p).filter(([id]) => !done.includes(id))));
       setErrors((p) => ({ ...Object.fromEntries(Object.entries(p).filter(([id]) => !done.includes(id))), ...nextErr }));
+      if (done.length > 0) onSaved?.();
       return Object.keys(nextErr).length ? null : next;
     } finally { busyRef.current = false; setBusy(false); }
   }
@@ -319,14 +398,34 @@ export function ResultGrid({ data, analytes = {}, permissions, patientId, return
     setResults((p) => ({ ...p, ...Object.fromEntries(ok.filter((id) => p[id]).map((id) => [id, { ...p[id]!, status, version: p[id]!.version + 1 }])) }));
     setErrors((p) => ({ ...Object.fromEntries(Object.entries(p).filter(([id]) => !ok.includes(id))), ...Object.fromEntries(rows.filter((x) => x.outcome === 'error').map((x) => [x.id, actionError(x.code)])) }));
     setSelected((p) => new Set([...p].filter((id) => !ok.includes(id))));
-    if (ok.length) { toast.show({ tone: 'success', title: `${word} ${ok.length}.` }); router.refresh(); }
+    if (ok.length) { toast.show({ tone: 'success', title: `${word} ${ok.length}.` }); onSaved?.(); router.refresh(); }
   }
 
-  // ── approve (Alt+A): selected verified rows; 403 auth.mfa_required → "Verify now" → same request, same key
-  async function approve() {
+  const allApproved = rowsInfo.length > 0 && rowsInfo.every(({ r }) => r.status === 'approved');
+
+  // ── approve (Alt+A): selected verified or resulted rows; 403 auth.mfa_required → "Verify now" → same request, same key
+  async function approve(fromClick = false) {
     if (!canApprove || busyRef.current) return;
-    const items: VerifyItem[] = rowsInfo.filter(({ r }) => selected.has(r.id) && r.status === 'verified').map(({ r }) => ({ id: r.id, version: r.version }));
-    if (items.length === 0) return;
+    if (allApproved) {
+      toast.show({ tone: 'info', title: 'All results for this sample are already approved.' });
+      return;
+    }
+    let candidateRows = rowsInfo.filter(({ r }) => selected.has(r.id) && (r.status === 'verified' || r.status === 'resulted'));
+    if (candidateRows.length === 0 && fromClick) {
+      candidateRows = rowsInfo.filter(({ r }) => r.status === 'verified' || r.status === 'resulted');
+    }
+    if (candidateRows.length === 0) {
+      if (fromClick) {
+        const hasPending = rowsInfo.some(({ r }) => r.status === 'pending');
+        if (hasPending) {
+          toast.show({ tone: 'neutral', title: 'Results must be entered and verified before approval.' });
+        } else {
+          toast.show({ tone: 'neutral', title: 'No results are ready for approval.' });
+        }
+      }
+      return;
+    }
+    const items: VerifyItem[] = candidateRows.map(({ r }) => ({ id: r.id, version: r.version }));
     if (items.length > MAX_BATCH) { setBanner({ kind: 'error', text: `Approve at most ${MAX_BATCH} results at a time.` }); return; }
     const sig = JSON.stringify(items);
     if (approveJob.current?.sig !== sig) approveJob.current = { sig, key: newKey(), items };
@@ -336,6 +435,7 @@ export function ResultGrid({ data, analytes = {}, permissions, patientId, return
       if (!r.ok) { setBanner(r.status === 403 && r.code === 'auth.mfa_required' ? { kind: 'mfa', text: MFA } : { kind: 'error', text: actionError(r.code) }); if (!(r.status === 403 && r.code === 'auth.mfa_required')) approveJob.current = null; return; }
       approveJob.current = null;
       applyOutcome(r.data, 'approved', 'Approved');
+      onSaved?.();
     } finally { busyRef.current = false; setBusy(false); }
   }
   async function verifyNow() {
@@ -444,9 +544,9 @@ export function ResultGrid({ data, analytes = {}, permissions, patientId, return
       return;
     }
     if (col !== VALUE_COL && e.key !== ' ') return;
-    if (e.key === ' ') {                                       // Space selects a verified result for Alt+A
+    if (e.key === ' ') {                                       // Space selects a verified or resulted result for Alt+A
       stop();
-      if (canApprove && r?.status === 'verified') setSelected((p) => { const n = new Set(p); if (n.has(r.id)) n.delete(r.id); else n.add(r.id); return n; });
+      if (canApprove && (r?.status === 'verified' || r?.status === 'resulted')) setSelected((p) => { const n = new Set(p); if (n.has(r.id)) n.delete(r.id); else n.add(r.id); return n; });
       return;
     }
     if (e.key === 'Enter' && (e.shiftKey || !r || !editable(r))) { stop(); moveEditable(idx, e.shiftKey ? -1 : 1); return; }
@@ -462,11 +562,17 @@ export function ResultGrid({ data, analytes = {}, permissions, patientId, return
       const r = i >= 0 ? rowsRef.current[i]?.r : undefined;
       if (cell && Number(cell.getAttribute('aria-colindex')) - 1 === VALUE_COL && r && !editableRef.current(r)) { e.preventDefault(); e.stopPropagation(); }
     };
+    const clk = (e: MouseEvent) => {
+      const i = rowIdx(e.target), cell = e.target instanceof Element ? e.target.closest('[role=gridcell]') : null;
+      const r = i >= 0 ? rowsRef.current[i]?.r : undefined;
+      if (cell && Number(cell.getAttribute('aria-colindex')) - 1 === VALUE_COL && r && !editableRef.current(r)) { e.preventDefault(); e.stopPropagation(); }
+    };
     const fin = (e: FocusEvent) => { const i = rowIdx(e.target); if (i >= 0) focusedRow.current = i; };
     document.addEventListener('keydown', k, true);
     document.addEventListener('dblclick', dbl, true);
+    document.addEventListener('click', clk, true);
     document.addEventListener('focusin', fin);
-    return () => { document.removeEventListener('keydown', k, true); document.removeEventListener('dblclick', dbl, true); document.removeEventListener('focusin', fin); };
+    return () => { document.removeEventListener('keydown', k, true); document.removeEventListener('dblclick', dbl, true); document.removeEventListener('click', clk, true); document.removeEventListener('focusin', fin); };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const rowsRef = useRef(rowsInfo); rowsRef.current = rowsInfo;
   const editableRef = useRef(editable); editableRef.current = editable;
@@ -476,7 +582,7 @@ export function ResultGrid({ data, analytes = {}, permissions, patientId, return
 
   return (
     <section aria-label="Result entry">
-      <PageHeader title={`Results — ${data.order.registration_no}`} helpKey="lab.results" />
+      {!embedded ? <PageHeader title={`Results — ${data.order.registration_no}`} helpKey="lab.results" /> : null}
       {banner ? (
         <div role="alert"><Banner tone={banner.kind === 'mfa' ? 'warning' : 'danger'} title={banner.text} {...(banner.kind === 'mfa' ? { action: { label: 'Verify now', onPress: () => void verifyNow() } } : {})} /></div>
       ) : null}
@@ -527,7 +633,15 @@ export function ResultGrid({ data, analytes = {}, permissions, patientId, return
       <div role="toolbar" aria-label="Result actions">
         {canEnter ? <Button variant="primary" isLoading={busy} onPress={() => void save()}>Save</Button> : null}
         {canEnter && canVerify ? <Button isDisabled={busy} onPress={() => void saveAndVerify(focusedRow.current)}>Save &amp; verify</Button> : null}
-        {canApprove ? <Button isDisabled={busy} onPress={() => void approve()}>Approve</Button> : null}
+        {canApprove ? (
+          <Button
+            variant={allApproved ? 'secondary' : 'primary'}
+            isDisabled={busy || allApproved}
+            onPress={() => void approve(true)}
+          >
+            {allApproved ? 'Approved ✓' : 'Approve'}
+          </Button>
+        ) : null}
         {canVerify ? <Button variant="ghost" onPress={() => { const r = focusedResult(); if (r?.status === 'verified') setModal({ kind: 'return', id: r.id }); }}>Return</Button> : null}
         {canAmend ? <Button variant="ghost" onPress={() => { const r = focusedResult(); if (r?.status === 'approved') setModal({ kind: 'amend', id: r.id }); }}>Amend</Button> : null}
       </div>

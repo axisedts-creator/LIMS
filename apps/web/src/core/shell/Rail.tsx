@@ -3,7 +3,8 @@
 // PageShell <nav aria-label="Main">: logo + tenant, "Find a screen", the scrolling group list, the user card. Groups are an accordion
 // (one open at a time); the filter opens every group with a match. Entries arrive already permission-filtered by AppShell.
 import Link from 'next/link';
-import { useId, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { t } from '../i18n/messages';
 import { GROUP_ICON, NavIcon } from './NavIcon';
 
@@ -26,7 +27,68 @@ type Props = {
 export function Rail({ groups, tenant, user, logoSrc, navId, drawerOpen, onClose }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const uid = useId();
+  let routerPath = '';
+  try {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    routerPath = usePathname() || '';
+  } catch {
+    // outside router
+  }
+
+  const [clickedPath, setClickedPath] = useState<string | null>(null);
+  const prevRouterPath = useRef(routerPath);
+
+  useEffect(() => {
+    if (routerPath && routerPath !== prevRouterPath.current) {
+      prevRouterPath.current = routerPath;
+      setClickedPath(routerPath);
+    }
+  }, [routerPath]);
+
+  useEffect(() => {
+    setClickedPath(null);
+  }, [groups]);
+
   const [open, setOpen] = useState<string | null>(() => (groups.find((g) => g.items.some((e) => e.current)) ?? groups[0])?.id ?? null);
+
+  const activePath = (clickedPath || routerPath || '').replace(/\/$/, '');
+
+  const isItemCurrent = (item: RailItem) => {
+    if (!activePath) return item.current;
+    const itemPath = (item.path || '').replace(/\/$/, '');
+    if (itemPath && itemPath === activePath) return true;
+    if (item.id === 'lab.worklists' && (activePath.startsWith('/lab/orders/') || activePath.startsWith('/lab/worklists'))) return true;
+    if (item.id === 'lab.receive' && activePath.startsWith('/lab/receive')) return true;
+    if (item.id === 'lab.status_board' && activePath.startsWith('/lab/status-board')) return true;
+    if (item.id === 'lab.collect' && activePath.startsWith('/lab/collect')) return true;
+    if (item.id === 'lab.pending' && activePath.startsWith('/lab/pending')) return true;
+    if (item.id === 'lab.verification' && activePath.startsWith('/lab/verification')) return true;
+    if (item.id === 'lab.approval' && activePath.startsWith('/lab/approval')) return true;
+    if (item.id === 'lab.critical_values' && activePath.startsWith('/lab/critical-values')) return true;
+    if (item.id === 'lab.worksheets' && activePath.startsWith('/lab/worksheets')) return true;
+    if (item.id === 'frontdesk.registration_new' && activePath.startsWith('/frontdesk/registration')) return true;
+    if (item.id === 'frontdesk.worklist' && activePath.startsWith('/frontdesk/worklist')) return true;
+    if (item.id === 'frontdesk.discount_approvals' && activePath.startsWith('/frontdesk/discount-approvals')) return true;
+    if (itemPath && itemPath !== '/' && activePath.startsWith(itemPath + '/')) return true;
+    return false;
+  };
+
+  const hasAnyMatch = groups.some((g) => g.items.some((item) => isItemCurrent(item)));
+  const itemIsCurrent = (item: RailItem) => (hasAnyMatch ? isItemCurrent(item) : item.current);
+
+  useEffect(() => {
+    if (!activePath) return;
+    const matchedGroup = groups.find((g) => g.items.some((e) => isItemCurrent(e)));
+    if (matchedGroup && !matchedGroup.direct) {
+      setOpen(matchedGroup.id);
+    }
+  }, [activePath, groups]);
+
+  const onSelectPath = (path: string) => {
+    setClickedPath(path);
+    onClose();
+  };
+
   const [query, setQuery] = useState('');
   const scrollTo = useRef<string | null>(null);
 
@@ -82,9 +144,10 @@ export function Rail({ groups, tenant, user, logoSrc, navId, drawerOpen, onClose
         {shown.map((g) => {
           if (g.direct && g.items[0]) {
             const only = g.items[0];
+            const isCurrent = itemIsCurrent(only);
             return (
               <div key={g.id} role="group" aria-label={g.label} data-group={g.id} className="lims-rail-group lims-rail-direct">
-                <Link href={only.path} prefetch={false} className="lims-rail-header lims-rail-direct-link" aria-current={only.current ? 'page' : undefined} data-chord={only.chord} data-entry-id={only.id} onClick={onClose}>
+                <Link href={only.path} prefetch={false} className="lims-rail-header lims-rail-direct-link" aria-current={isCurrent ? 'page' : undefined} data-chord={only.chord} data-entry-id={only.id} onClick={() => onSelectPath(only.path)}>
                   <NavIcon name={GROUP_ICON[g.id]} />
                   <span className="lims-rail-group-label">{only.label}</span>
                 </Link>
@@ -106,10 +169,11 @@ export function Rail({ groups, tenant, user, logoSrc, navId, drawerOpen, onClose
                 {g.items.map((e) => {
                   const sub = !filtering && e.section && e.section !== lastSection ? e.section : null;
                   lastSection = e.section;
+                  const isCurrent = itemIsCurrent(e);
                   return [
                     sub ? <li key={`${e.id}#s`} className="lims-rail-subheading" data-subheading="">{sub}</li> : null,
                     <li key={e.id} className="lims-rail-item" data-entry-id={e.id}>
-                      <Link href={e.path} prefetch={false} className="lims-rail-link" aria-current={e.current ? 'page' : undefined} data-chord={e.chord} onClick={onClose}>
+                      <Link href={e.path} prefetch={false} className="lims-rail-link" aria-current={isCurrent ? 'page' : undefined} data-chord={e.chord} onClick={() => onSelectPath(e.path)}>
                         <NavIcon name={e.icon} />
                         <span className="lims-rail-label" title={e.label}>{e.label}</span>
                       </Link>

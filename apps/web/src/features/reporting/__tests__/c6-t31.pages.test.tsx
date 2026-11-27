@@ -165,6 +165,17 @@ describe('worklist + Critical alerts panel (04-UI-UX §2.9)', () => {
   });
 });
 
+describe('template list read', () => {
+  it('sends only contracted query params (the API rejects unknown ones with 400, which the page shows as 404)', async () => {
+    const c = CASES.find((x) => x.name === 'templates')!;
+    session.permissions = [c.perm];
+    const sent: string[] = [];
+    api.use(http.get(c.main, ({ request }) => { sent.push(...new URL(request.url).searchParams.keys()); return HttpResponse.json(pageOf([])); }));
+    await show(c);
+    expect(sent.filter((k) => k !== 'family')).toEqual([]);
+  });
+});
+
 describe('LOADING', () => {
   it('reporting/loading.tsx renders an accessible skeleton (status/aria-busy) with no PHI', async () => {
     const Loading = (await load('loading')) as unknown as () => React.ReactElement;

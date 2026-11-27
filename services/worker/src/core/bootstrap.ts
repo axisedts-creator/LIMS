@@ -6,6 +6,11 @@ import { makeWorkerUtils, parseCronItems, run, type CronItem, type Runner, type 
 import { createLogger } from '../../../../packages/shared-ts/src/logger/index.js';
 import { createMetrics, startMetricsServer, type CoreMetrics } from '../../../api/src/core/observability/metrics.js';
 import { loadPaymentsConfig } from '../../../api/src/modules/payments/config.js';
+import { frontdeskPort } from '../../../api/src/modules/frontdesk/ports/FrontdeskPort.impl.js';
+import { labPort } from '../../../api/src/modules/lab/ports/LabPort.impl.js';
+import { manifest as catalogManifest } from '../../../api/src/modules/catalog/index.js';
+import { manifest as identityManifest } from '../../../api/src/modules/identity/index.js';
+import { createEvents } from '../../../api/src/core/events/publish.js';
 import { buildTaskList, type Claims, type WorkerDeps, type WorkerTx } from './tasklist.js';
 import type { WorkerManifest } from './manifest.js';
 import { withTenantScope } from './tenant-scope.js';
@@ -71,9 +76,11 @@ export function createWorkerDb(withPgClient: WithPgClient): WorkerDeps['db'] {
   return {
     tx: <T>(input: { claims: Claims; statementTimeoutMs?: number }, fn: (tx: WorkerTx) => Promise<T>) => withPgClient(async (client) => {
       await client.query('BEGIN');
+      const startedAt = new Date();
       try {
         await client.query(OPEN_SQL, [JSON.stringify(input.claims), String(input.statementTimeoutMs ?? DEFAULT_STATEMENT_TIMEOUT_MS)]);
         const out = await fn({
+          startedAt,
           query: (text, values) => {
             assertSingleStatement(text);
             return client.query(text, values as unknown[]);
@@ -103,10 +110,23 @@ export async function createWorkerRuntime(env: NodeJS.ProcessEnv = process.env) 
     const metrics: CoreMetrics = createMetrics();
     const log = createLogger({ service: 'worker', env: env.LIMS_CORE_ENV ?? 'dev', version: env.LIMS_CORE_VERSION ?? '0.0.0', level: (env.LIMS_CORE_LOG_LEVEL as never) ?? 'info' });
     // ponytail: events/core/storage/files/audit ports are not wired yet; a job touching one fails loudly (dead-letters), wire with the port registry (IC X7).
+    const catalogPort = (catalogManifest.ports as any).CatalogPort;
+    const identityPort = (identityManifest.ports as any).IdentityPort;
     const deps: WorkerDeps = {
       db: createWorkerDb(utils.withPgClient), withTenantScope, systemActorOf, coreActorId: systemActorOf('core'),
       metrics: metrics as unknown as WorkerDeps['metrics'], log: log as unknown as WorkerDeps['log'], now: () => new Date(),
-      events: notWired('events'), core: notWired('core'), storage: notWired('storage'), files: notWired('files'), audit: notWired('audit'),
+      events: createEvents({ producer: 'worker', log: log as any, metrics: metrics as any }),
+      core: notWired('core'), storage: notWired('storage'), files: notWired('files'), audit: notWired('audit'),
+      ports: {
+        FrontdeskPort: frontdeskPort,
+        frontdesk: frontdeskPort,
+        LabPort: labPort,
+        lab: labPort,
+        CatalogPort: catalogPort,
+        catalog: catalogPort,
+        IdentityPort: identityPort,
+        identity: identityPort,
+      },
     };
     return { deps, metrics, connectionString, startMetricsServer: (port: number) => startMetricsServer(metrics, { port, host: '0.0.0.0' }), close: () => utils.release() };
   } catch (e) {

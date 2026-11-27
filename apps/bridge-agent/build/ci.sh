@@ -46,8 +46,8 @@ cmd_release_tag_check() {
   fi
   local info
   info="$(go version -m "$bin")"
-  if echo "$info" | grep -qE -- '-tags=([^[:space:]]*,)?nonprod(,|[[:space:]]|$)'; then
-    echo "release-tag-check: $bin was built with the nonprod tag" >&2
+  if echo "$info" | grep -qE -- '-tags=([^[:space:]]*,)?(nonprod|e2e)(,|[[:space:]]|$)'; then
+    echo "release-tag-check: $bin was built with nonprod or e2e tag" >&2
     exit 1
   fi
   echo "release-tag-check: ok"

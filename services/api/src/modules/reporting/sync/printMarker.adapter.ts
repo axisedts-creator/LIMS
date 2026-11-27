@@ -8,7 +8,6 @@ import { LimsError } from '../../../core/errors.js';
 import type { HandlerContext } from '../../../core/module.js';
 import { payloadShape, type SyncAdapter } from '../../../core/sync/engine.js';
 import { settleMarker, syncAlerts, syncSignoffs, type Alerts, type ReadResult, type Signoffs } from '../../../core/sync/offlineSignoffs.js';
-import { readResultState } from '../../lab/sync/resultEnter.adapter.js';
 
 export type ResultsOfReport = (ctx: HandlerContext, reportVersionId: string) => Promise<string[] | undefined>;
 
@@ -23,11 +22,15 @@ export const reportResults: ResultsOfReport = async (ctx, id) => {
   return r.rows.map((x: { id: string }) => x.id);
 };
 
+/** No default lab reader here: reporting never imports lab code (02-CONVENTIONS §1.3). The composition root core/sync/index.ts supplies
+ *  the lab reader; an adapter built without one fails closed the moment it needs a result state. */
+const noReadResult: ReadResult = async () => { throw new LimsError('common.service_unavailable'); };
+
 const validShape = payloadShape('reporting.yaml', 'CreateReportPrintRequest');
 
 export function createReportPrintMarkerAdapter(deps: { resultsOfReport?: ResultsOfReport; readResult?: ReadResult; signoffs?: Signoffs; alerts?: Alerts } = {}): SyncAdapter {
   const resultsOfReport = deps.resultsOfReport ?? reportResults;
-  const d = { readResult: deps.readResult ?? readResultState, signoffs: deps.signoffs ?? syncSignoffs, alerts: deps.alerts ?? syncAlerts };
+  const d = { readResult: deps.readResult ?? noReadResult, signoffs: deps.signoffs ?? syncSignoffs, alerts: deps.alerts ?? syncAlerts };
   return {
     opType: 'report.print_marker', permission: 'reporting.report.print',
     validate(payload) {

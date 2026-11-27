@@ -10,6 +10,7 @@ import { handle as readyForReport } from './consumers/lab.order.ready_for_report
 import { handle as resultAmended } from './consumers/lab.result.amended.v1.js';
 import { handle as resultApproved } from './consumers/lab.result.approved.v1.js';
 import { handle as specimenStatus } from './consumers/lab.specimen.status_changed.v1.js';
+import { createReportingClients } from './clients.js';
 import { crontab, EXPIRE_PAYMENTS, expirePortalPaymentRequests, PURGE_EPHEMERAL, SWEEP_ASSEMBLY, SWEEP_HELD, SWEEP_RENDERS, sweepAssembly, sweepHeldReleases, sweepStuckRenders } from './cron.js';
 import { createPortalPaymentIntent } from './tasks/create_portal_payment_intent.js';
 import { refreshPortalPaymentRequest } from './tasks/refresh_portal_payment_request.js';
@@ -26,13 +27,8 @@ import { createRenderReportVersion } from './tasks/render_report_version.js';
 import { createSendDelivery } from './tasks/send_delivery.js';
 import { createSendPortalOtp } from './tasks/send_portal_otp.js';
 
-/** [CONV] the /internal/sanitize client is C6-T12; until it is wired every sanitise attempt throws (queue retry, file never ready). */
-const unwiredSandbox = { sanitize: async (): Promise<never> => { throw new Error('pdf_sandbox_not_configured'); } };
-
-/** [CONV] the renderer client (api renderer-client/render.client.ts) and the /internal/assemble client (C6-T12) are not wired to env yet (the renderer URL env name is not in
- *  the spec; open point in C6-T09-impl.md): every render attempt fails retryable -> render_failed after 5, never a silent success. */
-const unwiredRenderer = { render: async (): Promise<never> => { throw Object.assign(new Error('renderer_not_configured'), { code: 'reporting.render_unavailable' }); } };
-const unwiredAssembler = { assemble: async (): Promise<never> => { throw Object.assign(new Error('pdf_sandbox_not_configured'), { code: 'reporting.render_unavailable' }); } };
+/** Renderer + PDF sandbox clients (clients.ts): lazy, read LIMS_REPORTING_RENDERER_* / LIMS_REPORTING_SANDBOX_* on the first call; unset settings fail the call retryable. */
+const { renderer, sandbox, assembler } = createReportingClients();
 
 /** [CONV] C6-T20 registers the name P5 enqueues (app.enqueue_job rejects unregistered tasks); the body (new link + delivery, 02-TRD §9) is not part of T20 and is a logged no-op until its task. */
 const reissuePortalLinkStub: TaskHandler = async (payload, ctx) => {
@@ -42,11 +38,11 @@ const reissuePortalLinkStub: TaskHandler = async (payload, ctx) => {
 export const manifest: WorkerManifest = Object.freeze({
   module: 'reporting',
   tasks: Object.freeze({
-    'reporting.process_input_file': createProcessInputFile({ sandbox: unwiredSandbox }),
-    'reporting.assemble_report': createAssembleReport({ sandbox: unwiredSandbox }),
-    'reporting.render_report_version': createRenderReportVersion({ renderer: unwiredRenderer, sandbox: unwiredAssembler }),
-    'reporting.render_print': createRenderPrint({ renderer: unwiredRenderer, sandbox: unwiredAssembler }),       // C6-T16
-    'reporting.build_bulk_print': createBuildBulkPrint({ sandbox: unwiredAssembler }),
+    'reporting.process_input_file': createProcessInputFile({ sandbox }),
+    'reporting.assemble_report': createAssembleReport({ sandbox }),
+    'reporting.render_report_version': createRenderReportVersion({ renderer, sandbox: assembler }),
+    'reporting.render_print': createRenderPrint({ renderer, sandbox: assembler }),       // C6-T16
+    'reporting.build_bulk_print': createBuildBulkPrint({ sandbox: assembler }),
     [PURGE_EPHEMERAL]: purgeEphemeral,
     'reporting.release_if_eligible': releaseIfEligible,
     'reporting.dispatch_release_deliveries': dispatchReleaseDeliveries,

@@ -26,7 +26,8 @@ export function portCtx(c: unknown, kinds: readonly string[]): PortCtx {
 }
 export const rcOf = (c: PortCtx): RepoCtx => ({ tx: c.tx, tenantId: c.tenantId, actorId: c.actor.id });
 /** The ctx the handler-style services expect: Date clock + event publisher; delegates everything else to the original ctx (tx, actor, tenantId, requestId, ports). */
-export const labCtx = (c: PortCtx): any => Object.assign(Object.create(c), { events, now: () => new Date(c.now()) });
+export const labCtx = (c: PortCtx): any =>
+  Object.defineProperty(Object.assign(Object.create(c), { events }), 'now', { value: () => new Date(c.now()), writable: true, configurable: true, enumerable: true });
 
 const ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,6})?(Z|[+-]\d{2}:\d{2})$/;
 export const uuid = (v: unknown, path: string): string => { if (typeof v !== 'string' || !UUID.test(v)) throw bad(path); return v.toLowerCase(); };

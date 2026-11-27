@@ -112,7 +112,7 @@ export interface InvoiceRow { id: string; invoice_no: string; invoice_date_bs: s
 export interface LedgerEntry { id: string; entry_kind: string; method_code?: string; amount: Money; receipt_no?: string; collected_by?: Actor; created_at: string }
 export interface OrderBilling {
   balance: { invoiced: Money; paid: Money; credited: Money; balance_due: Money };
-  eligibility: { release_eligible: boolean; release_basis: string };
+  eligibility: { eligible?: boolean; basis?: string; release_eligible?: boolean; release_basis?: string; order_id?: string; balance_due?: Money; evaluated_at?: string };
   invoices: InvoiceRow[]; credit_notes: { id: string; credit_note_no?: string }[]; ledger_entries: LedgerEntry[];
   open_credit_note_tasks: { id: string; cause: string; status: string }[];
   open_finance_review_items: { id: string; kind?: string; status?: string }[];

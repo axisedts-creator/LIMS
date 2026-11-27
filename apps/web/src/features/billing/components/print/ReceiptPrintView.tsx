@@ -1,6 +1,7 @@
 'use client';
 // 04-UI-UX §8.3 receipt (non-fiscal): "PAYMENT RECEIPT", receipt no, date, order registration no, invoice no(s), method, amount, balance after.
 import { DescriptionList } from '@lims/ui/components/DescriptionList';
+import { BarcodeSymbol } from '@lims/ui/components/BarcodeSymbol';
 import { PrintFrame } from '@lims/ui/components/PrintFrame';
 import type { ReceiptDocument } from '../../server/types';
 import { Ad, humanize, npr } from '../format';
@@ -19,7 +20,19 @@ export function ReceiptPrintView({ receipt: r }: { receipt: ReceiptDocument }) {
         items={[
           { term: 'Receipt no', value: <DocNumber value={r.receipt_no} /> },
           { term: 'Date', value: r.dates ? r.dates.ad : <Ad value={r.issued_at} withTime /> },
-          ...(r.registration_no ? [{ term: 'Registration no', value: r.registration_no }] : []),
+          ...(r.registration_no ? [{
+            term: 'Registration no',
+            value: (
+              <span className="lims-invoice-reg-cell">
+                <span>{r.registration_no}</span>
+                {/^[A-Z0-9-]{1,32}$/.test(r.registration_no.trim()) ? (
+                  <span className="lims-invoice-barcode" role="img" aria-label={`Barcode ${r.registration_no.trim()}`}>
+                    <BarcodeSymbol value={r.registration_no.trim()} heightMm={8} moduleWidthMm={0.25} showText={false} />
+                  </span>
+                ) : null}
+              </span>
+            ),
+          }] : []),
           { term: 'Invoice no', value: r.invoice_nos.length ? r.invoice_nos.map((n, i) => <span key={n}>{i ? ', ' : ''}<DocNumber value={n} /></span>) : '—' },
           { term: 'Method', value: humanize(r.method_code) },
           { term: 'Amount', value: npr(r.amount) },

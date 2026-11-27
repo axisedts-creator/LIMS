@@ -20,7 +20,7 @@ export interface IngestRepo {
 }
 /** E05 adds one read: the stored query bytes, to rebuild the reply on an agent-key duplicate (02-TRD §6.6). */
 export interface HostQueryRepo extends IngestRepo {
-  findMessageRaw(tx: any, tenantId: string, messageId: string): Promise<{ raw_bytes: Buffer; raw_sha256: string } | undefined>;
+  findMessageRaw(tx: any, tenantId: string, messageId: string): Promise<{ raw_bytes: Buffer; raw_sha256: string; received_at?: string } | undefined>;
 }
 
 const RUN_COUNTERS = ['patient_records', 'qc_records', 'calibrator_records', 'host_query_records', 'unmapped_records', 'skipped_no_barcode_records', 'emitted_events', 'skipped_records'] as const;
@@ -46,7 +46,7 @@ export function createIngestRepo(): HostQueryRepo {
       return (await tx.query('SELECT id, raw_sha256 FROM instruments.messages WHERE tenant_id = $1 AND instrument_id = $2 AND message_key = $3', [tenantId, instrumentId, messageKey])).rows[0];
     },
     async findMessageRaw(tx, tenantId, messageId) {
-      return (await tx.query('SELECT raw_bytes, raw_sha256 FROM instruments.messages WHERE tenant_id = $1 AND id = $2', [tenantId, messageId])).rows[0];
+      return (await tx.query('SELECT raw_bytes, raw_sha256, received_at FROM instruments.messages WHERE tenant_id = $1 AND id = $2', [tenantId, messageId])).rows[0];
     },
     async insertMessage(tx, tenantId, r) {
       const id = uuidv7();

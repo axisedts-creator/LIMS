@@ -24,6 +24,52 @@ const PHONE_LOCAL = /^\d{10}$/, PHONE_E164 = /^\+[1-9][0-9]{7,14}$/, EMAIL = /^[
 /** The 19 ElabAssist titles (NewPatient.title enum, LD-310). */
 const TITLES = ['Mr', 'Mrs', 'Miss', 'Ms', 'Master', 'Baby', 'Baby of', 'Dr', 'Prof', 'Capt', 'Col', 'Major', 'Sri', 'Smt', 'Kumari', 'Late', 'Sister', 'Reverend', 'Other']
   .map((label) => ({ value: label.toLowerCase().replace(/ /g, '_'), label }));
+
+const TITLE_TO_SEX: Record<string, string> = {
+  mr: 'male',
+  mrs: 'female',
+  miss: 'female',
+  ms: 'female',
+  master: 'male',
+  sri: 'male',
+  smt: 'female',
+  kumari: 'female',
+  sister: 'female',
+};
+
+function calculateAgeFromDob(isoDate: IsoDate): { years: number; months: number; days: number } {
+  const parts = isoDate.split('-').map(Number);
+  const birthYear = parts[0];
+  const birthMonth = parts[1];
+  const birthDay = parts[2];
+  if (!birthYear || !birthMonth || !birthDay) return { years: 0, months: 0, days: 0 };
+
+  const now = new Date();
+  const todayYear = now.getFullYear();
+  const todayMonth = now.getMonth() + 1; // 1-12
+  const todayDay = now.getDate();
+
+  let years = todayYear - birthYear;
+  let months = todayMonth - birthMonth;
+  let days = todayDay - birthDay;
+
+  if (days < 0) {
+    const prevMonthDays = new Date(todayYear, todayMonth - 1, 0).getDate();
+    days += prevMonthDays;
+    months -= 1;
+  }
+
+  if (months < 0) {
+    months += 12;
+    years -= 1;
+  }
+
+  return {
+    years: Math.max(0, years),
+    months: Math.max(0, months),
+    days: Math.max(0, days),
+  };
+}
 /** NewPatient.government_id_type (LD-310 (b) Nepal types). */
 const GOV_TYPES = [{ value: 'citizenship', label: 'Citizenship' }, { value: 'national_id', label: 'National ID' }, { value: 'passport', label: 'Passport' },
   { value: 'driving_licence', label: 'Driving licence' }, { value: 'voter_id', label: 'Voter ID' }, { value: 'other', label: 'Other' }];
@@ -86,6 +132,33 @@ export function NewPatientForm({ consentTextVersion, onUse, onCancel, findExisti
     }, 300);
     return () => { live = false; clearTimeout(t); };
   }, [name, mobile, findExisting]);
+  const onTitleChange = (t: string | undefined) => {
+    setTitle(t);
+    if (t && TITLE_TO_SEX[t]) {
+      setSex(TITLE_TO_SEX[t]);
+      setErr((prev) => {
+        if (!prev['sex']) return prev;
+        const n = { ...prev };
+        delete n['sex'];
+        return n;
+      });
+    }
+  };
+
+  const onDobChange = (d: IsoDate | undefined) => {
+    setDob(d);
+    if (d) {
+      const calc = calculateAgeFromDob(d);
+      setAge(calc);
+      setErr((prev) => {
+        if (!prev['dob']) return prev;
+        const n = { ...prev };
+        delete n['dob'];
+        return n;
+      });
+    }
+  };
+
   const setAgePart = (k: 'years' | 'months' | 'days', v: number | undefined) => setAge((a) => { const n = { ...a }; if (v === undefined) delete n[k]; else n[k] = v; return n; });
   const pickPhoto = (files: readonly File[]) => {
     const f = files[0];
@@ -101,7 +174,6 @@ export function NewPatientForm({ consentTextVersion, onUse, onCancel, findExisti
     if (!sex) e['sex'] = 'Choose a sex';
     const hasAge = age.years !== undefined || age.months !== undefined || age.days !== undefined;
     if (!dob && !hasAge) e['dob'] = 'Enter a date of birth or an age';
-    if (dob && hasAge) e['dob'] = 'Enter either a date of birth or an age, not both';
     if (mobile && !(PHONE_LOCAL.test(mobile) || PHONE_E164.test(mobile))) e['mobile'] = 'Enter 10 digits or +country code and number';
     if (email && !EMAIL.test(email)) e['email'] = 'Enter a valid email address';
     if (govType && !govNo.trim()) e['govNo'] = 'Enter the Government ID number';
@@ -135,14 +207,14 @@ export function NewPatientForm({ consentTextVersion, onUse, onCancel, findExisti
   return (
     <div role="group" aria-label="New patient" onKeyDown={onKeyDown} className="lims-reg-section">
       <div className="lims-reg-pair">
-        <Select label="Title" name="title" options={TITLES} {...(title ? { value: title } : {})} onChange={setTitle} placeholder={BLANK} />
+        <Select label="Title" name="title" options={TITLES} {...(title ? { value: title } : {})} onChange={onTitleChange} placeholder={BLANK} />
         <div className="lims-reg-grow"><TextField label="Full name" name="full_name" maxLength={200} isRequired value={name} onChange={setName} {...ef('name')} /></div>
       </div>
       <RadioGroup label="Sex" name="sex" isRequired orientation="horizontal" options={SEXES} {...(sex ? { value: sex } : {})} onChange={setSex} {...ef('sex')} />
       {/* RS-C4 / LD-140: both fields stay (the rule is "either, not both", so one control would change validation); they are grouped as one. */}
       <fieldset className="lims-reg-fieldset">
         <legend>Age or date of birth</legend>
-        <DatePicker label="Date of birth" name="birth_on" value={dob} onChange={setDob} {...ef('dob')} />
+        <DatePicker label="Date of birth" name="birth_on" value={dob} onChange={onDobChange} {...ef('dob')} />
         <div className="lims-reg-pair">
           <IntegerField label="Age years" name="age_years" min={0} max={150} {...(age.years !== undefined ? { value: age.years } : {})} onChange={(v) => setAgePart('years', v)} />
           <IntegerField label="Age months" name="age_months" min={0} max={11} {...(age.months !== undefined ? { value: age.months } : {})} onChange={(v) => setAgePart('months', v)} />

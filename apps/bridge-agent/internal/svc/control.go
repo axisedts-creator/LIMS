@@ -60,7 +60,7 @@ func WriteRequest(statusDir, kind string) error {
 		err = cerr
 	}
 	if err == nil {
-		err = os.Rename(name, filepath.Join(statusDir, RequestFile))
+		err = renameRetry(name, filepath.Join(statusDir, RequestFile))
 	}
 	if err != nil {
 		_ = os.Remove(name)

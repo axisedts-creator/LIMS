@@ -7,7 +7,7 @@
 import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';
 import { LimsError } from '../../../core/errors.js';
 import type { HandlerContext, HandlerResult } from '../../../core/module.js';
-import { createAccountsService } from '../../billing/service/accounts.service.js';
+import type { BillingPortV1 } from '../../../../../../contracts/ports/BillingPort.js';
 import { ID_NUMBER_FIELDS } from '../domain/id-number.js';
 import {
   Checker, DECISIONS, EVENT_STATUSES, MAX_PAISA, ONBOARDING_STATUSES, PARTY_KINDS, SETTING_DEFAULTS, CODE, ifMatch, invalid, isIsoDate, isObj, isUuid, settingPatch, type Obj,
@@ -28,7 +28,6 @@ type Req = { params?: unknown; query?: unknown; headers?: unknown; body?: unknow
 type Who = { tenantId: string; actorId: string };
 const tx = (ctx: HandlerContext): repo.Q => ctx.tx as repo.Q;
 const notFound = (): never => { throw new LimsError('common.not_found'); };
-const accounts = createAccountsService();
 
 async function authorize(ctx: HandlerContext, permission: string): Promise<Who> {
   if (ctx.actor?.type !== 'user' || !ctx.tenantId) throw new LimsError('auth.forbidden');   // staff operations only: nothing else reaches SQL
@@ -311,11 +310,13 @@ export async function chargeEvent(req: Req, ctx: HandlerContext): Promise<Handle
   const centreId = (await repo.centreOfParty(tx(ctx), tenantId, kind === 'partner' ? 'partner' : 'credit_party', kind === 'partner' ? String(cur['party_id']) : ledgerParty))
     ?? (ctx as unknown as { centreId?: string }).centreId;
   if (!isUuid(centreId)) throw invalid('/event_id');
-  const entry = await accounts.createEntry(ctx as never, {
-    centre_id: centreId, party_kind: 'credit_party', party_id: ledgerParty, entry_date: await tenantToday(ctx), account_particular_id: particularId,
-    entry_type: 'debit', amount_paisa: Number(cur['amount_paisa']), payment_mode: PENALTY_PAYMENT_MODE, comments: 'Non compliance penalty',
+  const billing = (ctx.ports as { BillingPort?: BillingPortV1 } | undefined)?.BillingPort;
+  if (typeof billing?.recordAccountEntry !== 'function') throw new LimsError('common.service_unavailable');
+  const { entryId } = await billing.recordAccountEntry(ctx as never, {
+    centreId: centreId as never, partyKind: 'credit_party', partyId: ledgerParty as never, entryDate: (await tenantToday(ctx)) as never, accountParticularId: particularId as never,
+    entryType: 'debit', amount: { amountPaisa: Number(cur['amount_paisa']), currency: 'NPR' }, paymentMode: PENALTY_PAYMENT_MODE, comments: 'Non compliance penalty',
   });
-  if (!await repo.bump(tx(ctx), 'non_compliance_event', tenantId, id, expected, { status: 'charged', ledger_entry_id: entry['id'], decided_by: actorId }, actorId)) {
+  if (!await repo.bump(tx(ctx), 'non_compliance_event', tenantId, id, expected, { status: 'charged', ledger_entry_id: entryId, decided_by: actorId }, actorId)) {
     throw new LimsError('common.version_conflict');                                // cannot happen under the row lock; the throw rolls the entry back
   }
   return { status: 200, body: eventDto((await repo.getEvent(tx(ctx), tenantId, id))!) };

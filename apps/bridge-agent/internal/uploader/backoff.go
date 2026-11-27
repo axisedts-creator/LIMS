@@ -75,6 +75,7 @@ type RateBudget struct {
 	mu     sync.Mutex
 	now    func() time.Time
 	last   time.Time
+	rates  [len(classPerMinute)]float64
 	tokens [len(classPerMinute)]float64
 }
 
@@ -83,8 +84,39 @@ func NewRateBudget(now func() time.Time) *RateBudget {
 		now = time.Now
 	}
 	rb := &RateBudget{now: now, last: now()}
+	rb.rates = classPerMinute
 	copy(rb.tokens[:], classPerMinute[:])
 	return rb
+}
+
+// SetRates updates per-minute budgets from a signed agent configuration.
+func (rb *RateBudget) SetRates(totalRPM, hostQueryRPM, heartbeatRPM int) {
+	if rb == nil {
+		return
+	}
+	rb.mu.Lock()
+	defer rb.mu.Unlock()
+	if totalRPM <= 0 {
+		totalRPM = int(classPerMinute[ClassUpload] + classPerMinute[ClassHostQuery] + classPerMinute[ClassHeartbeat])
+	}
+	if hostQueryRPM < 0 {
+		hostQueryRPM = int(classPerMinute[ClassHostQuery])
+	}
+	if heartbeatRPM < 0 {
+		heartbeatRPM = int(classPerMinute[ClassHeartbeat])
+	}
+	upRPM := totalRPM - hostQueryRPM - heartbeatRPM
+	if upRPM < 1 {
+		upRPM = 1
+	}
+	rb.rates[ClassUpload] = float64(upRPM)
+	rb.rates[ClassHostQuery] = float64(hostQueryRPM)
+	rb.rates[ClassHeartbeat] = float64(heartbeatRPM)
+	for i, cap := range rb.rates {
+		if rb.tokens[i] > cap {
+			rb.tokens[i] = cap
+		}
+	}
 }
 
 // Allow takes one token of the class if available.
@@ -96,7 +128,11 @@ func (rb *RateBudget) Allow(c Class) bool {
 	defer rb.mu.Unlock()
 	now := rb.now()
 	if el := now.Sub(rb.last); el > 0 {
-		for i, per := range classPerMinute {
+		for i, per := range rb.rates {
+			if per <= 0 {
+				rb.tokens[i] = 0
+				continue
+			}
 			rb.tokens[i] = min(per, rb.tokens[i]+per*el.Seconds()/60)
 		}
 		rb.last = now

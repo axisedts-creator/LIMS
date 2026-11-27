@@ -54,7 +54,8 @@ export function staffCtx(c: unknown, kinds: readonly string[] = ['user', 'system
   if (!kinds.includes(x.actor.type)) throw forbidden();
   return x as PortCtx;
 }
-export const dateCtx = <T extends { now(): string }>(c: T): Omit<T, 'now'> & { now(): Date } => Object.assign(Object.create(c), { now: () => new Date(c.now()) });
+export const dateCtx = <T extends { now(): string }>(c: T): Omit<T, 'now'> & { now(): Date } =>
+  Object.defineProperty(Object.create(c), 'now', { value: () => new Date(c.now()), writable: true, configurable: true, enumerable: true });
 
 const uuid = (v: unknown, path: string): string => { if (typeof v !== 'string' || !UUID.test(v)) throw bad(path); return v; };
 const oneOf = <T extends string>(v: unknown, set: readonly T[], path: string): T => { if (!set.includes(v as T)) throw bad(path); return v as T; };
@@ -90,8 +91,9 @@ function parseNewPatient(v: unknown, path: string, o: { phoneRequired: boolean }
   if (v['phoneE164'] === undefined ? o.phoneRequired : typeof v['phoneE164'] !== 'string' || !PHONE.test(v['phoneE164'])) throw bad(`${path}/phoneE164`);
   const k = v['consents'];
   if (!isObj(k)) throw bad(`${path}/consents`);
+  if (k['processing'] === false) throw new LimsError('frontdesk.consent_required');
   for (const f of ['sms', 'whatsapp', 'email', 'shareWithReferrer']) if (typeof k[f] !== 'boolean') throw bad(`${path}/consents/${f}`);
-  if (typeof k['consentTextVersion'] !== 'string' || k['consentTextVersion'].length < 1 || k['consentTextVersion'].length > 32) throw bad(`${path}/consents/consentTextVersion`);
+  if (typeof k['consentTextVersion'] !== 'string' || k['consentTextVersion'].length < 1 || k['consentTextVersion'].length > 40) throw bad(`${path}/consents/consentTextVersion`);
   return { fullName, sex, ...(v['birthOn'] !== undefined ? { birthOn: v['birthOn'] as string } : {}), ...(v['ageYears'] !== undefined ? { ageYears: v['ageYears'] as number } : {}),
     ...(typeof v['phoneE164'] === 'string' ? { phoneE164: v['phoneE164'] } : {}), consents: k as NewPatient['consents'] };
 }
@@ -100,7 +102,21 @@ function parseNewPatient(v: unknown, path: string, o: { phoneRequired: boolean }
 async function insertNewPatient(c: PortCtx, p: NewPatient, o: { id?: string; source: string; centreId?: string; today: string; numbering: Obj; now: Date }): Promise<{ row: Obj; duplicateSuspected: boolean }> {
   const cur = (await getSettings(c.tx, c.tenantId))?.consent_text_version;
   if (typeof cur !== 'string') throw new LimsError('common.internal');
-  if (p.consents.consentTextVersion !== cur) throw new LimsError('frontdesk.consent_required');
+  let appCur: string | undefined;
+  if (o.source === 'self_service') {
+    try {
+      const { rows } = await c.tx.query('SELECT app_consent_text_version FROM engagement.settings WHERE tenant_id = $1', [c.tenantId]);
+      appCur = rows[0]?.app_consent_text_version;
+    } catch {
+      // engagement.settings not reachable or not seeded in test harness
+    }
+  }
+  const validConsent = p.consents.consentTextVersion === cur
+    || (o.source === 'self_service' && (
+      p.consents.consentTextVersion === `app-${cur}`
+      || (!!appCur && (p.consents.consentTextVersion === appCur || p.consents.consentTextVersion === `app-${appCur}`))
+    ));
+  if (!validConsent) throw new LimsError('frontdesk.consent_required');
   const pattern = o.numbering['patientCodePattern'];
   if (typeof pattern !== 'string') throw new LimsError('common.internal');
   const birthOn = p.birthOn !== undefined ? calendarDate(p.birthOn, '/birthOn', o.today) : estimatedBirthOn(p.ageYears!, o.today);

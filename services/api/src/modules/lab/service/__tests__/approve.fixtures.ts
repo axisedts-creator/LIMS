@@ -133,4 +133,5 @@ export function make(opt: Opt = {}) {
 }
 export const fail = async (p: Promise<unknown>) => { try { await p; } catch (e) { return e as any; } throw new Error('expected rejection'); };
 export const forbidden = async () => { throw new LimsError('auth.forbidden'); };
+export const centreForbidden = async (r?: any) => { if (r?.centreId) throw new LimsError('auth.forbidden'); };
 export const mfaRequired = async () => { throw new LimsError('auth.mfa_required'); };

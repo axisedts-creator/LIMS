@@ -59,6 +59,11 @@ export function CalendarGrid({ calendar, selected, min, max, timezone, onPick, o
   }, [focus, cal]);
 
   const c = toCal(focus, cal);
+  const minCal = toCal(lo, cal);
+  const maxCal = toCal(hi, cal);
+  const years: number[] = [];
+  for (let y = minCal.year; y <= maxCal.year; y++) years.push(y);
+
   const len = monthLen(c.year, c.month, cal);
   const first = fromCal({ year: c.year, month: c.month, day: 1 }, cal);
   const last = addDays(first, len - 1);
@@ -102,7 +107,79 @@ export function CalendarGrid({ calendar, selected, min, max, timezone, onPick, o
   return (
     <div className="lims-calendar">
       <div className="lims-calendar-header">
-        <p className="lims-calendar-title">{title}</p>
+        <div className="lims-calendar-nav">
+          <button
+            type="button"
+            className="lims-btn lims-btn-ghost lims-calendar-btn"
+            aria-label="Previous year"
+            title="Previous year"
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); move(() => shiftMonths(focus, -12, cal)); }}
+          >
+            «
+          </button>
+          <button
+            type="button"
+            className="lims-btn lims-btn-ghost lims-calendar-btn"
+            aria-label="Previous month"
+            title="Previous month"
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); move(() => shiftMonths(focus, -1, cal)); }}
+          >
+            ‹
+          </button>
+          <div className="lims-calendar-title-wrap">
+            <p className="lims-calendar-title">{title}</p>
+          </div>
+          <button
+            type="button"
+            className="lims-btn lims-btn-ghost lims-calendar-btn"
+            aria-label="Next month"
+            title="Next month"
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); move(() => shiftMonths(focus, 1, cal)); }}
+          >
+            ›
+          </button>
+          <button
+            type="button"
+            className="lims-btn lims-btn-ghost lims-calendar-btn"
+            aria-label="Next year"
+            title="Next year"
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); move(() => shiftMonths(focus, 12, cal)); }}
+          >
+            »
+          </button>
+        </div>
+        <div className="lims-calendar-selectors">
+          <select
+            className="lims-input lims-calendar-select"
+            aria-label="Month"
+            value={c.month}
+            onChange={(e) => {
+              const m = Number(e.target.value);
+              move(() => fromCal({ year: c.year, month: m, day: Math.min(c.day, monthLen(c.year, m, cal)) }, cal));
+            }}
+          >
+            {(cal === 'BS' ? BS_MONTHS : AD_MONTHS).map((mName, idx) => (
+              <option key={idx + 1} value={idx + 1}>
+                {mName}
+              </option>
+            ))}
+          </select>
+          <select
+            className="lims-input lims-calendar-select"
+            aria-label="Year"
+            value={c.year}
+            onChange={(e) => {
+              const y = Number(e.target.value);
+              move(() => fromCal({ year: y, month: c.month, day: Math.min(c.day, monthLen(y, c.month, cal)) }, cal));
+            }}
+          >
+            {years.map((y) => (
+              <option key={y} value={y}>
+                {y}
+              </option>
+            ))}
+          </select>
+        </div>
         <p className="lims-calendar-range">{range}</p>
       </div>
       <table ref={gridRef} role="grid" aria-label={title} className="lims-calendar-grid" onKeyDown={onKeyDown}>

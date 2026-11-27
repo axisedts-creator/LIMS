@@ -10,6 +10,7 @@ import {
 } from '../mappers/agents.mapper.js';
 import { createAgentsRepo, type AgentsRepo, type Row, type Tx } from '../repo/agents.repo.js';
 import { generateEnrolmentCode } from './credentials.service.js';
+import type { ConfigPublisher } from './instruments.service.js';
 
 export interface AgentsCtx {
   readonly tenantId: string;
@@ -78,8 +79,9 @@ export function page(limit: number, nextCursor?: string) {
   return nextCursor ? { limit, next_cursor: nextCursor } : { limit };
 }
 
-export function createAgentsService(deps: { repo?: AgentsRepo; now?: () => Date } = {}) {
+export function createAgentsService(deps: { repo?: AgentsRepo; publish?: ConfigPublisher; now?: () => Date } = {}) {
   const repo = deps.repo ?? createAgentsRepo();
+  const publish = deps.publish;
   const nowMs = (ctx: AgentsCtx): number => new Date(deps.now?.() ?? ctx.now?.() ?? new Date()).getTime();
 
   /** BOLA: RLS-visible row of the caller's tenant, else 404; then assertRole at the agent's centre. */
@@ -149,6 +151,9 @@ export function createAgentsService(deps: { repo?: AgentsRepo; now?: () => Date 
         if ((e as { code?: unknown })?.code === '23505') throw new LimsError('instruments.code_duplicate');
         throw e;
       }
+      if (publish) {
+        await publish(s.tx, { tenantId: s.tenantId, agentId: created['id'], reason: 'agent_created', actorId: s.actorId });
+      }
       return { status: 201, body: toAgent(created), version: created.version };
     },
 
@@ -196,6 +201,13 @@ export function createAgentsService(deps: { repo?: AgentsRepo; now?: () => Date 
       }
       const out = await repo.updateAgent(s.tx, s.tenantId, agent.id, v, cols, s.actorId);
       if (!out) throw new LimsError('common.version_conflict');
+      const cfgChanged = (
+        ('update_channel' in cols && cols['update_channel'] !== agent['update_channel'])
+        || ('pinned_release_id' in cols && cols['pinned_release_id'] !== agent['pinned_release_id'])
+      );
+      if (publish && cfgChanged && out['status'] !== 'retired') {
+        out['latest_config_version'] = await publish(s.tx, { tenantId: s.tenantId, agentId: agent.id, reason: 'agent_changed', actorId: s.actorId });
+      }
       return { status: 200, body: toAgent(out), version: out.version };
     },
 

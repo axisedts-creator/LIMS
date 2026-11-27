@@ -2,22 +2,43 @@
 // Object-level rule (02-CV §10.1): load through the repo (RLS + tenant predicate) -> 404 if invisible -> assertRole(permission, object centre).
 // Tenant and actor come from ctx only. A config version (agent_config_versions) is published by the injected `publish` INSIDE the request tx, AFTER the
 // row change, for the instrument's own agent; its errors are never swallowed (the core rolls the tx back).
+import { AjvCompiler } from '@fastify/ajv-compiler';
 import { isDeepStrictEqual } from 'node:util';
 import { LimsError, type FieldError } from '../../../core/errors.js';
+import { AJV_OPTIONS } from '../../../core/openapi.js';
 // [CONV] relative import until @lims/shared-ts is a services/api dependency (same as agents.service.ts).
 import { uuidv7 } from '../../../../../../packages/shared-ts/src/uuidv7/index.js';
 import { instrumentNext, INSTRUMENT_STATES, type InstrumentAction } from '../domain/instrument.state.js';
 import { validateFileDrop, validateProtocolOptions, validateTransport, type ValidationResult } from '../domain/transportSchemas.js';
-import { assertDriverSelectable, type DriverPurpose } from '../drivers/registry.js';
+import { assertDriverSelectable, getDriver, type DriverPurpose } from '../drivers/registry.js';
 import { toDriver, toInstrument, toInstrumentSummary } from '../mappers/instruments.mapper.js';
 import { createInstrumentsRepo, type InstrumentsRepo, type Row } from '../repo/instruments.repo.js';
 import { cursorOf, enumList, fail, isInt, isUuid, limitOf, page, scope, version, type AgentsCtx, type Result, type Scope } from './agents.service.js';
 
-export type ConfigPublishReason = 'instrument_changed' | 'settings_changed';
+export type ConfigPublishReason = 'agent_created' | 'instrument_changed' | 'agent_changed' | 'release_changed' | 'settings_changed';
 /** Builds + signs + inserts the next agent_config_versions row for one agent (API-T06/T08); returns the new config_version. */
 export type ConfigPublisher = (tx: unknown, o: { tenantId: string; agentId: string; reason: ConfigPublishReason; actorId: string }) => Promise<number>;
 /** ponytail: until the publisher is wired (API-T06) every config-affecting write fails closed instead of silently skipping the agent's new config. */
 export const unwiredPublisher: ConfigPublisher = async () => { throw new LimsError('common.internal'); };
+
+const compileOptions = AjvCompiler() as unknown as (ext: object, o: { customOptions: object }) => (c: { schema: object }) => ((v: unknown) => boolean) & { errors?: Array<{ instancePath?: string }> | null };
+const buildOptionsValidator = compileOptions({}, { customOptions: { ...AJV_OPTIONS, coerceTypes: false, strict: false, useDefaults: false, allErrors: true } });
+const optionValidators = new Map<string, ReturnType<typeof buildOptionsValidator>>();
+
+function validateParserOptions(driverCode: string, value: unknown): void {
+  const drv = getDriver(driverCode);
+  if (!drv?.optionsSchema) return;
+  let validate = optionValidators.get(driverCode);
+  if (!validate) {
+    validate = buildOptionsValidator({ schema: drv.optionsSchema });
+    optionValidators.set(driverCode, validate);
+  }
+  if (!validate(value)) {
+    const first = validate.errors?.[0];
+    const sub = first?.instancePath ?? '';
+    fail(sub ? `/parser_options${sub}` : '/parser_options');
+  }
+}
 
 export type InstrumentsCtx = AgentsCtx;
 export interface InstrumentsDeps { repo?: InstrumentsRepo; publish?: ConfigPublisher; now?: () => Date; allowSketchDrivers?: boolean; nodeEnv?: string }
@@ -35,7 +56,7 @@ const CREATE_KEYS = [
 ];
 const REQUIRED = ['instrument_code', 'display_name', 'agent_id', 'vendor', 'model', 'protocol', 'driver_code', 'transport', 'capabilities'];
 const UPDATE_KEYS = CREATE_KEYS.filter((k) => k !== 'instrument_code' && k !== 'agent_id');   // immutable: retire and recreate
-const AGENT_KEYS = ['protocol', 'driver_code', 'transport', 'protocol_options', 'file_drop', 'capabilities', 'timezone', 'qc_sample_id_patterns'];   // what the agent config carries
+const AGENT_KEYS = ['protocol', 'driver_code', 'transport', 'protocol_options', 'parser_options', 'file_drop', 'capabilities', 'timezone', 'qc_sample_id_patterns'];   // what the agent config carries
 const CHECKLIST_KEYS = ['manual_reference_confirmed', 'sample_comparison_done', 'qc_comparison_done', 'mappings_reviewed'];
 
 const isObj = (v: unknown): v is Row => v !== null && typeof v === 'object' && !Array.isArray(v);
@@ -143,7 +164,7 @@ export function createInstrumentsService(deps: InstrumentsDeps = {}) {
     if (caps.worklist_download && !(d!['status'] === 'verified' && d!['cap_worklist_download'])) throw new LimsError('instruments.capability_not_supported');
   }
   const view = (r: Row): Row => ({
-    protocol: r['protocol'], driver_code: r['driver_code'], transport: r['transport'], protocol_options: r['protocol_options'] ?? {}, file_drop: r['file_drop'] ?? null,
+    protocol: r['protocol'], driver_code: r['driver_code'], transport: r['transport'], protocol_options: r['protocol_options'] ?? {}, parser_options: r['parser_options'] ?? {}, file_drop: r['file_drop'] ?? null,
     capabilities: { host_query: r['cap_host_query'], worklist_download: r['cap_worklist_download'] }, timezone: r['timezone'], qc_sample_id_patterns: r['qc_sample_id_patterns'] ?? [],
     silence_active_from: r['silence_active_from'] ?? null, silence_active_to: r['silence_active_to'] ?? null,
   });
@@ -212,6 +233,7 @@ export function createInstrumentsService(deps: InstrumentsDeps = {}) {
       if (agent.status === 'retired') throw new LimsError('instruments.agent_not_active');   // pending_enrolment is fine: instruments can be prepared before enrolment
       const drivers = await repo.listDrivers(s.tx);
       checkDriver(drivers, b, 'create');
+      validateParserOptions(String(b['driver_code']), b['parser_options'] ?? {});
       let timezone = b['timezone'] as string | undefined;
       if (timezone === undefined) {
         const idp = ctx.ports?.IdentityPort as { getTenantSettings?: (c: unknown) => Promise<{ timezone?: unknown }> } | undefined;
@@ -257,11 +279,14 @@ export function createInstrumentsService(deps: InstrumentsDeps = {}) {
       if (row['version'] !== v) throw new LimsError('common.version_conflict');
       const current = view(row);
       const merged: Row = { ...current, ...patch };
-      if (['protocol', 'transport', 'protocol_options', 'file_drop', 'silence_active_from', 'silence_active_to'].some((k) => k in patch)) checkShape(merged);
+      if (['protocol', 'transport', 'protocol_options', 'parser_options', 'file_drop', 'silence_active_from', 'silence_active_to'].some((k) => k in patch)) checkShape(merged);
       const drivers = await repo.listDrivers(s.tx);
       if (['driver_code', 'capabilities', 'protocol'].some((k) => k in patch)) {
         const purpose: DriverPurpose = row['state'] === 'draft' ? 'create' : row['state'] === 'commissioning' ? 'commissioning' : 'live';
         checkDriver(drivers, merged, 'driver_code' in patch || 'protocol' in patch ? purpose : undefined);
+      }
+      if ('driver_code' in patch || 'parser_options' in patch) {
+        validateParserOptions(String(merged['driver_code']), 'parser_options' in patch ? patch['parser_options'] : (row['parser_options'] ?? {}));
       }
       const { capabilities, ...rest } = patch;
       const cols: Row = { ...rest, updated_by: s.actorId };

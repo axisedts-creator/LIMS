@@ -25,8 +25,29 @@
 .lims-reg-fill { min-height: 0; }
 .lims-reg-pair { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--lims-space-2); }
 .lims-reg-grow { flex: 1 1 8rem; min-width: 0; }
-/* the cart box: 8 compact rows (28 px) + header before it scrolls inside itself */
-.lims-reg-tests-list { flex: 1 1 auto; min-height: 0; max-height: 18rem; overflow-y: auto; }
+/* the cart box: 8 compact rows (28 px) + header before it scrolls inside itself, horizontally scrollable */
+.lims-reg-tests-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: 18rem;
+  overflow-x: auto !important;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.lims-reg-tests-list .lims-data-table { min-width: 100%; width: max-content; }
+.lims-reg-tests-list .lims-table { min-width: 760px; width: 100%; }
+.lims-reg-tests-list th:last-child,
+.lims-reg-tests-list td:last-child {
+  position: sticky;
+  right: 0;
+  background: var(--lims-neutral-0);
+  box-shadow: -2px 0 4px rgba(0, 0, 0, 0.05);
+  z-index: 2;
+  text-align: center;
+}
+.lims-reg-tests-list td:last-child .lims-btn {
+  color: var(--lims-tone-danger-fg);
+}
 .lims-reg-cell-field .lims-field { margin: 0; }
 .lims-reg-cell-field .lims-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .lims-reg-cell-field .lims-input { width: 4rem; }
@@ -63,10 +84,66 @@
 .lims-reg-pair .lims-input { width: 100% !important; }
 .lims-reg .lims-btn { min-height: 1.875rem !important; padding-block: 0 !important; }
 .lims-reg-more { padding: 0.125rem var(--lims-space-2) !important; }
-.lims-reg-summary { flex-wrap: nowrap !important; gap: var(--lims-space-3) !important; margin-top: var(--lims-space-1-5, 0.375rem) !important; padding: var(--lims-space-1-5, 0.375rem) var(--lims-space-3) !important; }
+.lims-reg-summary {
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 0.25rem var(--lims-space-2) !important;
+  margin-top: 0.25rem !important;
+  padding: 0.25rem var(--lims-space-2) !important;
+  max-height: 4.5rem !important;
+  overflow: hidden !important;
+}
 .lims-reg-summary-title { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+.lims-reg-summary .lims-dl {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  gap: 0.125rem var(--lims-space-2) !important;
+  flex: 1 1 auto !important;
+  margin: 0 !important;
+  max-height: 3.5rem !important;
+  overflow: hidden !important;
+}
+.lims-reg-summary .lims-dl-item {
+  display: inline-flex !important;
+  align-items: baseline !important;
+  gap: 0.25rem !important;
+  font-size: 0.75rem !important;
+  white-space: nowrap !important;
+}
+.lims-reg-summary .lims-dl-item dt {
+  font-size: 0.75rem !important;
+  color: var(--lims-neutral-600) !important;
+  margin: 0 !important;
+}
+.lims-reg-summary .lims-dl-item dd {
+  font-size: 0.75rem !important;
+  margin: 0 !important;
+  font-weight: var(--lims-font-weight-medium) !important;
+}
+.lims-reg-summary-actions {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: var(--lims-space-1) !important;
+  flex-shrink: 0 !important;
+  white-space: nowrap !important;
+}
+.lims-reg-summary .lims-btn {
+  flex: none !important;
+  white-space: nowrap !important;
+  min-height: 1.75rem !important;
+  height: 1.75rem !important;
+  padding: 0 0.5rem !important;
+  font-size: 0.75rem !important;
+}
 .lims-reg-summary-list { gap: 0.125rem var(--lims-space-4) !important; font-size: 0.75rem; }
-.lims-reg-summary .lims-btn { flex: none; white-space: nowrap; }
 .lims-reg-summary-balance { font-size: 0.9375rem !important; }
 
 /* LD-310 / T0D-REGSCREEN-2: the new groups live inside the three columns; each column and the More fold scroll inside their own box, never the page. */

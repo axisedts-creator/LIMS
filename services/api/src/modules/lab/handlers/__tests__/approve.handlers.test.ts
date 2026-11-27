@@ -12,7 +12,7 @@ import { fileURLToPath } from 'node:url';
 import { parse } from 'yaml';
 import { describe, expect, it } from 'vitest';
 import { handlers } from '../index.js';
-import { amendRow, APPROVER, approveRow, CENTRE, fail, forbidden, id, make, mfaRequired, NOW, TENANT } from '../../service/__tests__/approve.fixtures.js';
+import { amendRow, APPROVER, approveRow, CENTRE, centreForbidden, fail, forbidden, id, make, mfaRequired, NOW, TENANT } from '../../service/__tests__/approve.fixtures.js';
 
 const spec: any = parse(readFileSync(fileURLToPath(new URL('../../../../../../../contracts/openapi/lab.yaml', import.meta.url)), 'utf8'));
 const S = spec.components.schemas;
@@ -94,7 +94,7 @@ describe('T-17 approveResult (#30) (AC-16.1–AC-16.3)', () => {
   });
   it('P-01 / P-02: unknown id and a centre without approve role -> 404 common.not_found', async () => {
     expect((await fail(run('approveResult', one(id(9)), make({}).ctx))).code).toBe('common.not_found');
-    expect((await fail(run('approveResult', one(id(1)), make({ approveRows: [approveRow(id(1))], assertRole: forbidden }).ctx))).code).toBe('common.not_found');
+    expect((await fail(run('approveResult', one(id(1)), make({ approveRows: [approveRow(id(1))], assertRole: centreForbidden }).ctx))).code).toBe('common.not_found');
   });
   it('S-03 / REQ-SEC-024: body fields (value, approver, tenant) never reach the service', async () => {
     const m = make({ approveRows: [approveRow(id(1))] });

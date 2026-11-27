@@ -1,6 +1,6 @@
 'use client';
 // SCR-01 Agents (04-UI-UX §3) + New agent dialog → E11. Manage affordances are a UI hint; the API enforces.
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Banner } from '@lims/ui/components/Banner';
 import { Button } from '@lims/ui/components/Button';
@@ -18,6 +18,7 @@ import { useToast } from '@lims/ui/components/Toast';
 import { createAgentAction } from '../server/actions';
 import { AGENT_CODE_RE, parseAgentQuery, type AgentSummary, type UpdateChannel } from '../server/types';
 import { AgentStatusChip, DEFAULT_CLOCK_OFFSET_WARN_SECONDS, HEALTH_OPTIONS, HealthChip, STATUS_OPTIONS, hasPerm } from './labels';
+import { useLiveRefresh } from './useLiveRefresh';
 
 export interface Centre { id: string; name: string }
 
@@ -32,13 +33,7 @@ export function AgentsList({ agents, permissions, centres, workingCentreId, cloc
   const centreName = new Map(centres.map((c) => [c.id, c.name]));
   const q = parseAgentQuery(Object.fromEntries(searchParams.entries()));
 
-  // Poll through the BFF (router.refresh re-runs the server component); skipped while the tab is hidden.
-  useEffect(() => {
-    const t = setInterval(() => {
-      if (document.visibilityState === 'visible') router.refresh();
-    }, POLL_MS);
-    return () => clearInterval(t);
-  }, [router]);
+  useLiveRefresh(POLL_MS, !creating);
 
   const navigate = (next: { centre_id?: string | undefined; status?: readonly string[] | undefined; health_state?: readonly string[] | undefined; sort?: string }) => {
     const p = new URLSearchParams(searchParams.toString());

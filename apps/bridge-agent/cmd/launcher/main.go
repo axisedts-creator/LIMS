@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"strings"
 
 	"lims/apps/bridge-agent/internal/update"
 )
@@ -16,12 +17,16 @@ import (
 const serviceName = "LimsBridgeAgent"
 
 func main() {
-	pd := os.Getenv("ProgramData")
-	if pd == "" {
-		pd = `C:\ProgramData`
+	root := strings.TrimSpace(os.Getenv("LIMS_BRIDGE_DATA_ROOT"))
+	if root == "" {
+		pd := os.Getenv("ProgramData")
+		if pd == "" {
+			pd = `C:\ProgramData`
+		}
+		root = filepath.Join(pd, "LIMS", "BridgeAgent")
 	}
 	l, err := update.NewLauncher(update.LauncherOptions{
-		Root:         filepath.Join(pd, "LIMS", "BridgeAgent"),
+		Root:         root,
 		Keys:         update.EmbeddedReleaseKeys(),
 		Authenticode: update.NewAuthenticode(),
 		Start:        startAgent,
@@ -31,7 +36,7 @@ func main() {
 		fmt.Fprintln(os.Stderr, "bridge-launcher:", err)
 		os.Exit(2)
 	}
-	os.Exit(runService(l.Run))
+	os.Exit(runService(filepath.Join(root, "status"), l.Run))
 }
 
 // runConsole supervises in the foreground (debugging, non-service runs).

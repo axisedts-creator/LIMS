@@ -37,15 +37,31 @@ export interface SpecimenDetailProps {
   rejectionReasons: readonly RejectionReason[];
   recollectionDefault: boolean;
   permissions: readonly string[];
+  centres?: readonly { id?: string; centre_id?: string; name: string }[] | null;
+  specimenTypes?: readonly { code: string; name: string }[];
+  containers?: readonly { code: string; name: string }[];
 }
 
 const label = (s: string) => { const t = statusText(s); return t.charAt(0).toUpperCase() + t.slice(1); };
 const byTime = (a: Detail['transitions'][number], b: Detail['transitions'][number]) => Date.parse(a.at) - Date.parse(b.at);
 
-export function SpecimenDetail({ specimen: s, rejectionReasons, recollectionDefault, permissions }: SpecimenDetailProps) {
+export function SpecimenDetail({ specimen: s, rejectionReasons, recollectionDefault, permissions, centres, specimenTypes, containers }: SpecimenDetailProps) {
   const router = useRouter();
   const has = (p: string) => permissions.includes(p);
   const canReceive = has('lab.specimen.receive'), canReject = has('lab.specimen.reject');
+
+  const centreName = (id?: string) => {
+    if (!id) return '';
+    return centres?.find((c) => c.id === id || c.centre_id === id)?.name ?? id;
+  };
+  const specimenTypeName = (code?: string) => {
+    if (!code) return '';
+    return specimenTypes?.find((x) => x.code === code)?.name ?? code;
+  };
+  const containerName = (code?: string) => {
+    if (!code) return '';
+    return containers?.find((x) => x.code === code)?.name ?? code;
+  };
 
   const [kind, setKind] = useState<Kind | null>(null);
   const [notice, setNotice] = useState<Notice | null>(null);
@@ -146,11 +162,11 @@ export function SpecimenDetail({ specimen: s, rejectionReasons, recollectionDefa
       <DescriptionList items={[
         { term: 'Status', value: label(st) },
         { term: 'Registration no', value: s.registration_no },
-        { term: 'Specimen type', value: s.specimen_type_code },
-        ...(s.container_code ? [{ term: 'Container', value: s.container_code }] : []),
+        { term: 'Specimen type', value: specimenTypeName(s.specimen_type_code) },
+        ...(s.container_code ? [{ term: 'Container', value: containerName(s.container_code) }] : []),
         { term: 'Priority', value: label(s.priority) },
-        { term: 'Centre', value: s.centre_id },
-        ...(s.processing_centre_id ? [{ term: 'Processing centre', value: s.processing_centre_id }] : []),
+        { term: 'Centre', value: centreName(s.centre_id) },
+        ...(s.processing_centre_id ? [{ term: 'Processing centre', value: centreName(s.processing_centre_id) }] : []),
         { term: 'Label prints', value: s.label_print_count },
         ...(s.parent_specimen_id ? [{ term: 'Parent specimen', value: <a href={`/lab/specimens/${encodeURIComponent(s.parent_specimen_id)}`}>Open parent specimen</a> }] : []),
         ...(s.replaces_specimen_id ? [{ term: 'Replaces', value: <a href={`/lab/specimens/${encodeURIComponent(s.replaces_specimen_id)}`}>Open replaced specimen</a> }] : []),

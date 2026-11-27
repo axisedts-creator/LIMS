@@ -70,14 +70,18 @@ export type Fail = Extract<ActionResult<unknown>, { ok: false }>;
 
 /** T0D-UILIST-1, LD-353 template 1 LIST and rules 5, 6: the header row is always drawn; an empty list, a failure or a pending operation is ONE state
  * in the table body. `rows` undefined = still loading (header only). T0D-UIX-3 (LD-442): rendered by the kit DataTable (columns config; numeric columns end aligned). */
-export function ListTable<Row>({ caption, columns, rows, getRowId, empty, fail, onRetry }: {
+export function ListTable<Row>({ caption, columns, rows, getRowId, empty, fail, onRetry, consoleSelection, onRowAction }: {
   caption: string; columns: readonly ColumnDef<Row>[]; rows: readonly Row[] | undefined; getRowId: (r: Row) => string; empty: string; fail?: Fail | undefined; onRetry?: () => void;
+  consoleSelection?: { selectedId: string | undefined; onSelect: (id: string) => void };
+  onRowAction?: (r: Row) => void;
 }) {
   const title = fail?.status === 403 ? NO_ACCESS : fail?.status === 404 ? NOT_VISIBLE : fail?.status === 501 && fail.code === 'operation_pending' ? 'Not available yet' : empty;
   const isError = !!fail && title === empty;
   return (
     <DataTable caption={caption} columns={columns} rows={fail ? [] : (rows ?? [])} getRowId={getRowId} isLoading={!fail && rows === undefined}
       emptyState={title === 'Not available yet' ? { title, body: 'This part of the system is being built. It appears here once it is switched on.' } : { title }}
+      {...(consoleSelection ? { consoleSelection } : {})}
+      {...(onRowAction ? { onRowAction } : {})}
       {...(isError ? { error: { title: 'Something went wrong', ...(fail.requestId ? { requestId: fail.requestId } : {}), onRetry: onRetry ?? (() => undefined) } } : {})} />
   );
 }

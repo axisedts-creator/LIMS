@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"time"
 
 	"lims/apps/bridge-agent/internal/secrets"
 )
@@ -37,7 +38,7 @@ type Platform interface {
 }
 
 type EnrolRequest struct {
-	Server, Code, HostFingerprintSHA256, AgentVersion, LauncherVersion, OSVersion string
+	Server, Proxy, Code, HostFingerprintSHA256, AgentVersion, LauncherVersion, OSVersion string
 }
 
 type EnrolResult struct {
@@ -185,7 +186,7 @@ func Install(ctx context.Context, e Env, o InstallOptions, out io.Writer) error 
 	if len(osv) > 64 {
 		osv = osv[:64]
 	}
-	res, err := e.Enroller.Enrol(ctx, EnrolRequest{Server: o.Server, Code: o.EnrolmentCode, HostFingerprintSHA256: fp,
+	res, err := e.Enroller.Enrol(ctx, EnrolRequest{Server: o.Server, Proxy: o.Proxy, Code: o.EnrolmentCode, HostFingerprintSHA256: fp,
 		AgentVersion: e.AgentVersion, LauncherVersion: e.LauncherVersion, OSVersion: osv})
 	if err != nil {
 		return redact("svc: enrolment failed", err, o.EnrolmentCode)
@@ -199,7 +200,7 @@ func Install(ctx context.Context, e Env, o InstallOptions, out io.Writer) error 
 	if err := secrets.SaveToken(e.Layout.SecretsDir(), res.DeviceToken, e.NewProtector([]byte(res.AgentID))); err != nil {
 		return redact("svc: storing the device token", err, res.DeviceToken)
 	}
-	if err := WriteConfigLocal(e.Layout, o.Server, o.Proxy); err != nil {
+	if err := WriteConfigLocal(e.Layout, o.Server, o.Proxy, res.AgentID); err != nil {
 		return fmt.Errorf("svc: writing config.local.json: %w", err)
 	}
 	step(out, 3, "Enrolling with %s ...  OK  agent %s", o.Server, res.AgentID)
@@ -225,15 +226,21 @@ func Install(ctx context.Context, e Env, o InstallOptions, out io.Writer) error 
 	return nil
 }
 
-type localConfig struct {
+// LocalConfig is persisted at config\config.local.json (no secrets, 02-TRD 5.11).
+type LocalConfig struct {
 	ServerURL string `json:"server_url"`
 	ProxyURL  string `json:"proxy_url,omitempty"`
+	AgentID   string `json:"agent_id,omitempty"`
 }
 
-// WriteConfigLocal writes config\config.local.json (server URL and optional proxy only) atomically. The server URL lives only here, so
+// WriteConfigLocal writes config\config.local.json atomically. The server URL lives only here, so
 // a signed server configuration cannot redirect the agent (02-TRD 5.11).
-func WriteConfigLocal(l Layout, server, proxy string) error {
-	raw, err := json.MarshalIndent(localConfig{ServerURL: server, ProxyURL: proxy}, "", "  ")
+func WriteConfigLocal(l Layout, server, proxy string, agentID ...string) error {
+	aid := ""
+	if len(agentID) > 0 {
+		aid = agentID[0]
+	}
+	raw, err := json.MarshalIndent(LocalConfig{ServerURL: server, ProxyURL: proxy, AgentID: aid}, "", "  ")
 	if err != nil {
 		return err
 	}
@@ -250,7 +257,7 @@ func WriteConfigLocal(l Layout, server, proxy string) error {
 		err = cerr
 	}
 	if err == nil {
-		err = os.Rename(name, l.ConfigFile())
+		err = renameRetry(name, l.ConfigFile())
 	}
 	if err != nil {
 		_ = os.Remove(name)
@@ -258,17 +265,34 @@ func WriteConfigLocal(l Layout, server, proxy string) error {
 	return err
 }
 
-// ReadServerURL returns the install-time server URL from config.local.json (used by `enrol`).
-func ReadServerURL(l Layout) (string, error) {
+func renameRetry(src, dst string) error {
+	var err error
+	for i := 0; i < 50; i++ {
+		if err = os.Rename(src, dst); err == nil {
+			return nil
+		}
+		time.Sleep(2 * time.Millisecond)
+	}
+	return err
+}
+
+// ReadLocalConfig returns the local configuration written by install/enrol.
+func ReadLocalConfig(l Layout) (LocalConfig, error) {
 	raw, err := os.ReadFile(l.ConfigFile())
 	if err != nil {
-		return "", err
+		return LocalConfig{}, err
 	}
-	var c localConfig
+	var c LocalConfig
 	if err := json.Unmarshal(raw, &c); err != nil || c.ServerURL == "" {
-		return "", errors.New("svc: config.local.json has no server_url")
+		return LocalConfig{}, errors.New("svc: config.local.json has no server_url")
 	}
-	return c.ServerURL, nil
+	return c, nil
+}
+
+// ReadServerURL returns the install-time server URL from config.local.json (used by `enrol`).
+func ReadServerURL(l Layout) (string, error) {
+	c, err := ReadLocalConfig(l)
+	return c.ServerURL, err
 }
 
 // Enrol re-enrols an installed agent (new PC token / after revocation). The existing token is replaced only after a well-formed reply;
@@ -283,7 +307,7 @@ func Enrol(ctx context.Context, e Env, code string, out io.Writer) error {
 	if !e.Platform.IsElevated() {
 		return ErrNotElevated
 	}
-	server, err := ReadServerURL(e.Layout)
+	lc, err := ReadLocalConfig(e.Layout)
 	if err != nil {
 		return errors.New("svc: the agent is not installed (no config.local.json); run install first")
 	}
@@ -299,7 +323,7 @@ func Enrol(ctx context.Context, e Env, code string, out io.Writer) error {
 	if len(osv) > 64 {
 		osv = osv[:64]
 	}
-	res, err := e.Enroller.Enrol(ctx, EnrolRequest{Server: server, Code: code, HostFingerprintSHA256: fp,
+	res, err := e.Enroller.Enrol(ctx, EnrolRequest{Server: lc.ServerURL, Proxy: lc.ProxyURL, Code: code, HostFingerprintSHA256: fp,
 		AgentVersion: e.AgentVersion, LauncherVersion: e.LauncherVersion, OSVersion: osv})
 	if err != nil {
 		return redact("svc: enrolment failed", err, code)
@@ -307,10 +331,18 @@ func Enrol(ctx context.Context, e Env, code string, out io.Writer) error {
 	if !tokenRe.MatchString(res.DeviceToken) || !agentIDRe.MatchString(res.AgentID) {
 		return errors.New("svc: enrolment failed: the server reply is malformed")
 	}
+	if lc.AgentID != res.AgentID {
+		if err := WriteConfigLocal(e.Layout, lc.ServerURL, lc.ProxyURL, res.AgentID); err != nil {
+			return fmt.Errorf("svc: updating config.local.json: %w", err)
+		}
+	}
 	if err := secrets.SaveToken(e.Layout.SecretsDir(), res.DeviceToken, e.NewProtector([]byte(res.AgentID))); err != nil {
+		if lc.AgentID != res.AgentID {
+			_ = WriteConfigLocal(e.Layout, lc.ServerURL, lc.ProxyURL, lc.AgentID)
+		}
 		return redact("svc: storing the device token", err, res.DeviceToken)
 	}
-	fmt.Fprintf(out, "Enrolled agent %s with %s  OK\n", res.AgentID, server)
+	fmt.Fprintf(out, "Enrolled agent %s with %s  OK\n", res.AgentID, lc.ServerURL)
 	return nil
 }
 

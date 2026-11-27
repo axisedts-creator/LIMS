@@ -42,6 +42,8 @@ export interface ReceiveScreenProps {
   rejectionReasons: readonly RejectionReason[];
   recollectionDefault: boolean;
   permissions: readonly string[];
+  specimenTypes?: readonly { code: string; name: string }[];
+  containers?: readonly { code: string; name: string }[];
 }
 
 const day = (iso?: string) => (iso ? new Date(iso).toLocaleDateString('en-GB', { dateStyle: 'medium' }) : '');
@@ -56,7 +58,7 @@ export function ReceiveScreen(props: ReceiveScreenProps) {
   );
 }
 
-function Screen({ centres, rejectionReasons, recollectionDefault, permissions }: ReceiveScreenProps) {
+function Screen({ centres, rejectionReasons, recollectionDefault, permissions, specimenTypes, containers }: ReceiveScreenProps) {
   const router = useRouter();
   const toast = useToast();
   const serial = useSerial();
@@ -196,6 +198,10 @@ function Screen({ centres, rejectionReasons, recollectionDefault, permissions }:
   const shown = logTab === 'all' ? log : log.filter((e) => tabOf(e) === logTab);
   const reasonText = (code?: string) => rejectionReasons.find((r) => r.code === code)?.display ?? code ?? '';
   const count = (k: LogTab) => (k === 'all' ? log.length : log.filter((e) => tabOf(e) === k).length);
+  const stName = current ? (specimenTypes?.find((s) => s.code === current.specimen_type_code)?.name ?? current.specimen_type_code) : '';
+  const ctName = current?.container_code ? (containers?.find((c) => c.code === current.container_code)?.name ?? current.container_code) : undefined;
+  const specDisplay = ctName ? `${stName} / ${ctName}` : stName;
+
   // T0D-UISCAN-1 (LD-353 template 3): the last scan result card = message, current specimen, then the outcome of this scan.
   const result = msg || current ? (
     <>
@@ -206,7 +212,7 @@ function Screen({ centres, rejectionReasons, recollectionDefault, permissions }:
           {/* T0D-UIX-3 (LD-442): label and value pairs are the kit DescriptionList */}
           <DescriptionList items={[
             { term: 'Registration no', value: current.registration_no },
-            { term: 'Specimen', value: current.container_code ? `${current.specimen_type_code} / ${current.container_code}` : current.specimen_type_code },
+            { term: 'Specimen', value: specDisplay },
             { term: 'Tests', value: `${current.tests.map((t) => t.test_code).join(', ')}${current.priority === 'urgent' ? ' ★ Urgent' : ''}` },
             ...(current.collected_at ? [{ term: 'Collected', value: day(current.collected_at) }] : []),
           ]} />

@@ -143,8 +143,10 @@ export function QueueScreen({ mode, items, permissions, onStepUp, currentUserId,
       void call(getResultSignoffsAction(id)).then((r) => setChains((p) => ({ ...p, [id]: r.ok ? r.data : 'error' })));
     }
   }, [items]);
-  /** Signed by me on the current version: dimmed, not selectable, never sent. */
+  /** Signed by me on the current version: dimmed, not selectable, never sent (except in solo admin mode). */
+  const isSoloAdmin = permissions.includes('lab.verification_policy.manage');
   const mine = (r: QueueResult) => {
+    if (isSoloAdmin) return false;
     const ch = chains[r.id];
     return !!currentUserId && Array.isArray(ch) && ch.some((s) => s.signer_user_id === currentUserId && (r.current_version_no === undefined || s.result_version === r.current_version_no));
   };

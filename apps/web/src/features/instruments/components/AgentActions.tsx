@@ -1,7 +1,7 @@
 'use client';
 // SCR-02 manage actions (04-UI-UX §3): Request command ▾ (E17), Revoke (E15), Retire (E16), Edit (E13).
 // Revoke/Retire/Edit send If-Match with the agent version; E17 sends one Idempotency-Key per user request.
-import { useId, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@lims/ui/components/Button';
 import { ConfirmDialog } from '@lims/ui/components/ConfirmDialog';
@@ -30,10 +30,13 @@ const reason = { codedSet: 'instruments.g_cs_revoke_reasons', options: REVOKE_RE
 
 type Open = 'none' | 'revoke' | 'retire' | 'edit' | 'reupload';
 
-export function AgentActions({ agent, instruments, onCommandRequested }: { agent: Agent; instruments: readonly InstrumentSummary[]; onCommandRequested: () => void }) {
+export function AgentActions({ agent, instruments, onCommandRequested, onDialogOpenChange }: { agent: Agent; instruments: readonly InstrumentSummary[]; onCommandRequested: () => void; onDialogOpenChange?: (open: boolean) => void }) {
   const router = useRouter();
   const toast = useToast();
   const [open, setOpen] = useState<Open>('none');
+  useEffect(() => {
+    onDialogOpenChange?.(open !== 'none');
+  }, [open, onDialogOpenChange]);
   const close = () => setOpen('none');
   const activeInstruments = instruments.some((i) => i.state !== 'retired');
   const retireHintId = useId();

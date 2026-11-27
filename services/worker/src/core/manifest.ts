@@ -26,6 +26,7 @@ export interface JobContext {
   readonly db: { tx<T>(fn: (ctx: JobContext) => Promise<T>): Promise<T> };
   readonly events: unknown; readonly core: unknown; readonly log: any;
   readonly storage: unknown; readonly files: unknown; readonly audit: unknown;
+  readonly ports?: unknown;
   /** LD-190 / CR-C9-T26-002: same shape as WorkerDeps['metrics'] (inc/set/observe). */
   readonly metrics: WorkerDeps['metrics'];
   readonly attempt: number; readonly maxAttempts: number; readonly jobId: string;

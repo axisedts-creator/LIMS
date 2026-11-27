@@ -80,7 +80,7 @@ export function createFakeLabPort(opts: FakeOpts<LabFixtures>) {
     };
     const pendingTests = (ctx: any, s: Row, instrumentId?: string) => s.itemIds.map((itemId: string) => {
       const item = mine(fx.items, ctx).find((i) => i.id === itemId);
-      const pend = resultsOf(ctx, itemId).filter((r) => r.status === "pending"
+      const pend = resultsOf(ctx, itemId).filter((r) => ["pending", "resulted"].includes(r.status)
         && (!instrumentId || fx.mappings.some((m) => m.tenantId === s.tenantId && m.instrumentId === instrumentId && m.analyteId === r.analyteId)));
       return item && pend.length ? { orderItemId: itemId, testId: item.testId, analyteIds: pend.map((r) => r.analyteId) } : undefined;
     }).filter(Boolean);
@@ -105,8 +105,18 @@ export function createFakeLabPort(opts: FakeOpts<LabFixtures>) {
         const s = mine(fx.specimens, ctx).find((x) => x.barcode === input.barcode);
         if (!s) throw new LimsError("lab.specimen_not_found");
         if (!receivable(s)) throw new LimsError("lab.specimen_not_receivable");
+        if (s.status === "received" || s.status === "aliquoted") s.status = "in_process";
         const o = order(ctx, s.orderId);
-        return { specimenId: s.id, priority: o.priority, patient: o.patient, tests: pendingTests(ctx, s) } as any;
+        return {
+          specimenId: s.id,
+          priority: o.priority,
+          ...(s.specimenTypeCode ? { specimenTypeCode: s.specimenTypeCode } : {}),
+          ...(s.collectedAt ? { collectedAt: s.collectedAt } : {}),
+          ...(s.receivedAt ? { receivedAt: s.receivedAt } : {}),
+          ...(o.registrationNo ? { accessionNumber: o.registrationNo } : {}),
+          patient: o.patient,
+          tests: pendingTests(ctx, s, input.instrumentId),
+        } as any;
       },
 
       async ingestInstrumentResult(ctx, input) {

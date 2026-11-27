@@ -82,7 +82,7 @@ export function createSendDelivery(deps: SendDeps = {}): TaskHandler {
     };
 
     // 2. provider choice (REQ-SEC-136)
-    const prod = isProductionEnv(env) || env['NODE_ENV'] === 'production';   // SEC-ENV-1 (LD-236): same helper as the API (LIMS_CORE_ENV or NODE_ENV is production)
+    const prod = isProductionEnv(env);   // SEC-ENV-1 (LD-236): same helper as the API (LIMS_CORE_ENV or NODE_ENV is production)
     const account = await findActiveChannelAccount(tx, tenantId, d['channel']);
     let kind = 'recording';
     if (prod) {

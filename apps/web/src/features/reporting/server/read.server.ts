@@ -68,7 +68,7 @@ export const listDeliveries = (q: { status?: string | undefined; channel?: strin
   }, { status: /^[a-z_]{1,16}$/, channel: ENUM('whatsapp', 'sms', 'email', 'print', 'portal'), purpose: /^[a-z_]{1,32}$/, report_id: UUID_RE, cursor: CURSOR_RE })}`);
 };
 export const getDelivery = (deliveryId: string) => serverFetch<Delivery>(`/v1/reporting/deliveries/${id(deliveryId)}`);
-export const listReportTemplates = () => serverFetch<Page<ReportTemplateRow>>('/v1/reporting/report-templates?limit=100');
+export const listReportTemplates = () => serverFetch<Page<ReportTemplateRow>>('/v1/reporting/report-templates');
 export const getReportTemplate = (templateId: string) => serverFetch<TemplateDetail>(`/v1/reporting/report-templates/${id(templateId)}`);
 export const listMessageTemplates = () => serverFetch<{ data: MessageTemplate[] }>('/v1/reporting/message-templates');
 export const listChannelAccounts = () => serverFetch<{ data: ChannelAccount[] }>('/v1/reporting/channel-accounts');

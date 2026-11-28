@@ -186,6 +186,21 @@ describe('AD-8 Lab settings', () => {
     expect(pageText()).toContain('Report layout, watermark and signature placement are set in Report templates.');
   });
 
+  it('Letterhead & branding: Remove hides the saved logo and Save sends unset [logo_asset_id], no new asset id (CR TENANT-LOGO-1)', async () => {
+    routes[`GET ${S}`] = json(settings({ logo_asset_id: 'saved1' }));
+    routes[`PATCH ${S}`] = json(settings({ version: 8 }));
+    const user = await open('Letterhead & branding');
+    expect(new URL((screen.getByAltText('Logo in use') as HTMLImageElement).src).pathname).toBe('/engagement/content/assets/saved1');
+    await user.click(screen.getByRole('button', { name: 'Remove logo' }));
+    expect(screen.queryByAltText('Logo in use')).toBeNull();
+    expect(callsTo('PATCH', S)).toHaveLength(0);
+    await user.click(saveBtn());
+    await waitFor(() => expect(callsTo('PATCH', S)).toHaveLength(1));
+    const body = bodyOf(callsTo('PATCH', S)[0]);
+    expect(body.unset).toEqual(['logo_asset_id']);
+    expect(body).not.toHaveProperty('logo_asset_id');
+  });
+
   it('Letterhead: server 422 common.upload_quarantined / 415 shows an inline message, never an <img> pointing at the API origin', async () => {
     routes[`POST ${S}/branding-assets`] = () => problem('common.unsupported_media_type', 415);
     const user = await open('Letterhead & branding');

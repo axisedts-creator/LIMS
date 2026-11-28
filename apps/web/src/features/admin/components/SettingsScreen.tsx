@@ -105,12 +105,26 @@ export function SettingsScreen({ settings: initial, flags, annexes }: { settings
   );
 }
 
+/** CR TENANT-LOGO-1: preview of a branding image. Served by the BFF proxy (the same one the portal content screen uses), which asks the API
+ *  with the session token: an image of another lab, a removed one or one still in its security scan gives no picture, only the note. */
+const assetSrc = (id: string) => `/engagement/content/assets/${encodeURIComponent(id)}`;
+function AssetPreview({ id, label }: { id: string; label: string }) {
+  const [gone, setGone] = useState(false);
+  if (gone) return <p className="lims-description">Preview not available yet.</p>;
+  return <img className="lims-asset-preview" src={assetSrc(id)} alt={`${label} in use`} height={64} onError={() => setGone(true)} />;
+}
+
 function TabForm({ tab, settings, onSaved, annexes }: { tab: string; settings: Settings; onSaved: (s: Settings) => void; annexes: Annex[] | null }) {
   const toast = useToast();
   const specs = TABS[tab] ?? [];
   const root = useRef<HTMLDivElement>(null);
   const [vals, setVals] = useState<Vals>(() => Object.fromEntries(specs.map((s) => [s.key, toVal(s, settings[s.key])])));
   const [assets, setAssets] = useState<Record<string, { id: string; pending: boolean }>>({});
+  /** the image to preview: the one just uploaded (once its scan passed), else the one saved for this lab */
+  const shownAsset = (kind: string): string | undefined => {
+    const up = assets[kind]; if (up) return up.pending ? undefined : up.id;
+    const saved = settings[`${kind}_asset_id`]; return typeof saved === 'string' && saved ? saved : undefined;
+  };
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
   const failure = useFailure();
@@ -234,6 +248,7 @@ function TabForm({ tab, settings, onSaved, annexes }: { tab: string; settings: S
               <label htmlFor={`asset-${kind}`} className="lims-label">{label}</label>
               <input id={`asset-${kind}`} type="file" accept="image/png,image/jpeg" aria-describedby={`asset-${kind}-hint`} onChange={(e) => { void upload(kind, e.target.files?.[0]); e.target.value = ''; }} />
               <p id={`asset-${kind}-hint`} className="lims-description">PNG or JPEG, up to 2 MB and 4000 px. Saved with this tab.</p>
+              {shownAsset(kind) ? <AssetPreview key={shownAsset(kind)} id={shownAsset(kind)!} label={label} /> : null}
               {assets[kind]?.pending ? <p>Security scan in progress — the image is used once the scan has passed</p> : assets[kind] ? <p>Uploaded. Save to use it.</p> : null}
               {errors[kind] ? <Alert text={errors[kind]} /> : null}
             </div>

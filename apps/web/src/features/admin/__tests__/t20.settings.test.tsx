@@ -4,7 +4,7 @@
 // ASSUMED: tabs = role "tab" named as in the AD-8 table; GET /v1/identity/settings (TenantSettingsDto) + /feature-flags + /ird-annexes (own); save = PATCH /settings TenantSettingsPatch (only that tab's fields) with If-Match "<version>";
 // flag toggle = PUT /feature-flags/{code} {is_enabled}; branding = POST /settings/branding-assets multipart {file, kind}. Server field errors arrive as 422 identity.setting_out_of_range {errors:[{pointer}]}.
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, screen, waitFor, within } from '@testing-library/react';
+import { cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ID, api, calls, callsTo, bodyOf, resetApi, routes, json, problem, settings, show, showOrThrown, pageText, norm, axeClean } from './t20.harness';
 
@@ -177,6 +177,12 @@ describe('AD-8 Lab settings', () => {
     await user.upload(inputs[0]!, new File([new Uint8Array([0x89, 0x50, 0x4e, 0x47, 1])], 'logo.png', { type: 'image/png' }));
     await waitFor(() => expect(callsTo('POST', `${S}/branding-assets`)).toHaveLength(1));
     expect(callsTo('POST', `${S}/branding-assets`)[0]!.headers.get('content-type')).toMatch(/^multipart\/form-data/);
+    // CR TENANT-LOGO-1: the uploaded image is previewed through the same-origin BFF proxy; a failed load leaves a note, no broken picture
+    const img = await screen.findByAltText('Logo in use') as HTMLImageElement;
+    expect(new URL(img.src).pathname).toBe('/engagement/content/assets/a1');
+    fireEvent.error(img);
+    expect(screen.queryByAltText('Logo in use')).toBeNull();
+    expect(pageText()).toContain('Preview not available yet.');
     expect(pageText()).toContain('Report layout, watermark and signature placement are set in Report templates.');
   });
 
